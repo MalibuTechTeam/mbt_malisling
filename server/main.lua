@@ -7,8 +7,47 @@ local isOXLib = GetResourceState("ox_lib") ~= "missing"
 local weaponsData = json.decode(LoadResourceFile('mbt_malisling', 'weapons.json'))
 local FrameworkObj = {}
 
+if isESX and isQB then
+	print("[ERROR] You are using both ESX and QB-Core, please remove one of them.")
+elseif isESX then
+	FrameworkObj = exports["es_extended"]:getSharedObject()
+elseif isQB then
+	FrameworkObj = exports["qb-core"]:GetCoreObject()
+elseif isOX then
+	local file = ('imports/%s.lua'):format(IsDuplicityVersion() and 'server' or 'client')
+    local import = LoadResourceFile('ox_core', file)
+    local chunk = assert(load(import, ('@@ox_core/%s'):format(file)))
+    chunk()
+end
+
+if isOXInventory then  
+    ox_inventory = exports["ox_inventory"]
+end
+
+
+RegisterServerEvent("mbt_malisling:dropWeapon")
+AddEventHandler("mbt_malisling:dropWeapon", function(data)
+    local _source = source
+    dropCurrentWeapon(source, data)
+end)
+
+RegisterServerEvent("mbt_malisling:getData")
+AddEventHandler("mbt_malisling:getData", function()
+    local _source = source
+    TriggerClientEvent("mbt_malisling:loadData", _source, weaponsData)
+    loadData(weaponsData)
+end)
+
+RegisterServerEvent("mbt_malisling:checkInventory")
+AddEventHandler("mbt_malisling:checkInventory", function(ignoreAttach)
+    local _source = source
+    TriggerClientEvent("mbt_malisling:checkWeaponProps", _source, ox_inventory:Inventory(_source).items, ignoreAttach)
+end)
+
+
 function dropWeaponHand(data)
-    local r = math.random(1,10000)
+    -- local r = math.random(1,10000)
+    local r = ('DeadDrop %s000000000'):format(os.time(os.date('*t')))
 
     -- print("REMOVE! ", data.source, data.count, data.metadata.serial, data.slot)
     local slotItem = exports.ox_inventory:GetSlot(data.Source, data.Slot)
@@ -16,12 +55,10 @@ function dropWeaponHand(data)
     if slotItem then
         exports.ox_inventory:RemoveItem(data.Source, slotItem.name, 1, nil, slotItem.slot)
     
-        exports.ox_inventory:CustomDrop('DeadDrop'..tostring(r), {
+        exports.ox_inventory:CustomDrop(r, {
             {slotItem.name, slotItem.count, slotItem.metadata}
         }, data.PlayerCoords, nil, nil, nil, Config.Weapons[slotItem.name].prop)
     end
-
-
     
 end
 
@@ -40,62 +77,10 @@ function dropCurrentWeapon(source, slot)
             PlayerCoords = coords,
             Slot = slot
         }
-        -- TriggerClientEvent("mbt_malisling:dropHandWeap", _source)
-        print("dropWeaponHand FIRE!")
+
         dropWeaponHand(data)
     end
 end
-
-if isESX and isQB then
-	print("[ERROR] You are using both ESX and QB-Core, please remove one of them.")
-elseif isESX then
-	FrameworkObj = exports["es_extended"]:getSharedObject()
-elseif isQB then
-	FrameworkObj = exports["qb-core"]:GetCoreObject()
-elseif isOX then
-	local file = ('imports/%s.lua'):format(IsDuplicityVersion() and 'server' or 'client')
-    local import = LoadResourceFile('ox_core', file)
-    local chunk = assert(load(import, ('@@ox_core/%s'):format(file)))
-    chunk()
-
-    -- RegisterNetEvent('ox:playerDeath', function(state)
-    --     local player = Ox.GetPlayer(source)
-    --     print("New state is ", state)
-    --     local weaponData = exports.ox_inventory:GetCurrentWeapon(_source)
-    --     print(json.encode(weaponData), {indent=true})
-        
-    --     if state == true then   
-    --         dropCurrentWeapon(source, data)
-    --     end
-    -- end)
-end
-
-if isOXInventory then  
-    ox_inventory = exports["ox_inventory"]
-end
-
-
-RegisterServerEvent("mbt_malisling:dropWeapon")
-AddEventHandler("mbt_malisling:dropWeapon", function(data)
-    local _source = source
-    print("Server - mbt_malisling:dropWeapon")
-    dropCurrentWeapon(source, data)
-    
-end)
-
-RegisterServerEvent("mbt_malisling:getData")
-AddEventHandler("mbt_malisling:getData", function()
-    local _source = source
-    TriggerClientEvent("mbt_malisling:loadData", _source, weaponsData)
-    loadData(weaponsData)
-end)
-
-RegisterServerEvent("mbt_malisling:checkInventory")
-AddEventHandler("mbt_malisling:checkInventory", function(ignoreAttach)
-    local _source = source
-    TriggerClientEvent("mbt_malisling:checkWeaponProps", _source, ox_inventory:Inventory(_source).items, ignoreAttach)
-end)
-
 
 function appendMalisling()
     local st = LoadResourceFile('ox_inventory', "modules/weapon/client.lua")
@@ -276,14 +261,10 @@ RegisterKeyMapping('confirmHolster', "NON TOCCARE (ch)", 'MOUSE_BUTTON', "MOUSE_
 RegisterKeyMapping('cancelHolster', "NON TOCCARE (ch)", 'keyboard', "BACK")]=]
 
     st = st.."\n"..rs
-    -- chunk()
-    -- print(string.find(st, "function Weapon.Equip")) 
 
     local ipfile = SaveResourceFile("ox_inventory", "modules/weapon/client.lua", st, -1)
 
 end
-
-RegisterCommand("pavana", appendMalisling, false)
 
 appendMalisling()
 

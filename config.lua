@@ -1,6 +1,8 @@
 Config = {}
 Config.Debug = false
 
+Config.DropWeaponOnDeath = true
+
 Config.Bones = { ["Back"] = 24816, ["LHand"] = 36029 }
 
 Config.PropInfo = {
