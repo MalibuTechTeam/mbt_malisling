@@ -17,6 +17,10 @@ end
 
 function loadData (t)
     Config.Weapons = t
+
+    for k, v in pairs(Config) do
+        print(k, v)
+    end
 end
 
 function isWeapon (s)

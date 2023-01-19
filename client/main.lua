@@ -10,6 +10,14 @@ GetPedBoneIndex = assert(GetPedBoneIndex)
 AttachEntityToEntity = assert(AttachEntityToEntity)
 
 
+local isESX = GetResourceState("es_extended") ~= "missing"
+local isQB = GetResourceState("qb-core") ~= "missing"
+local isOX = GetResourceState("ox_core") ~= "missing"
+local isOXInventory = GetResourceState("ox_inventory") ~= "missing"
+local isOXLib = GetResourceState("ox_lib") ~= "missing"
+local FrameworkObj = {}
+
+local lastWeapon = {}
 local equippedWeapon
 local equippedWeaponSlot
 local firstSpawn = true
@@ -23,6 +31,35 @@ local attachedWeapons = {
     ["melee2"] = false,
     ["melee3"] = false
 }
+
+local playerState = LocalPlayer.state
+
+
+if isESX then
+	FrameworkObj = exports["es_extended"]:getSharedObject()
+elseif isQB then
+	FrameworkObj = exports["qb-core"]:GetCoreObject()
+elseif isOX then
+	local file = ('imports/%s.lua'):format(IsDuplicityVersion() and 'server' or 'client')
+    local import = LoadResourceFile('ox_core', file)
+    local chunk = assert(load(import, ('@@ox_core/%s'):format(file)))
+    chunk()
+
+    -- RegisterNetEvent('ox:playerDeath', function(state)
+    --     local player = Ox.GetPlayer(source)
+    --     print("New state is ", state)
+    --     local weaponData = exports.ox_inventory:GetCurrentWeapon(_source)
+    --     print(json.encode(weaponData), {indent=true})
+        
+    --     if state == true then   
+    --         dropCurrentWeapon(source, data)
+    --     end
+    -- end)
+end
+
+if isOXInventory then  
+    ox_inventory = exports["ox_inventory"]
+end
 
 -- AddEventHandler("playerSpawned", function()
 --     if firstSpawn then
@@ -66,8 +103,27 @@ AddEventHandler('mbt_malisling:handleWeaponProps', function(data)
 
 end)
 
+function getPlayerData()
+    local d
+
+    if isOX then
+        d  = Ox.GetPlayerData()
+    elseif isESX then
+        d = FrameworkObj.GetPlayerData()
+    elseif isQB then
+
+    end
+
+    return d
+end
+
 function Init()
     playerPed = cache.ped
+    local playerData = getPlayerData()
+    -- print("------------")
+    -- print(json.encode(playerData), {indent=true})
+    -- print(json.encode(playerState), {indent=true})
+    -- print("------------")
     TriggerServerEvent("mbt_malisling:getData")
     Wait(2000)
     TriggerEvent("ox_inv:sendAnim", {
@@ -102,7 +158,7 @@ AddEventHandler('ox_inventory:currentWeapon', function(data)
         end
 
         print("equippedWeaponSlot equip: ", equippedWeaponSlot)
-        
+        lastWeapon = data
         
     else   
         --[[Unequipping]]
@@ -114,6 +170,14 @@ AddEventHandler('ox_inventory:currentWeapon', function(data)
         debugTrace(equippedWeapon)
         dumpTable(Config.Weapons[equippedWeapon])
         print("equippedWeaponSlot unequip: ", equippedWeaponSlot)
+
+        if IsPedDeadOrDying(cache.ped) then
+            print("Unequipping after dead ", data)
+            print(json.encode(lastWeapon), {indent=true})
+            TriggerServerEvent("mbt_malisling:dropWeapon", equippedWeaponSlot)
+        end
+
+
         debugTrace("You have unequipped a "..weaponName)
         local invWeap = ox_inventory:Search('slots', weaponName)
         for _, v in pairs(invWeap) do
@@ -127,6 +191,7 @@ AddEventHandler('ox_inventory:currentWeapon', function(data)
             end
         end
 
+        
         --[[ 
             [ESX]            
             if ESX.PlayerData.inventory[equippedWeaponSlot] then -- Ox 
@@ -140,6 +205,7 @@ AddEventHandler('ox_inventory:currentWeapon', function(data)
 
         equippedWeapon = nil
         equippedWeaponSlot = nil
+        lastWeapon = nil
     end
 end)
 
@@ -249,6 +315,11 @@ RegisterNetEvent("mbt_malisling:sendData")
 AddEventHandler("mbt_malisling:sendData", function(v)
     TriggerEvent("ox_inventory:getWeaponsData", Config.Weapons)
 end)
+
+-- RegisterNetEvent("mbt_malisling:dropHandWeap")
+-- AddEventHandler("mbt_malisling:dropHandWeap", function()
+    
+-- end)
 
 RegisterNetEvent("mbt_malisling:checkWeaponProps")
 AddEventHandler("mbt_malisling:checkWeaponProps", function(t, bool)
