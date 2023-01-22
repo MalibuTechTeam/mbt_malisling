@@ -92,6 +92,7 @@ function appendMalisling()
     if i then print("File already modified") return end
 
     local rs = [=[
+        
 Weapon.Equip = function(item, data)
     local playerPed, sleep = cache.ped, 200
     
@@ -108,10 +109,8 @@ Weapon.Equip = function(item, data)
             
             local watingForHolster = nil
             local holsterConfirmed = false
-
-            -- exports['mbt_nui_text']:Open('[RMOUSE] Estrai<br> [BACKSPACE] Annulla', 'darkblue', 'left')
             
-            lib.showTextUI('[RMOUSE] Estrai<br> [BACKSPACE] Annulla')
+            lib.showTextUI(']=]..Config.Labels["Holster_Help"]..[=[', {icon = 'hand'})
 
             lib.requestAnimDict("reaction@intimidation@cop@unarmed")
 
@@ -132,24 +131,20 @@ Weapon.Equip = function(item, data)
                 Citizen.Wait(100)
             end
 
-            -- exports['mbt_nui_text']:Close()
             lib.hideTextUI()
 
             ClearPedTasks(playerPed)
 
-            RegisterCommand("confirmHolster", function() 
-            end, false)
+            RegisterCommand("confirmHolster", function() end, false)
 
-            RegisterCommand("cancelHolster", function() 
-            end, false)
+            RegisterCommand("cancelHolster", function() end, false)
 
-            if not watingForHolster then
-                return
-            end
+            if not watingForHolster then return end
         end
 
         sleep = anim and anim[3] or 1200
-
+        
+        coords = GetEntityCoords(playerPed, true)
         Utils.PlayAnimAdvanced(sleep*2, anim and anim[1] or 'reaction@intimidation@1h', anim and anim[2] or 'intro', coords.x, coords.y, coords.z, 0, 0, GetEntityHeading(playerPed), 8.0, 3.0, -1, 50, 0.1)
         Wait(sleep)
     end
@@ -257,8 +252,8 @@ AddEventHandler("ox_inv:sendAnim", function (data)
     end
 end)
 
-RegisterKeyMapping('confirmHolster', "NON TOCCARE (ch)", 'MOUSE_BUTTON', "MOUSE_RIGHT")
-RegisterKeyMapping('cancelHolster', "NON TOCCARE (ch)", 'keyboard', "BACK")]=]
+RegisterKeyMapping('confirmHolster', "]=]..Config.HolsterControls["Confirm"]["Label"]..[=[", ']=]..Config.HolsterControls["Confirm"]["Input"]..[=[', "]=]..Config.HolsterControls["Confirm"]["Key"]..[=[")
+RegisterKeyMapping('cancelHolster', "]=]..Config.HolsterControls["Cancel"]["Label"]..[=[", ']=]..Config.HolsterControls["Cancel"]["Input"]..[=[', "]=]..Config.HolsterControls["Cancel"]["Key"]..[=[")]=]
 
     st = st.."\n"..rs
 
@@ -267,9 +262,6 @@ RegisterKeyMapping('cancelHolster', "NON TOCCARE (ch)", 'keyboard', "BACK")]=]
 end
 
 appendMalisling()
-
-
-
 
 -- RegisterCommand("droptest", function (source, args, raw)
 --     local _source = source

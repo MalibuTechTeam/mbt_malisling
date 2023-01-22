@@ -5,6 +5,15 @@ Config.DropWeaponOnDeath = true
 
 Config.Bones = { ["Back"] = 24816, ["LHand"] = 36029 }
 
+Config.Labels = {
+    ["Holster_Help"] = "[RMOUSE] - Unholster [BACKSPACE] - Cancel",
+}
+
+Config.HolsterControls = {
+    ["Confirm"] = { ["Label"] = "Confirm Holster", ["Input"] = "MOUSE_BUTTON", ["Key"] = "MOUSE_RIGHT", },
+    ["Cancel"] = { ["Label"] = "Cancel Holster", ["Input"] = "keyboard", ["Key"] = "BACK", }
+}
+
 Config.PropInfo = {
     ["side"] = {
         ["Bone"] = Config.Bones["Back"],
