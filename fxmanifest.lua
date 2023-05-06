@@ -8,7 +8,7 @@ author "Malibù Tech Team"
 
 description "mbt_malisling"
 
-version "1.0"
+version      '0.0.1'
 
 shared_scripts {
 	'@ox_lib/init.lua',
