@@ -54,7 +54,7 @@ jobs:
         run: |
           mkdir -p ./temp/mbt_malisling
           cp ./{README.md,config.lua,fxmanifest.lua,helper.lua,weapons.json} ./temp/mbt_malisling
-          cp -r ./{client,server} ./temp/ox_inventory
+          cp -r ./{client,server} ./temp/mbt_malisling
           cd ./temp && zip -r ../mbt_malisling.zip ./mbt_malisling
 
       - name: Create Release
