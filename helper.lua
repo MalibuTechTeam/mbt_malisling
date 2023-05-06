@@ -1,26 +1,82 @@
-function debugTrace(t)
-    -- assert(type(t) == "string", "Arg is not a string!")
+-- function debugTrace(t)
+--     -- assert(type(t) == "string", "Arg is not a string!")
+--     if Config.Debug then
+--         if t then
+--             print("DEBUG | "..t.." [Type: "..type(t).."]") 
+--         else
+--             print("Trying to print a nil value!!")
+--         end 
+--     end
+-- end
+
+
+function debugTrace(...)
     if Config.Debug then
-        if t then
-            print("DEBUG | "..t.." [Type: "..type(t).."]") 
+        for i,arg in ipairs{...} do
+            if type(arg) == "table" then
+                dumpTable(arg)
+            else
+                print(arg)
+            end
+        end
+    end
+end
+
+function isComponentASkin(compName)
+    local s, e = string.find(compName, "skin")
+    if s and e then return true else return false end	   
+end
+
+function dumpTable(t, indent)
+    -- if Config.Debug then 
+        indent = indent or 0
+        for k,v in pairs(t) do
+            local formatting = string.rep("    ", indent) .. k .. ": "
+            if type(v) == "table" then
+                print(formatting)
+                dumpTable(v, indent + 1)
+            else
+                print(formatting .. tostring(v))
+            end
+        end
+    -- end
+end
+
+function table_print (tt, indent, done)
+    done = done or {}
+    indent = indent or 0
+    if type(tt) == "table" then
+      local sb = {}
+      for key, value in pairs (tt) do
+        table.insert(sb, string.rep (" ", indent)) -- indent it
+        if type (value) == "table" and not done [value] then
+          done [value] = true
+          table.insert(sb, "{\n");
+          table.insert(sb, table_print (value, indent + 2, done))
+          table.insert(sb, string.rep (" ", indent)) -- indent it
+          table.insert(sb, "}\n");
+        elseif "number" == type(key) then
+          table.insert(sb, string.format("\"%s\"\n", tostring(value)))
         else
-            print("Trying to print a nil value!!")
-        end 
+          table.insert(sb, string.format(
+              "%s = \"%s\"\n", tostring (key), tostring(value)))
+         end
+      end
+      print(table.concat(sb))
+    else
+      print(tt .. "\n")
     end
 end
+  
 
-function dumpTable(t)
-    if Config.Debug then 
-        print(json.encode(t), {indent=true})
-    end
-end
 
-function loadData (t)
-    Config.Weapons = t
+function loadData (data)
+    -- Config.Weapons = data.WeaponsData
+    -- Config.WeaponsInfo = data.WeaponsInfo
 
-    for k, v in pairs(Config) do
-        print(k, v)
-    end
+    -- for k, v in pairs(Config) do
+    --     print(k, v)
+    -- end
 end
 
 function isWeapon (s)
@@ -38,81 +94,57 @@ function getTableLength (t)
     return count
 end
   
--- weaponsHolsterData = nil 
--- isInMinigame = false
+function isTableEmpty(t)
+    return next(t) == nil
+end
 
--- MBT = {}
+function containsValue(array, value)
+    for i=1, #array do
+        if array[i] == value then 
+            return true, i 
+        end
+    end
+    return nil
+end
 
--- MBT.Holstering = {
---     ["KeepHand"] = true,
---     ["CustomHolster"] = true
--- }
+function data(name)
+    local resourceName = GetCurrentResourceName()
+	local file = ('data/%s.lua'):format(name)
+	local datafile = LoadResourceFile(resourceName, file)
+	local path = ('@@%s/data/%s'):format(resourceName, file)
 
--- WeaponGroup = {
---     ["Unarmed"] = 2685387236,
---     ["Melee"] = 3566412244,
---     ["Pistol"] = 416676503,
---     ["SMG"] = 3337201093,
---     ["AssaultRifle"] = 970310034,
---     ["DigiScanner"] = 3539449195,
---     ["FireExtinguisher"] = 4257178988,
---     ["MG"] = 1159398588,
---     ["NightVision"] = 3493187224,
---     ["Parachute"] = 431593103,
---     ["Shotgun"] = 860033945,
---     ["Sniper"] = 3082541095,
---     ["Stungun"] = 690389602,
---     ["Heavy"] = 2725924767,
---     ["Thrown"] = 1548507267,
---     ["PetrolCan"] = 1595662460
--- }
+	if not datafile then
+		warn(('no datafile found at path %s'):format(path:gsub('@@', '')))
+		return {}
+	end
 
-holsterData = {
-    ["side"]   = { 
-        ["dict"] = "reaction@intimidation@cop@unarmed", 
-        ["animIn"] = "intro" ,
-        ["animOut"] = "outro", 
-        ["sleep"] = 400,
-        ["sleepOut"] = 450 
-    },
-    ["back"]   = { 
-        ["dict"] = "reaction@intimidation@1h", 
-        ["animIn"] = "intro",
-        ["animOut"] = "outro",
-        ["sleep"] = 1200,
-        ["sleepOut"] = 1200 
-    },
-    -- ["back2"]  = { 
-    --     ["dict"] = "", 
-    --     ["animIn"] = "intro",
-    --     ["animOut"] = "" 
-    -- },
-    ["melee"]  = { 
-        ["dict"] = "combat@combat_reactions@pistol_1h_gang", 
-        ["animIn"] = "0",
-        ["animOut"] = "0",
-        ["sleep"] = 500,
-        ["sleepOut"] = 500,
-    },
-    ["melee2"] = { 
-        ["dict"] = "combat@combat_reactions@pistol_1h_hillbilly", 
-        ["animIn"] = "0",
-        ["animOut"] = "0",
-        ["sleep"] = 500,
-        ["sleepOut"] = 500,
-    },
-    ["melee3"] = { 
-        ["dict"] = "reaction@intimidation@1h", 
-        ["animIn"] = "intro",
-        ["animOut"] = "outro",
-        ["sleep"] = 1200,
-        ["sleepOut"] = 1200,
-    },
-    ["sideleg"] = { 
-        ["dict"] = "reaction@male_stand@big_variations@d",
-        ["animIn"] = "react_big_variations_m",
-        ["animOut"] = "react_big_variations_m",
-        ["sleep"] = 500,
-        ["sleepOut"] = 500,
-    }
-}
+	local func, err = load(datafile, path)
+
+    print(err)
+
+	if not func or err then
+		warn(('failed to load datafile %s'):format(path:gsub('@@', '')))
+        return
+	end
+
+	return func()
+end
+  
+
+function requestWeaponAsset(weaponHash, cb)
+	if not HasWeaponAssetLoaded(weaponHash) then
+		RequestWeaponAsset(weaponHash)
+
+		while not HasWeaponAssetLoaded(weaponHash) do
+			Wait(0)
+		end
+	end
+
+	if cb ~= nil then
+		cb()
+	end
+end
+
+function handleSling(data)
+    TriggerServerEvent("mbt_malisling:syncSling", data)
+end

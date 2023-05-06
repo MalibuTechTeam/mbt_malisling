@@ -8,7 +8,7 @@ author "Malibù Tech Team"
 
 description "mbt_malisling"
 
-version      '0.0.1'
+version "1.0"
 
 shared_scripts {
 	'@ox_lib/init.lua',
@@ -17,11 +17,17 @@ shared_scripts {
 }
 
 server_scripts {
+    -- "server/scopes.lua",
+    -- "server/main.lua"
     "server/*.lua"
 }
 
 client_scripts {
     "client/*.lua"
+}
+
+files {
+    'data/*.lua',
 }
 
 dependency { "ox_inventory", "ox_lib" }

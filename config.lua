@@ -1,7 +1,8 @@
 Config = {}
-Config.Debug = false
+Config.Debug = true
 
 Config.DropWeaponOnDeath = true
+Config.EnableSling = true
 
 Config.Bones = { ["Back"] = 24816, ["LHand"] = 36029 }
 
@@ -21,7 +22,14 @@ Config.PropInfo = {
         ["Rot"] = { ["x"] = 90.0,  ["y"] = 20.0, ["z"] = 180.0 },
         ["isPed"] = false,
         ["RotOrder"] = 2,
-        ["FixedRot"] = true
+        ["FixedRot"] = true,
+        ["HolsterAnim"] = {
+            ["dict"] = "reaction@intimidation@cop@unarmed", 
+            ["animIn"] = "intro" ,
+            ["animOut"] = "outro", 
+            ["sleep"] = 400,
+            ["sleepOut"] = 450
+        }
         
     },
     ["back"] = {
@@ -30,7 +38,14 @@ Config.PropInfo = {
         ["Rot"] = { ["x"] = 0.0,  ["y"] = 155.0, ["z"] = 0.0 },
         ["isPed"] = false,
         ["RotOrder"] = 2,
-        ["FixedRot"] = true
+        ["FixedRot"] = true,
+        ["HolsterAnim"] = {
+            ["dict"] = "reaction@intimidation@1h", 
+            ["animIn"] = "intro",
+            ["animOut"] = "outro",
+            ["sleep"] = 1200,
+            ["sleepOut"] = 1200 
+        }
     },
     ["back2"] = {
         ["Bone"] = Config.Bones["Back"],
@@ -38,7 +53,14 @@ Config.PropInfo = {
         ["Rot"] = { ["x"] = 0.0,  ["y"] = -20.0, ["z"] = 0.0 },
         ["isPed"] = false,
         ["RotOrder"] = 2,
-        ["FixedRot"] = true
+        ["FixedRot"] = true,
+        ["HolsterAnim"] = {
+            ["dict"] = "reaction@intimidation@1h", 
+            ["animIn"] = "intro",
+            ["animOut"] = "outro",
+            ["sleep"] = 1200,
+            ["sleepOut"] = 1200 
+        }
     },
     ["melee"] = {
         ["Bone"] = Config.Bones["Back"],
@@ -46,7 +68,14 @@ Config.PropInfo = {
         ["Rot"] = { ["x"] = 90.0,  ["y"] = -10.0, ["z"] = 120.0 },
         ["isPed"] = false,
         ["RotOrder"] = 2,
-        ["FixedRot"] = true
+        ["FixedRot"] = true,
+        ["HolsterAnim"] = {
+            ["dict"] = "combat@combat_reactions@pistol_1h_gang", 
+            ["animIn"] = "0",
+            ["animOut"] = "0",
+            ["sleep"] = 500,
+            ["sleepOut"] = 500
+        }
     },
     ["melee2"] = {
         ["Bone"] = Config.Bones["Back"],
@@ -54,7 +83,14 @@ Config.PropInfo = {
         ["Rot"] = { ["x"] = -90.0,  ["y"] = -10.0, ["z"] = 120.0 },
         ["isPed"] = false,
         ["RotOrder"] = 2,
-        ["FixedRot"] = true
+        ["FixedRot"] = true,
+        ["HolsterAnim"] = {
+            ["dict"] = "combat@combat_reactions@pistol_1h_hillbilly", 
+            ["animIn"] = "0",
+            ["animOut"] = "0",
+            ["sleep"] = 500,
+            ["sleepOut"] = 500
+        }
     },
     ["melee3"] = {
         ["Bone"] = Config.Bones["Back"],
@@ -62,6 +98,20 @@ Config.PropInfo = {
         ["Rot"] = { ["x"] = 0.0,  ["y"] = 115.0, ["z"] = 0.0 },
         ["isPed"] = false,
         ["RotOrder"] = 2,
-        ["FixedRot"] = true
+        ["FixedRot"] = true,
+        ["HolsterAnim"] = {
+            ["dict"] = "reaction@intimidation@1h", 
+            ["animIn"] = "intro",
+            ["animOut"] = "outro",
+            ["sleep"] = 1200,
+            ["sleepOut"] = 1200,
+        }
     }
+    -- ["sideleg"] = { 
+    --     ["dict"] = "reaction@male_stand@big_variations@d",
+    --     ["animIn"] = "react_big_variations_m",
+    --     ["animOut"] = "react_big_variations_m",
+    --     ["sleep"] = 500,
+    --     ["sleepOut"] = 500,
+    -- }
 }
