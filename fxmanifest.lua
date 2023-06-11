@@ -12,13 +12,10 @@ version "1.0"
 
 shared_scripts {
 	'@ox_lib/init.lua',
-    "config.lua",
-    "helper.lua"
+    "config.lua"
 }
 
 server_scripts {
-    -- "server/scopes.lua",
-    -- "server/main.lua"
     "server/*.lua"
 }
 
@@ -28,6 +25,7 @@ client_scripts {
 
 files {
     'data/*.lua',
+    'utils.lua'
 }
 
 dependency { "ox_inventory", "ox_lib" }

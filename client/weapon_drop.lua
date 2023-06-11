@@ -1,11 +1,8 @@
-if Config.DropWeaponOnDeath then
-    
+if MBT.DropWeaponOnDeath then
     local CurrentWeapon = {}
-    
-    AddEventHandler('ox_inventory:currentWeapon', function(currentWeapon)
-        CurrentWeapon = currentWeapon
-    end)
-    
+
+    AddEventHandler('ox_inventory:currentWeapon', function(currentWeapon) CurrentWeapon = currentWeapon end)
+
     AddEventHandler('gameEventTriggered', function(event, data)
         if event == 'CEventNetworkEntityDamage' then
             if data[1] == cache.ped and IsEntityDead(cache.ped) then
@@ -19,5 +16,4 @@ if Config.DropWeaponOnDeath then
             end
         end
     end)
-
 end

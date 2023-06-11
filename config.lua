@@ -1,24 +1,77 @@
-Config = {}
-Config.Debug = true
+MBT = {}
+MBT.Debug = false
+MBT.DropWeaponOnDeath = true
+MBT.EnableSling = true
 
-Config.DropWeaponOnDeath = true
-Config.EnableSling = true
+MBT.Jamming = {
+    ["Enabled"] = true,
+    ["Cooldown"] = 5,
+    ["Animation"] = { ["Dict"] = "anim@weapons@first_person@aim_rng@generic@pistol@singleshot@str", ["Anim"] = "reload_aim" },
+    ["Chance"] = {
+        [20] = 40,
+        [40] = 20 
+    }
+}
 
-Config.Bones = { ["Back"] = 24816, ["LHand"] = 36029 }
+MBT.Throw = {
+    ["Enabled"] = true,
+    ["Animation"] = { ["Dict"] = "melee@unarmed@streamed_variations", ["Anim"] = "plyr_takedown_front_slap" },
+    ["Groups"] = {
+        [`GROUP_MELEE`] = { ["Allowed"] = true, ["Multipliers"] = { ["X"] = 40.0, ["Y"] = 40.0, ["Z"] = 15.0 } }, 
+        [`GROUP_PISTOL`] = { ["Allowed"] = true, ["Multipliers"] = { ["X"] = 20.0, ["Y"] = 20.0, ["Z"] = 30.0 } },
+        [`GROUP_RIFLE`] = { ["Allowed"] = true, ["Multipliers"] = { ["X"] = 10.0, ["Y"] = 10.0, ["Z"] = 5.0 } },
+        [`GROUP_MG`] = { ["Allowed"] = false, ["Multipliers"] = { ["X"] = 20.0, ["Y"] = 20.0, ["Z"] = 10.0 } },
+        [`GROUP_SMG`] = { ["Allowed"] = true, ["Multipliers"] = { ["X"] = 20.0, ["Y"] = 20.0, ["Z"] = 10.0 } },
+        [`GROUP_SHOTGUN`] = { ["Allowed"] = true, ["Multipliers"] = { ["X"] = 20.0, ["Y"] = 20.0, ["Z"] = 10.0 } },
+        [`GROUP_STUNGUN`] = { ["Allowed"] = true, ["Multipliers"] = { ["X"] = 20.0, ["Y"] = 20.0, ["Z"] = 10.0 } },
+        [`GROUP_SNIPER`] = { ["Allowed"] = true, ["Multipliers"] = { ["X"] = 20.0, ["Y"] = 20.0, ["Z"] = 10.0 } },
+        [`GROUP_HEAVY`] = { ["Allowed"] = true, ["Multipliers"] = { ["X"] = 20.0, ["Y"] = 20.0, ["Z"] = 10.0 } },
+    },
+    ["Key"] = "K",
+    ["Command"] = "throwWeapon"
+}
 
-Config.Labels = {
+MBT.Bones = { ["Back"] = 24816, ["LHand"] = 36029 }
+
+MBT.Labels = {
     ["Holster_Help"] = "[RMOUSE] - Unholster [BACKSPACE] - Cancel",
 }
 
-Config.HolsterControls = {
+MBT.HolsterControls = {
     ["Confirm"] = { ["Label"] = "Confirm Holster", ["Input"] = "MOUSE_BUTTON", ["Key"] = "MOUSE_RIGHT", },
     ["Cancel"] = { ["Label"] = "Cancel Holster", ["Input"] = "keyboard", ["Key"] = "BACK", }
 }
 
-Config.PropInfo = {
+MBT.Notification = function (data)
+    lib.notify(data)
+end
+
+MBT.Labels = {
+    ["has_jammed"] = {
+        ["title"] = "Jammed!",
+        ["description"] = "Your weapon has jammed! Check its state! ",
+        ["type"] = "error",
+        ["icon"] = "fa-solid fa-triangle-exclamation",
+    },
+    ["has_unjammed"] = {
+        ["title"] = "Unjammed!",
+        ["description"] = "You have unjammed your weapon! ",
+        ["type"] = "success",
+        ["icon"] = "fa-solid fa-person-rifle",
+    },
+    ["no_allowed_throw"] = {
+        ["title"] = "Ops!",
+        ["description"] = "You are not able to throw this weapon! ",
+        ["type"] = "error",
+        ["icon"] = "fa-solid fa-hand-fist",
+    },
+}
+
+
+MBT.PropInfo = {
     ["side"] = {
-        ["Bone"] = Config.Bones["Back"],
-        ["Pos"] = { ["x"] = -0.09, ["y"] = 0.0, ["z"] = -0.23  },
+        ["Bone"] = MBT.Bones["Back"],
+        ["Pos"] = { ["x"] = -0.15, ["y"] = 0.0, ["z"] = -0.23  },
         ["Rot"] = { ["x"] = 90.0,  ["y"] = 20.0, ["z"] = 180.0 },
         ["isPed"] = false,
         ["RotOrder"] = 2,
@@ -33,7 +86,7 @@ Config.PropInfo = {
         
     },
     ["back"] = {
-        ["Bone"] = Config.Bones["Back"],
+        ["Bone"] = MBT.Bones["Back"],
         ["Pos"] = { ["x"] = 0.4, ["y"] = -0.18, ["z"] = 0.1  },
         ["Rot"] = { ["x"] = 0.0,  ["y"] = 155.0, ["z"] = 0.0 },
         ["isPed"] = false,
@@ -48,7 +101,7 @@ Config.PropInfo = {
         }
     },
     ["back2"] = {
-        ["Bone"] = Config.Bones["Back"],
+        ["Bone"] = MBT.Bones["Back"],
         ["Pos"] = { ["x"] = 0.4, ["y"] = -0.18, ["z"] = 0.1  },
         ["Rot"] = { ["x"] = 0.0,  ["y"] = -20.0, ["z"] = 0.0 },
         ["isPed"] = false,
@@ -63,7 +116,7 @@ Config.PropInfo = {
         }
     },
     ["melee"] = {
-        ["Bone"] = Config.Bones["Back"],
+        ["Bone"] = MBT.Bones["Back"],
         ["Pos"] = { ["x"] = -0.4, ["y"] = -0.1, ["z"] = 0.22  },
         ["Rot"] = { ["x"] = 90.0,  ["y"] = -10.0, ["z"] = 120.0 },
         ["isPed"] = false,
@@ -78,7 +131,7 @@ Config.PropInfo = {
         }
     },
     ["melee2"] = {
-        ["Bone"] = Config.Bones["Back"],
+        ["Bone"] = MBT.Bones["Back"],
         ["Pos"] = { ["x"] = -0.05,   ["y"] = 0.1,  ["z"] = 0.22  },
         ["Rot"] = { ["x"] = -90.0,  ["y"] = -10.0, ["z"] = 120.0 },
         ["isPed"] = false,
@@ -93,7 +146,7 @@ Config.PropInfo = {
         }
     },
     ["melee3"] = {
-        ["Bone"] = Config.Bones["Back"],
+        ["Bone"] = MBT.Bones["Back"],
         ["Pos"] = { ["x"] = -0.2, ["y"] = -0.18, ["z"] = 0.18  },
         ["Rot"] = { ["x"] = 0.0,  ["y"] = 115.0, ["z"] = 0.0 },
         ["isPed"] = false,
@@ -114,4 +167,17 @@ Config.PropInfo = {
     --     ["sleep"] = 500,
     --     ["sleepOut"] = 500,
     -- }
+}
+
+MBT.CustomPropPosition = {
+    ["police"] = {
+        ["side"] = {
+            ["Pos"] = { ["x"] = -0.15, ["y"] = 0.0, ["z"] = -0.23  },
+            ["Rot"] = { ["x"] = 90.0,  ["y"] = 20.0, ["z"] = 180.0 },
+        },
+        ["back"] = {
+            ["Pos"] = { ["x"] = 0.9, ["y"] = -0.18, ["z"] = 0.1  },
+            ["Rot"] = { ["x"] = 0.0,  ["y"] = 155.0, ["z"] = 0.0 },
+        },
+    }
 }

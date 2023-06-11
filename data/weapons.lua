@@ -1,3 +1,5 @@
+-- Configure the weapon you want to be attached and visible on the player
+
 return {
   ["WEAPON_REVOLVER_MK2"] = {
     ["type"] = "side"
@@ -68,18 +70,6 @@ return {
   ['WEAPON_AUTOSHOTGUN'] = {
     ["type"] = "back"
   },
-  ["WEAPON_HATCHET"] = {
-    ["type"] = "melee"
-  },
-  ['WEAPON_HEAVYRIFLE'] = {
-    ["type"] = "back"
-  },
-  ['WEAPON_TACTICALRIFLE'] = {
-    ["type"] = "back"
-  },
-  ['WEAPON_AUTOSHOTGUN'] = {
-    ["type"] = "back"
-  },
   ['WEAPON_HAZARDCAN'] = {
     ["type"] = "melee"
   },
@@ -93,9 +83,6 @@ return {
     ["type"] = "side"
   },
   ["WEAPON_PISTOL_MK2"] = {
-    ["type"] = "side"
-  },
-  ["WEAPON_STUNGUN_MP2"] = {
     ["type"] = "side"
   },
   ["WEAPON_RAYPISTOL"] = {
@@ -212,9 +199,6 @@ return {
   ["WEAPON_MUSKET"] = {
     ["type"] = "back"
   },
-  ["WEAPON_SWEEPERSHOTGUN"] = {
-    ["type"] = "back"
-  },
   ["WEAPON_HEAVYSNIPER_MK2"] = {
     ["type"] = "back"
   },
@@ -255,6 +239,9 @@ return {
     ["type"] = "melee3"
   },
   ["WEAPON_VINTAGEPISTOL"] = {
+    ["type"] = "side"
+  },
+  ["WEAPON_FLASHLIGHT"] = {
     ["type"] = "side"
   }
 }

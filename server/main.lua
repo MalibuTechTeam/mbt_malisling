@@ -1,182 +1,54 @@
+local utils = require 'utils'
 local isESX = GetResourceState("es_extended") ~= "missing"
 local isQB = GetResourceState("qb-core") ~= "missing"
 local isOX = GetResourceState("ox_core") ~= "missing"
-local isOXInventory = GetResourceState("ox_inventory") ~= "missing"
 local FrameworkObj = {}
 local isReady = false
+local ox_inventory = exports["ox_inventory"]
 playersToTrack = {}
 
-if GetResourceState("ox_inventory") ~= "started" then
-    print(
-    "You are not using ox_inventory, this resource will not work without it. Please install ox_inventory and restart the resource.")
-    return
-end
-
-local ox_inventory = exports["ox_inventory"]
-
-lib.callback.register('mbt_malisling:getWeapoConf', function(source)
-    local _source = source
-    print("Source ", _source, " requested callback!")
-    print(json.encode(Config.WeaponsInfo), { indent = true })
-    while not isReady do Wait(250) end
-    return Config.WeaponsInfo
-end)
+if not lib.checkDependency('ox_inventory', '2.30.0') then warn("The script has not been tested with this versions of ox_inventory!") end
 
 
-AddEventHandler('onServerResourceStart', function(resource)
-    if resource ~= GetCurrentResourceName() then return end
-    print("RESTARTED ", resource)
-    loadWeaponsInfo()
-end)
+AddStateBagChangeHandler('WeaponFlashlightState', nil, function(bagName, key, value)
+    print("Received value ", json.encode(value), {indent=true})
+    if not value then return end
 
-if isESX then
-    FrameworkObj = exports["es_extended"]:getSharedObject()
+    local netId = bagName:gsub('player:', '')
+    local playerSource = tonumber(netId)
+    
+    for slot, payload in pairs(value) do
+        local weaponData = ox_inventory:GetSlot(playerSource, slot)
 
-    RegisterNetEvent('esx:playerLoaded')
-    AddEventHandler('esx:playerLoaded', function(playerId, xPlayer)
-        playersToTrack[playerId] = {}
-        -- TriggerClientEvent("mbt_malisling:loadData", playerId, Config.WeaponsInfo)
-    end)
-elseif isQB then
-    FrameworkObj = exports["qb-core"]:GetCoreObject()
-    AddEventHandler('QBCore:Server:PlayerLoaded', function(qbPlayer)
-        local source = qbPlayer.PlayerData.source
-        -- TriggerClientEvent("mbt_malisling:loadData", source, Config.WeaponsInfo)
-    end)
-elseif isOX then
-    local file = ('imports/%s.lua'):format(IsDuplicityVersion() and 'server' or 'client')
-    local import = LoadResourceFile('ox_core', file)
-    local chunk = assert(load(import, ('@@ox_core/%s'):format(file)))
-    chunk()
-
-    AddEventHandler('ox:playerLoaded', function(source, userid, charid)
-        -- TriggerClientEvent("mbt_malisling:loadData", source, Config.WeaponsInfo)
-    end)
-end
-
-if Config.EnableSling and GetConvarInt('inventory:weaponmismatch', 1) == 1 then
-    warn(
-    "You have enabled the sling feature, but you have not disabled the weapon mismatch check in ox_inventory. This will cause issues with the sling feature. Please set inventory:weaponmismatch to 0")
-end
-
-AddEventHandler("playerDropped", function() --TODO: Check if this works
-    local _source = source
-    if not _source then return end
-    dropPlayer(_source)
-end)
-
-RegisterServerEvent("mbt_malisling:getPlayersInPlayerScope")
-AddEventHandler("mbt_malisling:getPlayersInPlayerScope", function(data)
-    local _source = source
-    -- local players = getPlayersInPlayerScope(_source)
-
-    if not players then scopes[tostring(_source)] = {}; end
-
-    -- print("getPlayersInPlayerScope check")
-
-    for i = 1, #data do
-        addPlayerToPlayerScope(_source, data[i])
+        if not weaponData then return end
+        print("Receiving WeaponFlashlightState ", payload.FlashlightState)
+        utils.dumpTable(weaponData)
+        
+        weaponData.metadata.flashlightState = payload.FlashlightState
+        ox_inventory:SetMetadata(playerSource, weaponData.slot, weaponData.metadata)
+        
+        print("State of flashlight for weapon "..weaponData.label.." with serial "..weaponData.metadata.serial.." in slot "..weaponData.slot.." changed to "..tostring(weaponData.metadata.flashlightState))
+        utils.mbtDebugger("State of flashlight for weapon "..weaponData.label.." with serial "..weaponData.metadata.serial.." in slot "..weaponData.slot.." changed to "..tostring(weaponData.metadata.flashlightState))
     end
 end)
 
-RegisterServerEvent("mbt_malisling:checkInventory")
-AddEventHandler("mbt_malisling:checkInventory", function()
-    local _source = source
-    local inv = exports.ox_inventory:GetInventoryItems(_source)
-    print("mbt_malisling:checkInventory ~  source ", _source)
-    print(json.encode(inv), { indent = true })
-    TriggerClientEvent("mbt_malisling:checkWeaponProps", _source, inv)
+
+
+lib.callback.register('mbt_malisling:getWeapoConf', function(source)
+    utils.mbtDebugger("getWeapoConf ~  Source ", source, " requested callback!")
+    -- utils.mbtDebugger(MBT.WeaponsInfo)
+    while not isReady do Wait(250) end
+    return MBT.WeaponsInfo
 end)
 
-RegisterServerEvent("mbt_malisling:syncSling")
-AddEventHandler("mbt_malisling:syncSling", function(data)
-    local _source = source
-
-    data.tPed = _source
-    -- print("Syncing sling for ", _source)
-
-    -- dumpTable(data)
-
-    if not playersToTrack[_source] then playersToTrack[_source] = {} end
-
-    for k, v in pairs(data.playerWeapons) do playersToTrack[_source][k] = v end
-
-
-    -- print("Sending weapon info about id ", _source)
-
-    Wait(400)
-
-    -- TriggerScopeEvent("mbt_malisling:syncSling", _source, true, nil, { playerSource = _source, playerWeapons = playersToTrack[_source] })
-
-    TriggerScopeEvent({
-        event = "mbt_malisling:syncSling",
-        scopeOwner = _source,
-        selfTrigger = true,
-        payload = {
-            type = "add",
-            playerSource = _source,
-            calledBy = "mbt_malisling:syncSling ~ 162",
-            playerWeapons = playersToTrack[_source]
-        }
-    })
-
-    -- functQueue[#functQueue+1] = {funct = TriggerScopeEvent, args = {
-    --     event = "mbt_malisling:syncSling",
-    --     scopeOwner = _source,
-    --     selfTrigger = true,
-    --     payload = {
-    --         type = "add",
-    --         playerSource = _source,
-    --         playerWeapons = playersToTrack[_source]
-    --     }
-    -- }}
-end)
-
-RegisterServerEvent("mbt_malisling:syncDeletion")
-AddEventHandler("mbt_malisling:syncDeletion", function(weaponType)
-    local _source = source
-    -- print("weaponType ", weaponType)
-    -- print("playersToTrack[_source] ", playersToTrack[_source])
-    if playersToTrack[_source] == nil then return end
-    playersToTrack[_source][weaponType] = false
-    -- TriggerScopeEvent("mbt_malisling:syncDeletion", _source, true, nil, { playerSource = _source, weaponType = weaponType })
-    TriggerScopeEvent({
-        event = "mbt_malisling:syncDeletion",
-        scopeOwner = _source,
-        selfTrigger = true,
-        payload = {
-            playerSource = _source,
-            calledBy = "mbt_malisling:syncDeletion",
-            weaponType = weaponType
-        }
-    })
-    -- functQueue[#functQueue+1] = {funct = TriggerScopeEvent, args = {
-    --     event = "mbt_malisling:syncDeletion",
-    --     scopeOwner = _source,
-    --     selfTrigger = true,
-    --     payload = {
-    --         playerSource = _source,
-    --         weaponType = weaponType
-    --     }
-    -- }}
-end)
-
-function dropPlayer(s)
-    --TriggerScopeEvent("mbt_malisling:syncDeletion", s, false, nil, { playerSource = s, weaponType = "all" })
-    TriggerClientEvent("mbt_malisling:syncDeletion", -1,
-        { playerSource = s, weaponType = "all", calledBy = "dropPlayer" })
-    TriggerClientEvent("mbt_malisling:syncPlayerRemoval", -1, { playerSource = s })
-    playersToTrack[s] = nil
-end
-
-function loadWeaponsInfo()
-    print("loading WeaponsInfo!")
+local function loadWeaponsInfo()
+    utils.mbtDebugger("Loading WeaponsInfo!")
 
     local weaponsFile = LoadResourceFile("ox_inventory", 'data/weapons.lua')
     local weaponsChunk = assert(load(weaponsFile, ('@@ox_inventory/data/weapons.lua')))
     local weaponsInfo = weaponsChunk()
 
-    for k, v in pairs(data('weapons')) do
+    for k, v in pairs(utils.data('weapons')) do
         if not weaponsInfo["Weapons"][k] then
             warn("Weapon not found in weapons data file: " .. k)
         else
@@ -184,36 +56,38 @@ function loadWeaponsInfo()
         end
     end
 
-    Config.WeaponsInfo = weaponsInfo
-    local b = Config.EnableSling and true or false
-
-    -- print("Config.EnableSling: ", b, type(b))
-
+    MBT.WeaponsInfo = weaponsInfo
+    local b = MBT.EnableSling and true or false
     SetConvarReplicated("malisling:enable_sling", tostring(b))
+    print("LAAAAAA")
+    TriggerClientEvent("mbt_malisling:sendWeaponsData", -1, MBT.WeaponsInfo)
     isReady = true
 end
 
-function appendMalisling()
+---@param s number
+local function dropPlayer(s)
+    TriggerClientEvent("mbt_malisling:syncDeletion", -1,
+        { playerSource = s, weaponType = "all", calledBy = "dropPlayer" })
+    TriggerClientEvent("mbt_malisling:syncPlayerRemoval", -1, { playerSource = s })
+    playersToTrack[s] = nil
+end
+
+---Coarse way to manipulate the equip/disarm of ox_inventory, not optimal, ugly as hell but it works
+local function appendMalisling()
     local st = LoadResourceFile('ox_inventory', "modules/weapon/client.lua")
 
-    local substring = "return Weapon"
-    local pattern = "%a*"..substring.."%a*"
+    local substring = "\nreturn Weapon"
+    local pattern = "[^\n]*" .. substring .. "[^\n]*\n"
     local st1 = st:gsub(pattern, "")
-
-    -- print("type of st ", type(st))
-    -- print(st)
-    -- print("-------------------------------------")
-    -- print(st1)
 
     local i, e = string.find(st1, "RegisterKeyMapping")
 
     if i then
-        print("File already modified")
+        utils.mbtDebugger("appendMalisling ~ File has already modification")
         return
     end
 
     local rs = [=[
-
 Weapon.Equip = function(item, data)
     local playerPed = cache.ped
 
@@ -225,9 +99,7 @@ Weapon.Equip = function(item, data)
 		local coords = GetEntityCoords(playerPed, true)
 		local anim = data.anim or anims[GetWeapontypeGroup(data.hash)]
 
-
 		-- if anim == anims[`GROUP_PISTOL`] and not client.hasGroup(shared.police) then
-        --     print("Pistol group AND not police")
 		-- 	anim = nil
 		-- end
 
@@ -237,9 +109,8 @@ Weapon.Equip = function(item, data)
             if GetConvar('malisling:enable_sling', 'false') == 'true' then
 
                 local watingForHolster = nil
-                local holsterConfirmed = false
 
-                lib.showTextUI(']=] .. Config.Labels["Holster_Help"] .. [=[', {icon = 'hand'})
+                lib.showTextUI(']=] .. MBT.Labels["Holster_Help"] .. [=[', {icon = 'hand'})
 
                 lib.requestAnimDict("reaction@intimidation@cop@unarmed")
 
@@ -286,8 +157,8 @@ Weapon.Equip = function(item, data)
 	item.timer = 0
 	item.throwable = data.throwable
 	item.group = GetWeapontypeGroup(item.hash)
-
-    GiveWeaponToPed(playerPed, data.hash, 0, false, true)
+    
+	GiveWeaponToPed(playerPed, data.hash, 0, false, true)
 
 	if item.metadata.tint then SetPedWeaponTintIndex(playerPed, data.hash, item.metadata.tint) end
 
@@ -305,7 +176,7 @@ Weapon.Equip = function(item, data)
 		end
 	end
 
-    if item.metadata.specialAmmo then
+	if item.metadata.specialAmmo then
 		local clipComponentKey = ('%s_CLIP'):format(data.model:gsub('WEAPON_', 'COMPONENT_'))
 		local specialClip = ('%s_%s'):format(clipComponentKey, item.metadata.specialAmmo:upper())
 
@@ -334,14 +205,13 @@ Weapon.Equip = function(item, data)
 end
 
 function Weapon.Disarm(currentWeapon, noAnim)
-	if not currentWeapon?.timer then return end
-
-	if source == '' then
-		TriggerServerEvent('ox_inventory:updateWeapon')
-	end
-
-	if currentWeapon then
+    if currentWeapon?.timer then
 		currentWeapon.timer = nil
+
+		if source == '' then
+			TriggerServerEvent('ox_inventory:updateWeapon')
+		end
+
 		SetPedAmmo(cache.ped, currentWeapon.hash, 0)
 
 		if client.weaponanims and not noAnim then
@@ -356,7 +226,7 @@ function Weapon.Disarm(currentWeapon, noAnim)
 			local anim = item.anim or anims[GetWeapontypeGroup(currentWeapon.hash)]
 
 			-- if anim == anims[`GROUP_PISTOL`] and not client.hasGroup(shared.police) then
-				-- anim = nil
+			--	anim = nil
 			-- end
 
 			local sleep = anim and anim[6] or 1400
@@ -374,20 +244,19 @@ function Weapon.Disarm(currentWeapon, noAnim)
 	RemoveAllPedWeapons(cache.ped, true)
 end
 
-RegisterNetEvent("ox_inv:sendAnim")
-AddEventHandler("ox_inv:sendAnim", function (data)
+RegisterNetEvent("mbt_malisling:sendAnim")
+AddEventHandler("mbt_malisling:sendAnim", function (data)
     local wInfo = data.WeaponData["Weapons"]
-	local Items = require 'modules.items.shared' --[[@as { [string]: OxClientItem }]]
+	local Items = require 'modules.items.shared'
 	
     for k, v in pairs(wInfo) do
         local itemName = k
         local itemType = wInfo[itemName]["type"]
 		
-		if itemType == nil then
-			print(itemName, " type is nil, no animation for it")
-		end
-
-		if itemType then
+		if not itemType then
+			local s = "The weapon "..itemName.." has not been configured in data/weapons.lua of mbt_malisling, therefore it will not be attached to player!"
+			warn(s)
+		else
 			if data.HolsterData[itemType]["HolsterAnim"] then
 				local animInfo = data.HolsterData[itemType]["HolsterAnim"]
 				local animTable = {animInfo.dict, animInfo.animIn, animInfo.sleep, animInfo.dict, animInfo.animOut, animInfo.sleepOut}
@@ -402,42 +271,144 @@ AddEventHandler("ox_inv:sendAnim", function (data)
 end)
 
 RegisterKeyMapping('confirmHolster', "]=] ..
-    Config.HolsterControls["Confirm"]["Label"] ..
-    [=[", ']=] .. Config.HolsterControls["Confirm"]["Input"] ..
-    [=[', "]=] .. Config.HolsterControls["Confirm"]["Key"] .. [=[")
+    MBT.HolsterControls["Confirm"]["Label"] ..
+    [=[", ']=] .. MBT.HolsterControls["Confirm"]["Input"] ..
+    [=[', "]=] .. MBT.HolsterControls["Confirm"]["Key"] .. [=[")
 RegisterKeyMapping('cancelHolster', "]=] ..
-    Config.HolsterControls["Cancel"]["Label"] ..
-    [=[", ']=] .. Config.HolsterControls["Cancel"]["Input"] .. [=[', "]=] ..
-    Config.HolsterControls["Cancel"]["Key"] .. [=[")
+    MBT.HolsterControls["Cancel"]["Label"] ..
+    [=[", ']=] .. MBT.HolsterControls["Cancel"]["Input"] .. [=[', "]=] ..
+    MBT.HolsterControls["Cancel"]["Key"] .. [=[")
 
 return Weapon
 ]=]
 
-
     st1 = st1 .. "\n" .. rs
 
     local ipfile = SaveResourceFile("ox_inventory", "modules/weapon/client.lua", st1, -1)
+    warn("Restart your server to allow the Sling feature to work properly!")
+end
+
+-- Check if the weaponanims convar is disabled
+if GetConvarInt('inventory:weaponanims', 1) == 0 then
+    warn(
+    "You have enabled the sling feature, but you have disabled the weapons animation convar in ox_inventory. This will cause issues with animations and the sling feature. Please set inventory:weaponanims to 1")
+end
+
+if isESX then
+    FrameworkObj = exports["es_extended"]:getSharedObject()
+
+    RegisterNetEvent('esx:playerLoaded')
+    AddEventHandler('esx:playerLoaded', function(playerId)
+        playersToTrack[playerId] = {}
+    end)
+elseif isQB then
+    FrameworkObj = exports["qb-core"]:GetCoreObject()
+    AddEventHandler('QBCore:Server:PlayerLoaded', function(qbPlayer)
+        local source = qbPlayer.PlayerData.source
+        playersToTrack[source] = {}
+    end)
+elseif isOX then
+    local file = ('imports/%s.lua'):format(IsDuplicityVersion() and 'server' or 'client')
+    local import = LoadResourceFile('ox_core', file)
+    local chunk = assert(load(import, ('@@ox_core/%s'):format(file)))
+    chunk()
+
+    AddEventHandler('ox:playerLoaded', function(source, userid, charid)
+        playersToTrack[source] = {}
+    end)
 end
 
 appendMalisling()
 
+AddEventHandler('onServerResourceStart', function(resource)
+    if resource ~= GetCurrentResourceName() then return end
+    loadWeaponsInfo()
+end)
 
+AddEventHandler("playerDropped", function()
+    if not source then return end
+    dropPlayer(source)
+end)
+
+RegisterNetEvent("mbt_malisling:getPlayersInPlayerScope")
+AddEventHandler("mbt_malisling:getPlayersInPlayerScope", function(data)
+    if not players then scopes[tostring(source)] = {} end
+    for i = 1, #data do
+        addPlayerToPlayerScope(source, data[i])
+    end
+end)
+
+RegisterNetEvent("mbt_malisling:checkInventory")
+AddEventHandler("mbt_malisling:checkInventory", function()
+    utils.mbtDebugger("checkInventory ~ Checking inventory for source ", source)
+    local inv = exports.ox_inventory:GetInventoryItems(source)
+    -- utils.mbtDebugger(inv)
+    TriggerClientEvent("mbt_malisling:checkWeaponProps", source, inv)
+end)
+
+RegisterNetEvent("mbt_malisling:syncSling")
+AddEventHandler("mbt_malisling:syncSling", function(data)
+    local _source = source
+
+    data.tPed = source
+    if not playersToTrack[source] then playersToTrack[source] = {} end
+    for k, v in pairs(data.playerWeapons) do playersToTrack[source][k] = v end
+
+    Wait(400)
+
+    TriggerScopeEvent({
+        event = "mbt_malisling:syncSling",
+        scopeOwner = _source,
+        selfTrigger = true,
+        payload = {
+            type = "add",
+            playerSource = _source,
+            calledBy = "mbt_malisling:syncSling ~ 162",
+            playerWeapons = playersToTrack[_source]
+        }
+    })
+end)
+
+RegisterNetEvent("mbt_malisling:syncDeletion")
+AddEventHandler("mbt_malisling:syncDeletion", function(weaponType)
+    local _source = source
+    if playersToTrack[_source] == nil then return end
+    playersToTrack[_source][weaponType] = false
+
+    TriggerScopeEvent({
+        event = "mbt_malisling:syncDeletion",
+        scopeOwner = _source,
+        selfTrigger = true,
+        payload = {
+            playerSource = _source,
+            calledBy = "mbt_malisling:syncDeletion",
+            weaponType = weaponType
+        }
+    })
+end)
 
 RegisterCommand("setC", function(source, args, raw)
     SetConvarReplicated("malisling:enable_sling", true)
 end)
 
 RegisterCommand("getC", function(source, args, raw)
-    print(GetConvar('malisling:enable_sling', 'false'))
+    utils.mbtDebugger(GetConvar('malisling:enable_sling', 'false'))
     if GetConvar('malisling:enable_sling', 'false') == 'true' then
 
     end
 end)
 
 RegisterCommand("ptts", function(source, args, raw)
-    dumpTable(playersToTrack)
+    utils.dumpTable(playersToTrack)
 end)
 
 RegisterCommand("consv", function(source, args, raw)
-    dumpTable(Config.WeaponsInfo["Weapons"])
+    utils.dumpTable(MBT.WeaponsInfo["Weapons"])
+end)
+
+RegisterCommand("blyat", function(source, args, raw)
+    local weaponData = ox_inventory:GetSlot(source, 5)
+
+    weaponData.metadata.durability = 50
+    ox_inventory:SetMetadata(source, weaponData.slot, weaponData.metadata)
 end)
