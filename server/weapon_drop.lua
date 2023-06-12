@@ -1,6 +1,6 @@
 local ox_inventory = exports["ox_inventory"]
 
-RegisterServerEvent('mbt_malisling:dropWeapon', function(data)
+RegisterNetEvent('mbt_malisling:dropWeapon', function(data)
     assert(data.hash ~= nil, 'dropWeapon ~ hash of weapons nil')
 
     local r = ('DeadDrop %s000000000'):format(os.time(os.date('*t')))
