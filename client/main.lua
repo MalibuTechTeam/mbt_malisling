@@ -126,15 +126,11 @@ local function overwriteValues(newTable)
             propInfoTable[key].Rot.z = value.Rot.z
         end
     end
-
-    print("New table is")
-    print(json.encode(propInfoTable), {indent=true})
 end
 
-local function sendAnimations(jobName)
-    print("Checking job", jobName)
+function sendAnimations(jobName)
     if MBT.CustomPropPosition[jobName] then
-        print("Custom prop position found!")
+        utils.mbtDebugger("Custom prop position for job "..jobName.. " found!")
         overwriteValues(MBT.CustomPropPosition[jobName])
     else    
         propInfoTable = utils.tableDeepCopy(MBT.PropInfo)
@@ -147,8 +143,6 @@ local function sendAnimations(jobName)
 end
 
 local function Init()
-    PlayerData = FrameworkObj.GetPlayerData()
-
     MBT.WeaponsInfo = lib.callback.await('mbt_malisling:getWeapoConf', false)
     utils.mbtDebugger("Init ~ has been fired!!!")
 
@@ -164,19 +158,7 @@ local function Init()
 
     TriggerServerEvent("mbt_malisling:getPlayersInPlayerScope", activePlayers)
 
-    print("Cheeeeeeeeck ", PlayerData.job.name)
-
-    -- if MBT.CustomPropPosition[PlayerData.job.name] then
-    --     print("Custom prop position found!")
-    --     overwriteValues(MBT.CustomPropPosition[PlayerData.job.name])
-    -- end
-
-    -- TriggerEvent("mbt_malisling:sendAnim", {
-    --     WeaponData = MBT.WeaponsInfo,
-    --     HolsterData = propInfoTable
-    -- })
-
-    sendAnimations(PlayerData.job.name)
+    sendAnimations(PlayerData.job and PlayerData.job.name or {})
     
     Citizen.Wait(200)
     
@@ -191,7 +173,7 @@ local function Init()
         utils.mbtDebugger("ox_inventory:currentWeapon ~ Fired!")
 
         if data then
-            
+
             local weaponType = MBT.WeaponsInfo["Weapons"][data.name]?.type
 
             local weaponName = data.name
@@ -208,6 +190,7 @@ local function Init()
                 equippedWeapon["components"] = data.metadata.components;
                 equippedWeapon["serial"] = data.metadata.serial;
             end
+            
             if data.metadata.flashlightState then SetFlashLightEnabled(cache.ped, true); end
         else
             if utils.isTableEmpty(equippedWeapon) then return end
@@ -215,10 +198,7 @@ local function Init()
             local weaponName = equippedWeapon["name"]
             local flashlightState = IsFlashLightOn(cache.ped) == 1 and true or false
 
-            print("Check 1 ", utils.containsValue(equippedWeapon["components"], "at_flashlight"))
-            print("Check 2 ", utils.weaponHasFlashlight(cache.ped, weaponName, MBT.WeaponsInfo.Components["at_flashlight"]["client"]["component"]))
             if utils.containsValue(equippedWeapon["components"], "at_flashlight") or utils.weaponHasFlashlight(cache.ped, weaponName, MBT.WeaponsInfo.Components["at_flashlight"]["client"]["component"]) then
-                print("Statebag fire?")
                 LocalPlayer.state:set('WeaponFlashlightState', {
                     [equippedWeapon.slot] = {Serial = equippedWeapon.serial, FlashlightState = flashlightState}
                 }, true)
@@ -353,14 +333,14 @@ if isESX then
     AddEventHandler('esx:playerLoaded', function(xPlayer)
         FrameworkObj.PlayerLoaded = true
         PlayerData = xPlayer
-        print("PlayerData.job.name is ", PlayerData.job.name)
     end)
 
-
+    PlayerData = FrameworkObj.GetPlayerData()
+    
     RegisterNetEvent('esx:setJob')
     AddEventHandler('esx:setJob', function(job)
         PlayerData.job = job
-        print("New job is ", PlayerData.job.name)
+        utils.mbtDebugger("New job is "..PlayerData.job.name)
         sendAnimations(PlayerData.job.name)
     end) 
 
@@ -414,9 +394,53 @@ elseif isOX then
     local chunk = assert(load(import, ('@@ox_core/%s'):format(file)))
     chunk()
  
-    AddEventHandler('ox:playerLoaded', function()
+    FrameworkObj = Ox
+
+    AddEventHandler('ox:playerLoaded', function(data)
         utils.mbtDebugger("ox:playerLoaded ~ FIRED")
+        PlayerData = data
+        
         Init()
+    end)
+    PlayerData = FrameworkObj.GetPlayerData()
+
+ 
+    sendAnimations = function ()
+        local playerGroups = {}
+        
+        for k in pairs(PlayerData.groups) do
+            playerGroups[#playerGroups+1] = k
+        end
+
+        if next(playerGroups) == nil then
+            utils.mbtDebugger("No groups found, setting default!")
+            propInfoTable = utils.tableDeepCopy(MBT.PropInfo)
+            return 
+        end
+
+        for i=1, #playerGroups do
+            local jobName = playerGroups[i]
+            if MBT.CustomPropPosition[jobName] then
+                utils.mbtDebugger("Custom prop position for job "..jobName.. " found!")
+                overwriteValues(MBT.CustomPropPosition[jobName])
+            else    
+                utils.mbtDebugger("No job position customization found, setting default!")
+                propInfoTable = utils.tableDeepCopy(MBT.PropInfo)
+            end
+        end
+
+        TriggerEvent("mbt_malisling:sendAnim", {
+            WeaponData = MBT.WeaponsInfo,
+            HolsterData = propInfoTable
+        })
+
+       
+    end
+
+    
+    RegisterNetEvent('ox:setGroup', function(group, grade) 
+        PlayerData.groups[group] = grade
+        sendAnimations()
     end)
 end
 
@@ -424,6 +448,7 @@ end
 AddEventHandler('onResourceStart', function(resourceName)
 	if (GetCurrentResourceName() == resourceName) then
 		if NetworkIsPlayerActive(PlayerId()) then
+            while not FrameworkObj do Wait(100) end
             Init()
 		end
 	end
@@ -599,186 +624,3 @@ AddEventHandler('mbt_malisling:syncSling', function (data)
 
     playersToTrack[data.playerSource]["waiting"] = nil    
 end)
-
-Citizen.CreateThread(function ()
-    while true do 
-        -- print("IsFlashLightOn ", IsFlashLightOn(PlayerPedId()))
-        Wait(200)
-    end
-end)
-
-if MBT.Debug then
-    RegisterCommand("aziz", function()
-        local playerPed = cache.ped
-        local playerCoords = GetEntityCoords(playerPed)
-        local fwCoords = GetOffsetFromEntityInWorldCoords(playerPed, 0.0, 4.0, 0.0)
-        local weaponHash = `WEAPON_MICROSMG`
-        lib.requestWeaponAsset(weaponHash, 500, 31, 1)
-        local wobj = CreateWeaponObject(weaponHash, 50, fwCoords.x, fwCoords.y, fwCoords.z, true, 1.0, 0)
-        -- lib.requestModel()
-        local merdadata = {
-            ["weaponObj"] = wobj,
-            ["weaponHash"] = weaponHash,
-            ["metadata"] = {
-                ["components"] =  {"at_suppressor_heavy", "at_flashlight", "at_skin_luxe"}
-            }
-        }
-
-        -- lib.requestModel(`COMPONENT_MICROSMG_VARMOD_LUXE`)
-        lib.requestStreamedTextureDict("COMPONENT_MICROSMG_VARMOD_LUXE")
-        applyAttachments(merdadata)
-
-        Wait(500)
-
-
-        SetWeaponObjectTintIndex(wobj, -1)
-        SetWeaponObjectLiveryColor(wobj, `COMPONENT_MICROSMG_VARMOD_LUXE`, -1)
-
-        Wait(1000)
-        
-        applyAttachments(merdadata)
-        
-        Wait(1000)
-
-        SetCreateWeaponObjectLightSource(wobj, true)
-
-        Wait(20000)
-        DeleteObject(wobj)
-
-    end, false)
-
-    RegisterCommand("testwtable", function()
-        utils.dumpTable(playersToTrack[cache.serverId])
-    end, false)
-
-    RegisterCommand("testpped", function()
-        utils.mbtDebugger("PlayerPed ", cache.ped)
-        utils.mbtDebugger("PlayerPedId ", PlayerPedId())
-    end, false)
-
-    RegisterCommand("removeWe", function()
-        TriggerEvent("mbt_malisling:handleWeaponProps", {
-            Action = "Remove",
-            Restore = false
-        })
-    end, false)
-
-    RegisterCommand("removeWe2", function()
-        TriggerEvent("mbt_malisling:handleWeaponProps", {
-            Action = "Remove",
-            Restore = true
-        })
-    end, false)
-
-    RegisterCommand("restoreWe", function()
-        TriggerEvent("mbt_malisling:handleWeaponProps", {
-            Action = "Restore"
-        })
-    end, false)
-
-    RegisterCommand("filestest", function()
-
-        TriggerEvent("mbt_malisling:sendAnim", {
-            WeaponData = MBT.WeaponsInfo,
-            HolsterData = holsterData
-        })
-    end, false)
-
-    RegisterCommand("dlop", function()
-
-    end, false)
-
-    RegisterCommand("testatt", function()
-        local playerPed = cache.ped
-        local x = GetEntityAttachedTo(playerPed)
-        -- utils.mbtDebugger(json.encode(x), {indent=true})
-    end, false)
-
-    RegisterCommand("spweap", function()
-        TriggerServerEvent("mbt_malisling:syncWeaponObj", {})
-    end, false)
-
-    RegisterCommand("jiji", function (source, args, raw)
-        while not utils.isTableEmpty(weaponObjectiveSpawned) do
-            for i=1, #weaponObjectiveSpawned, 1 do
-                if DoesEntityExist(weaponObjectiveSpawned[i]) then
-                    DeleteObject(weaponObjectiveSpawned[i])
-                    table.remove(weaponObjectiveSpawned, i)
-                end
-            end
-    
-            Wait(2000)
-        end
-    end)
-    
-    RegisterCommand("ptt", function (source, args, raw)
-        utils.dumpTable(playersToTrack)
-    end)
-    
-    RegisterCommand("weaponObjectiveSpawned", function (source, args, raw)
-        utils.dumpTable(weaponObjectiveSpawned)
-    end)
-    
-    RegisterCommand("jpr", function (source, args, raw)
-        while true do
-            if IsDisabledControlJustPressed(0, 162) then
-                -- utils.mbtDebugger("DISABLE PRESSED 162")
-            end
-            if IsControlJustPressed(0, 162) then
-                -- utils.mbtDebugger("PRESSED 162")
-            end
-            if IsDisabledControlJustPressed(0, 165) then
-                -- utils.mbtDebugger("DISABLE PRESSED 165")
-            end
-            if IsControlJustPressed(0, 165) then
-                -- utils.mbtDebugger("PRESSED 165")
-            end
-            Wait(1)
-        end
-    
-    end)
-
-    
-RegisterCommand('pocd', function(source, args)
-    local ts, ts2, ts3 = 1, 2 ,3
-    utils.mbtDebugger("Player 1: ", GetPlayerFromServerId(ts))
-    utils.mbtDebugger("PlayerPed 1: ", GetPlayerPed(GetPlayerFromServerId(ts)))
-    utils.mbtDebugger("Player 2: ", GetPlayerFromServerId(ts2))
-    utils.mbtDebugger("PlayerPed 2: ", GetPlayerPed(GetPlayerFromServerId(ts2)))
-    utils.mbtDebugger("Player 3: ", GetPlayerFromServerId(ts3))
-    utils.mbtDebugger("PlayerPed 3: ", GetPlayerPed(GetPlayerFromServerId(ts3)))
-end, false)
-
-RegisterCommand('weapinfo', function(source, args)
-    local playerPed = cache.ped
-    print(GetPedWeaponTintIndex(playerPed, `WEAPON_MICROSMG`))
-    print(GetPedWeaponLiveryColor(playerPed, `WEAPON_MICROSMG`, `COMPONENT_MICROSMG_VARMOD_LUXE`))
-
-end, false)
-
-RegisterCommand('diomerda', function(source, args)
-    while true do
-        utils.mbtDebugger("Player 1: ", GetPlayerFromServerId(1))
-        utils.mbtDebugger("Player 2: ", GetPlayerFromServerId(2))
-        utils.mbtDebugger("Player 3: ", GetPlayerFromServerId(3))
-        Wait(100)
-    end
-end, false)
-    
-end
-
-
-RegisterCommand('testjani', function(source, args)
-    local playerPed = cache.ped
-    local jamAnim = MBT.Animations["Jamming"]
-    lib.requestAnimDict(jamAnim["Dict"])
-    Wait(1000)
-    local t = 100000
-    while t > 0 do
-        TaskPlayAnim(playerPed, jamAnim["Dict"], jamAnim["Anim"], 2.0, 2.0, 750, 48, 0.0, false, false, false)
-        t = t - 1
-        Wait(5)
-    end
-    ClearPedTasks(playerPed)
-end, false)
-    
