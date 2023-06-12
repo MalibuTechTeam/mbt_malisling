@@ -214,43 +214,61 @@ function utils.tableDeepCopy (t)
 	return copy
 end
 
----@param x number
-local function getChance(x)
-    if x > 40 and x <= 50 then
-        return ((x - 40) * (-1 * MBT.Jamming["Chance"][40])/10) + MBT.Jamming["Chance"][40]
-    elseif x  <= 40 then
-        return ((x-20) * (MBT.Jamming["Chance"][40] - MBT.Jamming["Chance"][20])/20) + MBT.Jamming["Chance"][20]
-    else
-        return 0
-    end
-end
-
-
 ---@param ped any
 ---@param weaponHash any
 ---@param compList any
 ---@return boolean
 function utils.weaponHasFlashlight(ped, weaponHash, compList)
-    local attachment = "at_flashlight"
-
-    -- if utils.containsValue
     local hasFlash = false
     for i=1, #compList do
-        print("compList ", compList[i])
         hasFlash = HasPedGotWeaponComponent(ped, joaat(weaponHash), compList[i])
         if hasFlash then break end
     end
     return hasFlash == 1
 end
 
+---@param t table
+---@param compareFunc function
+---@return function
+local function orderedPairs(t, compareFunc)
+    local keys = {}
+    for key, _ in pairs(t) do
+        table.insert(keys, key)
+    end
+    table.sort(keys, compareFunc)
+
+    local i = 0
+    return function()
+        i = i + 1
+        local key = keys[i]
+        if key then
+            return key, t[key]
+        end
+    end
+end
+
+
+---@param d number
+local function getChance(d)
+    local prevKey = nil
+    for key in orderedPairs(MBT.Jamming["Chance"], function (a, b)  return a > b; end) do
+        if prevKey and d > key and d < prevKey then
+            return MBT.Jamming["Chance"][prevKey]
+        end
+        prevKey = key
+    end
+    return 0
+end
+
 ---@param value any
 ---@return unknown
 function utils.getJammingChance(value)
     local chance = getChance(value)
+    math.randomseed(GetGameTimer() * math.random(30568, 90214))
     local random = math.random(1, 100)
+    utils.mbtDebugger("random is ", random, "chance is ", chance)
     return random < chance
 end
 return utils
-
 
 
