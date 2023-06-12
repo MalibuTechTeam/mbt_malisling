@@ -9,7 +9,7 @@ Take your weapon experience to the next level! With cool features like visible w
 * [ox_lib](https://github.com/overextended/ox_lib)
 
 ### ⚠️Important:
-The resource has been tested ONLY on Ox Core and ESX\
+The resource has been tested ONLY on Ox Core and ESX and ONLY with a restricted amount of players\
 In order to allow the holster feature to work, the functions
 ```Weapon.Disarm``` and ```Weapon.Equip``` have been slightly edited and appended after the existing ones\
 Don't know if it was the best option, but its the one popped up in my head\
@@ -38,6 +38,13 @@ This also means that any update of ```ox_inventory``` that invoves them, can bre
 * Customizable UI Help (Preset with ox_lib)
 * Customizable skillbar event(Preset with ox_lib)
 
+## Usage
+
+Put the script in your resource directory\
+Ensure it after ox_inventory\
+After the first start, restart the server (so the convar of sling can work properly)\
+Open the ```config.lua``` and read it carefully\
+Set the weapons type to suit your tastes (or add other ones) in the ```data/weapons.lua```  
 
 # Common Issues
 
