@@ -1,31 +1,33 @@
-fx_version "cerulean"
+fx_version 'cerulean'
+game 'gta5'
+lua54 'yes'
 
-game "gta5"
+name 'mbt_malisling'
+author 'Malibù Tech Team'
+version '0.1.0'
+repository 'https://github.com/MalibuTechTeam/mbt_malisling'
+description 'Weapon on back with various features'
 
-lua54 "yes"
-
-author "Malibù Tech Team"
-
-description "mbt_malisling"
-
-version "1.0"
+dependencies { 
+    '/onesync',
+    'ox_lib', 
+    'ox_inventory' 
+}
 
 shared_scripts {
 	'@ox_lib/init.lua',
-    "config.lua"
+    'config.lua'
 }
 
 server_scripts {
-    "server/*.lua"
+    'server/*.lua'
 }
 
 client_scripts {
-    "client/*.lua"
+    'client/*.lua'
 }
 
 files {
     'data/*.lua',
     'utils.lua'
 }
-
-dependency { "ox_inventory", "ox_lib" }
