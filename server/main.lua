@@ -9,9 +9,7 @@ playersToTrack = {}
 
 if not lib.checkDependency('ox_inventory', '2.30.0') then warn("The script has not been tested with this versions of ox_inventory!") end
 
-
 AddStateBagChangeHandler('WeaponFlashlightState', nil, function(bagName, key, value)
-    print("Received value ", json.encode(value), {indent=true})
     if not value then return end
 
     local netId = bagName:gsub('player:', '')
@@ -21,13 +19,13 @@ AddStateBagChangeHandler('WeaponFlashlightState', nil, function(bagName, key, va
         local weaponData = ox_inventory:GetSlot(playerSource, slot)
 
         if not weaponData then return end
-        print("Receiving WeaponFlashlightState ", payload.FlashlightState)
+        utils.mbtDebugger("Receiving WeaponFlashlightState ", payload.FlashlightState)
         utils.dumpTable(weaponData)
         
         weaponData.metadata.flashlightState = payload.FlashlightState
         ox_inventory:SetMetadata(playerSource, weaponData.slot, weaponData.metadata)
         
-        print("State of flashlight for weapon "..weaponData.label.." with serial "..weaponData.metadata.serial.." in slot "..weaponData.slot.." changed to "..tostring(weaponData.metadata.flashlightState))
+        utils.mbtDebugger("State of flashlight for weapon "..weaponData.label.." with serial "..weaponData.metadata.serial.." in slot "..weaponData.slot.." changed to "..tostring(weaponData.metadata.flashlightState))
         utils.mbtDebugger("State of flashlight for weapon "..weaponData.label.." with serial "..weaponData.metadata.serial.." in slot "..weaponData.slot.." changed to "..tostring(weaponData.metadata.flashlightState))
     end
 end)
@@ -59,7 +57,6 @@ local function loadWeaponsInfo()
     MBT.WeaponsInfo = weaponsInfo
     local b = MBT.EnableSling and true or false
     SetConvarReplicated("malisling:enable_sling", tostring(b))
-    print("LAAAAAA")
     TriggerClientEvent("mbt_malisling:sendWeaponsData", -1, MBT.WeaponsInfo)
     isReady = true
 end
@@ -385,30 +382,4 @@ AddEventHandler("mbt_malisling:syncDeletion", function(weaponType)
             weaponType = weaponType
         }
     })
-end)
-
-RegisterCommand("setC", function(source, args, raw)
-    SetConvarReplicated("malisling:enable_sling", true)
-end)
-
-RegisterCommand("getC", function(source, args, raw)
-    utils.mbtDebugger(GetConvar('malisling:enable_sling', 'false'))
-    if GetConvar('malisling:enable_sling', 'false') == 'true' then
-
-    end
-end)
-
-RegisterCommand("ptts", function(source, args, raw)
-    utils.dumpTable(playersToTrack)
-end)
-
-RegisterCommand("consv", function(source, args, raw)
-    utils.dumpTable(MBT.WeaponsInfo["Weapons"])
-end)
-
-RegisterCommand("blyat", function(source, args, raw)
-    local weaponData = ox_inventory:GetSlot(source, 5)
-
-    weaponData.metadata.durability = 50
-    ox_inventory:SetMetadata(source, weaponData.slot, weaponData.metadata)
 end)

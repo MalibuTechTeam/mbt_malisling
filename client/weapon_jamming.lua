@@ -24,6 +24,7 @@ local function skillCheck()
     LocalPlayer.state:set('JammedState', false, false)
     MBT.Notification(MBT.Labels["has_unjammed"])
 end
+
 local function disableFiring()
     while isJammed do
         DisablePlayerFiring(cache.playerId, true)
@@ -63,17 +64,12 @@ AddStateBagChangeHandler('JammedState', nil, function(bagName, key, value)
     end
 end)
 
-
-
-
 AddEventHandler("CEventGunShotWhizzedBy", function(entities, eventEntity, args)
     if currentWeapon and not isJammed then
         utils.mbtDebugger("currentWeapon.metadata.durability ", currentWeapon.metadata.durability)
         if utils.getJammingChance(currentWeapon.metadata.durability) and (GetGameTimer() - jammed) > (MBT.Jamming["Cooldown"] * 1000) then
-            math.randomseed(GetGameTimer() * math.random(30568, 90214))
                 jammed = GetGameTimer()
                 LocalPlayer.state:set('JammedState', true, false)
-            end
-        -- end
+        end
     end
 end)
