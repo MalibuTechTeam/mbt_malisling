@@ -50,8 +50,8 @@ If someone has some info about it, we will be very happy of receive a PR
 I know, it would require an almost complete rewrite, we will see :)
 
 ## Media:
-- Showcase:  [Click Here](https://youtu.be/A5NDT_WTbo0)
-- Cfx : [Click Here]()
+- Showcase:  [Click Here](https://www.youtube.com/watch?v=A5NDT_WTbo0)
+- Cfx : [Click Here](https://forum.cfx.re/t/free-esx-ox-qb-mbt-malisling-attached-weapons-flashlights-jamming-weapon-drop-throw/5118366)
 
 ## DMCA Protection Certificate
 
