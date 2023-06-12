@@ -9,6 +9,7 @@ jobs:
   create-release:
     name: Build and Create Tagged release
     runs-on: ubuntu-latest
+    permissions: write-all
 
     steps:
       - name: Install archive tools
@@ -35,7 +36,7 @@ jobs:
         run: node .github/actions/bump-manifest-version.js
         env:
           TGT_RELEASE_VERSION: ${{ github.ref_name }}
-
+      
       - name: Push manifest change
         uses: EndBug/add-and-commit@v8
         with:
@@ -45,6 +46,9 @@ jobs:
           author_email: 41898282+github-actions[bot]@users.noreply.github.com
           message: "chore: bump manifest version to ${{ github.ref_name }}"
 
+      - name: Check github.ref_name   
+        run: echo ${{ github.ref_name }}
+
       - name: Update tag ref
         uses: EndBug/latest-tag@latest
         with:
@@ -53,8 +57,8 @@ jobs:
       - name: Bundle files
         run: |
           mkdir -p ./temp/mbt_malisling
-          cp ./{README.md,config.lua,fxmanifest.lua,helper.lua,weapons.json} ./temp/mbt_malisling
-          cp -r ./{client,server} ./temp/mbt_malisling
+          cp ./{README.md,config.lua,fxmanifest.lua,utils.lua} ./temp/mbt_malisling
+          cp -r ./{client,server,data} ./temp/mbt_malisling
           cd ./temp && zip -r ../mbt_malisling.zip ./mbt_malisling
 
       - name: Create Release
@@ -69,3 +73,22 @@ jobs:
         env:
           CI: false
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Get current date
+        if: inputs.releaseVersion == ''
+        id: date
+        uses: Kaven-Universe/github-action-current-date-time@v1
+        with:
+          format: "DD-MM-YYYY"
+
+      - name: Post announcement on Discord
+        continue-on-error: true
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          DISCORD_USERNAME: "MaliBot"
+          DISCORD_AVATAR:  "https://i.imgur.com/FYYQGIF.png"
+          DISCORD_EMBEDS : '[{"title": "MBT Malisling[${{ github.ref_name }} - ${{ inputs.releaseVersion || steps.date.outputs.time }}]", "description": "**Changelog:**\n\n- ${{github.event.head_commit.message}}", "color": 13975696,"footer": {"text": "© Malibú Tech", "icon_url": "https://i.imgur.com/CebOcN3.png"},"image": {"url": "https://camo.githubusercontent.com/d57538c79f76ff58214a357ddbcb59c56e4832eb6235b3dc409b367fb2c9ef72/68747470733a2f2f692e696d6775722e636f6d2f5954377453696d2e706e67"}}]'
+        uses: Ilshidur/action-discord@0.3.2
+        with: 
+          args: |
+            <@&897197423502450772>
