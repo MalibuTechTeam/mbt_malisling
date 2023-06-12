@@ -46,9 +46,6 @@ This also means that any update of ```ox_inventory``` that invoves them, can bre
 It seems its some kind of limitation of GTAV (as far as i know)
 If someone has some info about it, we will be very happy of receive a PR	
 
-### Code is messy
-I know, it would require an almost complete rewrite, we will see :)
-
 ## Media:
 - Showcase:  [Click Here](https://www.youtube.com/watch?v=A5NDT_WTbo0)
 - Cfx : [Click Here](https://forum.cfx.re/t/free-esx-ox-qb-mbt-malisling-attached-weapons-flashlights-jamming-weapon-drop-throw/5118366)
