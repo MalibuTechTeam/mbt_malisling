@@ -8,8 +8,11 @@ MBT.Jamming = {
     ["Cooldown"] = 5,
     ["Animation"] = { ["Dict"] = "anim@weapons@first_person@aim_rng@generic@pistol@singleshot@str", ["Anim"] = "reload_aim" },
     ["Chance"] = {
-        [20] = 40,
-        [40] = 20 
+        [50] = 10,
+        [40] = 15,
+        [30] = 20,
+        [20] = 25,
+        [10] = 30
     }
 }
 
@@ -17,25 +20,21 @@ MBT.Throw = {
     ["Enabled"] = true,
     ["Animation"] = { ["Dict"] = "melee@unarmed@streamed_variations", ["Anim"] = "plyr_takedown_front_slap" },
     ["Groups"] = {
-        [`GROUP_MELEE`] = { ["Allowed"] = true, ["Multipliers"] = { ["X"] = 40.0, ["Y"] = 40.0, ["Z"] = 15.0 } }, 
-        [`GROUP_PISTOL`] = { ["Allowed"] = true, ["Multipliers"] = { ["X"] = 20.0, ["Y"] = 20.0, ["Z"] = 30.0 } },
+        [`GROUP_MELEE`] = { ["Allowed"] = true, ["Multipliers"] = { ["X"] = 40.0, ["Y"] = 40.0, ["Z"] = 15.0 } },
+        [`GROUP_PISTOL`] = { ["Allowed"] = true, ["Multipliers"] = { ["X"] = 20.0, ["Y"] = 20.0, ["Z"] = 15.0 } },
         [`GROUP_RIFLE`] = { ["Allowed"] = true, ["Multipliers"] = { ["X"] = 10.0, ["Y"] = 10.0, ["Z"] = 5.0 } },
         [`GROUP_MG`] = { ["Allowed"] = false, ["Multipliers"] = { ["X"] = 20.0, ["Y"] = 20.0, ["Z"] = 10.0 } },
         [`GROUP_SMG`] = { ["Allowed"] = true, ["Multipliers"] = { ["X"] = 20.0, ["Y"] = 20.0, ["Z"] = 10.0 } },
         [`GROUP_SHOTGUN`] = { ["Allowed"] = true, ["Multipliers"] = { ["X"] = 20.0, ["Y"] = 20.0, ["Z"] = 10.0 } },
         [`GROUP_STUNGUN`] = { ["Allowed"] = true, ["Multipliers"] = { ["X"] = 20.0, ["Y"] = 20.0, ["Z"] = 10.0 } },
-        [`GROUP_SNIPER`] = { ["Allowed"] = true, ["Multipliers"] = { ["X"] = 20.0, ["Y"] = 20.0, ["Z"] = 10.0 } },
-        [`GROUP_HEAVY`] = { ["Allowed"] = true, ["Multipliers"] = { ["X"] = 20.0, ["Y"] = 20.0, ["Z"] = 10.0 } },
+        [`GROUP_SNIPER`] = { ["Allowed"] = false, ["Multipliers"] = { ["X"] = 20.0, ["Y"] = 20.0, ["Z"] = 10.0 } },
+        [`GROUP_HEAVY`] = { ["Allowed"] = false, ["Multipliers"] = { ["X"] = 20.0, ["Y"] = 20.0, ["Z"] = 10.0 } },
     },
     ["Key"] = "K",
     ["Command"] = "throwWeapon"
 }
 
 MBT.Bones = { ["Back"] = 24816, ["LHand"] = 36029 }
-
-MBT.Labels = {
-    ["Holster_Help"] = "[RMOUSE] - Unholster [BACKSPACE] - Cancel",
-}
 
 MBT.HolsterControls = {
     ["Confirm"] = { ["Label"] = "Confirm Holster", ["Input"] = "MOUSE_BUTTON", ["Key"] = "MOUSE_RIGHT", },
@@ -65,6 +64,8 @@ MBT.Labels = {
         ["type"] = "error",
         ["icon"] = "fa-solid fa-hand-fist",
     },
+    ["Holster_Help"] = "[RMOUSE] - Unholster [BACKSPACE] - Cancel",
+
 }
 
 
@@ -77,13 +78,13 @@ MBT.PropInfo = {
         ["RotOrder"] = 2,
         ["FixedRot"] = true,
         ["HolsterAnim"] = {
-            ["dict"] = "reaction@intimidation@cop@unarmed", 
+            ["dict"] = "reaction@intimidation@cop@unarmed",
             ["animIn"] = "intro" ,
-            ["animOut"] = "outro", 
+            ["animOut"] = "outro",
             ["sleep"] = 400,
             ["sleepOut"] = 450
         }
-        
+
     },
     ["back"] = {
         ["Bone"] = MBT.Bones["Back"],
@@ -93,11 +94,11 @@ MBT.PropInfo = {
         ["RotOrder"] = 2,
         ["FixedRot"] = true,
         ["HolsterAnim"] = {
-            ["dict"] = "reaction@intimidation@1h", 
+            ["dict"] = "reaction@intimidation@1h",
             ["animIn"] = "intro",
             ["animOut"] = "outro",
             ["sleep"] = 1200,
-            ["sleepOut"] = 1200 
+            ["sleepOut"] = 1200
         }
     },
     ["back2"] = {
@@ -108,11 +109,11 @@ MBT.PropInfo = {
         ["RotOrder"] = 2,
         ["FixedRot"] = true,
         ["HolsterAnim"] = {
-            ["dict"] = "reaction@intimidation@1h", 
+            ["dict"] = "reaction@intimidation@1h",
             ["animIn"] = "intro",
             ["animOut"] = "outro",
             ["sleep"] = 1200,
-            ["sleepOut"] = 1200 
+            ["sleepOut"] = 1200
         }
     },
     ["melee"] = {
@@ -123,7 +124,7 @@ MBT.PropInfo = {
         ["RotOrder"] = 2,
         ["FixedRot"] = true,
         ["HolsterAnim"] = {
-            ["dict"] = "combat@combat_reactions@pistol_1h_gang", 
+            ["dict"] = "combat@combat_reactions@pistol_1h_gang",
             ["animIn"] = "0",
             ["animOut"] = "0",
             ["sleep"] = 500,
@@ -138,7 +139,7 @@ MBT.PropInfo = {
         ["RotOrder"] = 2,
         ["FixedRot"] = true,
         ["HolsterAnim"] = {
-            ["dict"] = "combat@combat_reactions@pistol_1h_hillbilly", 
+            ["dict"] = "combat@combat_reactions@pistol_1h_hillbilly",
             ["animIn"] = "0",
             ["animOut"] = "0",
             ["sleep"] = 500,
@@ -153,7 +154,7 @@ MBT.PropInfo = {
         ["RotOrder"] = 2,
         ["FixedRot"] = true,
         ["HolsterAnim"] = {
-            ["dict"] = "reaction@intimidation@1h", 
+            ["dict"] = "reaction@intimidation@1h",
             ["animIn"] = "intro",
             ["animOut"] = "outro",
             ["sleep"] = 1200,
@@ -170,14 +171,17 @@ MBT.PropInfo = {
 }
 
 MBT.CustomPropPosition = {
-    ["police"] = {
-        ["side"] = {
-            ["Pos"] = { ["x"] = -0.15, ["y"] = 0.0, ["z"] = -0.23  },
-            ["Rot"] = { ["x"] = 90.0,  ["y"] = 20.0, ["z"] = 180.0 },
-        },
-        ["back"] = {
-            ["Pos"] = { ["x"] = 0.9, ["y"] = -0.18, ["z"] = 0.1  },
-            ["Rot"] = { ["x"] = 0.0,  ["y"] = 155.0, ["z"] = 0.0 },
-        },
-    }
+    --[[ Preset Example
+
+        ["police"] = {
+            ["side"] = {
+                ["Pos"] = { ["x"] = -0.15, ["y"] = 0.0, ["z"] = -0.23  },
+                ["Rot"] = { ["x"] = 90.0,  ["y"] = 20.0, ["z"] = 180.0 },
+            },
+            ["back"] = {
+                ["Pos"] = { ["x"] = 0.9, ["y"] = -0.18, ["z"] = 0.1  },
+                ["Rot"] = { ["x"] = 0.0,  ["y"] = 155.0, ["z"] = 0.0 },
+            },
+        }
+    ]]
 }
