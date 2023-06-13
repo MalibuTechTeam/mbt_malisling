@@ -285,7 +285,7 @@ local function Init()
         if utils.getTableLength(data) == 1 then
             for _,v in pairs(data) do
                 if type(v) == "table" then
-                    if utils.isWeapon(v.name) and playerWeapon ~= joaat(v.name) then
+                    if utils.isWeapon(v.name) and playerWeapon ~= joaat(v.name) and MBT.WeaponsInfo["Weapons"][v.name]["type"] then
                         local weaponType = MBT.WeaponsInfo["Weapons"][v.name]?.type
 
 
@@ -518,7 +518,7 @@ AddEventHandler("mbt_malisling:checkWeaponProps", function(t)
     utils.mbtDebugger("checkWeaponProps ~ Starting iterating inventory weapons!")
     
     for _, weaponData in pairs(t) do
-        if utils.isWeapon(weaponData.name) then
+        if utils.isWeapon(weaponData.name) and MBT.WeaponsInfo["Weapons"][weaponData.name]["type"] then
             local weaponType = MBT.WeaponsInfo["Weapons"][weaponData.name]?.type
             utils.mbtDebugger("checkWeaponProps ~ weaponType ", weaponData.name, weaponType	)
 
