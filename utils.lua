@@ -269,6 +269,24 @@ function utils.getJammingChance(value)
     utils.mbtDebugger("random is ", random, "chance is ", chance)
     return random < chance
 end
+
+---@param ped number
+---@return string
+function utils.getPedSex(ped)
+    local pedModel = GetEntityModel(ped)
+    local pedSex
+
+    if pedModel == `mp_m_freemode_01` then
+        pedSex = "male"
+    elseif pedModel == `mp_f_freemode_01` then
+        pedSex = "female"
+    else
+        pedSex = IsPedMale(ped) and "male" or "female"
+    end
+
+    return pedSex
+end
+
 return utils
 
 
