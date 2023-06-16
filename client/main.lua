@@ -121,14 +121,19 @@ local function overwriteValues(newTable)
 
     for key, value in pairs(newTable) do
         if propInfoTable[key] ~= nil then
-            propInfoTable[key].Pos.x = value.Pos.x
-            propInfoTable[key].Pos.y = value.Pos.y
-            propInfoTable[key].Pos.z = value.Pos.z
-            propInfoTable[key].Rot.x = value.Rot.x
-            propInfoTable[key].Rot.y = value.Rot.y
-            propInfoTable[key].Rot.z = value.Rot.z
+            propInfoTable[key]["Pos"] = utils.tableDeepCopy(value["Pos"])
+            propInfoTable[key]["Rot"] = utils.tableDeepCopy(value["Rot"])
         end
     end
+end
+
+local function getAttachInfo(data)
+
+    print("Getting attach info for job ", data.Job)
+    if MBT.CustomPropPosition[data.Job] and MBT.CustomPropPosition[data.Job][data.Type] then
+        return MBT.CustomPropPosition[data.Job][data.Type]
+    end
+    return MBT.PropInfo[data.Type]
 end
 
 function sendAnimations(jobName)
@@ -603,13 +608,22 @@ AddEventHandler('mbt_malisling:syncSling', function (data)
     if not playerPed then return end
     if not data.playerWeapons then return end
     local playerCoords = GetEntityCoords(playerPed)
-    
+    local playerJob = data.playerJob
+
     utils.dumpTable(data)
+    
+    utils.mbtDebugger("Ped is ", pedSex, " with job ", playerJob)
 
     for weaponType, weaponData in pairs(data.playerWeapons) do
         if weaponData ~= false and propInfoTable[weaponType] ~= nil and (playersToTrack[data.playerSource][weaponType] == false or playersToTrack[data.playerSource][weaponType] == nil) then
             utils.mbtDebugger("syncSling ~ Check passed, creating weapon object!")
-            local attachInfo = propInfoTable[weaponType]
+            -- local attachInfo = propInfoTable[weaponType]
+            local attachInfo = getAttachInfo({
+                Job = playerJob,
+                Sex = pedSex,
+                Type = weaponType
+            })
+
             local boneIndex = GetPedBoneIndex(playerPed, attachInfo["Bone"])
             weaponData.weaponHash = joaat(weaponData.name)
             lib.requestWeaponAsset(weaponData.weaponHash, 500, 31, 1)
@@ -620,6 +634,7 @@ AddEventHandler('mbt_malisling:syncSling', function (data)
             SetCreateWeaponObjectLightSource(weaponData.weaponObj, weaponData.metadata.flashlightState)
             Wait(50)
             AttachEntityToEntity(weaponData.weaponObj, playerPed, boneIndex, attachInfo["Pos"][pedSex]["x"], attachInfo["Pos"][pedSex]["y"], attachInfo["Pos"][pedSex]["z"], attachInfo["Rot"][pedSex]["x"], attachInfo["Rot"][pedSex]["y"], attachInfo["Rot"][pedSex]["z"], true, true, false, attachInfo["isPed"], attachInfo["RotOrder"], attachInfo["FixedRot"])
+            
             SetEntityCompletelyDisableCollision(weaponData.weaponObj, false, true)
             SetFlashLightKeepOnWhileMoving(true)
             utils.mbtDebugger("syncSling ~ Apply attachments to weapon obj!")
