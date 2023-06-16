@@ -32,6 +32,7 @@ local ox_inventory = exports["ox_inventory"]
 local FrameworkObj, weaponNames, playersToTrack, weaponObjectiveSpawned, equippedWeapon = {}, {}, {}, {}, {}
 local isReady = false
 local propInfoTable = utils.tableDeepCopy(MBT.PropInfo)
+local pedSex
 
 
 --- Delete all attached weapons and sync with server 
@@ -138,6 +139,7 @@ function sendAnimations(jobName)
 
     TriggerEvent("mbt_malisling:sendAnim", {
         WeaponData = MBT.WeaponsInfo,
+        PedSex = pedSex,
         HolsterData = propInfoTable
     })
 end
@@ -165,6 +167,8 @@ local function Init()
     utils.mbtDebugger("Init ~  playersTrack clientside with my source that is "..cache.serverId)
 
     playersToTrack[cache.serverId] = {["side"] = false, ["back"] = false, ["back2"] = false, ["melee"] = false, ["melee2"] = false, ["melee3"] = false}
+
+    pedSex = utils.getPedSex(cache.ped)
 
     utils.mbtDebugger("Init ~ playersToTrack filled with my id!!!")
     Wait(200)
@@ -431,6 +435,7 @@ elseif isOX then
 
         TriggerEvent("mbt_malisling:sendAnim", {
             WeaponData = MBT.WeaponsInfo,
+            PedSex = pedSex,
             HolsterData = propInfoTable
         })
 
@@ -609,11 +614,11 @@ AddEventHandler('mbt_malisling:syncSling', function (data)
             lib.requestWeaponAsset(weaponData.weaponHash, 500, 31, 1)
             weaponData.weaponObj = CreateWeaponObject(weaponData.weaponHash , 50, playerCoords.x, playerCoords.y, playerCoords.z, true, 1.0, 0)
             RequestWeaponHighDetailModel(weaponData.weaponObj)
-            utils.mbtDebugger("syncSling ~ Weapon object created! ", weaponData.name, playerPed, boneIndex, attachInfo["Pos"]["x"], attachInfo["Pos"]["y"], attachInfo["Pos"]["z"])
+            utils.mbtDebugger("syncSling ~ Weapon object created! ", weaponData.name, playerPed, boneIndex, attachInfo["Pos"][pedSex]["x"], attachInfo["Pos"][pedSex]["y"], attachInfo["Pos"][pedSex]["z"])
             applyAttachments(weaponData)
             SetCreateWeaponObjectLightSource(weaponData.weaponObj, weaponData.metadata.flashlightState)
             Wait(50)
-            AttachEntityToEntity(weaponData.weaponObj, playerPed, boneIndex, attachInfo["Pos"]["x"], attachInfo["Pos"]["y"], attachInfo["Pos"]["z"], attachInfo["Rot"]["x"], attachInfo["Rot"]["y"], attachInfo["Rot"]["z"], true, true, false, attachInfo["isPed"], attachInfo["RotOrder"], attachInfo["FixedRot"])
+            AttachEntityToEntity(weaponData.weaponObj, playerPed, boneIndex, attachInfo["Pos"][pedSex]["x"], attachInfo["Pos"][pedSex]["y"], attachInfo["Pos"][pedSex]["z"], attachInfo["Rot"][pedSex]["x"], attachInfo["Rot"][pedSex]["y"], attachInfo["Rot"][pedSex]["z"], true, true, false, attachInfo["isPed"], attachInfo["RotOrder"], attachInfo["FixedRot"])
             SetEntityCompletelyDisableCollision(weaponData.weaponObj, false, true)
             SetFlashLightKeepOnWhileMoving(true)
             utils.mbtDebugger("syncSling ~ Apply attachments to weapon obj!")
