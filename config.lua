@@ -1,10 +1,10 @@
 MBT = {}
 MBT.Debug = false
-MBT.DropWeaponOnDeath = true
+MBT.DropWeaponOnDeath = false
 MBT.EnableSling = true
 
 MBT.Jamming = {
-    ["Enabled"] = true,
+    ["Enabled"] = false,
     ["Cooldown"] = 5,
     ["Animation"] = { ["Dict"] = "anim@weapons@first_person@aim_rng@generic@pistol@singleshot@str", ["Anim"] = "reload_aim" },
     ["Chance"] = {
@@ -30,7 +30,7 @@ MBT.Throw = {
         [`GROUP_SNIPER`] = { ["Allowed"] = false, ["Multipliers"] = { ["X"] = 20.0, ["Y"] = 20.0, ["Z"] = 10.0 } },
         [`GROUP_HEAVY`] = { ["Allowed"] = false, ["Multipliers"] = { ["X"] = 20.0, ["Y"] = 20.0, ["Z"] = 10.0 } },
     },
-    ["Key"] = "K",
+    ["Key"] = "Y",
     ["Command"] = "throwWeapon"
 }
 
