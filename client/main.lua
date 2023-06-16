@@ -29,11 +29,13 @@ local isQB = GetResourceState("qb-core") ~= "missing"
 local isOX = GetResourceState("ox_core") ~= "missing"
 
 local ox_inventory = exports["ox_inventory"]
-local FrameworkObj, weaponNames, playersToTrack, weaponObjectiveSpawned, equippedWeapon = {}, {}, {}, {}, {}
+local FrameworkObj, weaponNames, weaponObjectiveSpawned = {}, {}, {}
 local isReady = false
 local propInfoTable = utils.tableDeepCopy(MBT.PropInfo)
 local pedSex
 
+equippedWeapon = {}
+playersToTrack = {}
 
 --- Delete all attached weapons and sync with server 
 local function deleteAllWeapons()
@@ -215,9 +217,8 @@ local function Init()
             local invWeap = ox_inventory:Search('slots', weaponName)
 
             local playerWeapons = {}
-
-            for _, v in pairs(invWeap) do                
-                if v.slot == equippedWeapon["slot"] then
+            for _, v in pairs(invWeap) do
+                if v.slot == equippedWeapon["slot"] and not equippedWeapon["dropped"] then
                     local weaponData = v
                     weaponData.type = MBT.WeaponsInfo["Weapons"][v.name]?.type
                     playerWeapons[weaponData.type] = weaponData
@@ -551,7 +552,7 @@ AddEventHandler('mbt_malisling:syncScope', function (data)
 
         playersToTrack[data.playerSource]["waiting"] = false
 
-        for k,v in pairs(playersToTrack[data.playerSource]) do
+        for _,v in pairs(playersToTrack[data.playerSource]) do
         
             local containsObj, index = utils.containsValue(weaponObjectiveSpawned, v)
             if containsObj then
