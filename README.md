@@ -26,10 +26,11 @@ This also means that any update of ```ox_inventory``` that invoves them, can bre
 * Flashlight working on back
 * Jamming chance based on weapon state
 * Equipped weapon drops on death
+* Export for dropping equipped weapon from hands
 * Throw weapons away ad turn them into drops
 * Easily config script with your own event to fit your needs
 * Customizable weapon position
-* Customizable weapon position for jobs
+* Customizable weapon position for jobs and gender
 * Customizable animations
 * Customizable jamming chance
 * Customizable throwing power (based on weapon groups)
@@ -58,6 +59,6 @@ If someone has some info about it, we will be very happy of receive a PR
 - Cfx : [Click Here](https://forum.cfx.re/t/free-esx-ox-qb-mbt-malisling-attached-weapons-flashlights-jamming-weapon-drop-throw/5118366)
 
 ## DMCA Protection Certificate
-
+![image](https://cdn.discordapp.com/attachments/1045063739738705940/1119276600584847370/dmca.png)
 
 ##### Copyright © 2023 Malibú Tech. All rights reserved.
