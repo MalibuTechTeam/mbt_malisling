@@ -183,25 +183,3 @@ Citizen.CreateThread(function()
         end
     end
 end)
-
-
-RegisterCommand("scopes", function (source, args, raw)
-    for k,v in pairs(scopes) do
-        utils.mbtDebugger(k, json.encode(v))
-    end
-end)
-
-
-RegisterCommand("podio", function (source, args, raw)
-    utils.mbtDebugger("OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO ", GetPlayerPed(source))
-
-end)
-
-
-RegisterCommand("merdio", function (source, args, raw)
-    local s1, s2 = 1, 3
-    local p1, p2 = GetPlayerPed(s1), GetPlayerPed(s2)
-    local c1, c2 = GetEntityCoords(p1), GetEntityCoords(p2)
-    
-    utils.mbtDebugger("Distance is ", #(c1 - c2))
-end)
