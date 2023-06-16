@@ -27,7 +27,8 @@ local function throwWeapon(data)
     lib.requestModel(model)
     local bone = 6286
     local forwardCoords = GetWorldPositionOfEntityBone(cache.ped, bone)
-    SetPedCurrentWeaponVisible(cache.ped, false, false, false, false)
+    TriggerEvent("ox_inventory:disarm", true)
+    equippedWeapon.dropped = true
     TaskPlayAnim(cache.ped, throwAnim["Dict"], throwAnim["Anim"], 8.0, -8.0, -1, 0, 0.0, false, false, false)
     local weaponObj = CreateObject(model, forwardCoords.x, forwardCoords.y, forwardCoords.z, true, true, true)
     local boneIndex = GetPedBoneIndex(cache.ped, bone)
