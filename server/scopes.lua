@@ -150,6 +150,7 @@ Citizen.CreateThread(function()
                         payload = {
                             tType = values[i].type == "Removed" and "del" or "add",
                             playerSource = tonumber(source),
+                            playerJob = getPlayerJob(source),
                             playerWeapons = values[i].type == "Added" and playersToTrack[tonumber(source)] or nil
                         }
                     }

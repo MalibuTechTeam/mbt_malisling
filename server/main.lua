@@ -298,12 +298,24 @@ if isESX then
     AddEventHandler('esx:playerLoaded', function(playerId)
         playersToTrack[playerId] = {}
     end)
+
+    getPlayerJob = function (s)
+        local xPlayer = FrameworkObj.GetPlayerFromId(s)
+        print("xPlayer of ", s, " is ", xPlayer)
+        print(xPlayer.job.name)
+        return xPlayer.job.name
+    end
 elseif isQB then
     FrameworkObj = exports["qb-core"]:GetCoreObject()
     AddEventHandler('QBCore:Server:PlayerLoaded', function(qbPlayer)
         local source = qbPlayer.PlayerData.source
         playersToTrack[source] = {}
     end)
+
+    getPlayerJob = function (s)
+        local xPlayer  = FrameworkObj.Functions.GetPlayer(s)
+        return xPlayer.PlayerData.job.name
+    end
 elseif isOX then
     local file = ('imports/%s.lua'):format(IsDuplicityVersion() and 'server' or 'client')
     local import = LoadResourceFile('ox_core', file)
@@ -360,6 +372,7 @@ AddEventHandler("mbt_malisling:syncSling", function(data)
         payload = {
             type = "add",
             playerSource = _source,
+            playerJob = getPlayerJob(_source),
             calledBy = "mbt_malisling:syncSling ~ 162",
             playerWeapons = playersToTrack[_source]
         }
