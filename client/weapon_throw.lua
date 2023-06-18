@@ -37,8 +37,7 @@ local function throwWeapon(data)
     DetachEntity(weaponObj, true, true)
     local forwardVector = GetEntityForwardVector(cache.ped)
     local multipliers = MBT.Throw["Groups"][data.Group]["Multipliers"] or { ["X"] = 20.0, ["Y"] = 20.0, ["Z"] = 10.0 }
-    ApplyForceToEntity(weaponObj, 1, forwardVector.x * multipliers["X"], forwardVector.y * multipliers["Y"], forwardVector.z + multipliers["Z"], 0, 0, 0, 0, false,
-    true, true, false, true)
+    ApplyForceToEntity(weaponObj, 1, forwardVector.x * multipliers["X"], forwardVector.y * multipliers["Y"], forwardVector.z + multipliers["Z"], 0, 0, 0, 0, false, true, true, false, true)
     Wait(250)
     while IsEntityInAir(weaponObj) do Wait(250); end
     Wait(700)
@@ -55,6 +54,7 @@ local function throwWeapon(data)
 end
 
 local function attemptThrowWeapon()
+    if cache.vehicle then return end
     local hasWeapon, weaponHash = GetCurrentPedWeapon(cache.ped)
     local weaponGroup = GetWeapontypeGroup(weaponHash)
     if not hasWeapon then return end
