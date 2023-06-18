@@ -151,6 +151,7 @@ Citizen.CreateThread(function()
                             tType = values[i].type == "Removed" and "del" or "add",
                             playerSource = tonumber(source),
                             playerJob = getPlayerJob(source),
+                            pedSex = getPlayerSex(source),
                             playerWeapons = values[i].type == "Added" and playersToTrack[tonumber(source)] or nil
                         }
                     }

@@ -301,10 +301,14 @@ if isESX then
 
     getPlayerJob = function (s)
         local xPlayer = FrameworkObj.GetPlayerFromId(s)
-        print("xPlayer of ", s, " is ", xPlayer)
-        print(xPlayer.job.name)
         return xPlayer.job.name
     end
+    
+    getPlayerSex = function (s)
+        local xPlayer = FrameworkObj.GetPlayerFromId(s)
+        return xPlayer.get("sex") == "m" and "male" or "female"
+    end
+
 elseif isQB then
     FrameworkObj = exports["qb-core"]:GetCoreObject()
     AddEventHandler('QBCore:Server:PlayerLoaded', function(qbPlayer)
@@ -313,8 +317,14 @@ elseif isQB then
     end)
 
     getPlayerJob = function (s)
+        s = tonumber(s)
         local xPlayer  = FrameworkObj.Functions.GetPlayer(s)
         return xPlayer.PlayerData.job.name
+    end
+    
+    getPlayerSex = function (s)
+        local xPlayer  = FrameworkObj.Functions.GetPlayer(s)
+        return xPlayer.PlayerData.charinfo.gender == 0 and "male" or "female"
     end
 elseif isOX then
     local file = ('imports/%s.lua'):format(IsDuplicityVersion() and 'server' or 'client')
@@ -358,10 +368,8 @@ end)
 RegisterNetEvent("mbt_malisling:syncSling")
 AddEventHandler("mbt_malisling:syncSling", function(data)
     local _source = source
-
-    data.tPed = source
-    if not playersToTrack[source] then playersToTrack[source] = {} end
-    for k, v in pairs(data.playerWeapons) do playersToTrack[source][k] = v end
+    if not playersToTrack[_source] then playersToTrack[_source] = {} end
+    for k, v in pairs(data.playerWeapons) do playersToTrack[_source][k] = v end
 
     Wait(400)
 
@@ -372,7 +380,8 @@ AddEventHandler("mbt_malisling:syncSling", function(data)
         payload = {
             type = "add",
             playerSource = _source,
-            playerJob = getPlayerJob(_source),
+            playerJob = getPlayerJob(_source), 
+            pedSex = getPlayerSex(_source), 
             calledBy = "mbt_malisling:syncSling ~ 162",
             playerWeapons = playersToTrack[_source]
         }
