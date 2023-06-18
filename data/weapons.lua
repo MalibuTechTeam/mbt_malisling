@@ -208,6 +208,9 @@ return {
   ["WEAPON_SMG_MK2"] = {
     ["type"] = "side"
   },
+  ["WEAPON_MACHINEPISTOL"] = {
+    ["type"] = "side"
+  },
   ["WEAPON_COMBATSHOTGUN"] = {
     ["type"] = "back"
   },
