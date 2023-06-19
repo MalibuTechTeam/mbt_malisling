@@ -77,7 +77,7 @@ local function applyAttachments(data)
         if components then
             for i = 1, #components do
                 local componentName = components[i]
-
+                if MBT.DisableFlashlightComponent and componentName == MBT.FlashlightItemName then return end
                 utils.mbtDebugger("applyAttachments ~ Applying component: ", componentName)
                 local compsTable = MBT.WeaponsInfo.Components[componentName]["client"]["component"]
 

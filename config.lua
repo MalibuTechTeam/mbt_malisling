@@ -41,6 +41,9 @@ MBT.HolsterControls = {
     ["Cancel"] = { ["Label"] = "Cancel Holster", ["Input"] = "keyboard", ["Key"] = "BACK", }
 }
 
+MBT.DisableFlashlightComponent = true -- Set false if you want to show the flashlight component on the weapon attached to the ped.
+MBT.FlashlightItemName = 'at_flashlight'
+
 MBT.Notification = function (data)
     lib.notify(data)
 end
