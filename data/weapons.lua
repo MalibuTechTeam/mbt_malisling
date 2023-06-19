@@ -244,7 +244,4 @@ return {
   ["WEAPON_VINTAGEPISTOL"] = {
     ["type"] = "side"
   },
-  ["WEAPON_FLASHLIGHT"] = {
-    ["type"] = "side"
-  }
 }
