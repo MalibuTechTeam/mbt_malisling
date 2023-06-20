@@ -87,8 +87,8 @@ jobs:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
           DISCORD_USERNAME: "MaliBot"
           DISCORD_AVATAR:  "https://i.imgur.com/FYYQGIF.png"
-        run: |
-          PREVIOUS_RELEASE=$(git describe --tags --abbrev=0)
-          COMMIT_MESSAGES=$(git log --format=%B ${PREVIOUS_RELEASE}..HEAD)
-          DISCORD_EMBEDS='[{"title": "MBT Malisling[${{ github.ref_name }} - ${{ inputs.releaseVersion || steps.date.outputs.time }}]", "description": "**Changelog:**'${COMMIT_MESSAGES}'", "color": 13975696,"footer": {"text": "© Malibú Tech", "icon_url": "https://i.imgur.com/CebOcN3.png"},"image": {"url": "https://camo.githubusercontent.com/d57538c79f76ff58214a357ddbcb59c56e4832eb6235b3dc409b367fb2c9ef72/68747470733a2f2f692e696d6775722e636f6d2f5954377453696d2e706e67"}}]'
-          echo "${DISCORD_EMBEDS}" | ilshidur/action-discord@0.3.2
+          DISCORD_EMBEDS : '[{"title": "MBT Malisling[${{ github.ref_name }} - ${{ inputs.releaseVersion || steps.date.outputs.time }}]", "description": "**Changelog:**\n\n- ${{github.event.head_commit.message}}", "color": 13975696,"footer": {"text": "© Malibú Tech", "icon_url": "https://i.imgur.com/CebOcN3.png"},"image": {"url": "https://camo.githubusercontent.com/d57538c79f76ff58214a357ddbcb59c56e4832eb6235b3dc409b367fb2c9ef72/68747470733a2f2f692e696d6775722e636f6d2f5954377453696d2e706e67"}}]'
+        uses: Ilshidur/action-discord@0.3.2
+        with: 
+          args: |
+            <@&897197423502450772>
