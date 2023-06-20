@@ -77,18 +77,35 @@ local function applyAttachments(data)
         if components then
             for i = 1, #components do
                 local componentName = components[i]
-                if (MBT.DisableFlashlightComponent == true) and (componentName == MBT.FlashlightItemName) then return end
-                utils.mbtDebugger("applyAttachments ~ Applying component: ", componentName)
-                local compsTable = MBT.WeaponsInfo.Components[componentName]["client"]["component"]
+                if MBT.DisableFlashlightComponent then
+                    if componentName ~= MBT.FlashlightItemName then
+                        utils.mbtDebugger("applyAttachments ~ Applying component: ", componentName)
+                        local compsTable = MBT.WeaponsInfo.Components[componentName]["client"]["component"]
 
-                for v=1, #compsTable do
-                    local component = compsTable[v]
-                    if DoesWeaponTakeWeaponComponent(data.weaponHash, component) then
-                        utils.mbtDebugger("applyAttachments ~ Component check passed!")
-                        local compModel = GetWeaponComponentTypeModel(component)
-                        utils.mbtDebugger("applyAttachments ~ Component model: ", compModel)
-                        lib.requestModel(compModel)
-                        GiveWeaponComponentToWeaponObject(data.weaponObj, component)
+                        for v=1, #compsTable do
+                            local component = compsTable[v]
+                            if DoesWeaponTakeWeaponComponent(data.weaponHash, component) then
+                                utils.mbtDebugger("applyAttachments ~ Component check passed!")
+                                local compModel = GetWeaponComponentTypeModel(component)
+                                utils.mbtDebugger("applyAttachments ~ Component model: ", compModel)
+                                lib.requestModel(compModel)
+                                GiveWeaponComponentToWeaponObject(data.weaponObj, component)
+                            end
+                        end
+                    end
+                else
+                    utils.mbtDebugger("applyAttachments ~ Applying component: ", componentName)
+                        local compsTable = MBT.WeaponsInfo.Components[componentName]["client"]["component"]
+
+                    for v=1, #compsTable do
+                        local component = compsTable[v]
+                        if DoesWeaponTakeWeaponComponent(data.weaponHash, component) then
+                            utils.mbtDebugger("applyAttachments ~ Component check passed!")
+                            local compModel = GetWeaponComponentTypeModel(component)
+                            utils.mbtDebugger("applyAttachments ~ Component model: ", compModel)
+                            lib.requestModel(compModel)
+                            GiveWeaponComponentToWeaponObject(data.weaponObj, component)
+                        end
                     end
                 end
             end
