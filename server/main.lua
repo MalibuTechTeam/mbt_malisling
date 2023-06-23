@@ -30,8 +30,6 @@ AddStateBagChangeHandler('WeaponFlashlightState', nil, function(bagName, key, va
     end
 end)
 
-
-
 lib.callback.register('mbt_malisling:getWeapoConf', function(source)
     utils.mbtDebugger("getWeapoConf ~  Source ", source, " requested callback!")
     -- utils.mbtDebugger(MBT.WeaponsInfo)
@@ -301,12 +299,16 @@ if isESX then
     end)
 
     getPlayerJob = function (s)
+        s = tonumber(s)
         local xPlayer = FrameworkObj.GetPlayerFromId(s)
+        if not xPlayer then return "" end
         return xPlayer.job.name
     end
     
     getPlayerSex = function (s)
+        s = tonumber(s)
         local xPlayer = FrameworkObj.GetPlayerFromId(s)
+        if not xPlayer then return "male" end
         return xPlayer.get("sex") == "m" and "male" or "female"
     end
 
@@ -320,11 +322,14 @@ elseif isQB then
     getPlayerJob = function (s)
         s = tonumber(s)
         local xPlayer  = FrameworkObj.Functions.GetPlayer(s)
+        if not xPlayer then return "male" end
         return xPlayer.PlayerData.job.name
     end
     
     getPlayerSex = function (s)
+        s = tonumber(s)
         local xPlayer  = FrameworkObj.Functions.GetPlayer(s)
+        if not xPlayer then return "male" end
         return xPlayer.PlayerData.charinfo.gender == 0 and "male" or "female"
     end
 elseif isOX then
