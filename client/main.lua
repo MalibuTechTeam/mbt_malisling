@@ -33,6 +33,7 @@ local FrameworkObj, weaponNames, weaponObjectiveSpawned = {}, {}, {}
 local isReady = false
 local propInfoTable = utils.tableDeepCopy(MBT.PropInfo)
 local playerSex
+local flashlightState
 
 equippedWeapon = {}
 playersToTrack = {}
@@ -155,7 +156,6 @@ end
 
 local function Init()
     MBT.WeaponsInfo = lib.callback.await('mbt_malisling:getWeapoConf', false)
-    playerSex = utils.getPedSex(cache.ped)
     utils.mbtDebugger("Init ~ has been fired!!!")
 
     local tempPlayers = GetActivePlayers()
@@ -205,12 +205,17 @@ local function Init()
             end
             
             if data.metadata.flashlightState then SetFlashLightEnabled(cache.ped, true); end
+
+            Citizen.CreateThread(function()
+                while IsPedArmed(cache.ped, 7) do
+                    flashlightState = IsFlashLightOn(cache.ped) == 1 and true or false
+                    Wait(250) 
+                end
+            end)
         else
             if utils.isTableEmpty(equippedWeapon) then return end
-
+            
             local weaponName = equippedWeapon["name"]
-            local flashlightState = IsFlashLightOn(cache.ped) == 1 and true or false
-
             if equippedWeapon["components"] and utils.containsValue(equippedWeapon["components"], "at_flashlight") or utils.weaponHasFlashlight(cache.ped, weaponName, MBT.WeaponsInfo.Components["at_flashlight"]["client"]["component"]) then
                 LocalPlayer.state:set('WeaponFlashlightState', {
                     [equippedWeapon.slot] = {Serial = equippedWeapon.serial, FlashlightState = flashlightState}
@@ -490,9 +495,9 @@ AddEventHandler("mbt_malisling:syncDeletion", function(data)
 
     local weaponType = data.weaponType
     local targetPlayerServerId = data.playerSource
-  
+
     utils.mbtDebugger("syncDeletion ~ Checking deletion client for id ", targetPlayerServerId)
-  
+
     local playerToTrack = playersToTrack[targetPlayerServerId]
     if not playerToTrack then return end
     

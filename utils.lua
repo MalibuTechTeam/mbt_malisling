@@ -287,6 +287,11 @@ function utils.getPedSex(ped)
     return pedSex
 end
 
+---@param componentName any
+---@return boolean
+function utils.isComponentAFlashlight(componentName)
+    return componentName == "at_flashlight"
+end
 return utils
 
 
