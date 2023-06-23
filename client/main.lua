@@ -78,6 +78,8 @@ local function applyAttachments(data)
             for i = 1, #components do
                 local componentName = components[i]
 
+                if not MBT.EnableFlashlight and utils.isComponentAFlashlight(componentName) then goto continue; end
+
                 utils.mbtDebugger("applyAttachments ~ Applying component: ", componentName)
                 local compsTable = MBT.WeaponsInfo.Components[componentName]["client"]["component"]
 
@@ -91,6 +93,9 @@ local function applyAttachments(data)
                         GiveWeaponComponentToWeaponObject(data.weaponObj, component)
                     end
                 end
+
+                ::continue::
+
             end
         end
     end

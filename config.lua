@@ -2,6 +2,7 @@ MBT = {}
 MBT.Debug = false
 MBT.DropWeaponOnDeath = true
 MBT.EnableSling = true
+MBT.EnableFlashlight = true
 
 MBT.Jamming = {
     ["Enabled"] = true,
