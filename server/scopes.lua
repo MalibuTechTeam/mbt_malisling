@@ -44,6 +44,18 @@ local function removePlayerFromPlayerScope(player, playerToRemove)
     end
 end
 
+function removePlayerFromScopes(s)
+    for k,v in pairs(scopes) do
+        for i=1, #v do
+            if v[i] == s then
+                table.remove(v, i)
+            end
+        end
+        if k == tostring(s) then scopes[k] = nil end
+    end
+
+end
+
 ---@param data table
 ---@return promise
 local function triggerCl(data)
@@ -121,14 +133,11 @@ AddEventHandler("playerEnteredScope", function(data)
     end
 
     addPlayerToPlayerScope(player, playerEntering)
-
 end)
 
 AddEventHandler("playerLeftScope", function(data)
     local playerLeaving, player = data["player"], data["for"]
-
     utils.mbtDebugger(("^2%s is leaving %s's scope"):format(playerLeaving, player))
-
     removePlayerFromPlayerScope(playerLeaving, player);
 end)
 
@@ -181,7 +190,6 @@ Citizen.CreateThread(function()
                 utils.mbtDebugger("Execute queue thread ~ Resolved process event ", qElement.args.event, " Promise: ", ps)
                 isBusy = false
             end
-
         end
     end
 end)

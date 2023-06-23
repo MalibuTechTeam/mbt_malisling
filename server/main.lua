@@ -67,6 +67,7 @@ local function dropPlayer(s)
         { playerSource = s, weaponType = "all", calledBy = "dropPlayer" })
     TriggerClientEvent("mbt_malisling:syncPlayerRemoval", -1, { playerSource = s })
     playersToTrack[s] = nil
+    removePlayerFromScopes(s)
 end
 
 ---Coarse way to manipulate the equip/disarm of ox_inventory, not optimal, ugly as hell but it works
