@@ -243,5 +243,77 @@ return {
   },
   ["WEAPON_VINTAGEPISTOL"] = {
     ["type"] = "side"
+  },
+  ["WEAPON_PISTOLXM3"] = {
+    ["type"] = "side"
+  },
+  ["WEAPON_TEARGAS"] = {
+    ["type"] = "melee3"
+  },
+  ["WEAPON_STICKYBOMB"] = {
+    ["type"] = "melee3"
+  },
+  ["WEAPON_PIPEBOMB"] = {
+    ["type"] = "melee3"
+  },
+  ["WEAPON_SMOKEGRENADE"] = {
+    ["type"] = "melee3"
+  },
+  ["WEAPON_FIREWORK"] = {
+    ["type"] = "melee3"
+  },
+  ["WEAPON_RAYMINIGUN"] = {
+    ["type"] = "back"
+  },
+  ["WEAPON_METALDETECTOR"] = {
+    ["type"] = "melee3"
+  },
+  ["WEAPON_COMPACTLAUNCHER"] = {
+    ["type"] = "back"
+  },
+  ["WEAPON_SNOWBALL"] = {
+    ["type"] = "melee3"
+  },
+  ["WEAPON_MINIGUN"] = {
+    ["type"] = "back"
+  },
+  ["WEAPON_MOLOTOV"] = {
+    ["type"] = "melee3"
+  },
+  ["WEAPON_FIREEXTINGUISHER"] = {
+    ["type"] = "back"
+  },
+  ["WEAPON_BOTTLE"] = {
+    ["type"] = "melee2"
+  },
+  ["WEAPON_CANDYCANE"] = {
+    ["type"] = "melee3"
+  },
+  ["WEAPON_FLASHLIGHT"] = {
+    ["type"] = "melee3"
+  },
+  ["WEAPON_BALL"] = {
+    ["type"] = "melee3"
+  },
+  ["WEAPON_GRENADE"] = {
+    ["type"] = "melee3"
+  },
+  ["WEAPON_PROXMINE"] = {
+    ["type"] = "melee3"
+  },
+  ["WEAPON_BZGAS"] = {
+    ["type"] = "melee3"
+  },
+  ["WEAPON_RAILGUN"] = {
+    ["type"] = "back"
+  },
+  ["WEAPON_RAILGUNXM3"] = {
+    ["type"] = "back"
+  },
+  ["WEAPON_FLARE"] = {
+    ["type"] = "melee3"
+  },
+  ["WEAPON_KNUCKLE"] = {
+    ["type"] = "melee2"
   }
 }
