@@ -31,16 +31,22 @@ local function removePlayerFromPlayerScope(player, playerToRemove)
     local playerSource = tonumber(player)
     local playerToRemoveSource = tonumber(playerToRemove)
 
-    TriggerClientEvent("mbt_malisling:stopWaitingForPlayer", playerSource, playerToRemoveSource)
-
-    local isContaining, index = utils.containsValue(scopes[player], playerToRemoveSource)
-    if isContaining then
-        table.remove(scopes[player], index)
+    if scopes[player] then
+        TriggerClientEvent("mbt_malisling:stopWaitingForPlayer", playerSource, playerToRemoveSource)
     end
-    
-    isContaining, index = utils.containsValue(scopes[playerToRemove], playerSource)
-    if isContaining then
-        table.remove(scopes[playerToRemove], index)
+
+    if scopes[player] then
+        local isContaining, index = utils.containsValue(scopes[player], playerToRemoveSource)
+        if isContaining then
+            table.remove(scopes[player], index)
+        end
+    end
+
+    if scopes[playerToRemove] then
+        local isContaining, index = utils.containsValue(scopes[playerToRemove], playerSource)
+        if isContaining then
+            table.remove(scopes[playerToRemove], index)
+        end
     end
 end
 
