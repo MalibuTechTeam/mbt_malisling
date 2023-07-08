@@ -27,6 +27,7 @@ local utils = require 'utils'
 local isESX = GetResourceState("es_extended") ~= "missing"
 local isQB = GetResourceState("qb-core") ~= "missing"
 local isOX = GetResourceState("ox_core") ~= "missing"
+local isMultichar = GetResourceState("esx_multicharacter") ~= "missing"
 
 local ox_inventory = exports["ox_inventory"]
 local FrameworkObj, weaponNames, weaponObjectiveSpawned = {}, {}, {}
@@ -34,6 +35,7 @@ local isReady = false
 local propInfoTable = utils.tableDeepCopy(MBT.PropInfo)
 local playerSex
 local flashlightState
+local isfirstSpawn = true
 
 equippedWeapon = {}
 playersToTrack = {}
@@ -343,6 +345,8 @@ if isESX then
     AddEventHandler('esx:loadingScreenOff', function()
         utils.mbtDebugger("esx:loadingScreenOff ~ FIRED")
         while not FrameworkObj.IsPlayerLoaded() do Wait(100) end
+        if isMultichar and MBT.Relog and not isfirstSpawn then return end
+        isfirstSpawn = false
         Init()
     end)
 
@@ -360,6 +364,12 @@ if isESX then
         utils.mbtDebugger("New job is "..PlayerData.job.name)
         sendAnimations(PlayerData.job.name)
     end) 
+
+    RegisterNetEvent("esx:onPlayerLogout", function()
+        deleteAllWeapons()
+        FrameworkObj.PlayerLoaded = false
+        PlayerData = {}
+    end)
 
     AddEventHandler("esx:removeInventoryItem", function (itemName, left)
         utils.mbtDebugger("esx:removeInventoryItem ~ Item "..itemName.." removed, remaining "..left)
