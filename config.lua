@@ -3,7 +3,7 @@ MBT.Debug = false
 MBT.DropWeaponOnDeath = true
 MBT.EnableSling = true
 MBT.EnableFlashlight = true
-MBT.Relog = true -- Put this to true if you have a esx_multicharacter and relog enabled!
+MBT.Relog = false -- Put this to true if you have a esx_multicharacter and relog enabled!
 
 MBT.Jamming = {
     ["Enabled"] = true,
