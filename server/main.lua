@@ -322,7 +322,7 @@ elseif isQB then
     getPlayerJob = function (s)
         s = tonumber(s)
         local xPlayer  = FrameworkObj.Functions.GetPlayer(s)
-        if not xPlayer then return "male" end
+        if not xPlayer then return "" end
         return xPlayer.PlayerData.job.name
     end
     
@@ -341,6 +341,20 @@ elseif isOX then
     AddEventHandler('ox:playerLoaded', function(source, userid, charid)
         playersToTrack[source] = {}
     end)
+
+    getPlayerJob = function (s)
+        s = tonumber(s)
+        local player = Ox.GetPlayer(s)  
+        if not player then return "" end
+        return player.getGroups() and player.getGroups()[1] or "unemployed"
+    end
+
+    getPlayerSex = function (s)
+        s = tonumber(s)
+        local player  = Ox.GetPlayer(s)
+        if not player then return "male" end
+        return player.get("gender")
+    end
 end
 
 appendMalisling()
