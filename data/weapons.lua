@@ -315,5 +315,8 @@ return {
   },
   ["WEAPON_KNUCKLE"] = {
     ["type"] = "melee2"
+  },
+  ['WEAPON_TECPISTOL'] = {
+    ["type"] = "side"
   }
 }
