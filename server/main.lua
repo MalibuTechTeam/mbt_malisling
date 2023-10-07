@@ -84,15 +84,16 @@ local function appendMalisling()
     end
 
     local rs = [=[
-Weapon.Equip = function(item, data)
+function Weapon.Equip(item, data)
     local playerPed = cache.ped
+    local coords = GetEntityCoords(playerPed, true)
+    local sleep
 
 	if client.weaponanims then
 		if cache.vehicle and vehicleIsCycle(cache.vehicle) then
 			goto skipAnim
 		end
 
-		local coords = GetEntityCoords(playerPed, true)
 		local anim = data.anim or anims[GetWeapontypeGroup(data.hash)]
 
 		-- if anim == anims[`GROUP_PISTOL`] and not client.hasGroup(shared.police) then
@@ -100,8 +101,6 @@ Weapon.Equip = function(item, data)
 		-- end
 
         if anim == anims[`GROUP_PISTOL`] or data.type == "side" then
-
-
             if GetConvar('malisling:enable_sling', 'false') == 'true' then
 
                 local watingForHolster = nil
@@ -139,9 +138,8 @@ Weapon.Equip = function(item, data)
             end
         end
 
-		local sleep = anim and anim[3] or 1200
+		sleep = anim and anim[3] or 1200
 
-		coords = GetEntityCoords(playerPed, true)
 		Utils.PlayAnimAdvanced(sleep, anim and anim[1] or 'reaction@intimidation@1h', anim and anim[2] or 'intro', coords.x, coords.y, coords.z, 0, 0, GetEntityHeading(playerPed), 8.0, 3.0, sleep*2, 50, 0.1)
 	end
 
@@ -183,7 +181,7 @@ Weapon.Equip = function(item, data)
 
 	local ammo = item.metadata.ammo or item.throwable and 1 or 0
 
-	SetCurrentPedWeapon(playerPed, data.hash, true)
+    SetCurrentPedWeapon(playerPed, data.hash, true)
 	SetPedCurrentWeaponVisible(playerPed, true, false, false, false)
 	SetWeaponsNoAutoswap(true)
 	SetPedAmmo(playerPed, data.hash, ammo)
@@ -197,7 +195,7 @@ Weapon.Equip = function(item, data)
 	TriggerEvent('ox_inventory:currentWeapon', item)
 	Utils.ItemNotify({ item, 'ui_equipped' })
 
-	return item
+	return item, sleep
 end
 
 function Weapon.Disarm(currentWeapon, noAnim)
@@ -391,7 +389,7 @@ AddEventHandler("mbt_malisling:syncSling", function(data)
     if not playersToTrack[_source] then playersToTrack[_source] = {} end
     for k, v in pairs(data.playerWeapons) do playersToTrack[_source][k] = v end
 
-    Wait(400)
+    Wait(100)
 
     TriggerScopeEvent({
         event = "mbt_malisling:syncSling",
