@@ -142,6 +142,27 @@ local function getAttachInfo(data)
     return MBT.PropInfo[data.Type]
 end
 
+-- Check when ped is different
+local function onPedChange()
+    local cachedPlayerPed = PlayerPedId()
+    Citizen.CreateThread(function()
+        while isReady do
+            Citizen.Wait(500)
+            if cachedPlayerPed ~= PlayerPedId() then
+                cachedPlayerPed = PlayerPedId()
+                deleteAllWeapons()
+                for k,v in pairs(playersToTrack[cache.serverId]) do
+                    SetEntityVisible(v, false, 0)
+                    SetEntityCollision(v, false, true)
+                end
+                deleteAllWeapons()   
+                Citizen.Wait(1000)
+                TriggerServerEvent("mbt_malisling:checkInventory")
+            end
+        end
+    end)
+end
+
 function sendAnimations(jobName)
     if MBT.CustomPropPosition[jobName] then
         utils.mbtDebugger("Custom prop position for job "..jobName.. " found!")
@@ -335,8 +356,9 @@ local function Init()
     utils.mbtDebugger("ox_inventory:updateInventory ~ Init END!!!")
 
     lib.onCache('vehicle', function(value) onVehicleCheck(value); end)
-
+	
     isReady = true
+    onPedChange()
 end
 
 if isESX then 
