@@ -86,7 +86,6 @@ local function appendMalisling()
     local rs = [=[
 function Weapon.Equip(item, data)
     local playerPed = cache.ped
-    local coords = GetEntityCoords(playerPed, true)
     local sleep
 
 	if client.weaponanims then
@@ -139,7 +138,7 @@ function Weapon.Equip(item, data)
         end
 
 		sleep = anim and anim[3] or 1200
-
+		local coords = GetEntityCoords(playerPed, true)
 		Utils.PlayAnimAdvanced(sleep, anim and anim[1] or 'reaction@intimidation@1h', anim and anim[2] or 'intro', coords.x, coords.y, coords.z, 0, 0, GetEntityHeading(playerPed), 8.0, 3.0, sleep*2, 50, 0.1)
 	end
 
