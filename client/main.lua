@@ -66,6 +66,18 @@ local function onVehicleCheck(value)
     end
 end
 
+--- Check when player change ped, remove weapon objects when enter to avoid weird behaviors caused by props interpenetration and attachments disappears
+local function onPedChange()
+    deleteAllWeapons()
+    for k,v in pairs(playersToTrack[cache.serverId]) do
+        SetEntityVisible(v, false, 0)
+        SetEntityCollision(v, false, true)
+    end
+    deleteAllWeapons()
+    Citizen.Wait(250)
+    TriggerServerEvent("mbt_malisling:checkInventory")
+end
+
 --- Fire server event for sync
 ---@param data table
 local function syncSling(data)
@@ -335,6 +347,7 @@ local function Init()
     utils.mbtDebugger("ox_inventory:updateInventory ~ Init END!!!")
 
     lib.onCache('vehicle', function(value) onVehicleCheck(value); end)
+    lib.onCache('ped', onPedChange)
 
     isReady = true
 end
@@ -658,3 +671,4 @@ AddEventHandler('mbt_malisling:syncSling', function (data)
 
     playersToTrack[data.playerSource]["waiting"] = nil    
 end)
+
