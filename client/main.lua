@@ -608,8 +608,12 @@ end)
 
 RegisterNetEvent('mbt_malisling:stopWaitingForPlayer')
 AddEventHandler('mbt_malisling:stopWaitingForPlayer', function (p)
-    playersToTrack[p]["waiting"] = nil
-    utils.mbtDebugger("stopWaitingForPlayer ~ Stopped waiting for player ", p)
+    if p then
+        playersToTrack[p]["waiting"] = nil
+        utils.mbtDebugger("stopWaitingForPlayer ~ Stopped waiting for player ", p)
+    else 
+        return false
+    end 
 end)
 
 RegisterNetEvent('mbt_malisling:syncSling')
