@@ -1,5 +1,5 @@
 <div id="header" align="center">
-  <img src="https://camo.githubusercontent.com/d57538c79f76ff58214a357ddbcb59c56e4832eb6235b3dc409b367fb2c9ef72/68747470733a2f2f692e696d6775722e636f6d2f5954377453696d2e706e67" width="500"/>
+  <img src="https://media.discordapp.net/attachments/1036244419881476106/1224139111556976771/MBT_MALISLING.png?ex=661c6763&is=6609f263&hm=58b81230d2307fd40c8cf48e7b1ef77a957c6f010a1007b67a078824d8dfe219" width="500"/>
 </div>
 
 Take your weapon experience to the next level! With cool features like visible weapons, realistic jamming chance based on weapon durability, dropping equipped weapons on death, throwing weapons   and holster animation, you get a more engaging and immersive gameplay experience. Check it out now!
@@ -59,6 +59,6 @@ If someone has some info about it, we will be very happy of receive a PR
 - Cfx : [Click Here](https://forum.cfx.re/t/free-esx-ox-qb-mbt-malisling-attached-weapons-flashlights-jamming-weapon-drop-throw/5118366)
 
 ## DMCA Protection Certificate
-![image](https://cdn.discordapp.com/attachments/1045063739738705940/1119276600584847370/dmca.png)
+![image](https://media.discordapp.net/attachments/1045063739738705940/1119276600584847370/dmca.png?ex=66194910&is=6606d410&hm=682e73fe82b3ae29ac3753c8a61d5c3d7c6b7307e926ac9a0effef0646a73b0c&=&format=webp&quality=lossless&width=1136&height=905)
 
 ##### Copyright © 2023 Malibú Tech. All rights reserved.
