@@ -40,7 +40,7 @@ local isfirstSpawn = true
 equippedWeapon = {}
 playersToTrack = {}
 
---- Delete all attached weapons and sync with server 
+--- Delete all attached weapons and sync with server
 local function deleteAllWeapons()
     local playerToTrack = playersToTrack[cache.serverId]
 
@@ -51,6 +51,20 @@ local function deleteAllWeapons()
     end
 end
 
+
+local function ResetWeaponsOnBack()
+    deleteAllWeapons()
+    for k,v in pairs(playersToTrack[cache.serverId]) do
+        SetEntityVisible(v, false, 0)
+        SetEntityCollision(v, false, true)
+    end
+    deleteAllWeapons()
+    Citizen.Wait(250)
+    playersToTrack[cache.serverId] = {["side"] = false, ["back"] = false, ["back2"] = false, ["melee"] = false, ["melee2"] = false, ["melee3"] = false}
+    TriggerServerEvent("mbt_malisling:checkInventory")
+end
+
+exports('ResetWeaponsOnBack', ResetWeaponsOnBack)
 --- Check when player enter/exit a vehicle, remove weapon objects when enter to avoid weird behaviors caused by props interpenetration and attachments disappears
 ---@param value boolean
 local function onVehicleCheck(value)
@@ -60,7 +74,7 @@ local function onVehicleCheck(value)
             SetEntityVisible(v, false, 0)
             SetEntityCollision(v, false, true)
         end
-        deleteAllWeapons()   
+        deleteAllWeapons()
     else
         TriggerServerEvent("mbt_malisling:checkInventory")
     end
@@ -158,7 +172,7 @@ function sendAnimations(jobName)
     if MBT.CustomPropPosition[jobName] then
         utils.mbtDebugger("Custom prop position for job "..jobName.. " found!")
         overwriteValues(MBT.CustomPropPosition[jobName])
-    else    
+    else
         propInfoTable = utils.tableDeepCopy(MBT.PropInfo)
     end
 
@@ -185,9 +199,9 @@ local function Init()
     TriggerServerEvent("mbt_malisling:getPlayersInPlayerScope", activePlayers)
 
     sendAnimations(PlayerData.job and PlayerData.job.name or {})
-    
+
     Citizen.Wait(200)
-    
+
     utils.mbtDebugger("Init ~  playersTrack clientside with my source that is "..cache.serverId)
 
     playersToTrack[cache.serverId] = {["side"] = false, ["back"] = false, ["back2"] = false, ["melee"] = false, ["melee2"] = false, ["melee3"] = false}
@@ -195,7 +209,7 @@ local function Init()
 
     utils.mbtDebugger("Init ~ playersToTrack filled with my id!!!")
     Wait(200)
-    
+
     AddEventHandler('ox_inventory:currentWeapon', function(data)
         utils.mbtDebugger("ox_inventory:currentWeapon ~ Fired!")
 
@@ -212,23 +226,23 @@ local function Init()
             if playersToTrack[cache.serverId][weaponType] and type(playersToTrack[cache.serverId][weaponType]) == "number" then
                 utils.mbtDebugger("ox_inventory:currentWeapon ~ Equip check passed!")
                 TriggerServerEvent("mbt_malisling:syncDeletion", weaponType)
-                equippedWeapon["name"] = weaponName; 
+                equippedWeapon["name"] = weaponName;
                 equippedWeapon["slot"] = data.slot;
                 equippedWeapon["components"] = data.metadata.components;
                 equippedWeapon["serial"] = data.metadata.serial;
             end
-            
+
             if data.metadata.flashlightState then SetFlashLightEnabled(cache.ped, true); end
 
             Citizen.CreateThread(function()
                 while IsPedArmed(cache.ped, 7) do
                     flashlightState = IsFlashLightOn(cache.ped) == 1 and true or false
-                    Wait(250) 
+                    Wait(250)
                 end
             end)
         else
             if utils.isTableEmpty(equippedWeapon) then return end
-            
+
             local weaponName = equippedWeapon["name"]
             if equippedWeapon["components"] and utils.containsValue(equippedWeapon["components"], "at_flashlight") or utils.weaponHasFlashlight(cache.ped, weaponName, MBT.WeaponsInfo.Components["at_flashlight"]["client"]["component"]) then
                 LocalPlayer.state:set('WeaponFlashlightState', {
@@ -270,31 +284,31 @@ local function Init()
                 Wait(500)
 
                 local playerWeapons = ox_inventory:Search('slots', weaponNames)
-                
+
                 if playerWeapons then
                     local pWeapons = {}
 
                     for name, data in pairs(playerWeapons) do
 
-                        for _, v in pairs(data) do 
+                        for _, v in pairs(data) do
 
                             if v.count and v.count > 0 then
-    
+
                                 if MBT.WeaponsInfo["Weapons"][v.name]?.type == weaponType then
-    
+
                                     if not pWeapons[weaponType] then
                                         local weaponData = v
                                         weaponData.type = weaponType
                                         pWeapons[weaponType] = weaponData
                                         break
                                     end
-    
+
                                 end
-    
+
                             end
                         end
-                        
-                    end                    
+
+                    end
 
                     if not utils.isTableEmpty(pWeapons) then
                         syncSling({playerWeapons = pWeapons})
@@ -308,7 +322,7 @@ local function Init()
         utils.dumpTable(data)
 
         local _, playerWeapon = GetCurrentPedWeapon(cache.ped, 1)
-        
+
         local playerWeapons = {}
 
         utils.mbtDebugger("ox_inventory:updateInventory ~ Launched updateInventory foe playerPed ", cache.ped)
@@ -343,7 +357,7 @@ local function Init()
 
     Wait(200)
     TriggerServerEvent("mbt_malisling:checkInventory")
-    
+
     utils.mbtDebugger("ox_inventory:updateInventory ~ Init END!!!")
 
     lib.onCache('vehicle', function(value) onVehicleCheck(value); end)
@@ -352,7 +366,7 @@ local function Init()
     isReady = true
 end
 
-if isESX then 
+if isESX then
 	FrameworkObj = exports["es_extended"]:getSharedObject()
 
     AddEventHandler('esx:loadingScreenOff', function()
@@ -370,13 +384,13 @@ if isESX then
     end)
 
     PlayerData = FrameworkObj.GetPlayerData()
-    
+
     RegisterNetEvent('esx:setJob')
     AddEventHandler('esx:setJob', function(job)
         PlayerData.job = job
         utils.mbtDebugger("New job is "..PlayerData.job.name)
         sendAnimations(PlayerData.job.name)
-    end) 
+    end)
 
     RegisterNetEvent("esx:onPlayerLogout", function()
         deleteAllWeapons()
@@ -386,7 +400,7 @@ if isESX then
 
     AddEventHandler("esx:removeInventoryItem", function (itemName, left)
         utils.mbtDebugger("esx:removeInventoryItem ~ Item "..itemName.." removed, remaining "..left)
-        
+
         if utils.isWeapon(itemName) then
             local weaponType = MBT.WeaponsInfo["Weapons"][itemName]?.type
             if left < 1 and type(weaponType) == "string" then
@@ -414,7 +428,7 @@ if isESX then
             end
         end
     end)
- 
+
 elseif isQB then
 	FrameworkObj = exports["qb-core"]:GetCoreObject()
 
@@ -433,21 +447,21 @@ elseif isOX then
     local import = LoadResourceFile('ox_core', file)
     local chunk = assert(load(import, ('@@ox_core/%s'):format(file)))
     chunk()
- 
+
     FrameworkObj = Ox
 
     AddEventHandler('ox:playerLoaded', function(data)
         utils.mbtDebugger("ox:playerLoaded ~ FIRED")
         PlayerData = data
-        
+
         Init()
     end)
     PlayerData = FrameworkObj.GetPlayerData()
 
- 
+
     sendAnimations = function ()
         local playerGroups = {}
-        
+
         for k in pairs(PlayerData.groups) do
             playerGroups[#playerGroups+1] = k
         end
@@ -455,7 +469,7 @@ elseif isOX then
         if next(playerGroups) == nil then
             utils.mbtDebugger("No groups found, setting default!")
             propInfoTable = utils.tableDeepCopy(MBT.PropInfo)
-            return 
+            return
         end
 
         for i=1, #playerGroups do
@@ -463,7 +477,7 @@ elseif isOX then
             if MBT.CustomPropPosition[jobName] then
                 utils.mbtDebugger("Custom prop position for job "..jobName.. " found!")
                 overwriteValues(MBT.CustomPropPosition[jobName])
-            else    
+            else
                 utils.mbtDebugger("No job position customization found, setting default!")
                 propInfoTable = utils.tableDeepCopy(MBT.PropInfo)
             end
@@ -474,11 +488,11 @@ elseif isOX then
             HolsterData = propInfoTable
         })
 
-       
+
     end
 
-    
-    RegisterNetEvent('ox:setGroup', function(group, grade) 
+
+    RegisterNetEvent('ox:setGroup', function(group, grade)
         PlayerData.groups[group] = grade
         sendAnimations()
     end)
@@ -509,7 +523,7 @@ AddEventHandler("mbt_malisling:syncPlayerRemoval", function(data)
     if not data.playerSource then return end
     if not playersToTrack[data.playerSource] then return end
     playersToTrack[data.playerSource] = nil
-end)    
+end)
 
 RegisterNetEvent("mbt_malisling:syncDeletion")
 AddEventHandler("mbt_malisling:syncDeletion", function(data)
@@ -523,22 +537,22 @@ AddEventHandler("mbt_malisling:syncDeletion", function(data)
 
     local playerToTrack = playersToTrack[targetPlayerServerId]
     if not playerToTrack then return end
-    
+
     if weaponType == "all" then
-        
+
         for wType in pairs(playerToTrack) do
-            
+
             if type(playerToTrack[wType]) == "number" then
-                DeleteObject(playerToTrack[wType])
+                DeleteEntity(playerToTrack[wType])
                 local containsObj, index = utils.containsValue(playersToTrack, playerToTrack[wType])
 
                 if containsObj then table.remove(playersToTrack, index) end
             end
             playerToTrack[wType] = false
         end
-    else 
+    else
         if type(playerToTrack[weaponType]) == "number" then
-            DeleteObject(playerToTrack[weaponType])
+            DeleteEntity(playerToTrack[weaponType])
             local containsObj, index = utils.containsValue(playersToTrack, playerToTrack[weaponType])
             if containsObj then
                 table.remove(playersToTrack, index)
@@ -546,8 +560,8 @@ AddEventHandler("mbt_malisling:syncDeletion", function(data)
         end
         playerToTrack[weaponType] = false
     end
-    
-    
+
+
 end)
 
 RegisterNetEvent("mbt_malisling:checkWeaponProps")
@@ -556,7 +570,7 @@ AddEventHandler("mbt_malisling:checkWeaponProps", function(t)
     local playerWeapons = {}
 
     utils.mbtDebugger("checkWeaponProps ~ Starting iterating inventory weapons!")
-    
+
     for _, weaponData in pairs(t) do
         if utils.isWeapon(weaponData.name) and MBT.WeaponsInfo["Weapons"][weaponData.name]["type"] then
             local weaponType = MBT.WeaponsInfo["Weapons"][weaponData.name]?.type
@@ -575,23 +589,23 @@ end)
 RegisterNetEvent('mbt_malisling:syncScope')
 AddEventHandler('mbt_malisling:syncScope', function (data)
     local tType = data.tType and data.tType or "add"
-    
+
     utils.mbtDebugger("syncScope ~ Scope synced for source "..data.playerSource.." Type "..tType)
 
 
     if not playersToTrack[data.playerSource] then  playersToTrack[data.playerSource] = {} end
     if tType == "del" then
-        
+
         utils.mbtDebugger("syncScope ~ ", data.playerSource, " has exited from your scope!")
 
         playersToTrack[data.playerSource]["waiting"] = false
 
         for _,v in pairs(playersToTrack[data.playerSource]) do
-        
+
             local containsObj, index = utils.containsValue(weaponObjectiveSpawned, v)
             if containsObj then
-                if DoesEntityExist(v) then 
-                    DeleteEntity(v) 
+                if DoesEntityExist(v) then
+                    DeleteEntity(v)
                 end
                 table.remove(weaponObjectiveSpawned, index)
             end
@@ -623,7 +637,7 @@ AddEventHandler('mbt_malisling:syncSling', function (data)
 
     local condSatisfied = waitingForTargetPlayerPed(data)
     if not condSatisfied then return end
-    
+
     local targetPlayerId = GetPlayerFromServerId(data.playerSource)
 
     if not targetPlayerId or targetPlayerId == -1 then return end
@@ -641,7 +655,7 @@ AddEventHandler('mbt_malisling:syncSling', function (data)
     local pedSex = data.pedSex
 
     utils.dumpTable(data)
-    
+
     utils.mbtDebugger("Ped is ", pedSex, " with job ", playerJob)
 
     for weaponType, weaponData in pairs(data.playerWeapons) do
@@ -664,11 +678,10 @@ AddEventHandler('mbt_malisling:syncSling', function (data)
             SetEntityCompletelyDisableCollision(weaponData.weaponObj, false, true)
             SetFlashLightKeepOnWhileMoving(true)
             utils.mbtDebugger("syncSling ~ Apply attachments to weapon obj!")
-            playersToTrack[data.playerSource][weaponType] = weaponData.weaponObj            
+            playersToTrack[data.playerSource][weaponType] = weaponData.weaponObj
             weaponObjectiveSpawned[#weaponObjectiveSpawned+1] = weaponData.weaponObj
         end
     end
 
-    playersToTrack[data.playerSource]["waiting"] = nil    
+    playersToTrack[data.playerSource]["waiting"] = nil
 end)
-
