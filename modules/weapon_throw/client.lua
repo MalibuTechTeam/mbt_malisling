@@ -1,6 +1,6 @@
 if not MBT.Throw["Enabled"] then return end
 
-local utils = require 'utils'
+local Utils = loadModule('modules.Utils.client')
 
 local currentWeapon
 local throwAnim = MBT.Throw["Animation"]
@@ -14,7 +14,7 @@ AddEventHandler('ox_inventory:currentWeapon', function(data)
 end)
 
 local function isAllowedToThrow(weaponGroup)
-    utils.mbtDebugger("Is allowed to throw? ", MBT.Throw["Groups"][weaponGroup]["Allowed"])
+    Utils.mbtDebugger("Is allowed to throw? ", MBT.Throw["Groups"][weaponGroup]["Allowed"])
     return MBT.Throw["Groups"][weaponGroup]["Allowed"]
 end
 

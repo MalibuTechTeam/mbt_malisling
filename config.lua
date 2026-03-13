@@ -43,6 +43,10 @@ MBT.HolsterControls = {
     ["Cancel"] = { ["Label"] = "Cancel Holster", ["Input"] = "keyboard", ["Key"] = "BACK", }
 }
 
+MBT.UI = {
+    Position = "bottom-center"  -- "bottom-center" | "top-center" | "bottom-right"
+}
+
 MBT.Notification = function (data)
     lib.notify(data)
 end

@@ -1,6 +1,6 @@
 if not MBT.Jamming["Enabled"] then return end
 
-local utils = require 'utils'
+local Utils = loadModule('modules.Utils.client')
 local jammed = GetGameTimer()
 local currentWeapon
 
@@ -48,7 +48,7 @@ end
 AddStateBagChangeHandler('JammedState', nil, function(bagName, key, value)
     if value == nil or not type(value) == "boolean" then return end
     isJammed = value
-    utils.mbtDebugger("isJammed has been set to ", isJammed)
+    Utils.mbtDebugger("isJammed has been set to ", isJammed)
     MBT.Notification(MBT.Labels["has_jammed"])
 
     if isJammed then
@@ -66,8 +66,8 @@ end)
 
 AddEventHandler("CEventGunShotWhizzedBy", function(entities, eventEntity, args)
     if currentWeapon and not isJammed then
-        utils.mbtDebugger("currentWeapon.metadata.durability ", currentWeapon.metadata.durability)
-        if utils.getJammingChance(currentWeapon.metadata.durability) and (GetGameTimer() - jammed) > (MBT.Jamming["Cooldown"] * 1000) then
+        Utils.mbtDebugger("currentWeapon.metadata.durability ", currentWeapon.metadata.durability)
+        if Utils.getJammingChance(currentWeapon.metadata.durability) and (GetGameTimer() - jammed) > (MBT.Jamming["Cooldown"] * 1000) then
                 jammed = GetGameTimer()
                 LocalPlayer.state:set('JammedState', true, false)
         end

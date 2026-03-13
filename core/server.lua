@@ -1,8 +1,6 @@
-local utils = require 'utils'
-local isESX = GetResourceState("es_extended") ~= "missing"
-local isQB = GetResourceState("qb-core") ~= "missing"
-local isOX = GetResourceState("ox_core") ~= "missing"
-local FrameworkObj = {}
+lib.versionCheck('MalibuTechTeam/mbt_malisling')
+
+local Utils = loadModule('modules.Utils.server')
 local isReady = false
 local ox_inventory = exports["ox_inventory"]
 playersToTrack = {}
@@ -14,37 +12,36 @@ AddStateBagChangeHandler('WeaponFlashlightState', nil, function(bagName, key, va
 
     local netId = bagName:gsub('player:', '')
     local playerSource = tonumber(netId)
-    
+
     for slot, payload in pairs(value) do
         local weaponData = ox_inventory:GetSlot(playerSource, slot)
 
         if not weaponData then return end
-        utils.mbtDebugger("Receiving WeaponFlashlightState ", payload.FlashlightState)
-        utils.dumpTable(weaponData)
-        
+        Utils.mbtDebugger("Receiving WeaponFlashlightState ", payload.FlashlightState)
+        Utils.dumpTable(weaponData)
+
         weaponData.metadata.flashlightState = payload.FlashlightState
         ox_inventory:SetMetadata(playerSource, weaponData.slot, weaponData.metadata)
-        
-        utils.mbtDebugger("State of flashlight for weapon "..weaponData.label.." with serial "..weaponData.metadata.serial.." in slot "..weaponData.slot.." changed to "..tostring(weaponData.metadata.flashlightState))
-        utils.mbtDebugger("State of flashlight for weapon "..weaponData.label.." with serial "..weaponData.metadata.serial.." in slot "..weaponData.slot.." changed to "..tostring(weaponData.metadata.flashlightState))
+
+        Utils.mbtDebugger("State of flashlight for weapon "..weaponData.label.." with serial "..weaponData.metadata.serial.." in slot "..weaponData.slot.." changed to "..tostring(weaponData.metadata.flashlightState))
+        Utils.mbtDebugger("State of flashlight for weapon "..weaponData.label.." with serial "..weaponData.metadata.serial.." in slot "..weaponData.slot.." changed to "..tostring(weaponData.metadata.flashlightState))
     end
 end)
 
 lib.callback.register('mbt_malisling:getWeapoConf', function(source)
-    utils.mbtDebugger("getWeapoConf ~  Source ", source, " requested callback!")
-    -- utils.mbtDebugger(MBT.WeaponsInfo)
+    Utils.mbtDebugger("getWeapoConf ~  Source ", source, " requested callback!")
     while not isReady do Wait(250) end
     return MBT.WeaponsInfo
 end)
 
 local function loadWeaponsInfo()
-    utils.mbtDebugger("Loading WeaponsInfo!")
+    Utils.mbtDebugger("Loading WeaponsInfo!")
 
     local weaponsFile = LoadResourceFile("ox_inventory", 'data/weapons.lua')
     local weaponsChunk = assert(load(weaponsFile, ('@@ox_inventory/data/weapons.lua')))
     local weaponsInfo = weaponsChunk()
 
-    for k, v in pairs(utils.data('weapons')) do
+    for k, v in pairs(Utils.data('weapons')) do
         if not weaponsInfo["Weapons"][k] then
             warn("Weapon not found in weapons data file: " .. k)
         else
@@ -79,7 +76,7 @@ local function appendMalisling()
     local i, e = string.find(st1, "RegisterKeyMapping")
 
     if i then
-        utils.mbtDebugger("appendMalisling ~ File has already modification")
+        Utils.mbtDebugger("appendMalisling ~ File has already modification")
         return
     end
 
@@ -105,7 +102,12 @@ function Weapon.Equip(item, data)
 
                 local watingForHolster = nil
 
-                lib.showTextUI(']=] .. MBT.Labels["Holster_Help"] .. [=[', {icon = 'hand'})
+                SendNUIMessage({action = "showHolster", data = {
+                    weaponLabel = data.model or "WEAPON",
+                    position    = "]=] .. (MBT.UI and MBT.UI.Position or "bottom-center") .. [=[",
+                    confirm     = {label = "]=] .. MBT.HolsterControls["Confirm"]["Label"] .. [=[", display = "RMB"},
+                    cancel      = {label = "]=] .. MBT.HolsterControls["Cancel"]["Label"]  .. [=[", display = "BACKSPACE"}
+                }})
 
                 lib.requestAnimDict("reaction@intimidation@cop@unarmed")
 
@@ -126,7 +128,7 @@ function Weapon.Equip(item, data)
                     Citizen.Wait(100)
                 end
 
-                lib.hideTextUI()
+                SendNUIMessage({action = "hideHolster"})
 
                 ClearPedTasks(playerPed)
 
@@ -152,7 +154,7 @@ function Weapon.Equip(item, data)
 	item.timer = 0
 	item.throwable = data.throwable
 	item.group = GetWeapontypeGroup(item.hash)
-    
+
 	GiveWeaponToPed(playerPed, data.hash, 0, false, true)
 
 	if item.metadata.tint then SetPedWeaponTintIndex(playerPed, data.hash, item.metadata.tint) end
@@ -243,11 +245,11 @@ RegisterNetEvent("mbt_malisling:sendAnim")
 AddEventHandler("mbt_malisling:sendAnim", function (data)
     local wInfo = data.WeaponData["Weapons"]
 	local Items = require 'modules.items.shared'
-	
+
     for k, v in pairs(wInfo) do
         local itemName = k
         local itemType = wInfo[itemName]["type"]
-		
+
 		if not itemType then
 			local s = "The weapon "..itemName.." has not been configured in data/weapons.lua of mbt_malisling, therefore it will not be attached to player!"
 			warn(s)
@@ -255,7 +257,7 @@ AddEventHandler("mbt_malisling:sendAnim", function (data)
 			if data.HolsterData[itemType]["HolsterAnim"] then
 				local animInfo = data.HolsterData[itemType]["HolsterAnim"]
 				local animTable = {animInfo.dict, animInfo.animIn, animInfo.sleep, animInfo.dict, animInfo.animOut, animInfo.sleepOut}
-				
+
 				if Items[itemName] then
 					Items[itemName]["type"] = itemType
 					Items[itemName]["anim"] = animTable
@@ -289,73 +291,6 @@ if GetConvarInt('inventory:weaponanims', 1) == 0 then
     "You have enabled the sling feature, but you have disabled the weapons animation convar in ox_inventory. This will cause issues with animations and the sling feature. Please set inventory:weaponanims to 1")
 end
 
-if isESX then
-    FrameworkObj = exports["es_extended"]:getSharedObject()
-
-    RegisterNetEvent('esx:playerLoaded')
-    AddEventHandler('esx:playerLoaded', function(playerId)
-        playersToTrack[playerId] = {}
-    end)
-
-    getPlayerJob = function (s)
-        s = tonumber(s)
-        local xPlayer = FrameworkObj.GetPlayerFromId(s)
-        if not xPlayer then return "" end
-        return xPlayer.job.name
-    end
-    
-    getPlayerSex = function (s)
-        s = tonumber(s)
-        local xPlayer = FrameworkObj.GetPlayerFromId(s)
-        if not xPlayer then return "male" end
-        return xPlayer.get("sex") == "m" and "male" or "female"
-    end
-
-elseif isQB then
-    FrameworkObj = exports["qb-core"]:GetCoreObject()
-    AddEventHandler('QBCore:Server:PlayerLoaded', function(qbPlayer)
-        local source = qbPlayer.PlayerData.source
-        playersToTrack[source] = {}
-    end)
-
-    getPlayerJob = function (s)
-        s = tonumber(s)
-        local xPlayer  = FrameworkObj.Functions.GetPlayer(s)
-        if not xPlayer then return "male" end
-        return xPlayer.PlayerData.job.name
-    end
-    
-    getPlayerSex = function (s)
-        s = tonumber(s)
-        local xPlayer  = FrameworkObj.Functions.GetPlayer(s)
-        if not xPlayer then return "male" end
-        return xPlayer.PlayerData.charinfo.gender == 0 and "male" or "female"
-    end
-elseif isOX then
-    local file = ('imports/%s.lua'):format(IsDuplicityVersion() and 'server' or 'client')
-    local import = LoadResourceFile('ox_core', file)
-    local chunk = assert(load(import, ('@@ox_core/%s'):format(file)))
-    chunk()
-
-    AddEventHandler('ox:playerLoaded', function(source, userid, charid)
-        playersToTrack[source] = {}
-    end)
-
-    getPlayerJob = function (s)
-        s = tonumber(s)
-        local player = Ox.GetPlayer(s)  
-        if not player then return "" end
-        return player.getGroups() and player.getGroups()[1] or "unemployed"
-    end
-
-    getPlayerSex = function (s)
-        s = tonumber(s)
-        local player  = Ox.GetPlayer(s)
-        if not player then return "male" end
-        return player.get("gender")
-    end
-end
-
 appendMalisling()
 
 AddEventHandler('onServerResourceStart', function(resource)
@@ -378,9 +313,8 @@ end)
 
 RegisterNetEvent("mbt_malisling:checkInventory")
 AddEventHandler("mbt_malisling:checkInventory", function()
-    utils.mbtDebugger("checkInventory ~ Checking inventory for source ", source)
+    Utils.mbtDebugger("checkInventory ~ Checking inventory for source ", source)
     local inv = exports.ox_inventory:GetInventoryItems(source)
-    -- utils.mbtDebugger(inv)
     TriggerClientEvent("mbt_malisling:checkWeaponProps", source, inv)
 end)
 
@@ -399,8 +333,8 @@ AddEventHandler("mbt_malisling:syncSling", function(data)
         payload = {
             type = "add",
             playerSource = _source,
-            playerJob = getPlayerJob(_source), 
-            pedSex = getPlayerSex(_source), 
+            playerJob = getPlayerJob(_source),
+            pedSex = getPlayerSex(_source),
             calledBy = "mbt_malisling:syncSling ~ 162",
             playerWeapons = playersToTrack[_source]
         }
@@ -423,4 +357,205 @@ AddEventHandler("mbt_malisling:syncDeletion", function(weaponType)
             weaponType = weaponType
         }
     })
+end)
+
+-- Scopes --
+
+local functQueue, oldScop = {}, {}
+scopes = {}
+
+---@param player number | string
+---@param playerToAdd number | string
+function addPlayerToPlayerScope(player, playerToAdd)
+    local player = tostring(player)
+    local playerSource = tonumber(player)
+    local playerToAdd = tonumber(playerToAdd)
+    local playerToAddSource = tostring(playerToAdd)
+
+    local playerScope = scopes[player]
+    if Utils.containsValue(playerScope, playerToAdd) then return end
+    playerScope[#playerScope+1] = playerToAdd
+
+    if scopes[playerToAddSource] then
+        local isIn = Utils.containsValue(scopes[playerToAddSource], playerSource)
+        if not isIn then
+            scopes[playerToAddSource][#scopes[playerToAddSource]+1] = playerSource
+        end
+    end
+
+    Utils.mbtDebugger("addPlayerToPlayerScope ~ Added players!")
+end
+
+---@param player string
+---@param playerToRemove string
+local function removePlayerFromPlayerScope(player, playerToRemove)
+    local playerSource = tonumber(player)
+    local playerToRemoveSource = tonumber(playerToRemove)
+
+    if scopes[player] then
+        TriggerClientEvent("mbt_malisling:stopWaitingForPlayer", playerSource, playerToRemoveSource)
+    end
+
+    if scopes[player] then
+        local isContaining, index = Utils.containsValue(scopes[player], playerToRemoveSource)
+        if isContaining then
+            table.remove(scopes[player], index)
+        end
+    end
+
+    if scopes[playerToRemove] then
+        local isContaining, index = Utils.containsValue(scopes[playerToRemove], playerSource)
+        if isContaining then
+            table.remove(scopes[playerToRemove], index)
+        end
+    end
+end
+
+function removePlayerFromScopes(s)
+    for k,v in pairs(scopes) do
+        for i=1, #v do
+            if v[i] == s then
+                table.remove(v, i)
+            end
+        end
+        if k == tostring(s) then scopes[k] = nil end
+    end
+end
+
+---@param data table
+---@return promise
+local function triggerCl(data)
+    local event = data.event
+    if not data.event then warn("No event has passed in triggerCl function") return end
+    local target = data.target
+    if not data.target then warn("No target has passed in triggerCl function") return end
+    local payload = data.payload
+    if not data.payload then warn("No payload has passed in triggerCl function") return end
+
+    local p = promise.new()
+
+    TriggerClientEvent(data.event, data.target, data.payload)
+
+    p:resolve("Done")
+    return p
+end
+
+---Trigger event to all players inside scope
+---@param data table
+---@return promise
+function TriggerScopeEvent(data)
+    local event = data.event
+    local scopeOwner = tostring(data.scopeOwner)
+    if not scopeOwner then return end
+    local selfTrigger = data.selfTrigger
+    local payload = data.payload
+    local cb = data.cb
+    local targets = scopes[scopeOwner]
+
+    if not targets then return end
+
+    local p = promise.new()
+
+    Utils.mbtDebugger("^2TriggerScopeEvent ~ targets of ", scopeOwner)
+    for i=1, #targets do
+        local target = tonumber(targets[i])
+        TriggerClientEvent(event, target, payload)
+    end
+
+    if selfTrigger then
+        scopeOwner = tonumber(scopeOwner)
+        TriggerClientEvent(event, scopeOwner, payload)
+    end
+
+    if cb then cb() end
+
+    p:resolve("Done")
+    Utils.mbtDebugger("TriggerScopeEvent ~ Finished!, state of promise ", p.state, p.value)
+
+    return p
+end
+
+AddEventHandler("playerEnteredScope", function(data)
+    local playerEntering, player = data["player"], data["for"]
+    local playerEnteringSource, playerSource = tonumber(playerEntering), tonumber(player)
+    local playerEnteringCoords = GetEntityCoords(GetPlayerPed(playerEnteringSource))
+    local playerCoords = GetEntityCoords(GetPlayerPed(playerSource))
+    if not playerEnteringCoords.x == 0.0 and playerEnteringCoords.y == 0.0 then return end
+    if not playerCoords.x == 0.0 and playerCoords.y == 0.0 then return end
+
+    Utils.mbtDebugger(("^2%s is entering %s's scope"):format(playerEntering, player))
+    if not playerEntering then return end
+    Utils.mbtDebugger("playerEnteredScope check 2")
+    if not player then return end
+    Utils.mbtDebugger("playerEnteredScope check 3")
+
+    if not playersToTrack[playerSource] then return end
+
+    Utils.mbtDebugger("playerEnteredScope ~ Check passed!")
+
+    if not scopes[player] then
+        Utils.mbtDebugger("playerEnteredScope ~ Initialized scope for player ", player)
+        scopes[player] = {}
+    end
+
+    addPlayerToPlayerScope(player, playerEntering)
+end)
+
+AddEventHandler("playerLeftScope", function(data)
+    local playerLeaving, player = data["player"], data["for"]
+    Utils.mbtDebugger(("^2%s is leaving %s's scope"):format(playerLeaving, player))
+    removePlayerFromPlayerScope(playerLeaving, player);
+end)
+
+Citizen.CreateThread(function()
+    Utils.mbtDebugger("Queuing Thread ~ Started!")
+    while true do
+
+        local diffs = Utils.getDifferences(oldScop, scopes)
+
+        for source, values in pairs(diffs) do
+            for i=1, #values do
+                Utils.mbtDebugger("Queuing Thread ~ Key: ", source, "Type: ", values[i].type, "Value: ", values[i].value)
+
+                functQueue[#functQueue+1] = {
+                    funct = triggerCl,
+                    args = {
+                        event = "mbt_malisling:syncScope",
+                        target = tonumber(values[i].value),
+                        payload = {
+                            tType = values[i].type == "Removed" and "del" or "add",
+                            playerSource = tonumber(source),
+                            playerJob = getPlayerJob(source),
+                            pedSex = getPlayerSex(source),
+                            playerWeapons = values[i].type == "Added" and playersToTrack[tonumber(source)] or nil
+                        }
+                    }
+                }
+            end
+        end
+
+        oldScop = Utils.tableDeepCopy(scopes)
+        Citizen.Wait(100)
+    end
+end)
+
+Citizen.CreateThread(function()
+    local isBusy = false
+
+    while true do
+        Wait(200)
+        if #functQueue > 0 then
+            if isBusy then Utils.mbtDebugger("Execute queue thread ~ Busy!!!") end
+            if not isBusy and functQueue[1] then
+                isBusy = true
+                local qElement = functQueue[1]
+
+                Utils.mbtDebugger("Execute queue thread ~ Executing function ", qElement.args.event, " with target ", qElement.args.target, " and payload ", json.encode(qElement.args.payload))
+                local ps = Citizen.Await(qElement.funct(qElement.args))
+                table.remove(functQueue, 1)
+                Utils.mbtDebugger("Execute queue thread ~ Resolved process event ", qElement.args.event, " Promise: ", ps)
+                isBusy = false
+            end
+        end
+    end
 end)

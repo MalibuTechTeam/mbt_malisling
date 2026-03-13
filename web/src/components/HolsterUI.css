@@ -1,0 +1,197 @@
+/* ── Positioning ─────────────────────────────────────────────── */
+.holster-overlay {
+  position: fixed;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+.holster-pos-bottom-center {
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  --pos-transform: translateX(-50%);
+}
+
+.holster-pos-top-center {
+  top: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  --pos-transform: translateX(-50%);
+}
+
+.holster-pos-bottom-right {
+  bottom: 80px;
+  right: 30px;
+  --pos-transform: translateX(0);
+}
+
+/* ── Animations ──────────────────────────────────────────────── */
+.holster-enter {
+  animation: holsterIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.holster-exit {
+  animation: holsterOut 0.30s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+@keyframes holsterIn {
+  from {
+    opacity: 0;
+    transform: var(--pos-transform, translateX(-50%)) translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: var(--pos-transform, translateX(-50%)) translateY(0);
+  }
+}
+
+@keyframes holsterOut {
+  from {
+    opacity: 1;
+    transform: var(--pos-transform, translateX(-50%)) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: var(--pos-transform, translateX(-50%)) translateY(16px);
+  }
+}
+
+/* ── Card ────────────────────────────────────────────────────── */
+.holster-card {
+  width: 420px;
+  background: rgba(8, 9, 18, 0.82);
+  backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow:
+    0 24px 64px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+}
+
+/* ── Accent bar ──────────────────────────────────────────────── */
+.holster-accent-bar {
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 185, 50, 0.8) 30%,
+    rgba(255, 140, 0, 0.9) 60%,
+    transparent
+  );
+}
+
+/* ── Header ──────────────────────────────────────────────────── */
+.holster-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 20px 14px;
+}
+
+.holster-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 185, 50, 0.12);
+  border: 1px solid rgba(255, 185, 50, 0.25);
+  border-radius: 10px;
+  color: rgba(255, 200, 80, 0.95);
+  flex-shrink: 0;
+}
+
+.holster-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.holster-title-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.holster-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: rgba(255, 185, 50, 0.75);
+  text-transform: uppercase;
+}
+
+.holster-weapon-name {
+  font-size: 18px;
+  font-weight: 700;
+  color: rgba(240, 240, 255, 0.95);
+  letter-spacing: 0.02em;
+}
+
+/* ── Divider ─────────────────────────────────────────────────── */
+.holster-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.06);
+  margin: 0 20px;
+}
+
+/* ── Hints ───────────────────────────────────────────────────── */
+.holster-hints {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px 18px;
+}
+
+.holster-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.holster-hint-separator {
+  width: 1px;
+  height: 28px;
+  background: rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+}
+
+.holster-hint-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(180, 180, 200, 0.8);
+  white-space: nowrap;
+}
+
+/* ── Keys ────────────────────────────────────────────────────── */
+.holster-key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 9px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.holster-key--confirm {
+  background: rgba(255, 185, 50, 0.15);
+  border: 1px solid rgba(255, 185, 50, 0.5);
+  color: rgba(255, 200, 80, 1);
+  animation: confirmPulse 1.8s ease-in-out infinite;
+}
+
+.holster-key--cancel {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: rgba(200, 200, 210, 0.8);
+}
+
+@keyframes confirmPulse {
+  0%, 100% { box-shadow: none; }
+  50%       { box-shadow: 0 0 10px rgba(255, 185, 50, 0.35), 0 0 20px rgba(255, 185, 50, 0.15); }
+}

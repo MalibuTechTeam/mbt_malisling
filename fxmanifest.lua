@@ -8,26 +8,32 @@ version      '1.1.4'
 repository 'https://github.com/MalibuTechTeam/mbt_malisling'
 description 'Weapon on back with various features'
 
-dependencies { 
+ui_page 'web/dist/index.html'
+
+dependencies {
     '/onesync',
-    'ox_lib', 
-    'ox_inventory' 
+    'ox_lib',
+    'ox_inventory'
 }
 
 shared_scripts {
+    'modules/module.lua',
 	'@ox_lib/init.lua',
     'config.lua'
 }
 
 server_scripts {
-    'server/*.lua'
+    'modules/**/server.lua',
+    'core/server.lua',
 }
 
 client_scripts {
-    'client/*.lua'
+    'modules/**/client.lua',
+    'core/client.lua',
 }
 
 files {
     'data/*.lua',
-    'utils.lua'
+    'web/dist/index.html',
+    'web/dist/assets/**',
 }
