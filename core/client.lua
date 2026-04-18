@@ -354,31 +354,26 @@ function Init()
 
         Utils.mbtDebugger("ox_inventory:updateInventory ~ Launched updateInventory foe playerPed ", cache.ped)
 
-        if Utils.getTableLength(data) == 1 then
-            for _,v in pairs(data) do
-                if type(v) == "table" then
-                    if Utils.isWeapon(v.name) and playerWeapon ~= joaat(v.name) and MBT.WeaponsInfo["Weapons"][v.name]["type"] then
-                        local weaponType = MBT.WeaponsInfo["Weapons"][v.name]?.type
-
-
-                        if not playersToTrack[cache.serverId][weaponType] then
-                            Utils.mbtDebugger("ox_inventory:updateInventory ~ Check weapon "..v.name)
-
-                            if not playerWeapons[weaponType] then
-                                local weaponData = v
-                                weaponData.type = weaponType
-                                playerWeapons[weaponType] = weaponData
-                            end
-                        else
-                            Utils.mbtDebugger("ox_inventory:updateInventory ~ Slot "..weaponType.. " BUSY!")
+        for _, v in pairs(data) do
+            if type(v) == "table" and Utils.isWeapon(v.name) and playerWeapon ~= joaat(v.name) then
+                local weaponType = MBT.WeaponsInfo["Weapons"][v.name] and MBT.WeaponsInfo["Weapons"][v.name]["type"]
+                if weaponType then
+                    if not playersToTrack[cache.serverId][weaponType] then
+                        Utils.mbtDebugger("ox_inventory:updateInventory ~ Check weapon "..v.name)
+                        if not playerWeapons[weaponType] then
+                            local weaponData = v
+                            weaponData.type = weaponType
+                            playerWeapons[weaponType] = weaponData
                         end
+                    else
+                        Utils.mbtDebugger("ox_inventory:updateInventory ~ Slot "..weaponType.." BUSY!")
                     end
                 end
             end
+        end
 
-            if not Utils.isTableEmpty(playerWeapons) then
-                syncSling({playerWeapons = playerWeapons})
-            end
+        if not Utils.isTableEmpty(playerWeapons) then
+            syncSling({playerWeapons = playerWeapons})
         end
     end)
 
@@ -594,18 +589,27 @@ AddEventHandler('mbt_malisling:syncSling', function (data)
             local boneIndex = GetPedBoneIndex(playerPed, attachInfo["Bone"])
             weaponData.weaponHash = joaat(weaponData.name)
             lib.requestWeaponAsset(weaponData.weaponHash, 1000, 31, 1)
-            weaponData.weaponObj = CreateWeaponObject(weaponData.weaponHash , 50, playerCoords.x, playerCoords.y, playerCoords.z, true, 1.0, 0)
+            weaponData.weaponObj = CreateWeaponObject(weaponData.weaponHash, 50, playerCoords.x, playerCoords.y, playerCoords.z, true, 1.0, 0)
             RequestWeaponHighDetailModel(weaponData.weaponObj)
-            Utils.mbtDebugger("syncSling ~ Weapon object created! ", weaponData.name, playerPed, boneIndex, attachInfo["Pos"][pedSex]["x"], attachInfo["Pos"][pedSex]["y"], attachInfo["Pos"][pedSex]["z"])
-            applyAttachments(weaponData)
-            SetCreateWeaponObjectLightSource(weaponData.weaponObj, weaponData.metadata.flashlightState)
-            Wait(50)
-            AttachEntityToEntity(weaponData.weaponObj, playerPed, boneIndex, attachInfo["Pos"][pedSex]["x"], attachInfo["Pos"][pedSex]["y"], attachInfo["Pos"][pedSex]["z"], attachInfo["Rot"][pedSex]["x"], attachInfo["Rot"][pedSex]["y"], attachInfo["Rot"][pedSex]["z"], true, true, false, attachInfo["isPed"], attachInfo["RotOrder"], attachInfo["FixedRot"])
-            SetEntityCompletelyDisableCollision(weaponData.weaponObj, false, true)
-            SetFlashLightKeepOnWhileMoving(true)
-            Utils.mbtDebugger("syncSling ~ Apply attachments to weapon obj!")
-            playersToTrack[data.playerSource][weaponType] = weaponData.weaponObj
-            weaponObjectiveSpawned[#weaponObjectiveSpawned+1] = weaponData.weaponObj
+
+            local deadline = GetGameTimer() + 500
+            while not DoesEntityExist(weaponData.weaponObj) and GetGameTimer() < deadline do
+                Wait(10)
+            end
+
+            if not DoesEntityExist(weaponData.weaponObj) then
+                Utils.mbtDebugger("syncSling ~ Weapon object failed to create for ", weaponData.name)
+            else
+                Utils.mbtDebugger("syncSling ~ Weapon object created! ", weaponData.name, playerPed, boneIndex, attachInfo["Pos"][pedSex]["x"], attachInfo["Pos"][pedSex]["y"], attachInfo["Pos"][pedSex]["z"])
+                applyAttachments(weaponData)
+                SetCreateWeaponObjectLightSource(weaponData.weaponObj, weaponData.metadata.flashlightState)
+                AttachEntityToEntity(weaponData.weaponObj, playerPed, boneIndex, attachInfo["Pos"][pedSex]["x"], attachInfo["Pos"][pedSex]["y"], attachInfo["Pos"][pedSex]["z"], attachInfo["Rot"][pedSex]["x"], attachInfo["Rot"][pedSex]["y"], attachInfo["Rot"][pedSex]["z"], true, true, false, attachInfo["isPed"], attachInfo["RotOrder"], attachInfo["FixedRot"])
+                SetEntityCompletelyDisableCollision(weaponData.weaponObj, false, true)
+                SetFlashLightKeepOnWhileMoving(true)
+                Utils.mbtDebugger("syncSling ~ Apply attachments to weapon obj!")
+                playersToTrack[data.playerSource][weaponType] = weaponData.weaponObj
+                weaponObjectiveSpawned[#weaponObjectiveSpawned+1] = weaponData.weaponObj
+            end
         end
     end
 
