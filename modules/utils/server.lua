@@ -87,70 +87,43 @@ end
 ---@param t1 table
 ---@param t2 table
 ---@return table
-local function except(t1, t2)
-    local final, temp = {}, {}
-    if not t1 then t1 = {} end
-    if not t2 then t2 = {} end
-
-    for i=1, #t2 do temp[t2[i]] = true end
-
-    for i=1, #t1 do
-        if not temp[t1[i]] then
-            final[#final+1] = t1[i]
-        end
-    end
-
-    return final
-end
-
----@param table table
----@param element any
----@return boolean
-local function contains(t, element)
-    for _, value in pairs(t) do
-        if value == element then return true end
-    end
-    return false
-end
-
----@param t1 table
----@param t2 table
----@return table
-local function getKeys(t1, t2)
-    local keys = {}
-    for key in pairs(t1) do keys[#keys+1] = key end
-
-    for key in pairs(t2) do
-        if not contains(keys, key) then keys[#keys+1] = key end
-    end
-
-    table.sort(keys, function(a, b) return a < b end)
-    return keys
-end
-
----@param t1 table
----@param t2 table
----@return table
 function Utils.getDifferences(t1, t2)
-    local allKeys = getKeys(t1, t2)
     local diffs = {}
 
-    for i=1, #allKeys do
-        local key = allKeys[i]
-        local tExc = except(t1[key], t2[key])
-        local tExc2 = except(t2[key], t1[key])
+    -- Build unified key set in O(n+m) using hash dedup
+    local allKeys = {}
+    for key in pairs(t1) do allKeys[key] = true end
+    for key in pairs(t2) do allKeys[key] = true end
 
-        diffs[key] = {}
-        for i=1, #tExc do
-            diffs[key][#diffs[key]+1] = { type = "Removed", key = key, value = tExc[i] }
-            Utils.mbtDebugger("getDifferences ~ Content Removed", tExc[i])
+    for key in pairs(allKeys) do
+        local a = t1[key] or {}
+        local b = t2[key] or {}
+
+        -- Build lookup tables for a single comparison pass
+        local inB = {}
+        for i = 1, #b do inB[b[i]] = true end
+        local inA = {}
+        for i = 1, #a do inA[a[i]] = true end
+
+        local entry = nil
+
+        for i = 1, #a do
+            if not inB[a[i]] then
+                if not entry then entry = {} end
+                entry[#entry+1] = { type = "Removed", key = key, value = a[i] }
+                Utils.mbtDebugger("getDifferences ~ Content Removed", a[i])
+            end
         end
 
-        for i=1, #tExc2 do
-            Utils.mbtDebugger("getDifferences ~ Index analyzed ", i)
-            diffs[key][#diffs[key]+1] = { type = "Added", key = key, value = tExc2[i] }
-            Utils.mbtDebugger("getDifferences ~ Content Added", tExc2[i])
+        for i = 1, #b do
+            if not inA[b[i]] then
+                if not entry then entry = {} end
+                entry[#entry+1] = { type = "Added", key = key, value = b[i] }
+                Utils.mbtDebugger("getDifferences ~ Content Added", b[i])
+            end
         end
+
+        if entry then diffs[key] = entry end
     end
 
     return diffs

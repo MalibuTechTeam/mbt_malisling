@@ -55,7 +55,7 @@ end)
 
 RegisterNetEvent("mbt_malisling:getPlayersInPlayerScope")
 AddEventHandler("mbt_malisling:getPlayersInPlayerScope", function(data)
-    if not players then scopes[tostring(source)] = {} end
+    if not scopes[tostring(source)] then scopes[tostring(source)] = {} end
     for i = 1, #data do
         addPlayerToPlayerScope(source, data[i])
     end
@@ -259,13 +259,11 @@ end)
 Citizen.CreateThread(function()
     Utils.mbtDebugger("Queuing Thread ~ Started!")
     while true do
-
         local diffs = Utils.getDifferences(oldScop, scopes)
 
         for source, values in pairs(diffs) do
             for i=1, #values do
                 Utils.mbtDebugger("Queuing Thread ~ Key: ", source, "Type: ", values[i].type, "Value: ", values[i].value)
-
                 functQueue[#functQueue+1] = {
                     funct = triggerCl,
                     args = {
@@ -281,9 +279,9 @@ Citizen.CreateThread(function()
                     }
                 }
             end
+            oldScop[source] = scopes[source] and Utils.tableDeepCopy(scopes[source]) or nil
         end
 
-        oldScop = Utils.tableDeepCopy(scopes)
         Citizen.Wait(100)
     end
 end)
