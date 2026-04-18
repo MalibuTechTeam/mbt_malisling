@@ -29,10 +29,14 @@ function dropCurrentWeapon()
     local weaponObj = CreateObject(weaponModel, bonePos.x, bonePos.y, bonePos.z, true, true, true)
     ActivatePhysics(weaponObj)
     TriggerEvent("ox_inventory:disarm", true)
-    while IsEntityInAir(weaponObj) do Wait(250); end
-    Wait(700)
+    while IsEntityInAir(weaponObj) do Wait(100) end
+    local deadline = GetGameTimer() + 800
+    repeat
+        Wait(50)
+        local vel = GetEntityVelocity(weaponObj)
+        if math.abs(vel.x) < 0.05 and math.abs(vel.y) < 0.05 and math.abs(vel.z) < 0.05 then break end
+    until GetGameTimer() > deadline
     local weaponCoords = GetEntityCoords(weaponObj)
-    Wait(10)
     DeleteObject(weaponObj)
     TriggerServerEvent("mbt_malisling:createWeaponDrop", {
         WeaponInfo = currentWeapon,
