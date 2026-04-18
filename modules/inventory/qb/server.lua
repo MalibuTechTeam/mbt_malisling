@@ -1,7 +1,7 @@
 if GetResourceState('qb-inventory') ~= 'started' or GetResourceState('ox_inventory') == 'started' then return end
 
 if GetResourceState('qb-core') ~= 'started' then
-    warn("mbt_malisling: qb-inventory requires qb-core to be running.")
+    Utils.mbtWarn("mbt_malisling: qb-inventory requires qb-core to be running.")
     return
 end
 
@@ -86,7 +86,7 @@ function Inventory:CustomDrop(id, items, coords, _, _, _, modelHash)
         exports['qb-inventory']:CreateInventory(id, qbItems)
     end)
     if not ok then
-        warn(("mbt_malisling: CustomDrop ~ CreateInventory failed (%s). " ..
+        Utils.mbtWarn(("mbt_malisling: CustomDrop ~ CreateInventory failed (%s). " ..
               "Items may not be lootable — verify your qb-inventory version."):format(err))
     end
 

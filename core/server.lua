@@ -5,7 +5,7 @@ playersToTrack = {}
 
 -- Inventory and loadInventoryWeaponsData() are provided by modules/inventory/*/server.lua
 if not Inventory then
-    warn("mbt_malisling: No supported inventory found! Install ox_inventory >= 2.30.0 or qb-inventory.")
+    Utils.mbtWarn("mbt_malisling: No supported inventory found! Install ox_inventory >= 2.30.0 or qb-inventory.")
 end
 
 lib.callback.register('mbt_malisling:getWeapoConf', function(source)
@@ -123,6 +123,7 @@ function addPlayerToPlayerScope(player, playerToAdd)
     local playerToAdd = tonumber(playerToAdd)
     local playerToAddSource = tostring(playerToAdd)
 
+    if not scopes[player] then scopes[player] = {} end
     local playerScope = scopes[player]
     if Utils.containsValue(playerScope, playerToAdd) then return end
     playerScope[#playerScope+1] = playerToAdd
@@ -177,11 +178,11 @@ end
 ---@return promise
 local function triggerCl(data)
     local event = data.event
-    if not data.event then warn("No event has passed in triggerCl function") return end
+    if not data.event then Utils.mbtWarn("No event has passed in triggerCl function") return end
     local target = data.target
-    if not data.target then warn("No target has passed in triggerCl function") return end
+    if not data.target then Utils.mbtWarn("No target has passed in triggerCl function") return end
     local payload = data.payload
-    if not data.payload then warn("No payload has passed in triggerCl function") return end
+    if not data.payload then Utils.mbtWarn("No payload has passed in triggerCl function") return end
 
     local p = promise.new()
     TriggerClientEvent(data.event, data.target, data.payload)

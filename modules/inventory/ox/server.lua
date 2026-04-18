@@ -1,11 +1,11 @@
 if GetResourceState('ox_inventory') ~= 'started' then return end
 
 if not lib.checkDependency('ox_inventory', '2.30.0') then
-    warn("mbt_malisling has not been tested with this version of ox_inventory!")
+    Utils.mbtWarn("mbt_malisling has not been tested with this version of ox_inventory!")
 end
 
 if GetConvarInt('inventory:weaponanims', 1) == 0 then
-    warn("You have enabled the sling feature, but you have disabled the weapons animation convar in ox_inventory. This will cause issues with animations and the sling feature. Please set inventory:weaponanims to 1")
+    Utils.mbtWarn("You have enabled the sling feature, but you have disabled the weapons animation convar in ox_inventory. This will cause issues with animations and the sling feature. Please set inventory:weaponanims to 1")
 end
 
 ---Global inventory interface — used by core/server.lua, weapon_drop, weapon_throw
@@ -31,7 +31,7 @@ AddStateBagChangeHandler('WeaponFlashlightState', nil, function(bagName, key, va
         if not weaponData then return end
 
         Utils.mbtDebugger("Receiving WeaponFlashlightState ", payload.FlashlightState)
-        Utils.dumpTable(weaponData)
+        Utils.mbtDebugger(weaponData)
 
         weaponData.metadata.flashlightState = payload.FlashlightState
         Inventory:SetMetadata(playerSource, weaponData.slot, weaponData.metadata)
@@ -79,7 +79,7 @@ local function appendMalisling()
         return
     end
 
-    warn(
+    Utils.mbtWarn(
         "La patch ox_inventory non e' completa (hook=" .. tostring(hasHook ~= nil) ..
         " sendAnim=" .. tostring(hasAppend ~= nil) .. "). " ..
         "Esegui install_ox_patch.ps1 (nella cartella di mbt_malisling) con il server spento, " ..

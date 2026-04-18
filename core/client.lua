@@ -90,7 +90,7 @@ end
 ---@param data table
 local function applyAttachments(data)
     if data and not Utils.isTableEmpty(data) then
-        Utils.dumpTable(data.metadata)
+        Utils.mbtDebugger(data.metadata)
         local components = data.metadata.components
         if components then
             for i = 1, #components do
@@ -241,7 +241,7 @@ function Init()
 
             local weaponName = data.name
 
-            Utils.dumpTable(data)
+            Utils.mbtDebugger(data)
 
             Utils.mbtDebugger("ox_inventory:currentWeapon ~ You have equipped a "..data.name)
 
@@ -346,7 +346,7 @@ function Init()
     end)
 
     AddEventHandler("ox_inventory:updateInventory", function (data)
-        Utils.dumpTable(data)
+        Utils.mbtDebugger(data)
 
         local _, playerWeapon = GetCurrentPedWeapon(cache.ped, 1)
 
@@ -575,7 +575,7 @@ AddEventHandler('mbt_malisling:syncSling', function (data)
     local playerJob = data.playerJob
     local pedSex = data.pedSex
 
-    Utils.dumpTable(data)
+    Utils.mbtDebugger(data)
 
     Utils.mbtDebugger("Ped is ", pedSex, " with job ", playerJob)
 
@@ -614,4 +614,9 @@ AddEventHandler('mbt_malisling:syncSling', function (data)
     end
 
     playersToTrack[data.playerSource]["waiting"] = nil
+end)
+
+exports('ResetWeaponsOnBack', function()
+    deleteAllWeapons()
+    TriggerServerEvent("mbt_malisling:checkInventory")
 end)

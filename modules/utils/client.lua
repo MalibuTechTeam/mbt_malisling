@@ -1,36 +1,51 @@
 Utils = {}
 
----@param t table
----@param indent boolean
-function Utils.dumpTable(t, indent)
-    if MBT.Debug then
-        indent = indent or 0
-        for k,v in pairs(t) do
-            local formatting = string.rep("    ", indent) .. k .. ": "
-            if type(v) == "table" then
-                print(formatting)
-                Utils.dumpTable(v, indent + 1)
-            else
-                print(formatting .. tostring(v))
-            end
+local _resName = GetCurrentResourceName()
+
+local function _prettyTable(t, indent)
+    indent = indent or 1
+    local pad = string.rep("  ", indent)
+    local lines = {}
+    for k, v in pairs(t) do
+        local key = type(k) == "number" and ("[" .. k .. "]") or tostring(k)
+        if type(v) == "table" then
+            lines[#lines+1] = pad .. key .. " = " .. _prettyTable(v, indent + 1)
+        else
+            lines[#lines+1] = pad .. key .. " = " .. tostring(v)
         end
     end
+    return "{\n" .. table.concat(lines, ",\n") .. "\n" .. string.rep("  ", indent - 1) .. "}"
 end
 
+local function _serialize(v)
+    if type(v) == "table" then return _prettyTable(v) end
+    return tostring(v)
+end
+
+local function _callerLoc(level)
+    local info = debug.getinfo(level, "Sl")
+    if not info then return "?" end
+    local src = info.short_src:gsub("^@@?[^/\\]+[/\\]", "")
+    return src .. ":" .. (info.currentline or "?")
+end
+
+---@param ... any
 function Utils.mbtDebugger(...)
-    if MBT.Debug then
-        local args = {...}
-        local printResult = "^3[mbt_malisling] | "
-        for i, arg in ipairs(args) do
-            if type(arg) == "table" then
-                Utils.dumpTable(arg)
-            else
-                printResult = printResult .. tostring(arg) .. "\t"
-            end
-        end
-        printResult = printResult .. "\n"
-        print(printResult)
+    if not MBT.Debug then return end
+    local parts = {}
+    for i = 1, select("#", ...) do
+        parts[i] = _serialize(select(i, ...))
     end
+    print(("^2[%s]^7 ^3%s^7 >> %s^0"):format(_resName, _callerLoc(2), table.concat(parts, " ")))
+end
+
+---@param ... any
+function Utils.mbtWarn(...)
+    local parts = {}
+    for i = 1, select("#", ...) do
+        parts[i] = _serialize(select(i, ...))
+    end
+    print(("^2[%s] ^8[WARN]^7 ^3%s^7 >> %s^0"):format(_resName, _callerLoc(2), table.concat(parts, " ")))
 end
 
 ---@param s string

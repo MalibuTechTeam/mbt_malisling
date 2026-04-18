@@ -1,2 +1,5 @@
 web/node_modules/
 web/dist/
+.agents/
+.claude/
+skills-lock.json
