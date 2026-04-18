@@ -1,7 +1,5 @@
 local CurrentWeapon = {}
 
-local Utils = loadModule('modules.Utils.client')
-
 AddEventHandler('ox_inventory:currentWeapon', function(currentWeapon) CurrentWeapon = currentWeapon end)
 if MBT.DropWeaponOnDeath then
 

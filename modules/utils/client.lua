@@ -1,4 +1,4 @@
-local Utils = {}
+Utils = {}
 
 ---@param t table
 ---@param indent boolean
@@ -136,4 +136,3 @@ function Utils.getJammingChance(value)
     return random < chance
 end
 
-return Utils

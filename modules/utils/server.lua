@@ -1,4 +1,4 @@
-local Utils = {}
+Utils = {}
 
 ---@param t table
 ---@param indent boolean
@@ -156,4 +156,3 @@ function Utils.getDifferences(t1, t2)
     return diffs
 end
 
-return Utils

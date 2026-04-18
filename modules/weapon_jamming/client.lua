@@ -1,6 +1,5 @@
 if not MBT.Jamming["Enabled"] then return end
 
-local Utils = loadModule('modules.Utils.client')
 local jammed = GetGameTimer()
 local currentWeapon
 

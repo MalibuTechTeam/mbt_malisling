@@ -22,17 +22,25 @@ local CreateWeaponObject = CreateWeaponObject
 local SetEntityCompletelyDisableCollision = SetEntityCompletelyDisableCollision
 local SetFlashLightKeepOnWhileMoving = SetFlashLightKeepOnWhileMoving
 
-local Utils = loadModule('modules.Utils.client')
-
-local ox_inventory = exports["ox_inventory"]
-local weaponNames, weaponObjectiveSpawned = {}, {}
+-- Inventory is provided by modules/inventory/*/client.lua (ox or qb bridge)
+local weaponObjectiveSpawned = {}
 local isReady = false
+local hasRegistered = false
 local propInfoTable = Utils.tableDeepCopy(MBT.PropInfo)
 local playerSex
 local flashlightState
 
 equippedWeapon = {}
 playersToTrack = {}
+
+--- Reset client state on character logout (multicharacter support)
+function ResetForMultichar()
+    isReady = false
+    equippedWeapon = {}
+    if playersToTrack[cache.serverId] then
+        playersToTrack[cache.serverId] = {["side"] = false, ["back"] = false, ["back2"] = false, ["melee"] = false, ["melee2"] = false, ["melee3"] = false}
+    end
+end
 
 --- Delete all attached weapons and sync with server
 function deleteAllWeapons()
@@ -185,6 +193,9 @@ function sendAnimations(jobName)
 end
 
 function Init()
+    isReady = false
+    equippedWeapon = {}
+
     MBT.WeaponsInfo = lib.callback.await('mbt_malisling:getWeapoConf', false)
     Utils.mbtDebugger("Init ~ has been fired!!!")
 
@@ -211,6 +222,15 @@ function Init()
 
     Utils.mbtDebugger("Init ~ playersToTrack filled with my id!!!")
     Wait(200)
+
+    if hasRegistered then
+        Wait(200)
+        TriggerServerEvent("mbt_malisling:checkInventory")
+        Utils.mbtDebugger("Init ~ Skipping handler registration (already registered)")
+        isReady = true
+        return
+    end
+    hasRegistered = true
 
     AddEventHandler('ox_inventory:currentWeapon', function(data)
         Utils.mbtDebugger("ox_inventory:currentWeapon ~ Fired!")
@@ -256,7 +276,7 @@ function Init()
 
             Wait(250)
 
-            local invWeap = ox_inventory:Search('slots', weaponName)
+            local invWeap = Inventory:Search('slots', weaponName)
 
             local playerWeapons = {}
             for _, v in pairs(invWeap) do
@@ -285,7 +305,12 @@ function Init()
 
                 Wait(500)
 
-                local playerWeapons = ox_inventory:Search('slots', weaponNames)
+                local knownWeaponNames = {}
+                for name in pairs(MBT.WeaponsInfo["Weapons"]) do
+                    knownWeaponNames[#knownWeaponNames + 1] = name
+                end
+
+                local playerWeapons = Inventory:Search('slots', knownWeaponNames)
 
                 if playerWeapons then
                     local pWeapons = {}
@@ -466,6 +491,7 @@ end)
 
 RegisterNetEvent("mbt_malisling:checkWeaponProps")
 AddEventHandler("mbt_malisling:checkWeaponProps", function(t)
+    if type(t) ~= "table" then return end
     if Utils.isTableEmpty(t) then Utils.mbtDebugger("checkWeaponProps ~ Table is empty!") return end
     local playerWeapons = {}
 

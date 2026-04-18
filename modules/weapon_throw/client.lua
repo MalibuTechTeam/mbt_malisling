@@ -1,7 +1,5 @@
 if not MBT.Throw["Enabled"] then return end
 
-local Utils = loadModule('modules.Utils.client')
-
 local currentWeapon
 local throwAnim = MBT.Throw["Animation"]
 local isThrowing = false

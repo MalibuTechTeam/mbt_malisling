@@ -1,17 +1,17 @@
-local ox_inventory = exports["ox_inventory"]
+-- Inventory is provided by modules/inventory/*/server.lua
 
 RegisterNetEvent("mbt_malisling:createWeaponDrop", function(data)
-    assert(data.WeaponInfo.ObjHash ~= nil, 'dropWeapon ~ hash of weapons nil')
+    assert(data.WeaponInfo.ObjHash ~= nil, 'createWeaponDrop ~ ObjHash of weapon nil')
+    if type(data.WeaponInfo.slot) ~= 'number' then return end
 
-    local r = ('ThrownDrop %s000000000'):format(os.time(os.date('*t')))
+    local item = Inventory:GetSlot(source, data.WeaponInfo.slot)
+    if not item then return end
 
-    if type(data.WeaponInfo.slot) == 'number' then
-        local item = ox_inventory:GetSlot(source, data.WeaponInfo.slot)
-        local success = ox_inventory:RemoveItem(source, item.name, item.count, nil, item.slot)
-        if success then
-            ox_inventory:CustomDrop(r, {
-                { item.name, item.count, item.metadata }
-            }, data.Coords, 1, 10000, nil, data.WeaponInfo.ObjHash or `prop_water_corpse_01`)
-        end
+    local success = Inventory:RemoveItem(source, item.name, item.count, nil, item.slot)
+    if success then
+        local r = ('ThrownDrop %s000000000'):format(os.time(os.date('*t')))
+        Inventory:CustomDrop(r, {
+            { item.name, item.count, item.metadata }
+        }, data.Coords, 1, 10000, nil, data.WeaponInfo.ObjHash or `prop_water_corpse_01`)
     end
 end)

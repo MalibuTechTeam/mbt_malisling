@@ -318,5 +318,11 @@ return {
   },
   ['WEAPON_TECPISTOL'] = {
     ["type"] = "side"
+  },
+  ["WEAPON_BATTLERIFLE"] = {
+    ["type"] = "back"
+  },
+  ["WEAPON_SNOWLAUNCHER"] = {
+    ["type"] = "back2"
   }
 }
