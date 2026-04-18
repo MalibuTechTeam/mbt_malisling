@@ -30,6 +30,7 @@ server_scripts {
     'modules/inventory/ox/server.lua',
     'modules/inventory/qb/server.lua',
     'modules/weapon_drop/server.lua',
+    'modules/weapon_jamming/server.lua',
     'modules/weapon_throw/server.lua',
     'core/server.lua',
 }

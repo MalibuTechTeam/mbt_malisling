@@ -1,0 +1,190 @@
+/* ── Positioning ─────────────────────────────────────────────── */
+.jam-overlay {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9998;
+  pointer-events: none;
+  --pos-transform: translateX(-50%);
+}
+
+/* ── Animations ──────────────────────────────────────────────── */
+.jam-enter {
+  animation: jamIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.jam-exit {
+  animation: jamOut 0.30s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+@keyframes jamIn {
+  from {
+    opacity: 0;
+    transform: var(--pos-transform) translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: var(--pos-transform) translateY(0);
+  }
+}
+
+@keyframes jamOut {
+  from {
+    opacity: 1;
+    transform: var(--pos-transform) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: var(--pos-transform) translateY(16px);
+  }
+}
+
+/* ── Card ────────────────────────────────────────────────────── */
+.jam-card {
+  width: 380px;
+  background: rgba(8, 9, 18, 0.82);
+  backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow:
+    0 24px 64px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+}
+
+/* ── Accent bar ──────────────────────────────────────────────── */
+.jam-accent-bar {
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(220, 50, 50, 0.8) 30%,
+    rgba(255, 80, 60, 0.9) 60%,
+    transparent
+  );
+  animation: accentPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes accentPulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.5; }
+}
+
+/* ── Header ──────────────────────────────────────────────────── */
+.jam-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 20px 14px;
+}
+
+.jam-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(220, 50, 50, 0.12);
+  border: 1px solid rgba(220, 50, 50, 0.3);
+  border-radius: 10px;
+  color: rgba(255, 90, 70, 0.95);
+  flex-shrink: 0;
+}
+
+.jam-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.jam-title-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.jam-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: rgba(220, 60, 50, 0.85);
+  text-transform: uppercase;
+}
+
+.jam-weapon-name {
+  font-size: 18px;
+  font-weight: 700;
+  color: rgba(240, 240, 255, 0.95);
+  letter-spacing: 0.02em;
+}
+
+/* ── Divider ─────────────────────────────────────────────────── */
+.jam-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.06);
+  margin: 0 20px;
+}
+
+/* ── Body ────────────────────────────────────────────────────── */
+.jam-body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px 18px;
+}
+
+/* ── Progress dots ───────────────────────────────────────────── */
+.jam-dots {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.jam-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.jam-dot--filled {
+  background: rgba(220, 50, 50, 0.85);
+  border-color: rgba(255, 80, 60, 0.7);
+  box-shadow: 0 0 8px rgba(220, 50, 50, 0.5);
+}
+
+/* ── Key hint ────────────────────────────────────────────────── */
+.jam-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.jam-key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  background: rgba(220, 50, 50, 0.15);
+  border: 1px solid rgba(220, 50, 50, 0.5);
+  color: rgba(255, 100, 80, 1);
+  animation: keyPulse 1.2s ease-in-out infinite;
+}
+
+.jam-hint-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(180, 180, 200, 0.8);
+  white-space: nowrap;
+}
+
+@keyframes keyPulse {
+  0%, 100% { box-shadow: none; }
+  50%       { box-shadow: 0 0 10px rgba(220, 50, 50, 0.4), 0 0 20px rgba(220, 50, 50, 0.15); }
+}
