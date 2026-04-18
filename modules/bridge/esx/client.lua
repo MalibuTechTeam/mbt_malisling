@@ -1,7 +1,6 @@
 if GetResourceState('es_extended') ~= 'started' then return end
 
-local isMultichar = GetResourceState('esx_multicharacter') ~= 'missing'
-local isfirstSpawn = true
+local isInitialized = false
 
 ESX = exports.es_extended:getSharedObject()
 PlayerData = ESX.GetPlayerData()
@@ -14,8 +13,8 @@ end)
 
 AddEventHandler('esx:loadingScreenOff', function()
     while not ESX.IsPlayerLoaded() do Wait(100) end
-    if isMultichar and MBT.Relog and not isfirstSpawn then return end
-    isfirstSpawn = false
+    if isInitialized then return end
+    isInitialized = true
     Init()
 end)
 
@@ -29,7 +28,9 @@ RegisterNetEvent('esx:onPlayerLogout')
 AddEventHandler('esx:onPlayerLogout', function()
     ESX.PlayerLoaded = false
     PlayerData = {}
+    isInitialized = false
     deleteAllWeapons()
+    ResetForMultichar()
 end)
 
 AddEventHandler('esx:removeInventoryItem', function(itemName, left)

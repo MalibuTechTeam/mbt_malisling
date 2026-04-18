@@ -1,6 +1,6 @@
 if GetResourceState('qb-core') ~= 'started' then return end
 
-QBCore = exports['qb-core']:GetCoreObject()
+QBCore    = exports['qb-core']:GetCoreObject()
 PlayerData = QBCore.Functions.GetPlayerData()
 
 RegisterNetEvent('QBCore:Client:OnPlayerLoaded')
@@ -18,4 +18,5 @@ end)
 RegisterNetEvent('QBCore:Client:OnPlayerUnload')
 AddEventHandler('QBCore:Client:OnPlayerUnload', function()
     deleteAllWeapons()
+    ResetForMultichar()
 end)
