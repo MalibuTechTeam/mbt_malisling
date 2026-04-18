@@ -55,9 +55,14 @@ end)
 
 RegisterNetEvent("mbt_malisling:getPlayersInPlayerScope")
 AddEventHandler("mbt_malisling:getPlayersInPlayerScope", function(data)
+    if type(data) ~= "table" then return end
     if not scopes[tostring(source)] then scopes[tostring(source)] = {} end
-    for i = 1, #data do
-        addPlayerToPlayerScope(source, data[i])
+    local limit = math.min(#data, 2048)
+    for i = 1, limit do
+        local id = tonumber(data[i])
+        if id and id > 0 then
+            addPlayerToPlayerScope(source, id)
+        end
     end
 end)
 
@@ -69,11 +74,18 @@ AddEventHandler("mbt_malisling:checkInventory", function()
     TriggerClientEvent("mbt_malisling:checkWeaponProps", source, items)
 end)
 
+local _validWeaponTypes = { side=true, back=true, back2=true, melee=true, melee2=true, melee3=true }
+
 RegisterNetEvent("mbt_malisling:syncSling")
 AddEventHandler("mbt_malisling:syncSling", function(data)
     local _source = source
+    if type(data) ~= "table" or type(data.playerWeapons) ~= "table" then return end
     if not playersToTrack[_source] then playersToTrack[_source] = {} end
-    for k, v in pairs(data.playerWeapons) do playersToTrack[_source][k] = v end
+    for k, v in pairs(data.playerWeapons) do
+        if _validWeaponTypes[k] and (type(v) == "table" or v == false) then
+            playersToTrack[_source][k] = v
+        end
+    end
 
     Wait(100)
 
@@ -195,8 +207,9 @@ end
 ---@return promise
 function TriggerScopeEvent(data)
     local event = data.event
+    if not event or type(event) ~= "string" then return end
+    if not data.scopeOwner then return end
     local scopeOwner = tostring(data.scopeOwner)
-    if not scopeOwner then return end
     local selfTrigger = data.selfTrigger
     local payload = data.payload
     local cb = data.cb
@@ -206,15 +219,19 @@ function TriggerScopeEvent(data)
 
     local p = promise.new()
 
-    Utils.mbtDebugger("^2TriggerScopeEvent ~ targets of ", scopeOwner)
+    Utils.mbtDebugger("TriggerScopeEvent ~ targets of ", scopeOwner)
     for i=1, #targets do
         local target = tonumber(targets[i])
-        TriggerClientEvent(event, target, payload)
+        if target and target > 0 then
+            TriggerClientEvent(event, target, payload)
+        end
     end
 
     if selfTrigger then
-        scopeOwner = tonumber(scopeOwner)
-        TriggerClientEvent(event, scopeOwner, payload)
+        local owner = tonumber(scopeOwner)
+        if owner and owner > 0 then
+            TriggerClientEvent(event, owner, payload)
+        end
     end
 
     if cb then cb() end
