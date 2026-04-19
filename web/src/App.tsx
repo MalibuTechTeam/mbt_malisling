@@ -2,6 +2,7 @@ import './index.css'
 import { debugData } from './utils/debugData'
 import HolsterUI from './components/HolsterUI'
 import JamUI from './components/JamUI'
+import ConfigUI from './components/ConfigUI'
 
 debugData([{
   action: 'showHolster',
@@ -27,6 +28,7 @@ export default function App() {
     <>
       <HolsterUI />
       <JamUI />
+      <ConfigUI />
     </>
   )
 }

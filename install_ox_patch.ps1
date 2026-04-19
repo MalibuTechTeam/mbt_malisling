@@ -116,18 +116,20 @@ $appendLua = [System.IO.File]::ReadAllText($appendFile, $utf8)
 $content = [System.IO.File]::ReadAllText($targetFile, $utf8)
 Write-Host "Letto $($content.Length) caratteri." -ForegroundColor Gray
 
-# --- Idempotency: patch completa = entrambi i marker presenti ----------------
+# --- Idempotency: se la patch e' gia' presente, ripristina il backup e riapplica
 $hasHook   = $content.Contains("mbt_malisling:holster_request")
 $hasAppend = $content.Contains("mbt_malisling:sendAnim")
 
-if ($hasHook -and $hasAppend) {
-    Write-Host "[OK] Patch gia' applicata completamente." -ForegroundColor Green
-    exit 0
-}
-
-if ($hasHook -and -not $hasAppend) {
-    Write-Host "Trovata patch parziale (vecchia versione). Ripristina il backup (.bak) e riesegui." -ForegroundColor Yellow
-    exit 1
+if ($hasHook -or $hasAppend) {
+    $bakFile = "$targetFile.bak"
+    if (-not (Test-Path -LiteralPath $bakFile)) {
+        Write-Host "[ERRORE] Patch gia' presente ma backup non trovato: $bakFile" -ForegroundColor Red
+        Write-Host "Ripristina manualmente il file originale di ox_inventory e riesegui." -ForegroundColor Yellow
+        exit 1
+    }
+    Write-Host "Patch gia' presente. Ripristino backup e re-applicazione..." -ForegroundColor Yellow
+    Copy-Item -LiteralPath $bakFile -Destination $targetFile -Force
+    $content = [System.IO.File]::ReadAllText($targetFile, $utf8)
 }
 
 # --- Punto 1: hook dentro Weapon.Equip ---------------------------------------

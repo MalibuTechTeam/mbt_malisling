@@ -6,6 +6,13 @@ MBT.DropWeaponOnDeath  = true
 MBT.EnableSling        = true
 MBT.EnableFlashlight   = true
 
+-- ── Admin ─────────────────────────────────────────────────────────────────────
+MBT.Admin              = {
+    Permission = 'command.mbtconfig', -- ACE permission to open the config panel
+    -- Grant it in server.cfg:
+    --   add_ace group.admin command.mbtconfig allow
+}
+
 -- ── UI ────────────────────────────────────────────────────────────────────────
 MBT.UI                 = {
     Position = "bottom-center" -- "bottom-center" | "top-center" | "bottom-right"

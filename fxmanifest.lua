@@ -32,6 +32,7 @@ server_scripts {
     'modules/weapon_drop/server.lua',
     'modules/weapon_jamming/server.lua',
     'modules/weapon_throw/server.lua',
+    'modules/config/server.lua',
     'core/server.lua',
 }
 
@@ -46,6 +47,7 @@ client_scripts {
     'modules/weapon_drop/client.lua',
     'modules/weapon_jamming/client.lua',
     'modules/weapon_throw/client.lua',
+    'modules/config/client.lua',
     'core/client.lua',
 }
 

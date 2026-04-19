@@ -1,0 +1,242 @@
+/* ── Overlay ─────────────────────────────────────────────────── */
+.cfg-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+/* ── Panel ───────────────────────────────────────────────────── */
+.cfg-panel {
+  width: clamp(340px, 28vw, 520px);
+  height: 100vh;
+  background: rgba(8, 9, 18, 0.96);
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  box-shadow: -24px 0 80px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  animation: cfgSlideIn 0.30s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes cfgSlideIn {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+
+/* ── Accent bar ──────────────────────────────────────────────── */
+.cfg-accent-bar {
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(30, 120, 255, 0.7) 30%,
+    rgba(80, 160, 255, 0.9) 60%,
+    transparent
+  );
+  flex-shrink: 0;
+}
+
+/* ── Header ──────────────────────────────────────────────────── */
+.cfg-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+}
+
+.cfg-title {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: rgba(240, 240, 255, 0.95);
+}
+
+.cfg-close-btn {
+  background: none;
+  border: none;
+  color: rgba(200, 200, 220, 0.45);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: color 0.15s, background 0.15s;
+  line-height: 1;
+}
+
+.cfg-close-btn:hover {
+  color: rgba(240, 240, 255, 0.9);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+/* ── Body ────────────────────────────────────────────────────── */
+.cfg-body {
+  overflow-y: auto;
+  padding: 20px 24px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  flex: 1;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.1) transparent;
+}
+
+/* ── Section ─────────────────────────────────────────────────── */
+.cfg-section {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cfg-section-title {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(50, 130, 255, 0.85);
+  margin-bottom: 4px;
+  padding-left: 4px;
+}
+
+/* ── Row ─────────────────────────────────────────────────────── */
+.cfg-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 10px;
+  border-radius: 8px;
+  transition: background 0.12s;
+}
+
+.cfg-row:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.cfg-row-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(200, 200, 225, 0.82);
+}
+
+/* ── Toggle ──────────────────────────────────────────────────── */
+.cfg-toggle {
+  width: 40px;
+  height: 22px;
+  border-radius: 11px;
+  border: none;
+  background: rgba(255, 255, 255, 0.10);
+  cursor: pointer;
+  position: relative;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+.cfg-toggle--on {
+  background: rgba(30, 110, 255, 0.75);
+}
+
+.cfg-toggle-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgba(220, 225, 255, 0.9);
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+.cfg-toggle--on .cfg-toggle-thumb {
+  transform: translateX(18px);
+}
+
+/* ── Number input ────────────────────────────────────────────── */
+.cfg-input {
+  width: 68px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 8px;
+  color: rgba(240, 240, 255, 0.95);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 5px 10px;
+  text-align: center;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.cfg-input:focus {
+  border-color: rgba(40, 120, 255, 0.55);
+}
+
+.cfg-input--text {
+  width: 48px;
+  text-transform: uppercase;
+}
+
+/* ── Select ──────────────────────────────────────────────────── */
+.cfg-select {
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 8px;
+  color: rgba(240, 240, 255, 0.95);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 5px 10px;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.cfg-select:focus {
+  border-color: rgba(40, 120, 255, 0.55);
+}
+
+/* ── Footer ──────────────────────────────────────────────────── */
+.cfg-footer {
+  display: flex;
+  gap: 10px;
+  padding: 16px 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+
+.cfg-btn {
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s;
+}
+
+.cfg-btn--cancel {
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(190, 190, 215, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.cfg-btn--cancel:hover {
+  background: rgba(255, 255, 255, 0.10);
+  color: rgba(230, 230, 255, 0.9);
+}
+
+.cfg-btn--save {
+  background: rgba(25, 105, 255, 0.75);
+  color: rgba(240, 245, 255, 0.95);
+  border: 1px solid rgba(70, 150, 255, 0.35);
+}
+
+.cfg-btn--save:hover {
+  background: rgba(35, 120, 255, 0.9);
+}
