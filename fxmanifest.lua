@@ -23,6 +23,7 @@ shared_scripts {
 
 server_scripts {
     'modules/utils/server.lua',
+    'modules/weapon_sounds/server.lua',
     'modules/bridge/esx/server.lua',
     'modules/bridge/ox/server.lua',
     'modules/bridge/qb/server.lua',
@@ -38,6 +39,7 @@ server_scripts {
 
 client_scripts {
     'modules/utils/client.lua',
+    'modules/weapon_sounds/client.lua',
     'modules/bridge/esx/client.lua',
     'modules/bridge/ox/client.lua',
     'modules/bridge/qb/client.lua',
@@ -55,6 +57,7 @@ files {
     'data/*.lua',
     'web/dist/index.html',
     'web/dist/assets/**',
+    'web/dist/sounds/*.ogg',
 }
 
 -- Supported inventories (soft dependencies — detected at runtime):

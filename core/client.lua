@@ -247,6 +247,7 @@ function Init()
 
             if playersToTrack[cache.serverId][weaponType] and type(playersToTrack[cache.serverId][weaponType]) == "number" then
                 Utils.mbtDebugger("ox_inventory:currentWeapon ~ Equip check passed!")
+                TriggerEvent('mbt_malisling:onUnholster', weaponType)
                 TriggerServerEvent("mbt_malisling:syncDeletion", weaponType)
                 equippedWeapon["name"] = weaponName;
                 equippedWeapon["slot"] = data.slot;
@@ -274,6 +275,9 @@ function Init()
 
             Utils.mbtDebugger("ox_inventory:currentWeapon ~ You have unequipped a "..weaponName)
 
+            local immediateType = MBT.WeaponsInfo["Weapons"][weaponName]?.type
+            if immediateType then TriggerEvent('mbt_malisling:onHolster', immediateType) end
+
             Wait(250)
 
             local invWeap = Inventory:Search('slots', weaponName)
@@ -286,7 +290,9 @@ function Init()
                     playerWeapons[weaponData.type] = weaponData
                 end
             end
-            if not Utils.isTableEmpty(playerWeapons) then syncSling({playerWeapons = playerWeapons}) end
+            if not Utils.isTableEmpty(playerWeapons) then
+                syncSling({playerWeapons = playerWeapons})
+            end
 
             equippedWeapon = {}
         end

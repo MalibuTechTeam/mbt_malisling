@@ -206,6 +206,36 @@ MBT.CustomPropPosition = {
     ]]
 }
 
+-- ── Holster / Unholster Sounds ────────────────────────────────────────────────
+-- File audio in web/dist/sounds/ (formato .ogg).
+-- default: usato quando nessun override specifico è definito per quel tipo.
+-- Override per tipo: decommentare e aggiungere il file .ogg corrispondente.
+-- MaxDistance: raggio in metri entro cui i player vicini sentono il suono.
+-- Volume: 0.0 - 1.0
+MBT.Sounds             = {
+    Enabled     = true,
+    MaxDistance = 8.0,
+    Volume      = 0.4,
+    Holster = {
+        default  = 'holster',
+        ["side"]  = 'holster_pistol',
+        ["back"]  = 'holster_rifle',
+        ["back2"] = 'holster_rifle',
+        -- ["melee"]  = 'holster_melee',
+        -- ["melee2"] = 'holster_melee',
+        -- ["melee3"] = 'holster_melee',
+    },
+    Unholster = {
+        default  = 'unholster',
+        ["side"]  = 'unholster_pistol',
+        ["back"]  = 'unholster_rifle',
+        ["back2"] = 'unholster_rifle',
+        -- ["melee"]  = 'unholster_melee',
+        -- ["melee2"] = 'unholster_melee',
+        -- ["melee3"] = 'unholster_melee',
+    },
+}
+
 -- ── Weapon Jamming ────────────────────────────────────────────────────────────
 MBT.Jamming            = {
     ["Enabled"]   = true,

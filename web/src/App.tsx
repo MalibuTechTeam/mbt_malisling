@@ -1,5 +1,6 @@
 import './index.css'
 import { debugData } from './utils/debugData'
+import { useNuiEvent } from './utils/useNuiEvent'
 import HolsterUI from './components/HolsterUI'
 import JamUI from './components/JamUI'
 import ConfigUI from './components/ConfigUI'
@@ -24,6 +25,12 @@ debugData([{ action: 'updateJam', data: { presses: 4 } }], 3500)
 debugData([{ action: 'hideJam',   data: {} }], 4500)
 
 export default function App() {
+  useNuiEvent<{ file: string; volume: number }>('playHolsterSound', ({ file, volume }) => {
+    const audio = new Audio(`sounds/${file}.ogg`)
+    audio.volume = Math.min(1, Math.max(0, volume))
+    audio.play()
+  })
+
   return (
     <>
       <HolsterUI />

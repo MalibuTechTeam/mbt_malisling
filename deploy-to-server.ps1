@@ -1,15 +1,19 @@
 # =============================================================================
-#  MBT Emote Menu - Deploy to FiveM server
+#  MBT Malisling - Deploy to FiveM server
 #
 #  Syncs the resource from the dev folder to your FiveM server's resources
 #  folder using robocopy. Excludes dev-only artifacts (node_modules, .git,
 #  web/src, pnpm-lock, etc.) so only runtime files are copied.
 #
+#  Runs `pnpm build` by DEFAULT before the sync — deploying a stale NUI
+#  bundle is one of the top debugging time-sinks. Use -SkipBuild only when
+#  you KNOW the dist is current (e.g. back-to-back Lua-only edits).
+#
 #  Usage examples:
-#     .\deploy-to-server.ps1
-#     .\deploy-to-server.ps1 -Dest 'C:\FXServer\server-data\resources\[mbt]\mbt_emote_menu'
-#     .\deploy-to-server.ps1 -Build         # rebuild NUI before deploying
-#     .\deploy-to-server.ps1 -WhatIf        # dry run
+#     .\deploy-to-server.ps1                  # build + deploy (default)
+#     .\deploy-to-server.ps1 -SkipBuild       # skip pnpm build (Lua-only edit)
+#     .\deploy-to-server.ps1 -DryRun          # list what would change, don't write
+#     .\deploy-to-server.ps1 -Dest 'C:\FXServer\server-data\resources\[mbt]\mbt_malisling'
 #
 #  First run: edit the $DefaultDest below to point to your server, then you
 #  can just run `.\deploy-to-server.ps1` without arguments.
@@ -18,8 +22,13 @@
 param(
     [string]$Src  = 'D:\Projects\FiveM\MBT\mbt_malisling',
     [string]$Dest = '',
-    [switch]$Build,
-    [switch]$WhatIf
+    # Build is ON by default — see header comment. Pass -SkipBuild to
+    # skip the pnpm build step for Lua-only iterations.
+    [switch]$SkipBuild,
+    # NOTE: named -DryRun (not -WhatIf) to avoid collision with PowerShell's
+    # common ShouldProcess -WhatIf parameter, which on some hosts leaks into
+    # child cmdlet invocations and poisons parameter-set resolution.
+    [switch]$DryRun
 )
 
 # ---- Edit this line once with your server path, then forget it -------------
@@ -28,10 +37,15 @@ $DefaultDest = 'D:\Projects\FiveM\MalibuESX\server-data\resources\[wip]\mbt_mali
 
 if ([string]::IsNullOrWhiteSpace($Dest)) { $Dest = $DefaultDest }
 
-Write-Host "=== MBT Malisling - deploy ===" -ForegroundColor Cyan
+# Resource name derived from the destination folder leaf — used in the final
+# "restart" hint. Avoids hardcoding a stale name from a copy/pasted script.
+$resourceName = [System.IO.Path]::GetFileName($Dest.TrimEnd('\','/'))
+if ([string]::IsNullOrWhiteSpace($resourceName)) { $resourceName = 'mbt_malisling' }
+
+Write-Host "=== $resourceName - deploy ===" -ForegroundColor Cyan
 Write-Host "Source : $Src"
 Write-Host "Target : $Dest"
-if ($WhatIf) { Write-Host "DRY RUN (no files will be written)" -ForegroundColor Yellow }
+if ($DryRun) { Write-Host "DRY RUN (no files will be written)" -ForegroundColor Yellow }
 Write-Host ""
 
 # --- Sanity: source exists --------------------------------------------------
@@ -44,8 +58,8 @@ if (-not (Test-Path -LiteralPath (Join-Path $Src 'fxmanifest.lua'))) {
     exit 1
 }
 
-# --- Optional: rebuild NUI first -------------------------------------------
-if ($Build) {
+# --- Rebuild NUI (default: ON) ---------------------------------------------
+if (-not $SkipBuild) {
     Write-Host "[build] pnpm build..." -ForegroundColor Cyan
     Push-Location (Join-Path $Src 'web')
     try {
@@ -55,17 +69,20 @@ if ($Build) {
         Pop-Location
     }
     Write-Host ""
+} else {
+    Write-Host "[build] skipped (-SkipBuild)" -ForegroundColor DarkGray
+    Write-Host ""
 }
 
 # --- Sanity: dist exists ----------------------------------------------------
 $distPath = Join-Path $Src 'web\dist\index.html'
 if (-not (Test-Path -LiteralPath $distPath)) {
-    Write-Error "web/dist/index.html not found. Run with -Build or execute 'pnpm build' manually first."
+    Write-Error "web/dist/index.html not found. Run without -SkipBuild or execute 'pnpm build' manually first."
     exit 1
 }
 
 # --- Ensure target parent exists -------------------------------------------
-$destParent = [System.IO.Path]::GetDirectoryName($Dest)
+$destParent = Split-Path -LiteralPath $Dest -Parent
 if (-not (Test-Path -LiteralPath $destParent)) {
     Write-Error "Target parent folder does not exist: $destParent"
     exit 1
@@ -80,7 +97,7 @@ if (-not (Test-Path -LiteralPath $destParent)) {
 # /W:1  - 1 second wait between retries
 # /L    - list only (dry run)
 $robocopyOpts = @('/MIR', '/NFL', '/NDL', '/NP', '/R:1', '/W:1')
-if ($WhatIf) { $robocopyOpts += '/L' }
+if ($DryRun) { $robocopyOpts += '/L' }
 
 # --- Exclusions -------------------------------------------------------------
 $excludeDirs = @(
@@ -137,10 +154,10 @@ Write-Host ""
 Write-Host "=== Done ===" -ForegroundColor Green
 Write-Host "Exit code: $rc (robocopy: 0=no changes, 1-7=files copied)"
 
-if (-not $WhatIf) {
+if (-not $DryRun) {
     Write-Host ""
     Write-Host "In the FiveM server console:" -ForegroundColor Cyan
-    Write-Host "   ensure mbt_malisling"
+    Write-Host "   ensure $resourceName"
     Write-Host "or:" -ForegroundColor Cyan
-    Write-Host "   restart mbt_malisling"
+    Write-Host "   restart $resourceName"
 }
