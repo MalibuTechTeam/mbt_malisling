@@ -42,6 +42,8 @@ local function throwWeapon(data)
     local objCoords = GetEntityCoords(weaponObj)
     Wait(100)
     DeleteObject(weaponObj)
+    SetModelAsNoLongerNeeded(model)
+    RemoveAnimDict(throwAnim["Dict"])
     TriggerServerEvent("mbt_malisling:createWeaponDrop", {
         WeaponInfo = currentWeapon,
         Coords = objCoords

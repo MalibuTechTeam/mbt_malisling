@@ -109,6 +109,7 @@ local function applyAttachments(data)
                         Utils.mbtDebugger("applyAttachments ~ Component model: ", compModel)
                         lib.requestModel(compModel)
                         GiveWeaponComponentToWeaponObject(data.weaponObj, component)
+                        SetModelAsNoLongerNeeded(compModel)
                     end
                 end
 
@@ -454,7 +455,7 @@ end)
 RegisterNetEvent("mbt_malisling:syncDeletion")
 AddEventHandler("mbt_malisling:syncDeletion", function(data)
     if not data or not data.weaponType then return end
-    if not type(data.weaponType) == "string" then return end
+    if type(data.weaponType) ~= "string" then return end
 
     local weaponType = data.weaponType
     local targetPlayerServerId = data.playerSource
@@ -569,7 +570,12 @@ AddEventHandler('mbt_malisling:syncSling', function (data)
 
     if not targetPlayerId or targetPlayerId == -1 then return end
     Utils.mbtDebugger("syncSling ~ PlayerID is valid ", targetPlayerId)
+    local _deadline = GetGameTimer() + 10000
     while not DoesEntityExist(GetPlayerPed(targetPlayerId)) do
+        if GetGameTimer() > _deadline or GetPlayerFromServerId(data.playerSource) == -1 then
+            Utils.mbtDebugger("syncSling ~ Player ped timed out or disconnected, aborting")
+            return
+        end
         Utils.mbtDebugger("syncSling ~ Player ped is not valid yet")
         Wait(100)
     end
@@ -607,6 +613,7 @@ AddEventHandler('mbt_malisling:syncSling', function (data)
                 Utils.mbtDebugger("syncSling ~ Weapon object failed to create for ", weaponData.name)
             else
                 Utils.mbtDebugger("syncSling ~ Weapon object created! ", weaponData.name, playerPed, boneIndex, attachInfo["Pos"][pedSex]["x"], attachInfo["Pos"][pedSex]["y"], attachInfo["Pos"][pedSex]["z"])
+                RemoveWeaponAsset(weaponData.weaponHash)
                 applyAttachments(weaponData)
                 SetCreateWeaponObjectLightSource(weaponData.weaponObj, weaponData.metadata.flashlightState)
                 AttachEntityToEntity(weaponData.weaponObj, playerPed, boneIndex, attachInfo["Pos"][pedSex]["x"], attachInfo["Pos"][pedSex]["y"], attachInfo["Pos"][pedSex]["z"], attachInfo["Rot"][pedSex]["x"], attachInfo["Rot"][pedSex]["y"], attachInfo["Rot"][pedSex]["z"], true, true, false, attachInfo["isPed"], attachInfo["RotOrder"], attachInfo["FixedRot"])

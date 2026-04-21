@@ -166,7 +166,8 @@ if (-not $patched.Contains($returnPoint)) {
     exit 1
 }
 
-$patched = $patched.Replace($returnPoint, $appendLua + "`n" + $returnPoint)
+$lastIndex = $patched.LastIndexOf($returnPoint)
+$patched   = $patched.Substring(0, $lastIndex) + $appendLua + "`n" + $patched.Substring($lastIndex)
 
 if (-not $patched.Contains("mbt_malisling:holster_request") -or -not $patched.Contains("mbt_malisling:sendAnim")) {
     Write-Host "[ERRORE] Verifica post-sostituzione fallita." -ForegroundColor Red

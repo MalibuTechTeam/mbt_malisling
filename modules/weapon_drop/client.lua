@@ -38,6 +38,7 @@ function dropCurrentWeapon()
     until GetGameTimer() > deadline
     local weaponCoords = GetEntityCoords(weaponObj)
     DeleteObject(weaponObj)
+    SetModelAsNoLongerNeeded(weaponModel)
     TriggerServerEvent("mbt_malisling:createWeaponDrop", {
         WeaponInfo = currentWeapon,
         Coords = weaponCoords

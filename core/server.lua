@@ -247,8 +247,8 @@ AddEventHandler("playerEnteredScope", function(data)
     local playerEnteringSource, playerSource = tonumber(playerEntering), tonumber(player)
     local playerEnteringCoords = GetEntityCoords(GetPlayerPed(playerEnteringSource))
     local playerCoords = GetEntityCoords(GetPlayerPed(playerSource))
-    if not playerEnteringCoords.x == 0.0 and playerEnteringCoords.y == 0.0 then return end
-    if not playerCoords.x == 0.0 and playerCoords.y == 0.0 then return end
+    if playerEnteringCoords.x == 0.0 and playerEnteringCoords.y == 0.0 then return end
+    if playerCoords.x == 0.0 and playerCoords.y == 0.0 then return end
 
     Utils.mbtDebugger(("^2%s is entering %s's scope"):format(playerEntering, player))
     if not playerEntering then return end
