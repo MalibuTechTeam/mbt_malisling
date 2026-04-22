@@ -613,7 +613,6 @@ AddEventHandler('mbt_malisling:syncSling', function (data)
                 Utils.mbtDebugger("syncSling ~ Weapon object failed to create for ", weaponData.name)
             else
                 Utils.mbtDebugger("syncSling ~ Weapon object created! ", weaponData.name, playerPed, boneIndex, attachInfo["Pos"][pedSex]["x"], attachInfo["Pos"][pedSex]["y"], attachInfo["Pos"][pedSex]["z"])
-                RemoveWeaponAsset(weaponData.weaponHash)
                 applyAttachments(weaponData)
                 SetCreateWeaponObjectLightSource(weaponData.weaponObj, weaponData.metadata.flashlightState)
                 AttachEntityToEntity(weaponData.weaponObj, playerPed, boneIndex, attachInfo["Pos"][pedSex]["x"], attachInfo["Pos"][pedSex]["y"], attachInfo["Pos"][pedSex]["z"], attachInfo["Rot"][pedSex]["x"], attachInfo["Rot"][pedSex]["y"], attachInfo["Rot"][pedSex]["z"], true, true, false, attachInfo["isPed"], attachInfo["RotOrder"], attachInfo["FixedRot"])
