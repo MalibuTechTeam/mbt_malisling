@@ -45,6 +45,11 @@ end
 --- Delete all attached weapons and sync with server
 function deleteAllWeapons()
     local playerToTrack = playersToTrack[cache.serverId]
+    -- Defensive: playerToTrack can be nil when called from esx:onPlayerLogout
+    -- before any weapon was ever tracked (player connected and logged out
+    -- without picking up a weapon, or fast multichar switch). Without this
+    -- guard, pairs(nil) crashes with "table expected, got nil".
+    if not playerToTrack then return end
 
     for k,v in pairs(playerToTrack) do
         if playerToTrack[k] and DoesEntityExist(v) then
@@ -58,9 +63,12 @@ end
 local function onVehicleCheck(value)
     if value then
         deleteAllWeapons()
-        for k,v in pairs(playersToTrack[cache.serverId]) do
-            SetEntityVisible(v, false, 0)
-            SetEntityCollision(v, false, true)
+        local playerToTrack = playersToTrack[cache.serverId]
+        if playerToTrack then
+            for k,v in pairs(playerToTrack) do
+                SetEntityVisible(v, false, 0)
+                SetEntityCollision(v, false, true)
+            end
         end
         deleteAllWeapons()
     else
@@ -71,9 +79,12 @@ end
 --- Check when player change ped, remove weapon objects when enter to avoid weird behaviors caused by props interpenetration and attachments disappears
 local function onPedChange()
     deleteAllWeapons()
-    for k,v in pairs(playersToTrack[cache.serverId]) do
-        SetEntityVisible(v, false, 0)
-        SetEntityCollision(v, false, true)
+    local playerToTrack = playersToTrack[cache.serverId]
+    if playerToTrack then
+        for k,v in pairs(playerToTrack) do
+            SetEntityVisible(v, false, 0)
+            SetEntityCollision(v, false, true)
+        end
     end
     deleteAllWeapons()
     Citizen.Wait(250)
