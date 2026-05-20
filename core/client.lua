@@ -45,14 +45,14 @@ end
 --- Delete all attached weapons and sync with server
 function deleteAllWeapons()
     local playerToTrack = playersToTrack[cache.serverId]
-    -- Defensive: playerToTrack can be nil when called from esx:onPlayerLogout
-    -- before any weapon was ever tracked (player connected and logged out
-    -- without picking up a weapon, or fast multichar switch). Without this
-    -- guard, pairs(nil) crashes with "table expected, got nil".
     if not playerToTrack then return end
 
-    for k,v in pairs(playerToTrack) do
-        if playerToTrack[k] and DoesEntityExist(v) then
+    for k, v in pairs(playerToTrack) do
+        if type(v) == "number" and DoesEntityExist(v) then
+            DeleteObject(v)
+            local containsObj, index = Utils.containsValue(weaponObjectiveSpawned, v)
+            if containsObj then table.remove(weaponObjectiveSpawned, index) end
+            playerToTrack[k] = false
             TriggerServerEvent("mbt_malisling:syncDeletion", k)
         end
     end
@@ -143,7 +143,7 @@ local function waitingForTargetPlayerPed(data)
             return true
         end
 
-        if not playersToTrack[data.playerSource]["waiting"] then
+        if not playersToTrack[data.playerSource] or not playersToTrack[data.playerSource]["waiting"] then
             Utils.mbtDebugger("waitingForTargetPlayerPed ~ Player with id "..data.playerSource.." doesn't exist!")
             return false
         end
@@ -257,6 +257,8 @@ function Init()
 
             Utils.mbtDebugger("ox_inventory:currentWeapon ~ You have equipped a "..data.name)
 
+            if not playersToTrack[cache.serverId] then return end
+
             if playersToTrack[cache.serverId][weaponType] and type(playersToTrack[cache.serverId][weaponType]) == "number" then
                 Utils.mbtDebugger("ox_inventory:currentWeapon ~ Equip check passed!")
                 TriggerEvent('mbt_malisling:onUnholster', weaponType)
@@ -317,7 +319,7 @@ function Init()
             local weaponType = MBT.WeaponsInfo["Weapons"][itemName]?.type
 
             if left < 1 and type(weaponType) == "string" then
-                if type(playersToTrack[cache.serverId][weaponType]) == "number" then
+                if playersToTrack[cache.serverId] and type(playersToTrack[cache.serverId][weaponType]) == "number" then
                     TriggerServerEvent("mbt_malisling:syncDeletion", weaponType)
                 end
 
@@ -376,6 +378,7 @@ function Init()
             if type(v) == "table" and Utils.isWeapon(v.name) and playerWeapon ~= joaat(v.name) then
                 local weaponType = MBT.WeaponsInfo["Weapons"][v.name] and MBT.WeaponsInfo["Weapons"][v.name]["type"]
                 if weaponType then
+                    if not playersToTrack[cache.serverId] then return end
                     if not playersToTrack[cache.serverId][weaponType] then
                         Utils.mbtDebugger("ox_inventory:updateInventory ~ Check weapon "..v.name)
                         if not playerWeapons[weaponType] then
@@ -413,7 +416,7 @@ function onEsxWeaponRemoved(itemName, left)
     if Utils.isWeapon(itemName) then
         local weaponType = MBT.WeaponsInfo["Weapons"][itemName]?.type
         if left < 1 and type(weaponType) == "string" then
-            if type(playersToTrack[cache.serverId][weaponType]) == "number" then
+            if playersToTrack[cache.serverId] and type(playersToTrack[cache.serverId][weaponType]) == "number" then
                 TriggerServerEvent("mbt_malisling:syncDeletion", weaponType)
             end
             Wait(500)
@@ -561,6 +564,7 @@ end)
 
 RegisterNetEvent('mbt_malisling:stopWaitingForPlayer')
 AddEventHandler('mbt_malisling:stopWaitingForPlayer', function (p)
+    if not playersToTrack[p] then return end
     playersToTrack[p]["waiting"] = nil
     Utils.mbtDebugger("stopWaitingForPlayer ~ Stopped waiting for player ", p)
 end)
@@ -603,6 +607,7 @@ AddEventHandler('mbt_malisling:syncSling', function (data)
     Utils.mbtDebugger("Ped is ", pedSex, " with job ", playerJob)
 
     for weaponType, weaponData in pairs(data.playerWeapons) do
+        if not playersToTrack[data.playerSource] then return end
         if weaponData ~= false and propInfoTable[weaponType] ~= nil and (playersToTrack[data.playerSource][weaponType] == false or playersToTrack[data.playerSource][weaponType] == nil) then
             Utils.mbtDebugger("syncSling ~ Check passed, creating weapon object!")
             local attachInfo = getAttachInfo({

@@ -12,6 +12,12 @@ AddEventHandler('ox:playerLoaded', function(data)
     Init()
 end)
 
+AddEventHandler('ox:playerLogout', function()
+    PlayerData = {}
+    deleteAllWeapons()
+    ResetForMultichar()
+end)
+
 RegisterNetEvent('ox:setGroup')
 AddEventHandler('ox:setGroup', function(group, grade)
     PlayerData.groups = PlayerData.groups or {}
