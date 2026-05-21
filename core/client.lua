@@ -28,7 +28,13 @@ local isReady = false
 local hasRegistered = false
 local propInfoTable = Utils.tableDeepCopy(MBT.PropInfo)
 local playerSex
-local flashlightState
+
+-- Last polled value of IsFlashLightOn(ped). We can't trust a synchronous read in the
+-- ox_inventory:currentWeapon(nil) unequip handler because GTA's holster transition clears
+-- the held-weapon flashlight before the event fires — the sync read returns 0 even when
+-- the player visibly had it on. A 150ms-cadence tracker captures the state shortly before
+-- the transition begins, which is what we want to persist to the slung prop's metadata.
+local lastFlashlightState = false
 
 equippedWeapon = {}
 playersToTrack = {}
@@ -270,20 +276,25 @@ function Init()
             end
 
             if data.metadata.flashlightState then SetFlashLightEnabled(cache.ped, true); end
-
-            Citizen.CreateThread(function()
-                while IsPedArmed(cache.ped, 7) do
-                    flashlightState = IsFlashLightOn(cache.ped) == 1 and true or false
-                    Wait(250)
-                end
-            end)
+            -- NOTE: previously here lived a polling thread that ran `while IsPedArmed(ped, 7) do`,
+            -- but `IsPedArmed` returns 0/1 (integer) and in Lua 0 is truthy, so the loop never
+            -- exited — every equip leaked another thread, and the 250ms polling lag caused stale
+            -- `true` values to be written into the saved metadata. We now read IsFlashLightOn
+            -- synchronously inside the unequip branch instead.
         else
             if Utils.isTableEmpty(equippedWeapon) then return end
 
             local weaponName = equippedWeapon["name"]
-            if equippedWeapon["components"] and Utils.containsValue(equippedWeapon["components"], "at_flashlight") or Utils.weaponHasFlashlight(cache.ped, weaponName, MBT.WeaponsInfo.Components["at_flashlight"]["client"]["component"]) then
+            local hasFlashlight = (equippedWeapon["components"] and Utils.containsValue(equippedWeapon["components"], "at_flashlight"))
+                or Utils.weaponHasFlashlight(cache.ped, weaponName, MBT.WeaponsInfo.Components["at_flashlight"]["client"]["component"])
+            local currentFlashlightState
+            if hasFlashlight then
+                -- Use the polled value, not a sync IsFlashLightOn read: by this point GTA
+                -- has already cleared the held-weapon flashlight as part of the holster
+                -- transition, so a sync read returns 0 even when the player had it on.
+                currentFlashlightState = lastFlashlightState
                 LocalPlayer.state:set('WeaponFlashlightState', {
-                    [equippedWeapon.slot] = {Serial = equippedWeapon.serial, FlashlightState = flashlightState}
+                    [equippedWeapon.slot] = {Serial = equippedWeapon.serial, FlashlightState = currentFlashlightState}
                 }, true)
             end
 
@@ -301,6 +312,15 @@ function Init()
                 if v.slot == equippedWeapon["slot"] and not equippedWeapon["dropped"] then
                     local weaponData = v
                     weaponData.type = MBT.WeaponsInfo["Weapons"][v.name]?.type
+                    -- ox_inventory's client-side metadata cache may not have received the
+                    -- server's state-bag-driven metadata.flashlightState update by the time
+                    -- we read it here. Authoritatively override with the value we captured
+                    -- synchronously at unequip time so the slung prop spawns with the
+                    -- correct light source.
+                    if currentFlashlightState ~= nil then
+                        weaponData.metadata = weaponData.metadata or {}
+                        weaponData.metadata.flashlightState = currentFlashlightState
+                    end
                     playerWeapons[weaponData.type] = weaponData
                 end
             end
@@ -630,7 +650,14 @@ AddEventHandler('mbt_malisling:syncSling', function (data)
             else
                 Utils.mbtDebugger("syncSling ~ Weapon object created! ", weaponData.name, playerPed, boneIndex, attachInfo["Pos"][pedSex]["x"], attachInfo["Pos"][pedSex]["y"], attachInfo["Pos"][pedSex]["z"])
                 applyAttachments(weaponData)
-                SetCreateWeaponObjectLightSource(weaponData.weaponObj, weaponData.metadata.flashlightState)
+                local desiredFlashlight = weaponData.metadata and weaponData.metadata.flashlightState and true or false
+                SetCreateWeaponObjectLightSource(weaponData.weaponObj, desiredFlashlight)
+                -- CRITICAL: do not remove this Wait. The engine needs one tick to commit the
+                -- light-source flag onto the weapon object before AttachEntityToEntity is
+                -- called, otherwise the attachment pass resets the flag and the slung prop
+                -- never renders its flashlight. Regression of fa34b9a (the polling loop that
+                -- replaced the original Wait(50) didn't preserve this side-effect).
+                Wait(50)
                 AttachEntityToEntity(weaponData.weaponObj, playerPed, boneIndex, attachInfo["Pos"][pedSex]["x"], attachInfo["Pos"][pedSex]["y"], attachInfo["Pos"][pedSex]["z"], attachInfo["Rot"][pedSex]["x"], attachInfo["Rot"][pedSex]["y"], attachInfo["Rot"][pedSex]["z"], true, true, false, attachInfo["isPed"], attachInfo["RotOrder"], attachInfo["FixedRot"])
                 SetEntityCompletelyDisableCollision(weaponData.weaponObj, false, true)
                 SetFlashLightKeepOnWhileMoving(true)
@@ -648,3 +675,15 @@ exports('ResetWeaponsOnBack', function()
     deleteAllWeapons()
     TriggerServerEvent("mbt_malisling:checkInventory")
 end)
+
+-- ── Flashlight state tracker ──────────────────────────────────────────────────
+-- Polls IsFlashLightOn at 150ms cadence. Used by the unequip handler to recover
+-- the state from the moment BEFORE GTA's holster transition cleared it. Single
+-- thread, one native call per tick — negligible cost. Always-on, no gating.
+CreateThread(function()
+    while true do
+        lastFlashlightState = IsFlashLightOn(cache.ped) == 1
+        Wait(150)
+    end
+end)
+
