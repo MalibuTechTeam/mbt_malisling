@@ -51,6 +51,7 @@ client_scripts {
     'modules/weapon_throw/client.lua',
     'modules/config/client.lua',
     'core/client.lua',
+    'modules/suppressor_heat/diagnostic.lua', -- TEMP: remove after bone calibration
 }
 
 files {
