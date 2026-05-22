@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNuiEvent } from '../utils/useNuiEvent'
+import { makeT, type Locale } from '../utils/i18n'
 import './HolsterUI.css'
 
 interface KeybindHint { label: string; display: string }
@@ -9,6 +10,7 @@ interface HolsterData {
   position: 'bottom-center' | 'top-center' | 'bottom-right'
   confirm: KeybindHint
   cancel:  KeybindHint
+  locale?: Locale
 }
 
 export default function HolsterUI() {
@@ -29,6 +31,7 @@ export default function HolsterUI() {
 
   if (!visible || !data) return null
 
+  const t = makeT(data.locale)
   const weaponName = data.weaponLabel.replace('WEAPON_', '')
 
   return (
@@ -44,7 +47,7 @@ export default function HolsterUI() {
             </svg>
           </div>
           <div className="holster-title-block">
-            <span className="holster-label">HOLSTER WEAPON</span>
+            <span className="holster-label">{t('holster_title', 'HOLSTER WEAPON')}</span>
             <span className="holster-weapon-name">{weaponName}</span>
           </div>
         </div>

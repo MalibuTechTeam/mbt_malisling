@@ -33,6 +33,7 @@ local function unjamMinigame()
             presses     = 0,
             total       = total,
             key         = unjamCfg["Display"],
+            locale      = buildNuiLocale(),
         }
     })
 
@@ -52,7 +53,7 @@ local function unjamMinigame()
 
     SendNUIMessage({ action = 'hideJam', data = {} })
     LocalPlayer.state:set('JammedState', false, false)
-    MBT.Notification(MBT.Labels["has_unjammed"])
+    MBT.NotifyLabel("has_unjammed")
 
     if jammedSlot then
         jammedSlots[jammedSlot] = nil
@@ -84,7 +85,7 @@ AddStateBagChangeHandler('JammedState', nil, function(bagName, key, value)
     if value == nil or not type(value) == "boolean" then return end
     isJammed = value
     Utils.mbtDebugger("isJammed has been set to ", isJammed)
-    if isJammed then MBT.Notification(MBT.Labels["has_jammed"]) end
+    if isJammed then MBT.NotifyLabel("has_jammed") end
 
     if isJammed then
         Citizen.CreateThread(function()

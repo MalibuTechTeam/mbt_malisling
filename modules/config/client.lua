@@ -22,6 +22,7 @@ AddEventHandler('mbt_malisling:openConfigPanel', function()
                 enabled = MBT.Throw["Enabled"],
                 key     = MBT.Throw["Key"],
             },
+            locale = buildNuiLocale(),
         }
     })
     SetNuiFocus(true, true)

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNuiEvent } from '../utils/useNuiEvent'
 import { fetchNui } from '../utils/fetchNui'
+import { makeT, type Locale } from '../utils/i18n'
 import './ConfigUI.css'
 
 interface ConfigData {
@@ -11,6 +12,7 @@ interface ConfigData {
   uiPosition: string
   jamming: { enabled: boolean; cooldown: number; unjamPresses: number }
   throw: { enabled: boolean; key: string }
+  locale?: Locale
 }
 
 export default function ConfigUI() {
@@ -54,47 +56,49 @@ export default function ConfigUI() {
 
   if (!visible || !config) return null
 
+  const t = makeT(config.locale)
+
   return (
     <div className="cfg-overlay" onClick={e => e.target === e.currentTarget && handleClose()}>
       <div className="cfg-panel">
         <div className="cfg-accent-bar" />
         <div className="cfg-title-row">
-          <span className="cfg-title">MBT Configuration</span>
+          <span className="cfg-title">{t('cfg_title', 'MBT Configuration')}</span>
           <button className="cfg-close-btn" onClick={handleClose}>✕</button>
         </div>
 
         <div className="cfg-body">
-          <Section title="General">
-            <Toggle label="Debug Mode"            value={config.debug}             onChange={v => set(['debug'], v)} />
-            <Toggle label="Drop Weapon on Death"  value={config.dropWeaponOnDeath} onChange={v => set(['dropWeaponOnDeath'], v)} />
-            <Toggle label="Enable Sling"          value={config.enableSling}       onChange={v => set(['enableSling'], v)} />
-            <Toggle label="Enable Flashlight"     value={config.enableFlashlight}  onChange={v => set(['enableFlashlight'], v)} />
+          <Section title={t('cfg_general', 'General')}>
+            <Toggle label={t('cfg_debug', 'Debug Mode')}                   value={config.debug}             onChange={v => set(['debug'], v)} />
+            <Toggle label={t('cfg_drop_death', 'Drop Weapon on Death')}     value={config.dropWeaponOnDeath} onChange={v => set(['dropWeaponOnDeath'], v)} />
+            <Toggle label={t('cfg_enable_sling', 'Enable Sling')}           value={config.enableSling}       onChange={v => set(['enableSling'], v)} />
+            <Toggle label={t('cfg_enable_flashlight', 'Enable Flashlight')} value={config.enableFlashlight}  onChange={v => set(['enableFlashlight'], v)} />
           </Section>
 
-          <Section title="Interface">
+          <Section title={t('cfg_interface', 'Interface')}>
             <SelectRow
-              label="Holster UI Position"
+              label={t('cfg_holster_position', 'Holster UI Position')}
               value={config.uiPosition}
               options={['bottom-center', 'top-center', 'bottom-right']}
               onChange={v => set(['uiPosition'], v)}
             />
           </Section>
 
-          <Section title="Weapon Jamming">
-            <Toggle    label="Enabled"            value={config.jamming.enabled}      onChange={v => set(['jamming', 'enabled'], v)} />
-            <NumberRow label="Cooldown (seconds)" value={config.jamming.cooldown}     min={1} max={60} onChange={v => set(['jamming', 'cooldown'], v)} />
-            <NumberRow label="Unjam Key Presses"  value={config.jamming.unjamPresses} min={1} max={20} onChange={v => set(['jamming', 'unjamPresses'], v)} />
+          <Section title={t('cfg_jamming', 'Weapon Jamming')}>
+            <Toggle    label={t('cfg_enabled', 'Enabled')}                 value={config.jamming.enabled}      onChange={v => set(['jamming', 'enabled'], v)} />
+            <NumberRow label={t('cfg_cooldown', 'Cooldown (seconds)')}     value={config.jamming.cooldown}     min={1} max={60} onChange={v => set(['jamming', 'cooldown'], v)} />
+            <NumberRow label={t('cfg_unjam_presses', 'Unjam Key Presses')} value={config.jamming.unjamPresses} min={1} max={20} onChange={v => set(['jamming', 'unjamPresses'], v)} />
           </Section>
 
-          <Section title="Weapon Throw">
-            <Toggle  label="Enabled"   value={config.throw.enabled} onChange={v => set(['throw', 'enabled'], v)} />
-            <TextRow label="Throw Key" value={config.throw.key}     onChange={v => set(['throw', 'key'], v)} />
+          <Section title={t('cfg_throw', 'Weapon Throw')}>
+            <Toggle  label={t('cfg_enabled', 'Enabled')}     value={config.throw.enabled} onChange={v => set(['throw', 'enabled'], v)} />
+            <TextRow label={t('cfg_throw_key', 'Throw Key')} value={config.throw.key}     onChange={v => set(['throw', 'key'], v)} />
           </Section>
         </div>
 
         <div className="cfg-footer">
-          <button className="cfg-btn cfg-btn--cancel" onClick={handleClose}>Cancel</button>
-          <button className="cfg-btn cfg-btn--save"   onClick={handleSave}>Save & Apply</button>
+          <button className="cfg-btn cfg-btn--cancel" onClick={handleClose}>{t('cfg_cancel', 'Cancel')}</button>
+          <button className="cfg-btn cfg-btn--save"   onClick={handleSave}>{t('cfg_save', 'Save & Apply')}</button>
         </div>
       </div>
     </div>

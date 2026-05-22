@@ -58,7 +58,7 @@ local function attemptThrowWeapon()
     local hasWeapon, weaponHash = GetCurrentPedWeapon(cache.ped)
     local weaponGroup = GetWeapontypeGroup(weaponHash)
     if not hasWeapon then return end
-    if not isAllowedToThrow(weaponGroup) then MBT.Notification(MBT.Labels["no_allowed_throw"]); return; end
+    if not isAllowedToThrow(weaponGroup) then MBT.NotifyLabel("no_allowed_throw"); return; end
     throwWeapon({Hash = weaponHash, Group = weaponGroup})
 end
 

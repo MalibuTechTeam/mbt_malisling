@@ -45,6 +45,7 @@ AddEventHandler('mbt_malisling:holster_request', function(data)
         position    = MBT.UI and MBT.UI.Position or 'bottom-center',
         confirm     = { label = MBT.HolsterControls["Confirm"]["Label"], display = 'RMB' },
         cancel      = { label = MBT.HolsterControls["Cancel"]["Label"],  display = 'BACKSPACE' },
+        locale      = buildNuiLocale(),
     }})
 
     local deadline = GetGameTimer() + 16000

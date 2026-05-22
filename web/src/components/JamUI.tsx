@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNuiEvent } from '../utils/useNuiEvent'
+import { makeT, type Locale } from '../utils/i18n'
 import './JamUI.css'
 
 interface JamData {
@@ -7,6 +8,7 @@ interface JamData {
   presses: number
   total: number
   key: string
+  locale?: Locale
 }
 
 export default function JamUI() {
@@ -33,6 +35,7 @@ export default function JamUI() {
 
   if (!visible || !data) return null
 
+  const t = makeT(data.locale)
   const weaponName = data.weaponLabel.replace('WEAPON_', '')
   const dots = Array.from({ length: data.total }, (_, i) => i < progress)
 
@@ -49,7 +52,7 @@ export default function JamUI() {
             </svg>
           </div>
           <div className="jam-title-block">
-            <span className="jam-label">WEAPON JAMMED</span>
+            <span className="jam-label">{t('jam_title', 'WEAPON JAMMED')}</span>
             <span className="jam-weapon-name">{weaponName}</span>
           </div>
         </div>
@@ -62,7 +65,7 @@ export default function JamUI() {
           </div>
           <div className="jam-hint">
             <span className="jam-key">{data.key}</span>
-            <span className="jam-hint-label">Clear Jam</span>
+            <span className="jam-hint-label">{t('jam_clear', 'Clear Jam')}</span>
           </div>
         </div>
       </div>

@@ -6,6 +6,10 @@ MBT.DropWeaponOnDeath  = true
 MBT.EnableSling        = true
 MBT.EnableFlashlight   = true
 
+-- Language for all script + NUI text. Loads from locales/<lang>.lua.
+-- Available: 'en', 'fr', 'it'. Add your own by creating locales/<lang>.lua.
+MBT.Language           = 'en'
+
 -- ── Admin ─────────────────────────────────────────────────────────────────────
 MBT.Admin              = {
     Permission = 'command.mbtconfig', -- ACE permission to open the config panel
@@ -22,26 +26,27 @@ MBT.Notification       = function(data)
     lib.notify(data)
 end
 
+-- Notification labels. Text is resolved from locales/<lang>.lua via titleKey/descKey;
+-- only presentation (type, icon) lives here. Fired through MBT.NotifyLabel(key).
 MBT.Labels             = {
     ["has_jammed"] = {
-        ["title"]       = "Jammed!",
-        ["description"] = "Your weapon has jammed! Check its state!",
-        ["type"]        = "error",
-        ["icon"]        = "fa-solid fa-triangle-exclamation",
+        ["titleKey"] = "jam_jammed_title",
+        ["descKey"]  = "jam_jammed_desc",
+        ["type"]     = "error",
+        ["icon"]     = "fa-solid fa-triangle-exclamation",
     },
     ["has_unjammed"] = {
-        ["title"]       = "Unjammed!",
-        ["description"] = "You have unjammed your weapon!",
-        ["type"]        = "success",
-        ["icon"]        = "fa-solid fa-person-rifle",
+        ["titleKey"] = "jam_unjammed_title",
+        ["descKey"]  = "jam_unjammed_desc",
+        ["type"]     = "success",
+        ["icon"]     = "fa-solid fa-person-rifle",
     },
     ["no_allowed_throw"] = {
-        ["title"]       = "Ops!",
-        ["description"] = "You are not able to throw this weapon!",
-        ["type"]        = "error",
-        ["icon"]        = "fa-solid fa-hand-fist",
+        ["titleKey"] = "throw_not_allowed_title",
+        ["descKey"]  = "throw_not_allowed_desc",
+        ["type"]     = "error",
+        ["icon"]     = "fa-solid fa-hand-fist",
     },
-    ["Holster_Help"] = "[RMOUSE] - Unholster [BACKSPACE] - Cancel",
 }
 
 -- ── Sling / Holster ───────────────────────────────────────────────────────────
@@ -221,8 +226,8 @@ MBT.Sounds             = {
         ["side"]  = 'holster_pistol',
         ["back"]  = 'holster_rifle',
         ["back2"] = 'holster_rifle',
-        -- ["melee"]  = 'holster_melee',
-        -- ["melee2"] = 'holster_melee',
+        ["melee2"] = 'holster_blade',   -- knife / machete / dagger / switchblade slot
+        -- ["melee"]  = 'holster_blade',
         -- ["melee3"] = 'holster_melee',
     },
     Unholster = {
@@ -230,8 +235,8 @@ MBT.Sounds             = {
         ["side"]  = 'unholster_pistol',
         ["back"]  = 'unholster_rifle',
         ["back2"] = 'unholster_rifle',
-        -- ["melee"]  = 'unholster_melee',
-        -- ["melee2"] = 'unholster_melee',
+        ["melee2"] = 'unholster_blade', -- knife / machete / dagger / switchblade slot
+        -- ["melee"]  = 'unholster_blade',
         -- ["melee3"] = 'unholster_melee',
     },
 }

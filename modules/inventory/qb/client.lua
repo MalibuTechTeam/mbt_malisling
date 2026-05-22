@@ -171,6 +171,7 @@ CreateThread(function()
                             position    = MBT.UI and MBT.UI.Position or 'bottom-center',
                             confirm     = { label = MBT.HolsterControls["Confirm"]["Label"], display = 'RMB' },
                             cancel      = { label = MBT.HolsterControls["Cancel"]["Label"],  display = 'BACKSPACE' },
+                            locale      = buildNuiLocale(),
                         }})
 
                         while holsterState == true do Wait(50) end
@@ -220,7 +221,7 @@ AddEventHandler('mbt_malisling:spawnPickupProp', function(payload)
             local dist     = #(myCoords - coords)
 
             if dist < 2.0 then
-                lib.showTextUI('[E] ' .. locale('pickup_weapon') or 'Pick up weapon')
+                lib.showTextUI('[E] ' .. Translate('pickup_weapon'))
 
                 if IsControlJustPressed(0, 38) then -- E key
                     lib.hideTextUI()
