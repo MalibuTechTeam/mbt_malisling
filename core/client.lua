@@ -687,3 +687,34 @@ CreateThread(function()
     end
 end)
 
+-- ── Slung prop visibility sync ────────────────────────────────────────────────
+-- Keeps each tracked weapon prop's visibility in sync with its owner ped. When a
+-- ped is made invisible by a third-party script (admin noclip being the common
+-- case), the weapon props attached to it would otherwise stay visible and appear
+-- to float in mid-air. Covers the local player and every tracked remote player
+-- (handles networked noclip). The vehicle path deletes props rather than hiding
+-- them, so the `type(v) == "number"` check naturally skips those entries.
+CreateThread(function()
+    while true do
+        Wait(500)
+        for serverId, props in pairs(playersToTrack) do
+            local ped
+            if serverId == cache.serverId then
+                ped = cache.ped
+            else
+                local plyr = GetPlayerFromServerId(serverId)
+                ped = (plyr and plyr ~= -1) and GetPlayerPed(plyr) or nil
+            end
+            if ped and ped ~= 0 and DoesEntityExist(ped) then
+                local pedVisible = IsEntityVisible(ped)
+                for _, v in pairs(props) do
+                    if type(v) == "number" and DoesEntityExist(v)
+                       and IsEntityVisible(v) ~= pedVisible then
+                        SetEntityVisible(v, pedVisible, 0)
+                    end
+                end
+            end
+        end
+    end
+end)
+
