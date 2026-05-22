@@ -68,34 +68,17 @@ function Inventory:SetMetadata(source, slot, metadata)
     return exports['qb-inventory']:SetItemData(tonumber(source), item.name, 'info', newInfo, tonumber(slot)) ~= false
 end
 
----Mimics ox_inventory:CustomDrop(id, items, coords, slots, maxWeight, ownerId, modelHash)
----Creates a qb-inventory stash and tells nearby clients to spawn a lootable pickup prop.
-function Inventory:CustomDrop(id, items, coords, _, _, _, modelHash)
-    -- Convert { {name, count, metadata}, ... } to qb item format
-    local qbItems = {}
-    for i, v in ipairs(items) do
-        qbItems[i] = {
-            name   = v[1],
-            amount = v[2],
-            info   = v[3] or {},
-            slot   = i,
-        }
+---Mimics ox_inventory:AddItem(source, name, count, metadata) — returns success boolean.
+---Used by the GroundDrop system to hand a looted weapon back to the player.
+function Inventory:AddItem(source, name, count, metadata)
+    local info = {}
+    if type(metadata) == 'table' then
+        for k, v in pairs(metadata) do info[k] = v end
+        -- Denormalize ox-style field names back to qb's
+        if metadata.durability then info.quality = metadata.durability end
+        if metadata.serial     then info.serie   = metadata.serial     end
     end
-
-    local ok, err = pcall(function()
-        exports['qb-inventory']:CreateInventory(id, qbItems)
-    end)
-    if not ok then
-        Utils.mbtWarn(("mbt_malisling: CustomDrop ~ CreateInventory failed (%s). " ..
-              "Items may not be lootable — verify your qb-inventory version."):format(err))
-    end
-
-    -- Spawn a lootable prop client-side for nearby players
-    TriggerClientEvent('mbt_malisling:spawnPickupProp', -1, {
-        id     = id,
-        coords = coords,
-        model  = modelHash,
-    })
+    return exports['qb-inventory']:AddItem(tonumber(source), name, count, false, info) ~= false
 end
 
 -- ── Flashlight state persistence ───────────────────────────────────────────────
@@ -111,13 +94,6 @@ AddStateBagChangeHandler('WeaponFlashlightState', nil, function(bagName, key, va
         newInfo.flashlightState = payload.FlashlightState
         exports['qb-inventory']:SetItemData(playerSource, item.name, 'info', newInfo, tonumber(slot))
     end
-end)
-
--- ── Pickup drop callback ───────────────────────────────────────────────────────
--- Called by the client when a player presses E near a dropped weapon prop.
-lib.callback.register('mbt_malisling:openWeaponDrop', function(source, dropId)
-    exports['qb-inventory']:OpenInventory(source, dropId)
-    return true
 end)
 
 -- ── Weapon data fallback ───────────────────────────────────────────────────────

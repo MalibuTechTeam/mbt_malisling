@@ -7,7 +7,6 @@ local isThrowing = false
 AddEventHandler('ox_inventory:currentWeapon', function(data)
     if data then
         currentWeapon = data
-        currentWeapon.ObjHash = GetWeapontypeModel(currentWeapon.hash)
     end
 end)
 
