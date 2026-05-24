@@ -55,6 +55,7 @@ client_scripts {
     'modules/config/client.lua',
     'core/client.lua',
     'modules/suppressor_heat/diagnostic.lua', -- TEMP: remove after bone calibration
+    'modules/prop_editor/client.lua',
 }
 
 files {
