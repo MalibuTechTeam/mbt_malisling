@@ -1,71 +1,94 @@
 -- ─────────────────────────────────────────────────────────────────────────────
--- Ground weapon drop system.
+-- Weapon drop — server
 --
--- malisling owns the dropped-weapon visual prop and the loot interaction
--- (see modules/weapon_drop/client.lua). The item itself is held here in memory
--- and handed straight back to whoever loots it — no ox_inventory drop/stash,
--- so the visual is immune to ox_inventory changes (its drop renderer rejects
--- weapon models since 2.47.x, which is why drops showed a generic bag).
+-- ox_inventory path: weapons leave the player as real ox drops (CustomDrop).
+--   The client listens to ox_inventory:createDrop, asks checkWeaponDrop whether
+--   the drop holds a weapon, and renders the weapon model + ox_target itself
+--   (ox can't render weapon models). This covers native drag-drop, death drop
+--   and throw with one path, and keeps native walk-in pickup working.
 --
--- GroundDrop is global so weapon_throw/server.lua (loaded after) can reuse it.
+-- qb-inventory path (fallback tier): a lighter GroundDrop system — the item is
+--   held server-side and handed straight back on loot. No native-drop coverage.
+--
+-- WeaponDropServer is global so weapon_throw/server.lua can reuse Create().
 -- ─────────────────────────────────────────────────────────────────────────────
 
-GroundDrop = {}
+local isOx = GetResourceState('ox_inventory') == 'started'
 
-local drops = {}  -- [dropId] = { coords = vec3, weaponHash = number, item = { name, count, metadata } }
+WeaponDropServer = {}
 
-local function newDropId()
-    return ('mbtdrop_%d_%d'):format(os.time(), math.random(100000, 999999))
+if isOx then
+    --- Pull a weapon from a player's inventory and create a real ox drop for it.
+    ---@param src number
+    ---@param slot number
+    ---@param coords vector3
+    function WeaponDropServer.Create(src, slot, coords)
+        local item = Inventory:GetSlot(src, slot)
+        if not item then return end
+        if not Inventory:RemoveItem(src, item.name, item.count, nil, item.slot) then return end
+
+        exports.ox_inventory:CustomDrop('Weapon', {
+            { item.name, item.count, item.metadata }
+        }, coords)
+    end
+
+    --- The client asks, for a freshly created drop, whether it holds a weapon.
+    --- Returns the weapon hash (for CreateWeaponObject) or false.
+    lib.callback.register('mbt_malisling:checkWeaponDrop', function(src, dropId)
+        local items = exports.ox_inventory:GetInventoryItems(dropId)
+        if type(items) ~= 'table' then return false end
+        for _, item in pairs(items) do
+            -- Utils.isWeapon is client-only; inline the check here (server-side).
+            if type(item) == 'table' and type(item.name) == 'string'
+               and item.name:sub(1, 7) == 'WEAPON_' then
+                return joaat(item.name)
+            end
+        end
+        return false
+    end)
+else
+    -- qb fallback: GroundDrop give-back.
+    local drops = {}  -- [dropId] = { coords, weaponHash, item }
+
+    ---@param src number
+    ---@param slot number
+    ---@param coords vector3
+    ---@param weaponHash number
+    function WeaponDropServer.Create(src, slot, coords, weaponHash)
+        local item = Inventory:GetSlot(src, slot)
+        if not item then return end
+        if not Inventory:RemoveItem(src, item.name, item.count, nil, item.slot) then return end
+
+        local dropId = ('mbtweapon_%d_%d'):format(os.time(), math.random(100000, 999999))
+        drops[dropId] = {
+            coords     = coords,
+            weaponHash = weaponHash,
+            item       = { name = item.name, count = item.count, metadata = item.metadata },
+        }
+        TriggerClientEvent('mbt_malisling:spawnGroundDrop', -1, dropId, coords, weaponHash)
+    end
+
+    lib.callback.register('mbt_malisling:lootGroundDrop', function(src, dropId)
+        local drop = drops[dropId]
+        if not drop then return false end
+        if not Inventory:AddItem(src, drop.item.name, drop.item.count, drop.item.metadata) then
+            return false  -- inventory full etc. — leave the drop in place
+        end
+        drops[dropId] = nil
+        TriggerClientEvent('mbt_malisling:removeGroundDrop', -1, dropId)
+        return true
+    end)
+
+    lib.callback.register('mbt_malisling:getGroundDrops', function()
+        return drops
+    end)
 end
 
---- Pull a weapon out of a player's inventory and spawn it as a ground drop.
----@param src number
----@param slot number
----@param weaponHash number  weapon hash (joaat) — used client-side by CreateWeaponObject
----@param coords vector3
-function GroundDrop.Create(src, slot, weaponHash, coords)
-    local item = Inventory:GetSlot(src, slot)
-    if not item then return end
-    if not Inventory:RemoveItem(src, item.name, item.count, nil, item.slot) then return end
-
-    local dropId = newDropId()
-    drops[dropId] = {
-        coords     = coords,
-        weaponHash = weaponHash,
-        item       = { name = item.name, count = item.count, metadata = item.metadata },
-    }
-
-    TriggerClientEvent('mbt_malisling:spawnGroundDrop', -1, dropId, coords, weaponHash)
-    Utils.mbtDebugger("GroundDrop.Create ~ created", dropId, "for", item.name)
-end
-
--- Loot a ground drop: hand the item back and despawn the prop everywhere.
-lib.callback.register('mbt_malisling:lootGroundDrop', function(src, dropId)
-    local drop = drops[dropId]
-    if not drop then return false end
-
-    local added = Inventory:AddItem(src, drop.item.name, drop.item.count, drop.item.metadata)
-    if not added then return false end  -- inventory full etc. — leave the drop in place
-
-    drops[dropId] = nil
-    TriggerClientEvent('mbt_malisling:removeGroundDrop', -1, dropId)
-    Utils.mbtDebugger("lootGroundDrop ~", src, "looted", dropId)
-    return true
-end)
-
--- Late-join sync: a freshly-loaded client requests every active drop.
-lib.callback.register('mbt_malisling:getGroundDrops', function()
-    return drops
-end)
-
--- ── Drop-on-death ──────────────────────────────────────────────────────────────
+-- Drop-on-death (both paths). The ox Create ignores the 4th arg.
 RegisterNetEvent('mbt_malisling:dropWeapon', function(data)
     local src = source
     if type(data) ~= 'table' or type(data.slot) ~= 'number' then return end
-    if type(data.weaponHash) ~= 'number' then return end
-
     local ped = GetPlayerPed(src)
     if not ped or ped == 0 then return end
-
-    GroundDrop.Create(src, data.slot, data.weaponHash, GetEntityCoords(ped))
+    WeaponDropServer.Create(src, data.slot, GetEntityCoords(ped), data.weaponHash)
 end)

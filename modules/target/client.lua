@@ -1,63 +1,76 @@
 -- ─────────────────────────────────────────────────────────────────────────────
--- Target interaction abstraction.
--- Uses ox_target when the resource is running, otherwise falls back to a
--- drawtext + E-key proximity prompt. ox_target stays an optional (soft)
--- dependency — never required.
+-- Target interaction abstraction (coords / sphere-zone based).
+--
+-- Uses ox_target sphere zones rather than entity targeting: entity targeting
+-- (addLocalEntity) does not work on CreateWeaponObject props — ox_target's
+-- raycast does not register weapon-object entities. A coords-based sphere zone
+-- is independent of the entity type and works reliably.
+--
+-- Falls back to a drawtext + E-key proximity prompt when ox_target is absent.
+-- ox_target stays an optional (soft) dependency.
 -- ─────────────────────────────────────────────────────────────────────────────
 
 Target = {}
 
-local hasOxTarget = GetResourceState('ox_target') == 'started'
-local fallbackEntities = {}  -- [entity] = opts
+local oxZones       = {}  -- [id] = ox_target zone handle
+local fallbackZones = {}  -- [id] = { coords = vec3, opts = table }
 
---- Add an interaction option to a specific entity.
----@param entity number
----@param opts { name: string, icon?: string, label: string, distance?: number, onSelect: fun(entity: number) }
-function Target.AddEntity(entity, opts)
-    if not entity or not DoesEntityExist(entity) then return end
-    if hasOxTarget then
-        exports['ox_target']:addLocalEntity(entity, {
-            {
-                name     = opts.name,
-                icon     = opts.icon or 'fa-solid fa-hand',
-                label    = opts.label,
-                distance = opts.distance or 2.0,
-                onSelect = function() opts.onSelect(entity) end,
+--- Checked per-call (not cached at load): resource start order is not
+--- guaranteed, so a load-time snapshot can be permanently wrong.
+local function oxTargetReady()
+    return GetResourceState('ox_target') == 'started'
+end
+
+--- Add a coords-based interaction zone.
+---@param id string|number  unique id, used to remove the zone later
+---@param coords vector3
+---@param radius number
+---@param opts { name: string, icon?: string, label: string, distance?: number, onSelect: fun() }
+function Target.AddZone(id, coords, radius, opts)
+    if oxTargetReady() then
+        oxZones[id] = exports['ox_target']:addSphereZone({
+            coords  = coords,
+            radius  = radius,
+            options = {
+                {
+                    name     = opts.name,
+                    icon     = opts.icon or 'fa-solid fa-hand',
+                    label    = opts.label,
+                    distance = opts.distance or 2.5,
+                    onSelect = opts.onSelect,
+                }
             }
         })
+        Utils.mbtDebugger("Target.AddZone ~ ox_target sphere zone, id:", id)
     else
-        fallbackEntities[entity] = opts
+        fallbackZones[id] = { coords = coords, opts = opts }
+        Utils.mbtDebugger("Target.AddZone ~ fallback drawtext, id:", id)
     end
 end
 
---- Remove all interaction options previously added to an entity.
----@param entity number
-function Target.RemoveEntity(entity)
-    if not entity then return end
-    if hasOxTarget then
-        exports['ox_target']:removeLocalEntity(entity)
-    else
-        fallbackEntities[entity] = nil
+---@param id string|number
+function Target.RemoveZone(id)
+    if oxZones[id] then
+        exports['ox_target']:removeZone(oxZones[id])
+        oxZones[id] = nil
     end
+    fallbackZones[id] = nil
 end
 
--- Fallback proximity loop — only runs when ox_target is absent.
-if not hasOxTarget then
-    CreateThread(function()
-        local shown = false
-        while true do
-            local sleep = 500
+-- Fallback proximity loop — only acts while ox_target is absent and zones exist.
+CreateThread(function()
+    local shown = false
+    while true do
+        local sleep = 500
+
+        if next(fallbackZones) then
             local pcoords = GetEntityCoords(cache.ped)
             local active
 
-            for entity, opts in pairs(fallbackEntities) do
-                if DoesEntityExist(entity) then
-                    if #(pcoords - GetEntityCoords(entity)) < (opts.distance or 2.0) then
-                        active = { entity = entity, opts = opts }
-                        break
-                    end
-                else
-                    fallbackEntities[entity] = nil
+            for _, z in pairs(fallbackZones) do
+                if #(pcoords - z.coords) < (z.opts.distance or 2.5) then
+                    active = z
+                    break
                 end
             end
 
@@ -68,14 +81,17 @@ if not hasOxTarget then
                     shown = true
                 end
                 if IsControlJustReleased(0, 38) then
-                    active.opts.onSelect(active.entity)
+                    active.opts.onSelect()
                 end
             elseif shown then
                 lib.hideTextUI()
                 shown = false
             end
-
-            Wait(sleep)
+        elseif shown then
+            lib.hideTextUI()
+            shown = false
         end
-    end)
-end
+
+        Wait(sleep)
+    end
+end)

@@ -287,3 +287,16 @@ MBT.Throw              = {
         [`GROUP_HEAVY`]   = { ["Allowed"] = false, ["Multipliers"] = { ["X"] = 20.0, ["Y"] = 20.0, ["Z"] = 10.0 } },
     },
 }
+
+-- ── Weapon Drop ───────────────────────────────────────────────────────────────
+-- Controls how a dropped weapon looks and is picked up, on the ox_inventory
+-- path (native drag-drop, death drop, throw). The native walk-in pickup is
+-- always available — it is the ox drop itself. The qb-inventory fallback path
+-- ignores these toggles (it always renders the weapon model + ox_target).
+MBT.WeaponDrop         = {
+    -- Render the dropped weapon's real model instead of ox_inventory's default
+    -- drop prop (the bag). When false, ox's normal drop visual is kept.
+    WeaponModelProp = true,
+    -- Add an ox_target option to pick the weapon up, on top of walk-in.
+    OxTargetPickup  = true,
+}
