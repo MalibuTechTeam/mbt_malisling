@@ -74,7 +74,11 @@ AddEventHandler("mbt_malisling:checkInventory", function()
     TriggerClientEvent("mbt_malisling:checkWeaponProps", source, items)
 end)
 
-local _validWeaponTypes = { side=true, back=true, back2=true, melee=true, melee2=true, melee3=true }
+-- Derived from MBT.PropInfo so any custom type added to the config (e.g.
+-- 'extinguisher') is accepted automatically — no separate whitelist to keep
+-- in sync.
+local _validWeaponTypes = {}
+for k in pairs(MBT.PropInfo) do _validWeaponTypes[k] = true end
 
 RegisterNetEvent("mbt_malisling:syncSling")
 AddEventHandler("mbt_malisling:syncSling", function(data)
