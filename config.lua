@@ -190,6 +190,29 @@ MBT.PropInfo           = {
             ["sleepOut"] = 1200,
         },
     },
+    -- Bulky canister tools strapped vertically across the upper back (fire
+    -- extinguisher etc.) — values from in-game tuning with /mbt_propedit.
+    ["extinguisher"] = {
+        ["Bone"]        = MBT.Bones["Back"],
+        ["isPed"]       = false,
+        ["RotOrder"]    = 2,
+        ["FixedRot"]    = true,
+        ["Pos"]         = {
+            ["male"]   = { ["x"] = 0.432, ["y"] = -0.228, ["z"] = 0.032 },
+            ["female"] = { ["x"] = 0.432, ["y"] = -0.228, ["z"] = 0.032 },
+        },
+        ["Rot"]         = {
+            ["male"]   = { ["x"] = 2.0, ["y"] = 92.0, ["z"] = 0.0 },
+            ["female"] = { ["x"] = 2.0, ["y"] = 92.0, ["z"] = 0.0 },
+        },
+        ["HolsterAnim"] = {
+            ["dict"]     = "reaction@intimidation@1h",
+            ["animIn"]   = "intro",
+            ["animOut"]  = "outro",
+            ["sleep"]    = 1200,
+            ["sleepOut"] = 1200,
+        },
+    },
 }
 
 -- Job-specific prop overrides. Uncomment and fill to override positions per job.

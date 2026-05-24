@@ -281,7 +281,7 @@ return {
     ["type"] = "melee3"
   },
   ["WEAPON_FIREEXTINGUISHER"] = {
-    ["type"] = "melee"
+    ["type"] = "extinguisher"
   },
   ["WEAPON_BOTTLE"] = {
     ["type"] = "melee2"
