@@ -319,6 +319,10 @@ MBT.SuppressorHeat     = {
     Enabled        = true,
     MaxHeat        = 100,
     HeatPerShot    = 5,     -- heat gained per round fired (~7 shots to glow, ~15 to red)
+    MaxShotsPerTick = 4,    -- max clip-drop per tick that counts as gunfire. A real
+                            -- shot drops the clip by ~1/tick; a holster/reload/unequip
+                            -- drops it by a whole magazine at once — ignore those so
+                            -- holstering a loaded weapon doesn't spuriously heat it.
     DecayRate      = 16,    -- heat lost per second while cooling (~6s to fully cool)
     DecayDelayMs   = 600,   -- delay after the last shot before cooling starts
     WarmThreshold  = 35,    -- heat at which the glow appears        (tier 1 — orange)
@@ -375,4 +379,36 @@ MBT.VehicleHiding      = {
     -- quads, buggies, convertibles with the top down. Convertibles count as
     -- "having a roof" even with the top down, so those stay hidden.
     UseRoofCheck       = true,
+}
+
+-- ── Weapon Inspect ────────────────────────────────────────────────────────────
+-- Hold the inspect key to examine the held weapon: plays an inspection animation
+-- and shows an overlay with serial, condition, custom name and ammo. The animation
+-- is visible to nearby players; the overlay is local-only. Purely visual / RP.
+MBT.Inspect            = {
+    Enabled     = true,
+    Key         = 'I',
+    MaxDistance = 20.0,   -- nearby players that see the inspect animation
+    -- Inspection animation. This is the base-game weapon "fidget" idle (the ped
+    -- manipulates / looks over the held weapon) — the same clip the popular free
+    -- weapon-inspect scripts use; it plays fine in third person despite the
+    -- "first_person" dict name. Swap Dict/Anim for a custom streamed .ycd for a
+    -- fancier inspect. Flag 48 = upper-body + secondary loop, so the player can
+    -- still move/look while inspecting.
+    Animation   = {
+        Dict = 'weapons@first_person@aim_idle@p_m_zero@pistol@shared@fidgets@c',
+        Anim = 'fidget_med_loop',
+        Flag = 48,
+    },
+    -- Which fields the overlay shows.
+    Show        = { Serial = true, Condition = true, Name = true, Ammo = true },
+    -- durability (0-100) -> condition label (locale key). First tier whose Min the
+    -- durability meets, scanned high → low.
+    ConditionTiers = {
+        { Min = 85, Key = 'cond_pristine' },
+        { Min = 60, Key = 'cond_good' },
+        { Min = 35, Key = 'cond_worn' },
+        { Min = 10, Key = 'cond_poor' },
+        { Min = 0,  Key = 'cond_damaged' },
+    },
 }

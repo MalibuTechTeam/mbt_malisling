@@ -19,6 +19,18 @@ RegisterLocale('en', {
     ['jam_title']               = 'WEAPON JAMMED',
     ['jam_clear']               = 'Clear Jam',
 
+    -- NUI: weapon inspect
+    ['inspect_title']           = 'INSPECTING',
+    ['inspect_serial']          = 'Serial',
+    ['inspect_condition']       = 'Condition',
+    ['inspect_ammo']            = 'Ammo',
+    -- Condition tiers (durability)
+    ['cond_pristine']           = 'Pristine',
+    ['cond_good']               = 'Good',
+    ['cond_worn']               = 'Worn',
+    ['cond_poor']               = 'Poor',
+    ['cond_damaged']            = 'Damaged',
+
     -- NUI: admin config panel
     ['cfg_title']               = 'MBT Configuration',
     ['cfg_general']             = 'General',

@@ -245,8 +245,14 @@ CreateThread(function()
                 local _, clip = GetAmmoInClip(cache.ped, weaponHash)
                 if lastClip and clip and clip < lastClip then
                     local shots = lastClip - clip
-                    heat = math.min(cfg.MaxHeat, heat + shots * cfg.HeatPerShot)
-                    lastShotTime = GetGameTimer()
+                    -- Only small per-tick drops are gunfire. A whole-magazine drop
+                    -- (holster / unequip / reload glitch) is implausible as fire and
+                    -- would otherwise spike heat and light the suppressor on the back
+                    -- without a shot being fired — ignore it.
+                    if shots <= (cfg.MaxShotsPerTick or 4) then
+                        heat = math.min(cfg.MaxHeat, heat + shots * cfg.HeatPerShot)
+                        lastShotTime = GetGameTimer()
+                    end
                 end
                 lastClip = clip
             end

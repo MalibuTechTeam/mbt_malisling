@@ -1,0 +1,138 @@
+/* ── Positioning ─────────────────────────────────────────────── */
+.insp-overlay {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9998;
+  pointer-events: none;
+  --pos-transform: translateX(-50%);
+}
+
+/* ── Animations ──────────────────────────────────────────────── */
+.insp-enter {
+  animation: inspIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.insp-exit {
+  animation: inspOut 0.30s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+@keyframes inspIn {
+  from { opacity: 0; transform: var(--pos-transform) translateY(24px); }
+  to   { opacity: 1; transform: var(--pos-transform) translateY(0); }
+}
+
+@keyframes inspOut {
+  from { opacity: 1; transform: var(--pos-transform) translateY(0); }
+  to   { opacity: 0; transform: var(--pos-transform) translateY(16px); }
+}
+
+/* ── Card ────────────────────────────────────────────────────── */
+.insp-card {
+  width: 320px;
+  background: rgba(8, 9, 18, 0.82);
+  backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow:
+    0 24px 64px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+}
+
+/* ── Accent bar ──────────────────────────────────────────────── */
+.insp-accent-bar {
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(70, 140, 220, 0.8) 30%,
+    rgba(90, 170, 255, 0.9) 60%,
+    transparent
+  );
+}
+
+/* ── Header ──────────────────────────────────────────────────── */
+.insp-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 20px 14px;
+}
+
+.insp-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(70, 140, 220, 0.12);
+  border: 1px solid rgba(70, 140, 220, 0.3);
+  border-radius: 10px;
+  color: rgba(120, 180, 255, 0.95);
+  flex-shrink: 0;
+}
+
+.insp-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.insp-title-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.insp-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: rgba(110, 170, 240, 0.85);
+  text-transform: uppercase;
+}
+
+.insp-weapon-name {
+  font-size: 18px;
+  font-weight: 700;
+  color: rgba(240, 240, 255, 0.95);
+  letter-spacing: 0.02em;
+}
+
+/* ── Divider ─────────────────────────────────────────────────── */
+.insp-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.06);
+  margin: 0 20px;
+}
+
+/* ── Body (info rows) ────────────────────────────────────────── */
+.insp-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 20px 18px;
+}
+
+.insp-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.insp-row-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(150, 160, 185, 0.75);
+}
+
+.insp-row-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: rgba(235, 240, 255, 0.95);
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+}

@@ -19,6 +19,18 @@ RegisterLocale('fr', {
     ['jam_title']               = 'ARME ENRAYÉE',
     ['jam_clear']               = 'Désenrayer',
 
+    -- NUI: weapon inspect
+    ['inspect_title']           = 'INSPECTION',
+    ['inspect_serial']          = 'Série',
+    ['inspect_condition']       = 'État',
+    ['inspect_ammo']            = 'Munitions',
+    -- Condition tiers (durability)
+    ['cond_pristine']           = 'Impeccable',
+    ['cond_good']               = 'Bon',
+    ['cond_worn']               = 'Usé',
+    ['cond_poor']               = 'Mauvais',
+    ['cond_damaged']            = 'Endommagé',
+
     -- NUI: admin config panel
     ['cfg_title']               = 'Configuration MBT',
     ['cfg_general']             = 'Général',

@@ -1,0 +1,40 @@
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Weapon Inspect — server
+--
+-- Broadcasts the inspect start/stop to nearby players so they see the animation
+-- on the source ped (distance-based, mirrors weapon_sounds/server.lua). The
+-- overlay itself never leaves the inspecting client.
+-- ─────────────────────────────────────────────────────────────────────────────
+
+if not MBT.Inspect or not MBT.Inspect.Enabled then return end
+
+local maxDist  = (MBT.Inspect.MaxDistance or 20.0) + 5.0
+local lastSync = {}  -- [src] = last GetGameTimer(), basic rate limit
+
+RegisterNetEvent('mbt_malisling:syncInspect', function(action)
+    local src = source
+    if action ~= 'start' and action ~= 'stop' then return end
+
+    -- Rate limit: the +/- key pair can be mashed; ignore bursts under 150ms.
+    local now = GetGameTimer()
+    if lastSync[src] and (now - lastSync[src]) < 150 then return end
+    lastSync[src] = now
+
+    local srcPed = GetPlayerPed(src)
+    if not srcPed or srcPed == 0 then return end
+    local srcCoords = GetEntityCoords(srcPed)
+
+    for _, playerId in ipairs(GetPlayers()) do
+        local pid = tonumber(playerId)
+        if pid and pid ~= src then
+            local ped = GetPlayerPed(pid)
+            if ped and ped ~= 0 and #(srcCoords - GetEntityCoords(ped)) <= maxDist then
+                TriggerClientEvent('mbt_malisling:remoteInspect', pid, src, action)
+            end
+        end
+    end
+end)
+
+AddEventHandler('playerDropped', function()
+    if source then lastSync[source] = nil end
+end)

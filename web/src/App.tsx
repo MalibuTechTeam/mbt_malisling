@@ -4,6 +4,7 @@ import { useNuiEvent } from './utils/useNuiEvent'
 import HolsterUI from './components/HolsterUI'
 import JamUI from './components/JamUI'
 import ConfigUI from './components/ConfigUI'
+import InspectUI from './components/InspectUI'
 
 debugData([{
   action: 'showHolster',
@@ -24,6 +25,18 @@ debugData([{ action: 'updateJam', data: { presses: 2 } }], 2500)
 debugData([{ action: 'updateJam', data: { presses: 4 } }], 3500)
 debugData([{ action: 'hideJam',   data: {} }], 4500)
 
+debugData([{
+  action: 'showInspect',
+  data: {
+    name: 'WEAPON_CARBINERIFLE',
+    serial: 'A7F-3K9Q',
+    condition: 'Worn',
+    ammo: 18,
+    show: { Serial: true, Condition: true, Name: true, Ammo: true },
+  },
+}], 5500)
+debugData([{ action: 'hideInspect', data: {} }], 9000)
+
 export default function App() {
   useNuiEvent<{ file: string; volume: number }>('playHolsterSound', ({ file, volume }) => {
     const audio = new Audio(`sounds/${file}.ogg`)
@@ -36,6 +49,7 @@ export default function App() {
       <HolsterUI />
       <JamUI />
       <ConfigUI />
+      <InspectUI />
     </>
   )
 }

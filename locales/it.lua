@@ -19,6 +19,18 @@ RegisterLocale('it', {
     ['jam_title']               = 'ARMA INCEPPATA',
     ['jam_clear']               = 'Disinceppa',
 
+    -- NUI: weapon inspect
+    ['inspect_title']           = 'ISPEZIONE',
+    ['inspect_serial']          = 'Matricola',
+    ['inspect_condition']       = 'Condizione',
+    ['inspect_ammo']            = 'Munizioni',
+    -- Condition tiers (durability)
+    ['cond_pristine']           = 'Perfetta',
+    ['cond_good']               = 'Buona',
+    ['cond_worn']               = 'Usurata',
+    ['cond_poor']               = 'Scarsa',
+    ['cond_damaged']            = 'Danneggiata',
+
     -- NUI: admin config panel
     ['cfg_title']               = 'Configurazione MBT',
     ['cfg_general']             = 'Generale',
