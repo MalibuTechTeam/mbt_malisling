@@ -311,6 +311,41 @@ MBT.Throw              = {
     },
 }
 
+-- ── Suppressor Heat Glow ──────────────────────────────────────────────────────
+-- The suppressor of the held weapon heats up as rounds are fired and visibly
+-- glows orange -> red, cooling back down over a few seconds. Purely visual.
+-- Heat accumulates per shot (detected via clip-ammo decrement).
+MBT.SuppressorHeat     = {
+    Enabled        = true,
+    MaxHeat        = 100,
+    HeatPerShot    = 5,     -- heat gained per round fired (~7 shots to glow, ~15 to red)
+    DecayRate      = 16,    -- heat lost per second while cooling (~6s to fully cool)
+    DecayDelayMs   = 600,   -- delay after the last shot before cooling starts
+    WarmThreshold  = 35,    -- heat at which the glow appears        (tier 1 — orange)
+    HotThreshold   = 75,    -- heat at which the glow turns deep red (tier 2 — red, throbbing)
+    -- Visual mode:
+    --   'glow'     → DrawGlowSphere at the muzzle: a glow that does NOT illuminate
+    --                the environment (no reflection on nearby walls). Default.
+    --   'light'    → DrawLightWithRange: a real light, brighter but spills onto walls.
+    --   'particle' → looped ptfx (Particle below) — use a ptfx tester to find a fx.
+    Mode           = 'glow',
+    GlowSphere     = {
+        Radius    = 0.06,   -- small = tight glow on the suppressor
+        Intensity = 8.0,
+    },
+    Light          = {
+        -- Range = how far the light reaches (lower = less spill onto nearby walls).
+        -- Intensity = brightness at the source (higher = more visible on the gun).
+        Range     = 0.4,
+        Intensity = 10.0,
+    },
+    Particle       = {
+        Dict  = 'scr_ornate_heist',
+        Name  = 'scr_heist_ornate_thermal_burn',
+        Scale = 0.1,
+    },
+}
+
 -- ── Weapon Drop ───────────────────────────────────────────────────────────────
 -- Controls how a dropped weapon looks and is picked up, on the ox_inventory
 -- path (native drag-drop, death drop, throw). The native walk-in pickup is
