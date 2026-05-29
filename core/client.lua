@@ -64,10 +64,38 @@ function deleteAllWeapons()
     end
 end
 
+--- True when the weapon should STAY visible inside this vehicle (roofless: bikes,
+--- quads, buggies, convertibles with the top down). Enclosed vehicles return false
+--- so the prop is hidden to avoid the barrel clipping through the roof.
+---@param veh number
+---@return boolean
+local function isOpenVehicle(veh)
+    local cfg = MBT.VehicleHiding
+    if not cfg or not cfg.Enabled then return false end  -- legacy: hide everywhere
+    if not veh or veh == 0 or not DoesEntityExist(veh) then return false end
+    if cfg.KeepVisibleClasses and cfg.KeepVisibleClasses[GetVehicleClass(veh)] then
+        return true
+    end
+    if cfg.UseRoofCheck and not DoesVehicleHaveRoof(veh) then
+        return true
+    end
+    return false
+end
+
+-- Tracks whether we hid/deleted the props for the current vehicle, so we only
+-- re-sync on exit when we actually hid something (no redundant re-spawn — and no
+-- duplicate props — after riding an open vehicle where we left them visible).
+local hiddenForVehicle = false
+
 --- Check when player enter/exit a vehicle, remove weapon objects when enter to avoid weird behaviors caused by props interpenetration and attachments disappears
----@param value boolean
+---@param value number|boolean  vehicle entity when entering, false when exiting
 local function onVehicleCheck(value)
     if value then
+        -- Open (roofless) vehicle: leave the slung weapon visible, do nothing.
+        if isOpenVehicle(value) then
+            hiddenForVehicle = false
+            return
+        end
         deleteAllWeapons()
         local playerToTrack = playersToTrack[cache.serverId]
         if playerToTrack then
@@ -77,8 +105,12 @@ local function onVehicleCheck(value)
             end
         end
         deleteAllWeapons()
+        hiddenForVehicle = true
     else
-        TriggerServerEvent("mbt_malisling:checkInventory")
+        if hiddenForVehicle then
+            hiddenForVehicle = false
+            TriggerServerEvent("mbt_malisling:checkInventory")
+        end
     end
 end
 

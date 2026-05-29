@@ -358,3 +358,21 @@ MBT.WeaponDrop         = {
     -- Add an ox_target option to pick the weapon up, on top of walk-in.
     OxTargetPickup  = true,
 }
+
+-- ── Vehicle Smart Hiding ──────────────────────────────────────────────────────
+-- The slung weapon prop is hidden inside ENCLOSED vehicles (the barrel would clip
+-- through the roof). On roofless vehicles (bikes, quads, buggies, convertibles
+-- with the top down) the weapon stays visible — it looks better and nothing
+-- clips. When Enabled = false the legacy behaviour is kept (hide in any vehicle).
+MBT.VehicleHiding      = {
+    Enabled            = true,
+    -- Vehicle classes that ALWAYS keep the weapon visible (checked first). Bikes
+    -- need this because DoesVehicleHaveRoof is unreliable on two-wheelers — it can
+    -- report a roof on a motorcycle, which would wrongly hide the weapon.
+    -- See GetVehicleClass: 8 = Motorcycles, 13 = Cycles.
+    KeepVisibleClasses = { [8] = true, [13] = true },
+    -- Then, keep visible on any other roofless vehicle (DoesVehicleHaveRoof):
+    -- quads, buggies, convertibles with the top down. Convertibles count as
+    -- "having a roof" even with the top down, so those stay hidden.
+    UseRoofCheck       = true,
+}
