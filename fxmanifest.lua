@@ -57,6 +57,7 @@ client_scripts {
     'core/client.lua',
     'modules/suppressor_heat/client.lua',
     'modules/weapon_inspect/client.lua',
+    'modules/no_draw_zones/client.lua',
     'modules/prop_editor/client.lua',
 }
 

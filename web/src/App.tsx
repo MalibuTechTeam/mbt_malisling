@@ -5,6 +5,7 @@ import HolsterUI from './components/HolsterUI'
 import JamUI from './components/JamUI'
 import ConfigUI from './components/ConfigUI'
 import InspectUI from './components/InspectUI'
+import NoDrawUI from './components/NoDrawUI'
 
 debugData([{
   action: 'showHolster',
@@ -37,6 +38,12 @@ debugData([{
 }], 5500)
 debugData([{ action: 'hideInspect', data: {} }], 9000)
 
+debugData([{
+  action: 'showNoDraw',
+  data: { title: 'Pillbox Hospital', subtitle: 'No weapons allowed' },
+}], 9500)
+debugData([{ action: 'hideNoDraw', data: {} }], 13000)
+
 export default function App() {
   useNuiEvent<{ file: string; volume: number }>('playHolsterSound', ({ file, volume }) => {
     const audio = new Audio(`sounds/${file}.ogg`)
@@ -50,6 +57,7 @@ export default function App() {
       <JamUI />
       <ConfigUI />
       <InspectUI />
+      <NoDrawUI />
     </>
   )
 }

@@ -9,6 +9,11 @@ RegisterLocale('en', {
     ['throw_not_allowed_title'] = 'Ops!',
     ['throw_not_allowed_desc']  = 'You are not able to throw this weapon!',
 
+    -- No-draw zones
+    ['no_draw_zone_title']      = 'No Weapons',
+    ['no_draw_zone_desc']       = 'You cannot draw a weapon here.',
+    ['no_draw_zone_hud']        = 'No weapons allowed',
+
     -- Interaction prompts
     ['pickup_weapon']           = 'Pick up weapon',
 

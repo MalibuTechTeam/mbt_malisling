@@ -47,6 +47,12 @@ MBT.Labels             = {
         ["type"]     = "error",
         ["icon"]     = "fa-solid fa-hand-fist",
     },
+    ["no_draw_zone"] = {
+        ["titleKey"] = "no_draw_zone_title",
+        ["descKey"]  = "no_draw_zone_desc",
+        ["type"]     = "error",
+        ["icon"]     = "fa-solid fa-ban",
+    },
 }
 
 -- ── Sling / Holster ───────────────────────────────────────────────────────────
@@ -410,5 +416,36 @@ MBT.Inspect            = {
         { Min = 35, Key = 'cond_worn' },
         { Min = 10, Key = 'cond_poor' },
         { Min = 0,  Key = 'cond_damaged' },
+    },
+}
+
+-- ── No-Draw Zones ─────────────────────────────────────────────────────────────
+-- Areas where weapons can't be drawn (hospital, courthouse, bank...). Inside a
+-- zone the player's firing is disabled and any drawn weapon is put away again,
+-- with a notification. Detection is client-side via ox_lib zones (a determined
+-- cheater could bypass it — server-side enforcement is future hardening).
+MBT.NoDrawZones        = {
+    Enabled        = true,
+    AllowMelee     = true,    -- melee weapons stay usable (block firearms only)
+    NotifyCooldown = 3000,    -- ms between "can't draw here" notifications
+    HudIndicator   = true,    -- show an ox_lib textUI banner while inside a zone
+    -- Each zone uses ox_lib zones. type = 'sphere' | 'box' | 'poly'.
+    --   sphere: coords + radius
+    --   box:    coords + size (vec3) + rotation (deg)
+    --   poly:   points (array of vec3) + thickness
+    -- Replace these examples with your server's locations.
+    Zones          = {
+        {
+            label  = 'Pillbox Hospital',
+            type   = 'sphere',
+            coords = vec3(307.7, -1433.4, 29.9),
+            radius = 45.0,
+        },
+        {
+            label  = 'Mission Row PD',
+            type   = 'sphere',
+            coords = vec3(441.0, -982.0, 30.7),
+            radius = 40.0,
+        },
     },
 }

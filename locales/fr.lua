@@ -9,6 +9,11 @@ RegisterLocale('fr', {
     ['throw_not_allowed_title'] = 'Oups !',
     ['throw_not_allowed_desc']  = 'Vous ne pouvez pas lancer cette arme !',
 
+    -- No-draw zones
+    ['no_draw_zone_title']      = 'Armes interdites',
+    ['no_draw_zone_desc']       = 'Vous ne pouvez pas sortir une arme ici.',
+    ['no_draw_zone_hud']        = 'Armes interdites',
+
     -- Interaction prompts
     ['pickup_weapon']           = 'Ramasser l\'arme',
 

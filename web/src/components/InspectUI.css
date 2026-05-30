@@ -31,8 +31,7 @@
 /* ── Card ────────────────────────────────────────────────────── */
 .insp-card {
   width: 320px;
-  background: rgba(8, 9, 18, 0.82);
-  backdrop-filter: blur(20px) saturate(160%);
+  background: rgba(8, 9, 18, 0.96);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
   overflow: hidden;

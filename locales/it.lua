@@ -9,6 +9,11 @@ RegisterLocale('it', {
     ['throw_not_allowed_title'] = 'Ops!',
     ['throw_not_allowed_desc']  = 'Non puoi lanciare quest\'arma!',
 
+    -- No-draw zones
+    ['no_draw_zone_title']      = 'Armi vietate',
+    ['no_draw_zone_desc']       = 'Non puoi estrarre un\'arma qui.',
+    ['no_draw_zone_hud']        = 'Armi vietate',
+
     -- Interaction prompts
     ['pickup_weapon']           = 'Raccogli arma',
 

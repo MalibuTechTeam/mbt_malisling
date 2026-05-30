@@ -1,0 +1,67 @@
+/* MBT no-draw zone pill — matches the mbt_elevator capture-hint pill language. */
+.nodraw-pill {
+  position: fixed;
+  top: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 12px 20px;
+  background: rgba(10, 12, 18, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+  z-index: 9999;
+  pointer-events: none;
+  --pos-transform: translateX(-50%);
+}
+
+.nodraw-enter { animation: nodrawIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.nodraw-exit  { animation: nodrawOut 0.22s cubic-bezier(0.4, 0, 1, 1) forwards; }
+
+@keyframes nodrawIn {
+  from { opacity: 0; transform: var(--pos-transform) translateY(-16px); }
+  to   { opacity: 1; transform: var(--pos-transform) translateY(0); }
+}
+@keyframes nodrawOut {
+  from { opacity: 1; transform: var(--pos-transform) translateY(0); }
+  to   { opacity: 0; transform: var(--pos-transform) translateY(-12px); }
+}
+
+.nodraw-icon {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 90, 80, 0.95);
+  flex-shrink: 0;
+  animation: nodrawPulse 1.6s ease-in-out infinite;
+}
+
+.nodraw-icon svg { width: 22px; height: 22px; }
+
+@keyframes nodrawPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.55; transform: scale(0.92); }
+}
+
+.nodraw-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nodraw-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.02em;
+}
+
+.nodraw-subtitle {
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.6);
+}
