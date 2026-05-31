@@ -37,6 +37,19 @@ local function conditionLabel(durability)
     return nil
 end
 
+--- Clip count → vague fill label (locale key) for AmmoMode = 'vague'.
+---@param clip number
+---@param maxClip number
+---@return string
+local function vagueAmmo(clip, maxClip)
+    if clip <= 0 then return Translate('ammo_empty') end
+    if not maxClip or maxClip <= 0 then return Translate('ammo_unknown') end
+    local r = clip / maxClip
+    if r >= 0.85 then return Translate('ammo_full')
+    elseif r >= 0.45 then return Translate('ammo_half')
+    else return Translate('ammo_low') end
+end
+
 --- Assemble the overlay payload from the held weapon + its inventory metadata.
 local function buildData()
     local _, weaponHash = GetCurrentPedWeapon(cache.ped, true)
@@ -55,7 +68,15 @@ local function buildData()
     end
     if cfg.Show.Ammo then
         local _, clip = GetAmmoInClip(cache.ped, weaponHash)
-        data.ammo = clip or 0
+        clip = clip or 0
+        if cfg.AmmoMode == 'vague' then
+            -- No exact count — a "look at the mag" estimate (Full / Half / Low /
+            -- Empty), for no-HUD / hardcore servers. Ratio vs the weapon's clip size.
+            local maxClip = GetMaxAmmoInClip(cache.ped, weaponHash, true)
+            data.ammo = vagueAmmo(clip, maxClip)
+        else
+            data.ammo = clip
+        end
     end
     return data
 end

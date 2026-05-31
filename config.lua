@@ -420,6 +420,9 @@ MBT.Inspect            = {
     },
     -- Which fields the overlay shows.
     Show        = { Serial = true, Condition = true, Name = true, Ammo = true },
+    -- Ammo display: 'exact' = round count (e.g. 18); 'vague' = a "look at the mag"
+    -- estimate (Full / Half / Low / Empty) for no-HUD / hardcore servers.
+    AmmoMode    = 'exact',
     -- durability (0-100) -> condition label (locale key). First tier whose Min the
     -- durability meets, scanned high → low.
     ConditionTiers = {

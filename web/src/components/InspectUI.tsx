@@ -14,7 +14,7 @@ interface InspectData {
   name?: string
   serial?: string
   condition?: string
-  ammo?: number
+  ammo?: number | string   // exact count (number) or vague label (string)
   show?: InspectShow
   locale?: Locale
 }
@@ -75,7 +75,7 @@ export default function InspectUI() {
             <Row label={t('inspect_condition', 'Condition')} value={data.condition ?? '—'} />
           )}
           {show.Ammo && (
-            <Row label={t('inspect_ammo', 'Ammo')} value={String(data.ammo ?? 0)} />
+            <Row label={t('inspect_ammo', 'Ammo')} value={data.ammo != null ? String(data.ammo) : '—'} />
           )}
         </div>
       </div>

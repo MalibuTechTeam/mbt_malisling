@@ -45,6 +45,12 @@ RegisterLocale('en', {
     ['cond_worn']               = 'Worn',
     ['cond_poor']               = 'Poor',
     ['cond_damaged']            = 'Damaged',
+    -- Vague ammo (AmmoMode = 'vague')
+    ['ammo_full']               = 'Full',
+    ['ammo_half']               = 'Half',
+    ['ammo_low']                = 'Low',
+    ['ammo_empty']              = 'Empty',
+    ['ammo_unknown']            = '—',
 
     -- NUI: admin config panel
     ['cfg_title']               = 'MBT Configuration',
