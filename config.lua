@@ -59,6 +59,12 @@ MBT.Labels             = {
         ["type"]     = "inform",
         ["icon"]     = "fa-solid fa-person-rifle",
     },
+    ["safety_no_weapon"] = {
+        ["titleKey"] = "safety_no_weapon_title",
+        ["descKey"]  = "safety_no_weapon_desc",
+        ["type"]     = "inform",
+        ["icon"]     = "fa-solid fa-shield-halved",
+    },
 }
 
 -- ── Sling / Holster ───────────────────────────────────────────────────────────
@@ -545,4 +551,38 @@ MBT.TacticalSling      = {
     },
     -- Only show the strap when one of these slung prop types is present.
     Types    = { ['back'] = true, ['back2'] = true },
+}
+
+-- ── Weapon Safety Toggle ──────────────────────────────────────────────────────
+-- Toggle the safety on the held firearm: with safety ON the weapon can't fire and
+-- a metallic click plays; an on-screen SAFE/FIRE indicator shows the state. Purely
+-- RP — combat mechanics belong to mbt_shooting, which can read the state via the
+-- 'mbt_weaponSafety' statebag / exports.IsWeaponSafetyOn().
+MBT.Safety             = {
+    Enabled    = true,
+    Key        = 'END',        -- rebindable from FiveM Settings > Key Bindings
+    Command    = 'mbtSafety',
+    DefaultOn  = false,        -- a freshly drawn weapon starts ready to fire (safety OFF)
+    PerWeapon  = true,         -- remember safety per weapon (by serial); false = single global flag
+    -- Metallic click on toggle. 'native' = GTA sound, 'nui' = custom .ogg.
+    -- WEAPON_SELECT_SHADOW is a short mechanical weapon-wheel click; swap for a
+    -- custom .ogg via Mode='nui' (drop web/dist/sounds/safety_click.ogg) later.
+    Sound      = {
+        Enabled = true,
+        Mode    = 'native',
+        Native  = { Name = 'WEAPON_SELECT', Set = 'HUD_FRONTEND_WEAPONS_SELECT_SOUNDSET' },
+        Nui     = { File = 'safety_click', Volume = 0.5 },
+    },
+    HudIndicator = true,       -- show the SAFE/FIRE pill while a firearm is in hand
+    -- Toggle animation: a truncated, slowed pistol-reload partial — the hand goes
+    -- to the weapon as if working the safety selector. Plays on both pistols and
+    -- long guns (cosmetic). speed<1 slows it; dur cuts it before the mag swap.
+    Animation  = {
+        Enabled = true,
+        Dict    = 'anim@weapons@first_person@aim_rng@generic@pistol@singleshot@str',
+        Anim    = 'reload_aim',
+        Flag    = 48,
+        Speed   = 0.6,
+        Dur     = 750,   -- ~450ms clip / 0.6 speed
+    },
 }

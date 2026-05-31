@@ -18,6 +18,12 @@ RegisterLocale('en', {
     ['low_ready_none_title']    = 'Low Ready',
     ['low_ready_none_desc']     = 'No slung long gun to bring to low ready.',
 
+    -- Weapon safety
+    ['safety_no_weapon_title']  = 'Safety',
+    ['safety_no_weapon_desc']   = 'No firearm in hand.',
+    ['safety_on']               = 'SAFE',
+    ['safety_off']              = 'FIRE',
+
     -- Interaction prompts
     ['pickup_weapon']           = 'Pick up weapon',
 

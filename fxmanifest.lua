@@ -60,6 +60,7 @@ client_scripts {
     'modules/weapon_inspect/client.lua',
     'modules/low_ready/client.lua',
     'modules/tactical_sling/client.lua',
+    'modules/weapon_safety/client.lua',
     'modules/no_draw_zones/client.lua',
     'modules/prop_editor/client.lua',
 }

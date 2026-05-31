@@ -18,6 +18,12 @@ RegisterLocale('fr', {
     ['low_ready_none_title']    = 'Low Ready',
     ['low_ready_none_desc']     = 'Aucune arme longue à l\'épaule à mettre en low ready.',
 
+    -- Weapon safety
+    ['safety_no_weapon_title']  = 'Sécurité',
+    ['safety_no_weapon_desc']   = 'Aucune arme à feu en main.',
+    ['safety_on']               = 'SÛRETÉ',
+    ['safety_off']              = 'FEU',
+
     -- Interaction prompts
     ['pickup_weapon']           = 'Ramasser l\'arme',
 

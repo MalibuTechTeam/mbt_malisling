@@ -52,6 +52,8 @@ NUI_LOCALE_KEYS = {
     'inspect_serial',
     'inspect_condition',
     'inspect_ammo',
+    'safety_on',
+    'safety_off',
     'cfg_title',
     'cfg_general',
     'cfg_debug',

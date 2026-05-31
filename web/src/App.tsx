@@ -6,6 +6,7 @@ import JamUI from './components/JamUI'
 import ConfigUI from './components/ConfigUI'
 import InspectUI from './components/InspectUI'
 import NoDrawUI from './components/NoDrawUI'
+import SafetyUI from './components/SafetyUI'
 
 debugData([{
   action: 'showHolster',
@@ -44,6 +45,10 @@ debugData([{
 }], 9500)
 debugData([{ action: 'hideNoDraw', data: {} }], 13000)
 
+debugData([{ action: 'showSafety', data: { state: 'safe' } }], 13500)
+debugData([{ action: 'showSafety', data: { state: 'fire' } }], 15500)
+debugData([{ action: 'hideSafety', data: {} }], 17500)
+
 export default function App() {
   useNuiEvent<{ file: string; volume: number }>('playHolsterSound', ({ file, volume }) => {
     const audio = new Audio(`sounds/${file}.ogg`)
@@ -58,6 +63,7 @@ export default function App() {
       <ConfigUI />
       <InspectUI />
       <NoDrawUI />
+      <SafetyUI />
     </>
   )
 }
