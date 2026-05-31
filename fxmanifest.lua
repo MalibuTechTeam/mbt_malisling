@@ -59,6 +59,7 @@ client_scripts {
     'modules/suppressor_heat/client.lua',
     'modules/weapon_inspect/client.lua',
     'modules/low_ready/client.lua',
+    'modules/tactical_sling/client.lua',
     'modules/no_draw_zones/client.lua',
     'modules/prop_editor/client.lua',
 }
@@ -69,6 +70,9 @@ files {
     'web/dist/assets/**',
     'web/dist/sounds/*.ogg',
 }
+
+-- Tactical Sling clothing asset lives in the dedicated mbt_sling_clothing
+-- resource (mixing clothing stream + script/ui_page here is unreliable).
 
 -- Supported inventories (soft dependencies — detected at runtime):
 --   ox_inventory  >= 2.30.0

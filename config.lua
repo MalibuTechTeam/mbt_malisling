@@ -520,3 +520,29 @@ MBT.LowReady           = {
         },
     },
 }
+
+-- ── Tactical Sling Prop (visible strap) ───────────────────────────────────────
+-- Shows a visible sling/strap on the torso while a long gun is slung. Implemented
+-- as a PROP attached to a bone (like the weapon-on-back props), NOT a clothing
+-- component: clothing would need a per-server drawable index and clash with the
+-- server's own addons, making the script non-distributable. A prop only depends
+-- on the model shipped in stream/, so it works identically on every server.
+--
+-- DISABLED by default until you ship a strap prop model. Steps:
+--   1. Convert a sling model to a prop .ydr (+ .ytd) — see vault guide.
+--   2. Drop it in this resource's stream/ folder.
+--   3. Set Model below to the prop's name, tune Position with /mbt_slingpos,
+--      then flip Enabled = true.
+MBT.TacticalSling      = {
+    Enabled  = false,
+    Model    = 'mbt_sling_strap',   -- prop model name shipped in stream/
+    -- Attach point on the torso. Bone 24818 = SKEL_Spine3 (upper chest).
+    -- Tune live with /mbt_slingpos (Debug).
+    Position = {
+        Bone = 24818,
+        Pos  = { x = 0.0, y = 0.08, z = 0.0 },
+        Rot  = { x = 0.0, y = 0.0, z = 0.0 },
+    },
+    -- Only show the strap when one of these slung prop types is present.
+    Types    = { ['back'] = true, ['back2'] = true },
+}
