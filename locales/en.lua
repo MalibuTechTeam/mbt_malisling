@@ -14,6 +14,10 @@ RegisterLocale('en', {
     ['no_draw_zone_desc']       = 'You cannot draw a weapon here.',
     ['no_draw_zone_hud']        = 'No weapons allowed',
 
+    -- Low ready
+    ['low_ready_none_title']    = 'Low Ready',
+    ['low_ready_none_desc']     = 'No slung long gun to bring to low ready.',
+
     -- Interaction prompts
     ['pickup_weapon']           = 'Pick up weapon',
 

@@ -207,6 +207,27 @@ local function getAttachInfo(data)
     return MBT.PropInfo[data.Type]
 end
 
+--- Resolved back/sling attach info for a prop type, with job overrides applied
+--- (propInfoTable is rebuilt by sendAnimations per the local player's job/group).
+--- Exposed as a global so sibling client modules (e.g. low_ready) can re-attach a
+--- slung prop to its canonical back position without duplicating the job lookup.
+---@param propType string
+---@return table?
+function GetResolvedPropInfo(propType)
+    return propInfoTable[propType]
+end
+
+--- The slung-prop entity currently tracked for the local player at this type, or
+--- nil. (playersToTrack[serverId][type] is the weapon object handle when slung.)
+---@param propType string
+---@return number?
+function GetLocalSlungProp(propType)
+    local mine = playersToTrack[cache.serverId]
+    local ent = mine and mine[propType]
+    if type(ent) == 'number' and DoesEntityExist(ent) then return ent end
+    return nil
+end
+
 function sendAnimations(jobName)
     -- ox_core uses PlayerData.groups instead of a single job name
     if PlayerData and PlayerData.groups then

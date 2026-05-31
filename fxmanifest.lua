@@ -36,6 +36,7 @@ server_scripts {
     'modules/weapon_jamming/server.lua',
     'modules/weapon_throw/server.lua',
     'modules/weapon_inspect/server.lua',
+    'modules/low_ready/server.lua',
     'modules/config/server.lua',
     'core/server.lua',
 }
@@ -57,6 +58,7 @@ client_scripts {
     'core/client.lua',
     'modules/suppressor_heat/client.lua',
     'modules/weapon_inspect/client.lua',
+    'modules/low_ready/client.lua',
     'modules/no_draw_zones/client.lua',
     'modules/prop_editor/client.lua',
 }

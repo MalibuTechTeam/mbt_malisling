@@ -14,6 +14,10 @@ RegisterLocale('it', {
     ['no_draw_zone_desc']       = 'Non puoi estrarre un\'arma qui.',
     ['no_draw_zone_hud']        = 'Armi vietate',
 
+    -- Low ready
+    ['low_ready_none_title']    = 'Low Ready',
+    ['low_ready_none_desc']     = 'Nessuna arma lunga a tracolla da portare in low ready.',
+
     -- Interaction prompts
     ['pickup_weapon']           = 'Raccogli arma',
 

@@ -53,6 +53,12 @@ MBT.Labels             = {
         ["type"]     = "error",
         ["icon"]     = "fa-solid fa-ban",
     },
+    ["low_ready_none"] = {
+        ["titleKey"] = "low_ready_none_title",
+        ["descKey"]  = "low_ready_none_desc",
+        ["type"]     = "inform",
+        ["icon"]     = "fa-solid fa-person-rifle",
+    },
 }
 
 -- ── Sling / Holster ───────────────────────────────────────────────────────────
@@ -446,6 +452,71 @@ MBT.NoDrawZones        = {
             type   = 'sphere',
             coords = vec3(441.0, -982.0, 30.7),
             radius = 40.0,
+        },
+    },
+}
+
+-- ── Low Ready (chest carry) ───────────────────────────────────────────────────
+-- Toggle a slung long gun between its back position and a "low ready" chest sling
+-- (hands free, gun across the chest). Purely a different attach position for the
+-- already-spawned sling prop — no held weapon, no core sling-flow changes. The
+-- chest position is tuned per weapon type; values are placeholders to refine with
+-- /mbt_propedit-style in-game tuning. Which types are eligible is config-driven
+-- (will be player-selectable from the future admin menu).
+MBT.LowReady           = {
+    Enabled  = true,
+    -- Default keybind. The player can always rebind it from FiveM Settings >
+    -- Key Bindings (FiveM/Malibu Tech). 'HOME' is chosen because it's almost
+    -- never already bound, unlike X (cover) or other action keys.
+    Key      = 'HOME',
+    Command  = 'mbtLowReady',
+    -- Sling-prop types eligible for chest carry. Long guns by default — short
+    -- weapons (side/melee) keep their own positions.
+    Types    = { ['back'] = true, ['back2'] = true },
+    -- Chest attach position per type. Bone 24818 = SKEL_Spine3 (upper chest).
+    -- Pos/Rot are gender-shared here; split per male/female if needed.
+    Position = {
+        ['back'] = {
+            Bone     = 24818,  -- SKEL_Spine3 (upper chest)
+            isPed    = false,
+            RotOrder = 2,
+            FixedRot = true,
+            Pos      = { x = 0.060, y = 0.196, z = -0.004 },
+            Rot      = { x = 180.0, y = 142.0, z = -5.0 },
+        },
+        ['back2'] = {
+            Bone     = 24818,
+            isPed    = false,
+            RotOrder = 2,
+            FixedRot = true,
+            Pos      = { x = 0.060, y = 0.196, z = -0.004 },
+            Rot      = { x = 180.0, y = 142.0, z = -5.0 },
+        },
+    },
+    -- Transition choreography. The prop is re-parented across the body as the
+    -- animation plays: back → hand → chest (and reverse), instead of teleporting.
+    -- Each step: { dict, anim, duration(ms), place = 'hand'|'chest'|'back',
+    -- placeAt = ms into the step when the prop snaps to that spot }.
+    Transition = {
+        Enabled    = true,
+        HandBone   = 57005,  -- SKEL_R_Hand
+        -- Grip alignment of the weapon prop while "in hand". A CreateWeaponObject
+        -- does NOT auto-align to the grip on the hand bone — tune these with
+        --   /mbt_propedit WEAPON_CARBINERIFLE rhand
+        HandOffset = {
+            Pos = { x = 0.076, y = 0.136, z = 0.084 },
+            Rot = { x = -43.0, y = 0.0, z = 0.0 },
+        },
+        -- Back → chest: bring it off the back into the hand, then stow to chest.
+        -- mask=true on phase 1 hides the back→hand teleport (prop appears in-hand).
+        ToChest = {
+            { dict = 'reaction@intimidation@1h', anim = 'intro',     duration = 1900, place = 'hand',  placeAt = 1250, mask = true },
+            { dict = 'melee@holster',            anim = 'holster',   duration = 1000, place = 'chest', placeAt = 620, speed = 0.6 },
+        },
+        -- Chest → back: draw it off the chest into the hand, then put on the back.
+        ToBack = {
+            { dict = 'melee@holster',            anim = 'unholster', duration = 600,  place = 'hand', placeAt = 260 },
+            { dict = 'reaction@intimidation@1h', anim = 'outro',     duration = 1400, place = 'back', placeAt = 1180, mask = true },
         },
     },
 }
