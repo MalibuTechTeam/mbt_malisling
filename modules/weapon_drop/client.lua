@@ -17,6 +17,38 @@ AddEventHandler('ox_inventory:currentWeapon', function(currentWeapon)
     CurrentWeapon = currentWeapon or {}
 end)
 
+-- ── Despawn timer (shared) ──────────────────────────────────────────────────────
+-- Starts a per-drop timer that blinks the prop in the final seconds, then calls
+-- onExpire(). Cancelled by setting drops[dropId] = nil before it fires (the loop
+-- checks the prop still exists). Used by both the ox and qb paths.
+---@param dropId string|number
+---@param prop number              the rendered weapon prop entity
+---@param stillValid fun():boolean returns false once the drop was removed otherwise
+---@param onExpire fun()           called when the timer runs out
+local function startDespawnTimer(dropId, prop, stillValid, onExpire)
+    local cfg = (MBT.WeaponDrop or {}).Despawn
+    if not cfg or not cfg.Enabled or not prop then return end
+    CreateThread(function()
+        local total = (cfg.Seconds or 300) * 1000
+        local blink = (cfg.BlinkLastSec or 0) * 1000
+        local elapsed = 0
+        while elapsed < total do
+            if not stillValid() or not DoesEntityExist(prop) then return end
+            -- Blink window: toggle visibility roughly twice a second.
+            if blink > 0 and (total - elapsed) <= blink then
+                SetEntityVisible(prop, (math.floor(elapsed / 250) % 2) == 0, false)
+                Wait(250); elapsed = elapsed + 250
+            else
+                Wait(1000); elapsed = elapsed + 1000
+            end
+        end
+        if stillValid() and DoesEntityExist(prop) then
+            SetEntityVisible(prop, true, false)
+            onExpire()
+        end
+    end)
+end
+
 -- ── Drop-on-death (shared) ─────────────────────────────────────────────────────
 if MBT.DropWeaponOnDeath then
     AddEventHandler('gameEventTriggered', function(event, data)
@@ -131,6 +163,15 @@ if isOx then
                 end,
             })
         end
+
+        -- Despawn timer: on expiry ask the server to clear the ox drop. ox empties
+        -- it and broadcasts ox_inventory:removeDrop to everyone, which removes our
+        -- prop on all clients (removeWeaponDropProp). Real despawn, not just local.
+        if prop then
+            startDespawnTimer(dropId, prop,
+                function() return weaponDrops[dropId] ~= nil end,
+                function() TriggerServerEvent('mbt_malisling:despawnWeaponDrop', dropId) end)
+        end
     end
 
     -- Fires for every ox drop (native drag-drop, death, throw).
@@ -205,6 +246,13 @@ else
                 lib.callback.await('mbt_malisling:lootGroundDrop', false, dropId)
             end,
         })
+
+        -- Despawn timer: the whole qb drop is ours, so tell the server to drop it
+        -- for everyone (server broadcasts removeGroundDrop). The local prop is
+        -- removed by that broadcast; here we just trigger expiry.
+        startDespawnTimer(dropId, obj,
+            function() return groundProps[dropId] ~= nil end,
+            function() TriggerServerEvent('mbt_malisling:despawnGroundDrop', dropId) end)
     end
 
     RegisterNetEvent('mbt_malisling:spawnGroundDrop', function(dropId, coords, weaponHash)

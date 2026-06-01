@@ -32,6 +32,19 @@ if isOx then
         }, coords)
     end
 
+    -- Despawn: clients run the timer and request the despawn on expiry. Clearing
+    -- the drop's inventory makes ox remove the now-empty drop and broadcast
+    -- ox_inventory:removeDrop to everyone. Deduped so redundant client requests
+    -- (one per client running the timer) are no-ops.
+    local despawned = {}  -- [dropId] = true
+    RegisterNetEvent('mbt_malisling:despawnWeaponDrop', function(dropId)
+        if not dropId or despawned[dropId] then return end
+        despawned[dropId] = true
+        exports.ox_inventory:ClearInventory(dropId)
+        -- Forget the id after a moment so the table can't grow unbounded.
+        SetTimeout(10000, function() despawned[dropId] = nil end)
+    end)
+
     --- The client asks, for a freshly created drop, whether it holds a weapon.
     --- Returns the weapon hash (for CreateWeaponObject) or false.
     lib.callback.register('mbt_malisling:checkWeaponDrop', function(src, dropId)
@@ -81,6 +94,14 @@ else
 
     lib.callback.register('mbt_malisling:getGroundDrops', function()
         return drops
+    end)
+
+    -- Despawn: clients run the timer and request it on expiry. The whole drop is
+    -- ours, so drop the item entirely and tell everyone to remove the prop. Deduped.
+    RegisterNetEvent('mbt_malisling:despawnGroundDrop', function(dropId)
+        if not dropId or not drops[dropId] then return end
+        drops[dropId] = nil
+        TriggerClientEvent('mbt_malisling:removeGroundDrop', -1, dropId)
     end)
 end
 

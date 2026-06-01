@@ -379,6 +379,15 @@ MBT.WeaponDrop         = {
     WeaponModelProp = true,
     -- Add an ox_target option to pick the weapon up, on top of walk-in.
     OxTargetPickup  = true,
+    -- Despawn timer for the rendered weapon prop. After Seconds the malisling
+    -- weapon prop + its ox_target zone are removed; in the last BlinkLastSec the
+    -- prop blinks as a warning. ox path: only OUR rendered prop is removed — the
+    -- underlying ox drop follows ox's own cleanup. qb path: the whole drop is ours.
+    Despawn = {
+        Enabled     = true,
+        Seconds     = 300,   -- 5 min on the ground before it disappears
+        BlinkLastSec = 10,   -- blink during the final N seconds (0 = no blink)
+    },
 }
 
 -- ── Vehicle Smart Hiding ──────────────────────────────────────────────────────
@@ -387,6 +396,11 @@ MBT.WeaponDrop         = {
 -- with the top down) the weapon stays visible — it looks better and nothing
 -- clips. When Enabled = false the legacy behaviour is kept (hide in any vehicle).
 MBT.VehicleHiding      = {
+    -- NOTE: this flag is smart-vs-legacy, NOT on/off. The slung weapon is ALWAYS
+    -- hidden inside enclosed vehicles (the barrel clipping through the roof is a
+    -- bug, not a feature). Enabled = true → "smart": stays visible on roofless
+    -- vehicles (bikes/quads/convertibles). Enabled = false → legacy: hide in ANY
+    -- vehicle, including bikes. There is intentionally no "never hide" option.
     Enabled            = true,
     -- Vehicle classes that ALWAYS keep the weapon visible (checked first). Bikes
     -- need this because DoesVehicleHaveRoof is unreliable on two-wheelers — it can
