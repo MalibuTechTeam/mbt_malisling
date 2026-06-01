@@ -24,6 +24,18 @@ RegisterLocale('it', {
     ['safety_on']               = 'SICURA',
     ['safety_off']              = 'FUOCO',
 
+    -- Custom weapon name
+    ['wname_dialog_title']      = 'Nomina arma',
+    ['wname_dialog_field']      = 'Nome arma',
+    ['wname_no_weapon_title']   = 'Nomina arma',
+    ['wname_no_weapon_desc']    = 'Nessuna arma da fuoco in mano.',
+    ['wname_no_perm_title']     = 'Nomina arma',
+    ['wname_no_perm_desc']      = 'Non puoi incidere un nome su un\'arma.',
+    ['wname_done_title']        = 'Arma nominata',
+    ['wname_done_desc']         = 'Il nome è stato inciso.',
+    ['wname_locked_title']      = 'Nomina arma',
+    ['wname_locked_desc']       = 'Quest\'arma ha già un nome.',
+
     -- Interaction prompts
     ['pickup_weapon']           = 'Raccogli arma',
 

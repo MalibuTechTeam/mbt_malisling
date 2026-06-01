@@ -65,6 +65,30 @@ MBT.Labels             = {
         ["type"]     = "inform",
         ["icon"]     = "fa-solid fa-shield-halved",
     },
+    ["wname_no_weapon"] = {
+        ["titleKey"] = "wname_no_weapon_title",
+        ["descKey"]  = "wname_no_weapon_desc",
+        ["type"]     = "inform",
+        ["icon"]     = "fa-solid fa-pen",
+    },
+    ["wname_no_perm"] = {
+        ["titleKey"] = "wname_no_perm_title",
+        ["descKey"]  = "wname_no_perm_desc",
+        ["type"]     = "error",
+        ["icon"]     = "fa-solid fa-lock",
+    },
+    ["wname_done"] = {
+        ["titleKey"] = "wname_done_title",
+        ["descKey"]  = "wname_done_desc",
+        ["type"]     = "success",
+        ["icon"]     = "fa-solid fa-pen",
+    },
+    ["wname_locked"] = {
+        ["titleKey"] = "wname_locked_title",
+        ["descKey"]  = "wname_locked_desc",
+        ["type"]     = "error",
+        ["icon"]     = "fa-solid fa-lock",
+    },
 }
 
 -- ── Sling / Holster ───────────────────────────────────────────────────────────
@@ -602,4 +626,24 @@ MBT.Safety             = {
         Speed   = 0.6,
         Dur     = 750,   -- ~450ms clip / 0.6 speed
     },
+}
+
+-- ── Custom Weapon Name ────────────────────────────────────────────────────────
+-- Engrave a custom name on the held firearm (stored in metadata.label, shown by
+-- Weapon Inspect). WHO can do it is fully configurable for the future admin menu.
+MBT.WeaponName         = {
+    Enabled    = true,
+    Command    = 'weaponname',
+    Key        = '',            -- '' = command only; set a key to also bind it
+    MaxLength  = 24,            -- name length cap (sanitized: trims + strips control chars)
+    -- Permission model:
+    --   'everyone' → any player can rename their own weapon
+    --   'job'      → only players whose job is in Jobs below
+    --   'ace'      → only players with the AcePermission below
+    Permission = 'everyone',
+    Jobs       = { ['weapon'] = true, ['gunsmith'] = true },  -- used when Permission = 'job'
+    AcePermission = 'mbt.weaponname',                          -- used when Permission = 'ace'
+    -- OncePerWeapon: once a weapon has a custom name, block re-naming it (only a
+    -- gunsmith/admin path could change it later). false = rename freely.
+    OncePerWeapon = false,
 }

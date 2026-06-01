@@ -24,6 +24,18 @@ RegisterLocale('en', {
     ['safety_on']               = 'SAFE',
     ['safety_off']              = 'FIRE',
 
+    -- Custom weapon name
+    ['wname_dialog_title']      = 'Name Weapon',
+    ['wname_dialog_field']      = 'Weapon name',
+    ['wname_no_weapon_title']   = 'Name Weapon',
+    ['wname_no_weapon_desc']    = 'No firearm in hand.',
+    ['wname_no_perm_title']     = 'Name Weapon',
+    ['wname_no_perm_desc']      = "You can't engrave a name on a weapon.",
+    ['wname_done_title']        = 'Weapon Named',
+    ['wname_done_desc']         = 'The name has been engraved.',
+    ['wname_locked_title']      = 'Name Weapon',
+    ['wname_locked_desc']       = 'This weapon already has a name.',
+
     -- Interaction prompts
     ['pickup_weapon']           = 'Pick up weapon',
 

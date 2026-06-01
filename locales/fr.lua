@@ -24,6 +24,18 @@ RegisterLocale('fr', {
     ['safety_on']               = 'SÛRETÉ',
     ['safety_off']              = 'FEU',
 
+    -- Custom weapon name
+    ['wname_dialog_title']      = 'Nommer l\'arme',
+    ['wname_dialog_field']      = 'Nom de l\'arme',
+    ['wname_no_weapon_title']   = 'Nommer l\'arme',
+    ['wname_no_weapon_desc']    = 'Aucune arme à feu en main.',
+    ['wname_no_perm_title']     = 'Nommer l\'arme',
+    ['wname_no_perm_desc']      = 'Vous ne pouvez pas graver un nom sur une arme.',
+    ['wname_done_title']        = 'Arme nommée',
+    ['wname_done_desc']         = 'Le nom a été gravé.',
+    ['wname_locked_title']      = 'Nommer l\'arme',
+    ['wname_locked_desc']       = 'Cette arme a déjà un nom.',
+
     -- Interaction prompts
     ['pickup_weapon']           = 'Ramasser l\'arme',
 
