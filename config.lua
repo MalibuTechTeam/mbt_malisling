@@ -95,6 +95,12 @@ MBT.Labels             = {
         ["type"]     = "inform",
         ["icon"]     = "fa-solid fa-gun",
     },
+    ["pose_in_vehicle"] = {
+        ["titleKey"] = "pose_in_vehicle_title",
+        ["descKey"]  = "pose_in_vehicle_desc",
+        ["type"]     = "inform",
+        ["icon"]     = "fa-solid fa-camera",
+    },
 }
 
 -- ── Sling / Holster ───────────────────────────────────────────────────────────
@@ -739,5 +745,28 @@ MBT.ChargeWeapon       = {
         [`GROUP_SNIPER`]  = true,
         [`GROUP_HEAVY`]   = true,
         [`GROUP_STUNGUN`] = true,
+    },
+}
+
+-- ── Showcase Poses ────────────────────────────────────────────────────────────
+-- Static "display" poses to show off the player + their slung weapons (for
+-- screenshots, gunshop windows, RP marketplaces). The command enters a looped
+-- idle pose; running it again (or /pose <n>) cycles to the next pose; moving,
+-- shooting or entering a vehicle exits. Purely cosmetic, local-only (slung props
+-- are already visible to others via the scope system).
+MBT.ShowcasePoses      = {
+    Enabled = true,
+    Sync    = true,        -- show your pose to nearby players (group photos); needs a
+                           -- replicated statebag, also covers players who arrive later
+    Command = 'pose',
+    Key     = '',          -- '' = command only; set a key to also bind it
+    -- Pose list. Cycled in order with the command / chosen with /pose <n>.
+    -- Base-game idle clips; swap for custom .ycd if desired. Flag 1 = looped.
+    Poses   = {
+        { label = 'Crossed arms', dict = 'anim@amb@business@bgen@bgen_no_work@', anim = 'idle_a', flag = 1 },
+        { label = 'Lean back',    dict = 'amb@world_human_leaning@male@wall@back@foot_up@idle_a', anim = 'idle_a', flag = 1 },
+        { label = 'Hands on hips', dict = 'amb@world_human_cop_idles@male@idle_a', anim = 'idle_a', flag = 1 },
+        { label = 'Guard stance', dict = 'amb@world_human_guard_stand@male@idle_a', anim = 'idle_a', flag = 1 },
+        { label = 'Smoke idle',   dict = 'amb@world_human_aa_smoke@male@idle_a', anim = 'idle_a', flag = 1 },
     },
 }

@@ -41,6 +41,7 @@ server_scripts {
     'modules/weapon_name/server.lua',
     'modules/weapon_weight/server.lua',
     'modules/charge_weapon/server.lua',
+    'modules/showcase_poses/server.lua',
     'modules/config/server.lua',
     'core/server.lua',
 }
@@ -68,6 +69,7 @@ client_scripts {
     'modules/weapon_name/client.lua',
     'modules/weapon_weight/client.lua',
     'modules/charge_weapon/client.lua',
+    'modules/showcase_poses/client.lua',
     'modules/no_draw_zones/client.lua',
     'modules/prop_editor/client.lua',
 }

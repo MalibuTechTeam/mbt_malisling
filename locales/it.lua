@@ -28,6 +28,10 @@ RegisterLocale('it', {
     ['charge_no_weapon_title']  = 'Carica arma',
     ['charge_no_weapon_desc']   = 'Nessuna arma da fuoco in mano.',
 
+    -- Showcase poses
+    ['pose_in_vehicle_title']   = 'Posa',
+    ['pose_in_vehicle_desc']    = 'Non puoi metterti in posa in un veicolo.',
+
     -- Custom weapon name
     ['wname_dialog_title']      = 'Nomina arma',
     ['wname_dialog_field']      = 'Nome arma',

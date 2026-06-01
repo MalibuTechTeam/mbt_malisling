@@ -28,6 +28,10 @@ RegisterLocale('en', {
     ['charge_no_weapon_title']  = 'Charge Weapon',
     ['charge_no_weapon_desc']   = 'No firearm in hand.',
 
+    -- Showcase poses
+    ['pose_in_vehicle_title']   = 'Pose',
+    ['pose_in_vehicle_desc']    = 'You cannot pose inside a vehicle.',
+
     -- Custom weapon name
     ['wname_dialog_title']      = 'Name Weapon',
     ['wname_dialog_field']      = 'Weapon name',
