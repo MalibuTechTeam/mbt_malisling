@@ -27,6 +27,8 @@ if isOx then
         if not item then return end
         if not Inventory:RemoveItem(src, item.name, item.count, nil, item.slot) then return end
 
+        if MBT.LogWeaponDrop then MBT.LogWeaponDrop(src, item, coords) end
+
         exports.ox_inventory:CustomDrop('Weapon', {
             { item.name, item.count, item.metadata }
         }, coords)
@@ -71,6 +73,8 @@ else
         local item = Inventory:GetSlot(src, slot)
         if not item then return end
         if not Inventory:RemoveItem(src, item.name, item.count, nil, item.slot) then return end
+
+        if MBT.LogWeaponDrop then MBT.LogWeaponDrop(src, item, coords) end
 
         local dropId = ('mbtweapon_%d_%d'):format(os.time(), math.random(100000, 999999))
         drops[dropId] = {

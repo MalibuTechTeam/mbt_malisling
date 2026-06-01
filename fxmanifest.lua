@@ -32,6 +32,7 @@ server_scripts {
     'modules/bridge/qbox/server.lua',
     'modules/inventory/ox/server.lua',
     'modules/inventory/qb/server.lua',
+    'modules/weapon_drop/logging.lua',
     'modules/weapon_drop/server.lua',
     'modules/weapon_jamming/server.lua',
     'modules/weapon_throw/server.lua',
