@@ -657,3 +657,42 @@ MBT.WeaponName         = {
     -- gunsmith/admin path could change it later). false = rename freely.
     OncePerWeapon = false,
 }
+
+-- ── Weapon Weight / Carry Penalty ─────────────────────────────────────────────
+-- Carrying many weapons slightly slows the player (SetPedMoveRateOverride),
+-- scaling with how many count toward the penalty above a threshold, up to a cap.
+-- Purely RP/immersive — no combat impact. Which weapon GROUPS count is fully
+-- configurable. Weapon count is resolved server-side (works on ox + qb).
+MBT.WeaponWeight       = {
+    Enabled       = true,
+    -- How marked the penalty is. Pick a named preset (ready for an admin-menu
+    -- dropdown) or 'custom' to use the raw Threshold/PerWeapon/MaxPenalty below.
+    --   off    → no penalty
+    --   light  → barely noticeable
+    --   medium → clearly felt
+    --   heavy  → milsim, punishing
+    --   custom → use the Threshold/PerWeapon/MaxPenalty fields directly
+    Mode          = 'light',
+    Presets       = {
+        light  = { Threshold = 2, PerWeapon = 0.03, MaxPenalty = 0.18 },  -- down to 82%
+        medium = { Threshold = 2, PerWeapon = 0.06, MaxPenalty = 0.30 },  -- down to 70%
+        heavy  = { Threshold = 1, PerWeapon = 0.10, MaxPenalty = 0.45 },  -- down to 55%
+    },
+    -- Used only when Mode = 'custom'.
+    Threshold     = 2,      -- no penalty up to this many counted weapons
+    PerWeapon     = 0.03,   -- move-rate reduction per weapon beyond the threshold
+    MaxPenalty    = 0.18,   -- cap on total reduction (0.18 = down to 82% speed)
+    RefreshMs     = 5000,   -- how often the weapon count is re-checked
+    -- Weapon GROUPS that count toward the penalty. Add/remove to taste — heavy
+    -- long guns by default; pistols and melee don't weigh you down.
+    CountGroups   = {
+        [`GROUP_RIFLE`]   = true,
+        [`GROUP_SMG`]     = true,
+        [`GROUP_MG`]      = true,
+        [`GROUP_SHOTGUN`] = true,
+        [`GROUP_SNIPER`]  = true,
+        [`GROUP_HEAVY`]   = true,
+        -- [`GROUP_PISTOL`] = true,   -- uncomment to count pistols
+        -- [`GROUP_MELEE`]  = true,   -- uncomment to count melee
+    },
+}

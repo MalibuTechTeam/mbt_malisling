@@ -39,6 +39,7 @@ server_scripts {
     'modules/weapon_inspect/server.lua',
     'modules/low_ready/server.lua',
     'modules/weapon_name/server.lua',
+    'modules/weapon_weight/server.lua',
     'modules/config/server.lua',
     'core/server.lua',
 }
@@ -64,6 +65,7 @@ client_scripts {
     'modules/tactical_sling/client.lua',
     'modules/weapon_safety/client.lua',
     'modules/weapon_name/client.lua',
+    'modules/weapon_weight/client.lua',
     'modules/no_draw_zones/client.lua',
     'modules/prop_editor/client.lua',
 }
