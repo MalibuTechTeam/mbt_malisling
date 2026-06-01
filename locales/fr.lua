@@ -24,6 +24,10 @@ RegisterLocale('fr', {
     ['safety_on']               = 'SÛRETÉ',
     ['safety_off']              = 'FEU',
 
+    -- Charge weapon
+    ['charge_no_weapon_title']  = 'Armer l\'arme',
+    ['charge_no_weapon_desc']   = 'Aucune arme à feu en main.',
+
     -- Custom weapon name
     ['wname_dialog_title']      = 'Nommer l\'arme',
     ['wname_dialog_field']      = 'Nom de l\'arme',

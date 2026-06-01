@@ -89,6 +89,12 @@ MBT.Labels             = {
         ["type"]     = "error",
         ["icon"]     = "fa-solid fa-lock",
     },
+    ["charge_no_weapon"] = {
+        ["titleKey"] = "charge_no_weapon_title",
+        ["descKey"]  = "charge_no_weapon_desc",
+        ["type"]     = "inform",
+        ["icon"]     = "fa-solid fa-gun",
+    },
 }
 
 -- ── Sling / Holster ───────────────────────────────────────────────────────────
@@ -694,5 +700,44 @@ MBT.WeaponWeight       = {
         [`GROUP_HEAVY`]   = true,
         -- [`GROUP_PISTOL`] = true,   -- uncomment to count pistols
         -- [`GROUP_MELEE`]  = true,   -- uncomment to count melee
+    },
+}
+
+-- ── Charge Weapon (rack the slide) ────────────────────────────────────────────
+-- An RP intimidation gesture: rack the slide / charge the weapon with a marked
+-- animation + mechanical "clack" sound. No HUD, no ammo readout — purely the
+-- gesture, broadcast to nearby players (they see the anim + hear the sound). All
+-- firearm groups by default; the admin can disable some.
+MBT.ChargeWeapon       = {
+    Enabled     = true,
+    Key         = 'INSERT',   -- rebindable from FiveM Settings > Key Bindings
+    Command     = 'mbtcharge',
+    MaxDistance = 20.0,        -- nearby players who see/hear the rack
+    Cooldown    = 1500,        -- ms between racks (anti-spam)
+    -- Animation (truncated/slowed reload partial — the hand works the slide).
+    Animation   = {
+        Dict  = 'anim@weapons@first_person@aim_rng@generic@pistol@singleshot@str',
+        Anim  = 'reload_aim',
+        Flag  = 48,
+        Speed = 0.7,
+        Dur   = 650,
+    },
+    -- Mechanical sound. 'native' = GTA sound, 'nui' = custom .ogg.
+    Sound       = {
+        Enabled = true,
+        Mode    = 'native',
+        Native  = { Name = 'Cock_Gun', Set = 'PHONEUI_FAKE_PLAYER_INPUT_SOUNDS' },
+        Nui     = { File = 'charge', Volume = 0.6 },
+    },
+    -- Firearm GROUPS allowed to charge. All firearms on by default; admin trims.
+    Groups      = {
+        [`GROUP_PISTOL`]  = true,
+        [`GROUP_RIFLE`]   = true,
+        [`GROUP_SMG`]     = true,
+        [`GROUP_MG`]      = true,
+        [`GROUP_SHOTGUN`] = true,
+        [`GROUP_SNIPER`]  = true,
+        [`GROUP_HEAVY`]   = true,
+        [`GROUP_STUNGUN`] = true,
     },
 }

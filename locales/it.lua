@@ -24,6 +24,10 @@ RegisterLocale('it', {
     ['safety_on']               = 'SICURA',
     ['safety_off']              = 'FUOCO',
 
+    -- Charge weapon
+    ['charge_no_weapon_title']  = 'Carica arma',
+    ['charge_no_weapon_desc']   = 'Nessuna arma da fuoco in mano.',
+
     -- Custom weapon name
     ['wname_dialog_title']      = 'Nomina arma',
     ['wname_dialog_field']      = 'Nome arma',
