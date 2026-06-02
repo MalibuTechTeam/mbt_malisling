@@ -7,7 +7,8 @@
 -- server validates permission + sanitizes + writes the metadata.
 -- ─────────────────────────────────────────────────────────────────────────────
 
-if not MBT.WeaponName or not MBT.WeaponName.Enabled then return end
+-- Load if the block exists; Enabled checked at use time (live-apply via menu).
+if not MBT.WeaponName then return end
 
 local cfg = MBT.WeaponName
 local currentWeapon
@@ -25,6 +26,7 @@ local function heldFirearm()
 end
 
 local function rename()
+    if not cfg.Enabled then return end
     if not heldFirearm() or not currentWeapon or not currentWeapon.slot then
         MBT.NotifyLabel('wname_no_weapon')
         return

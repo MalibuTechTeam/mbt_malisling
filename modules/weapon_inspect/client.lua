@@ -10,7 +10,8 @@
 -- '-cmd' on release — the cleanest FiveM hold pattern, nothing to toggle/leak.
 -- ─────────────────────────────────────────────────────────────────────────────
 
-if not MBT.Inspect or not MBT.Inspect.Enabled then return end
+-- Load if the block exists; Enabled checked at use time (live-apply via menu).
+if not MBT.Inspect then return end
 
 local cfg  = MBT.Inspect
 local anim = cfg.Animation
@@ -84,6 +85,7 @@ end
 local stopInspect  -- forward declaration (the watcher in startInspect calls it)
 
 local function startInspect()
+    if not cfg.Enabled then return end
     if inspecting then return end
     if cache.vehicle then return end
     local has, weaponHash = GetCurrentPedWeapon(cache.ped, true)

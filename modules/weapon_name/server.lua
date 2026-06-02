@@ -6,7 +6,8 @@
 -- Permission model and limits are config-driven (MBT.WeaponName).
 -- ─────────────────────────────────────────────────────────────────────────────
 
-if not MBT.WeaponName or not MBT.WeaponName.Enabled then return end
+-- Load if the block exists; Enabled checked at use time (live-apply via menu).
+if not MBT.WeaponName then return end
 
 local cfg = MBT.WeaponName
 local lastUse = {}  -- [src] = GetGameTimer(), basic rate limit
@@ -38,6 +39,7 @@ end
 
 RegisterNetEvent('mbt_malisling:setWeaponName', function(slot, rawName)
     local src = source
+    if not cfg.Enabled then return end
     if type(slot) ~= 'number' then return end
 
     -- Rate limit (input dialog spam / scripted abuse).

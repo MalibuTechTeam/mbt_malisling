@@ -12,6 +12,13 @@
 
 local CONFIG_FILE     = 'data/runtime_config.json'
 local VALID_POSITIONS = { ['bottom-center'] = true, ['top-center'] = true, ['bottom-right'] = true, ['custom'] = true }
+-- Throw groups are keyed by weapon-group HASH in config; the menu edits them by a
+-- stable name. This maps menu name → group hash for round-tripping Allowed flags.
+local THROW_GROUPS    = {
+    MELEE = `GROUP_MELEE`, PISTOL = `GROUP_PISTOL`, RIFLE = `GROUP_RIFLE`,
+    MG = `GROUP_MG`, SMG = `GROUP_SMG`, SHOTGUN = `GROUP_SHOTGUN`,
+    STUNGUN = `GROUP_STUNGUN`, SNIPER = `GROUP_SNIPER`, HEAVY = `GROUP_HEAVY`,
+}
 local adminCommand    = (MBT.Admin and MBT.Admin.Command) or 'mbtconfig'
 -- Default to the command's own ACE so a server with the usual
 -- `add_ace group.admin command.* allow` (or a wildcard admin principal) works
@@ -27,6 +34,14 @@ local function snapshot()
     local DD, DL = D.Despawn or {}, D.Logging or {}
     local J, SH = MBT.Jamming or {}, MBT.SuppressorHeat or {}
     local SF, CH, WW = MBT.Safety or {}, MBT.ChargeWeapon or {}, MBT.WeaponWeight or {}
+    local IN, WN = MBT.Inspect or {}, MBT.WeaponName or {}
+    local SP, ND, VH, TS = MBT.ShowcasePoses or {}, MBT.NoDrawZones or {}, MBT.VehicleHiding or {}, MBT.TacticalSling or {}
+    local TH, INS = MBT.Throw or {}, IN.Show or {}
+    local thg = TH.Groups or {}
+    local throwGroups = {}
+    for name, hash in pairs(THROW_GROUPS) do
+        throwGroups[name] = b(thg[hash] and thg[hash].Allowed)
+    end
     return {
         -- General (editable). Debug is intentionally NOT exposed (dev flag → config.lua).
         EnableSling       = b(MBT.EnableSling),
@@ -79,10 +94,42 @@ local function snapshot()
             PerWeapon  = num(WW.PerWeapon, 0.03),
             MaxPenalty = num(WW.MaxPenalty, 0.18),
         },
-        -- Overview flags (editable in their own sections later)
-        Inspect           = { Enabled = b(MBT.Inspect and MBT.Inspect.Enabled) },
-        NoDrawZones       = { Enabled = b(MBT.NoDrawZones and MBT.NoDrawZones.Enabled) },
-        TacticalSling     = { Enabled = b(MBT.TacticalSling and MBT.TacticalSling.Enabled) },
+        -- Interaction
+        Inspect = {
+            Enabled     = b(IN.Enabled),
+            MaxDistance = num(IN.MaxDistance, 20.0),
+            AmmoMode    = IN.AmmoMode or 'exact',
+            Show        = {
+                Serial = b(INS.Serial), Condition = b(INS.Condition),
+                Name = b(INS.Name), Ammo = b(INS.Ammo),
+            },
+        },
+        WeaponName = {
+            Enabled       = b(WN.Enabled),
+            MaxLength     = num(WN.MaxLength, 24),
+            Permission    = WN.Permission or 'everyone',
+            OncePerWeapon = b(WN.OncePerWeapon),
+        },
+        ShowcasePoses = {
+            Enabled = b(SP.Enabled),
+            Sync    = b(SP.Sync),
+        },
+        Throw = {
+            Enabled = b(TH.Enabled),
+            Groups  = throwGroups,
+        },
+        -- World
+        NoDrawZones = {
+            Enabled        = b(ND.Enabled),
+            AllowMelee     = b(ND.AllowMelee),
+            HudIndicator   = b(ND.HudIndicator),
+            NotifyCooldown = num(ND.NotifyCooldown, 3000),
+        },
+        VehicleHiding = {
+            Enabled      = b(VH.Enabled),
+            UseRoofCheck = b(VH.UseRoofCheck),
+        },
+        TacticalSling = { Enabled = b(TS.Enabled) },
     }
 end
 
@@ -141,6 +188,40 @@ local function validate(d)
     if type(ww.Threshold) ~= 'number' or ww.Threshold < 0 or ww.Threshold > 20 then return false end
     if type(ww.PerWeapon) ~= 'number' or ww.PerWeapon < 0 or ww.PerWeapon > 1 then return false end
     if type(ww.MaxPenalty) ~= 'number' or ww.MaxPenalty < 0 or ww.MaxPenalty > 0.9 then return false end
+    -- Inspect
+    local ins = d.Inspect
+    if type(ins) ~= 'table' or type(ins.Enabled) ~= 'boolean' then return false end
+    if type(ins.MaxDistance) ~= 'number' or ins.MaxDistance < 1 or ins.MaxDistance > 50 then return false end
+    if ins.AmmoMode ~= 'exact' and ins.AmmoMode ~= 'vague' then return false end
+    if type(ins.Show) ~= 'table' then return false end
+    if type(ins.Show.Serial) ~= 'boolean' or type(ins.Show.Condition) ~= 'boolean'
+        or type(ins.Show.Name) ~= 'boolean' or type(ins.Show.Ammo) ~= 'boolean' then return false end
+    -- Weapon Name
+    local wn = d.WeaponName
+    if type(wn) ~= 'table' or type(wn.Enabled) ~= 'boolean' then return false end
+    if type(wn.MaxLength) ~= 'number' or wn.MaxLength < 1 or wn.MaxLength > 64 then return false end
+    if wn.Permission ~= 'everyone' and wn.Permission ~= 'job' and wn.Permission ~= 'ace' then return false end
+    if type(wn.OncePerWeapon) ~= 'boolean' then return false end
+    -- Showcase Poses
+    local sp = d.ShowcasePoses
+    if type(sp) ~= 'table' or type(sp.Enabled) ~= 'boolean' or type(sp.Sync) ~= 'boolean' then return false end
+    -- Throw
+    local th = d.Throw
+    if type(th) ~= 'table' or type(th.Enabled) ~= 'boolean' or type(th.Groups) ~= 'table' then return false end
+    for name in pairs(THROW_GROUPS) do
+        if type(th.Groups[name]) ~= 'boolean' then return false end
+    end
+    -- No-Draw Zones
+    local nd = d.NoDrawZones
+    if type(nd) ~= 'table' or type(nd.Enabled) ~= 'boolean' then return false end
+    if type(nd.AllowMelee) ~= 'boolean' or type(nd.HudIndicator) ~= 'boolean' then return false end
+    if type(nd.NotifyCooldown) ~= 'number' or nd.NotifyCooldown < 500 or nd.NotifyCooldown > 30000 then return false end
+    -- Vehicle Hiding
+    local vh = d.VehicleHiding
+    if type(vh) ~= 'table' or type(vh.Enabled) ~= 'boolean' or type(vh.UseRoofCheck) ~= 'boolean' then return false end
+    -- Tactical Sling
+    local ts = d.TacticalSling
+    if type(ts) ~= 'table' or type(ts.Enabled) ~= 'boolean' then return false end
     return true
 end
 
@@ -183,6 +264,34 @@ local function applyToMBT(d)
     MBT.WeaponWeight.Threshold  = d.WeaponWeight.Threshold
     MBT.WeaponWeight.PerWeapon  = d.WeaponWeight.PerWeapon
     MBT.WeaponWeight.MaxPenalty = d.WeaponWeight.MaxPenalty
+    -- Interaction
+    MBT.Inspect.Enabled        = d.Inspect.Enabled
+    MBT.Inspect.MaxDistance    = d.Inspect.MaxDistance
+    MBT.Inspect.AmmoMode       = d.Inspect.AmmoMode
+    MBT.Inspect.Show.Serial    = d.Inspect.Show.Serial
+    MBT.Inspect.Show.Condition = d.Inspect.Show.Condition
+    MBT.Inspect.Show.Name      = d.Inspect.Show.Name
+    MBT.Inspect.Show.Ammo      = d.Inspect.Show.Ammo
+    MBT.WeaponName.Enabled       = d.WeaponName.Enabled
+    MBT.WeaponName.MaxLength     = d.WeaponName.MaxLength
+    MBT.WeaponName.Permission    = d.WeaponName.Permission
+    MBT.WeaponName.OncePerWeapon = d.WeaponName.OncePerWeapon
+    MBT.ShowcasePoses.Enabled = d.ShowcasePoses.Enabled
+    MBT.ShowcasePoses.Sync    = d.ShowcasePoses.Sync
+    MBT.Throw.Enabled = d.Throw.Enabled
+    for name, hash in pairs(THROW_GROUPS) do
+        if MBT.Throw.Groups[hash] then
+            MBT.Throw.Groups[hash].Allowed = d.Throw.Groups[name]
+        end
+    end
+    -- World
+    MBT.NoDrawZones.Enabled        = d.NoDrawZones.Enabled
+    MBT.NoDrawZones.AllowMelee     = d.NoDrawZones.AllowMelee
+    MBT.NoDrawZones.HudIndicator   = d.NoDrawZones.HudIndicator
+    MBT.NoDrawZones.NotifyCooldown = d.NoDrawZones.NotifyCooldown
+    MBT.VehicleHiding.Enabled      = d.VehicleHiding.Enabled
+    MBT.VehicleHiding.UseRoofCheck = d.VehicleHiding.UseRoofCheck
+    MBT.TacticalSling.Enabled = d.TacticalSling.Enabled
 end
 
 --- The editable subset that gets persisted (overview-only flags excluded).
@@ -200,6 +309,13 @@ local function persistable(d)
         Safety = d.Safety,
         ChargeWeapon = d.ChargeWeapon,
         WeaponWeight = d.WeaponWeight,
+        Inspect = d.Inspect,
+        WeaponName = d.WeaponName,
+        ShowcasePoses = d.ShowcasePoses,
+        Throw = d.Throw,
+        NoDrawZones = d.NoDrawZones,
+        VehicleHiding = d.VehicleHiding,
+        TacticalSling = d.TacticalSling,
     }
 end
 

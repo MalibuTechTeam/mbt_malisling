@@ -8,7 +8,8 @@
 -- the slung props are already visible to others through the scope system.
 -- ─────────────────────────────────────────────────────────────────────────────
 
-if not MBT.ShowcasePoses or not MBT.ShowcasePoses.Enabled then return end
+-- Load if the block exists; Enabled checked at use time (live-apply via menu).
+if not MBT.ShowcasePoses then return end
 
 local cfg   = MBT.ShowcasePoses
 local poses = cfg.Poses or {}
@@ -33,6 +34,7 @@ end
 
 --- Enter (or switch to) pose index n.
 local function startPose(n)
+    if not cfg.Enabled then return end
     local p = poses[n]
     if not p then return end
     current = n

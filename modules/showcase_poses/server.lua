@@ -8,14 +8,15 @@
 -- which makes the group-photo / late-join case work automatically.
 -- ─────────────────────────────────────────────────────────────────────────────
 
-if not MBT.ShowcasePoses or not MBT.ShowcasePoses.Enabled then return end
-if not MBT.ShowcasePoses.Sync then return end
+-- Load if the block exists; Enabled + Sync checked at use time (live-apply via menu).
+if not MBT.ShowcasePoses then return end
 
 local cfg     = MBT.ShowcasePoses
 local lastUse = {}
 
 RegisterNetEvent('mbt_malisling:setShowcasePose', function(idx)
     local src = source
+    if not cfg.Enabled or not cfg.Sync then return end
 
     local now = GetGameTimer()
     if lastUse[src] and (now - lastUse[src]) < 300 then return end

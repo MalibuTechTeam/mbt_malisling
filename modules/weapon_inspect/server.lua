@@ -6,14 +6,17 @@
 -- overlay itself never leaves the inspecting client.
 -- ─────────────────────────────────────────────────────────────────────────────
 
-if not MBT.Inspect or not MBT.Inspect.Enabled then return end
+-- Load if the block exists; Enabled + MaxDistance read fresh (live-apply via menu).
+if not MBT.Inspect then return end
 
-local maxDist  = (MBT.Inspect.MaxDistance or 20.0) + 5.0
 local lastSync = {}  -- [src] = last GetGameTimer(), basic rate limit
 
 RegisterNetEvent('mbt_malisling:syncInspect', function(action)
     local src = source
+    if not MBT.Inspect.Enabled then return end
     if action ~= 'start' and action ~= 'stop' then return end
+
+    local maxDist = (MBT.Inspect.MaxDistance or 20.0) + 5.0
 
     -- Rate limit: the +/- key pair can be mashed; ignore bursts under 150ms.
     local now = GetGameTimer()

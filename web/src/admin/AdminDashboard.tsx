@@ -6,6 +6,8 @@ import { GeneralSection } from './sections/GeneralSection'
 import { HolsterSection } from './sections/HolsterSection'
 import { WeaponDropSection } from './sections/WeaponDropSection'
 import { JammingSection, SuppressorSection, SafetySection, ChargeSection, WeightSection } from './sections/CombatSections'
+import { InspectSection, WeaponNameSection, PosesSection, ThrowSection } from './sections/InteractionSections'
+import { NoDrawSection, VehicleSection, TacticalSlingSection } from './sections/WorldSections'
 import './Admin.css'
 
 /**
@@ -30,9 +32,10 @@ const RAIL: RailItem[] = [
   { id: 'inspect',   label: 'Inspect & Ammo',                                  icon: 'search',    group: 'INTERACTION' },
   { id: 'wname',     label: 'Weapon Name',                                     icon: 'book',      group: 'INTERACTION' },
   { id: 'poses',     label: 'Showcase Poses',                                  icon: 'cursor',    group: 'INTERACTION' },
+  { id: 'throw',     label: 'Weapon Throw',                                    icon: 'cursor',    group: 'INTERACTION' },
   { id: 'nodraw',    label: 'No-Draw Zones',                                   icon: 'alert',     group: 'WORLD' },
   { id: 'vehicle',   label: 'Vehicle Hiding',                                  icon: 'configure', group: 'WORLD' },
-  { id: 'logging',   label: 'Drop Logging',                                    icon: 'clipboard', group: 'WORLD' },
+  { id: 'tactical',  label: 'Tactical Sling',                                  icon: 'layers',    group: 'WORLD' },
 ]
 
 const GROUPS = ['ESSENTIALS', 'COMBAT / RP', 'INTERACTION', 'WORLD']
@@ -175,17 +178,13 @@ export default function AdminDashboard() {
           {active === 'safety' && <SafetySection config={cfg} update={update} />}
           {active === 'charge' && <ChargeSection config={cfg} update={update} />}
           {active === 'weight' && <WeightSection config={cfg} update={update} />}
-          {!['general', 'holster', 'drop', 'jamming', 'suppressor', 'safety', 'charge', 'weight'].includes(active) && (
-            <div className="mbt-section">
-              <div className="mbt-section__head">
-                <span className="mbt-section__ic"><Icon name={activeItem?.icon ?? 'configure'} size={16} /></span>
-                <div className="mbt-section__head-tx">
-                  <h4 className="mbt-section__title">{activeItem?.label}</h4>
-                  <p className="mbt-section__sub">Section coming next phase.</p>
-                </div>
-              </div>
-            </div>
-          )}
+          {active === 'inspect' && <InspectSection config={cfg} update={update} />}
+          {active === 'wname' && <WeaponNameSection config={cfg} update={update} />}
+          {active === 'poses' && <PosesSection config={cfg} update={update} />}
+          {active === 'throw' && <ThrowSection config={cfg} update={update} />}
+          {active === 'nodraw' && <NoDrawSection config={cfg} update={update} />}
+          {active === 'vehicle' && <VehicleSection config={cfg} update={update} />}
+          {active === 'tactical' && <TacticalSlingSection config={cfg} update={update} />}
         </div>
 
         {/* ── Overview ── */}

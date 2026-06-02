@@ -11,7 +11,9 @@
 -- client check (server-side enforcement is future hardening).
 -- ─────────────────────────────────────────────────────────────────────────────
 
-if not MBT.NoDrawZones or not MBT.NoDrawZones.Enabled then return end
+-- Load if the block exists; Enabled checked in the enforcement loop so the admin
+-- menu can toggle it live (zones stay registered but inert when disabled).
+if not MBT.NoDrawZones then return end
 
 local cfg = MBT.NoDrawZones
 
@@ -68,7 +70,7 @@ end
 -- Enforcement loop — only spins while the player is inside a no-draw zone.
 CreateThread(function()
     while true do
-        if inside > 0 then
+        if inside > 0 and cfg.Enabled then
             DisablePlayerFiring(cache.playerId, true)
 
             local has, weaponHash = GetCurrentPedWeapon(cache.ped, true)

@@ -1,4 +1,5 @@
-if not MBT.Throw["Enabled"] then return end
+-- Load if the block exists; Enabled checked at use time (live-apply via menu).
+if not MBT.Throw then return end
 
 local currentWeapon
 local throwAnim = MBT.Throw["Animation"]
@@ -53,6 +54,7 @@ local function throwWeapon(data)
 end
 
 local function attemptThrowWeapon()
+    if not MBT.Throw["Enabled"] then return end
     if cache.vehicle then return end
     local hasWeapon, weaponHash = GetCurrentPedWeapon(cache.ped)
     local weaponGroup = GetWeapontypeGroup(weaponHash)
