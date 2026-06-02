@@ -33,7 +33,6 @@ end)
 --- Apply an editable config snapshot to MBT.* on this client.
 local function applyConfig(d)
     if type(d) ~= 'table' then return end
-    MBT.Debug             = d.Debug
     MBT.EnableSling       = d.EnableSling
     MBT.EnableFlashlight  = d.EnableFlashlight
     MBT.DropWeaponOnDeath = d.DropWeaponOnDeath

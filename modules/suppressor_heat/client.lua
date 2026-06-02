@@ -12,7 +12,9 @@
 -- by the engine quirks that make slung-weapon *flashlight* attachment unreliable.
 -- ─────────────────────────────────────────────────────────────────────────────
 
-if not MBT.SuppressorHeat or not MBT.SuppressorHeat.Enabled then return end
+-- Load if the feature block exists; Enabled is checked in the loop so the admin
+-- menu can toggle it live (cfg is the live MBT.SuppressorHeat table).
+if not MBT.SuppressorHeat then return end
 
 local cfg = MBT.SuppressorHeat
 
@@ -212,6 +214,12 @@ CreateThread(function()
     end
 
     while true do
+        if not cfg.Enabled then
+            if heat > 0 then heat = 0 end
+            stopGlow()
+            Wait(500)
+            goto continue
+        end
         local has, weaponHash = GetCurrentPedWeapon(cache.ped, true)
         local armed = has and weaponHash ~= 0 and weaponHash ~= `WEAPON_UNARMED`
 
@@ -284,5 +292,6 @@ CreateThread(function()
             if heat <= 0 then suppHash = 0 end
             Wait(0)
         end
+        ::continue::
     end
 end)

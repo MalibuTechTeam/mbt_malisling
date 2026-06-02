@@ -8,7 +8,9 @@
 -- which reads the state via the 'mbt_weaponSafety' statebag or IsWeaponSafetyOn().
 -- ─────────────────────────────────────────────────────────────────────────────
 
-if not MBT.Safety or not MBT.Safety.Enabled then return end
+-- Load if the feature block exists; Enabled is checked at use time so the admin
+-- menu can toggle it live (cfg is the live MBT.Safety table).
+if not MBT.Safety then return end
 
 local cfg = MBT.Safety
 
@@ -92,6 +94,7 @@ local function playToggleAnim()
 end
 
 local function toggle()
+    if not cfg.Enabled then return end
     local ok = heldFirearm()
     if not ok then
         MBT.NotifyLabel('safety_no_weapon')
@@ -110,6 +113,11 @@ RegisterKeyMapping(cfg.Command, '[MBT] Toggle weapon safety', 'keyboard', cfg.Ke
 -- Enforcement + HUD sync. Tight loop only while a firearm is in hand.
 CreateThread(function()
     while true do
+        if not cfg.Enabled then
+            if hudShown then setHud(nil) end
+            Wait(500)
+            goto continue
+        end
         local ok = heldFirearm()
         if ok then
             local on = isSafetyOn()
@@ -129,6 +137,7 @@ CreateThread(function()
             -- Keep the statebag in sync with "no firearm" = not safetied-blocking.
             Wait(300)
         end
+        ::continue::
     end
 end)
 

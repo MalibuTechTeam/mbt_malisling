@@ -6,6 +6,7 @@
    Sections use those classes directly (not always via the Field component), so
    import it here once so the styles are always present. */
 @import "./ui/Field.css";
+@import "./ui/Card.css";   /* .mbt-card-grid--2 grid wrappers */
 
 .mbt-admin-overlay {
   position: fixed; inset: 0; z-index: 9999;
@@ -102,6 +103,14 @@
 }
 .mbt-admin__center .mbt-section__title { font-family: var(--mbt-font-display); font-size: 13px; font-weight: 700; color: var(--mbt-text-hi); letter-spacing: 0.04em; }
 .mbt-admin__center .mbt-section__sub { font-size: 11px; color: var(--mbt-text-lo); margin-top: 2px; }
+
+/* Two-column grid: cards stretch to equal height, body fills remaining space so
+   the bordered surfaces line up at the bottom even with different content. */
+.mbt-admin__center .mbt-card-grid--2 { align-items: stretch; }
+.mbt-admin__center .mbt-card-grid--2 > .mbt-section { height: 100%; }
+.mbt-admin__center .mbt-section__body { flex: 1; }
+/* Nested number pair: align the two NumberInputs to the bottom of the row. */
+.mbt-admin__center .mbt-card-grid--2 .mbt-card-grid--2 { align-items: end; margin-bottom: 0; }
 
 .mbt-btn-ghost, .mbt-btn-primary {
   display: flex; align-items: center; gap: 7px; height: 38px; padding: 0 16px;

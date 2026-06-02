@@ -1,4 +1,6 @@
-if not MBT.Jamming["Enabled"] then return end
+-- Load if the feature block exists; Enabled is checked where a jam can START
+-- (the gunshot handler) so the admin menu can toggle it live.
+if not MBT.Jamming then return end
 
 local jammed = GetGameTimer()
 local currentWeapon
@@ -111,6 +113,7 @@ if MBT.Debug then
 end
 
 AddEventHandler("CEventGunShotWhizzedBy", function(entities, eventEntity, args)
+    if not MBT.Jamming["Enabled"] then return end
     if currentWeapon and not isJammed then
         Utils.mbtDebugger("currentWeapon.metadata.durability ", currentWeapon.metadata.durability)
         if Utils.getJammingChance(currentWeapon.metadata.durability) and (GetGameTimer() - jammed) > (MBT.Jamming["Cooldown"] * 1000) then

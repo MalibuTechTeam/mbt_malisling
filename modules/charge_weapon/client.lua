@@ -7,7 +7,10 @@
 -- sound) so the intimidation actually lands on whoever you're facing.
 -- ─────────────────────────────────────────────────────────────────────────────
 
-if not MBT.ChargeWeapon or not MBT.ChargeWeapon.Enabled then return end
+-- Load if the feature block exists at all; the Enabled flag is checked at use
+-- time so the admin menu can toggle it live (cfg is the live MBT.ChargeWeapon
+-- table, so field edits from applyConfig are seen automatically).
+if not MBT.ChargeWeapon then return end
 
 local cfg     = MBT.ChargeWeapon
 local anim    = cfg.Animation
@@ -38,6 +41,7 @@ local function playAnim(ped)
 end
 
 local function charge()
+    if not cfg.Enabled then return end
     if not heldChargeable() then
         MBT.NotifyLabel('charge_no_weapon')
         return

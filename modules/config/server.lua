@@ -11,7 +11,7 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 
 local CONFIG_FILE     = 'data/runtime_config.json'
-local VALID_POSITIONS = { ['bottom-center'] = true, ['top-center'] = true, ['bottom-right'] = true }
+local VALID_POSITIONS = { ['bottom-center'] = true, ['top-center'] = true, ['bottom-right'] = true, ['custom'] = true }
 local adminCommand    = (MBT.Admin and MBT.Admin.Command) or 'mbtconfig'
 -- Default to the command's own ACE so a server with the usual
 -- `add_ace group.admin command.* allow` (or a wildcard admin principal) works
@@ -26,8 +26,7 @@ local function snapshot()
     local S, D = MBT.Sounds or {}, MBT.WeaponDrop or {}
     local DD, DL = D.Despawn or {}, D.Logging or {}
     return {
-        -- General (editable)
-        Debug             = b(MBT.Debug),
+        -- General (editable). Debug is intentionally NOT exposed (dev flag → config.lua).
         EnableSling       = b(MBT.EnableSling),
         EnableFlashlight  = b(MBT.EnableFlashlight),
         DropWeaponOnDeath = b(MBT.DropWeaponOnDeath),
@@ -59,7 +58,6 @@ end
 local function validate(d)
     if type(d) ~= 'table' then return false end
     -- General
-    if type(d.Debug) ~= 'boolean' then return false end
     if type(d.EnableSling) ~= 'boolean' then return false end
     if type(d.EnableFlashlight) ~= 'boolean' then return false end
     if type(d.DropWeaponOnDeath) ~= 'boolean' then return false end
@@ -86,7 +84,6 @@ end
 
 -- ── Apply the editable fields to MBT.* (server side) ─────────────────────────────
 local function applyToMBT(d)
-    MBT.Debug             = d.Debug
     MBT.EnableSling       = d.EnableSling
     MBT.EnableFlashlight  = d.EnableFlashlight
     MBT.DropWeaponOnDeath = d.DropWeaponOnDeath
@@ -107,7 +104,7 @@ end
 --- The editable subset that gets persisted (overview-only flags excluded).
 local function persistable(d)
     return {
-        Debug = d.Debug, EnableSling = d.EnableSling, EnableFlashlight = d.EnableFlashlight,
+        EnableSling = d.EnableSling, EnableFlashlight = d.EnableFlashlight,
         DropWeaponOnDeath = d.DropWeaponOnDeath, UIPosition = d.UIPosition,
         Sounds = { Enabled = d.Sounds.Enabled, MaxDistance = d.Sounds.MaxDistance, Volume = d.Sounds.Volume },
         WeaponDrop = {

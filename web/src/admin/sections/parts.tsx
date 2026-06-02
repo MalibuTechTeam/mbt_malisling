@@ -2,8 +2,9 @@ import type { ReactNode } from 'react'
 import { Icon, type IconName } from '../ui/Icon'
 import { Toggle } from '../ui/Toggle'
 
-/** Section panel: bordered card with an icon-box head + body. */
-export function Section({ icon, title, sub, children }: { icon: IconName; title: string; sub?: string; children: ReactNode }) {
+/** Section panel: bordered card with an icon-box head + body.
+ *  `action` renders right-aligned in the head (e.g. a segmented control). */
+export function Section({ icon, title, sub, action, children }: { icon: IconName; title: string; sub?: string; action?: ReactNode; children?: ReactNode }) {
   return (
     <div className="mbt-section">
       <div className="mbt-section__head">
@@ -12,8 +13,9 @@ export function Section({ icon, title, sub, children }: { icon: IconName; title:
           <h4 className="mbt-section__title">{title}</h4>
           {sub && <p className="mbt-section__sub">{sub}</p>}
         </div>
+        {action && <><span style={{ flex: 1 }} />{action}</>}
       </div>
-      <div className="mbt-section__body">{children}</div>
+      {children && <div className="mbt-section__body">{children}</div>}
     </div>
   )
 }
@@ -42,6 +44,11 @@ export function FieldBlock({ label, hint, children, style }: { label: string; hi
       {hint && <p className="mbt-field__hint">{hint}</p>}
     </div>
   )
+}
+
+/** Two-column grid wrapper — pack sections side by side (mbt_elevator pattern). */
+export function Grid2({ children }: { children: ReactNode }) {
+  return <div className="mbt-card-grid mbt-card-grid--2">{children}</div>
 }
 
 export interface SectionProps {

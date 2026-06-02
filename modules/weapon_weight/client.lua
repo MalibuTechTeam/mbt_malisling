@@ -7,24 +7,24 @@
 -- move-rate override scaling with the surplus, capped at MaxPenalty. Purely RP.
 -- ─────────────────────────────────────────────────────────────────────────────
 
-if not MBT.WeaponWeight or not MBT.WeaponWeight.Enabled then return end
+-- Load if the feature block exists; Enabled + Mode are read at use time so the
+-- admin menu can toggle/retune live (cfg is the live MBT.WeaponWeight table).
+if not MBT.WeaponWeight then return end
 
 local cfg = MBT.WeaponWeight
 
--- Resolve the active tuning from Mode: a named preset, raw fields ('custom'), or
--- bail out entirely ('off').
-local mode = cfg.Mode or 'custom'
-if mode == 'off' then return end
-local tuning = (mode == 'custom') and cfg or (cfg.Presets and cfg.Presets[mode])
-if not tuning then
-    Utils.mbtWarn('weapon_weight ~ unknown Mode "' .. tostring(mode) .. '"; feature inert')
-    return
-end
-local THRESHOLD   = tuning.Threshold or 2
-local PER_WEAPON  = tuning.PerWeapon or 0.03
-local MAX_PENALTY = tuning.MaxPenalty or 0.18
-
 local moveRate = 1.0   -- 1.0 = normal speed; <1 = slowed
+
+--- Resolve the active tuning from Mode each call (preset / custom / off).
+--- Returns nil when the feature is off or the Mode is unknown.
+local function activeTuning()
+    if not cfg.Enabled then return nil end
+    local mode = cfg.Mode or 'custom'
+    if mode == 'off' then return nil end
+    local t = (mode == 'custom') and cfg or (cfg.Presets and cfg.Presets[mode])
+    if not t then return nil end
+    return { THRESHOLD = t.Threshold or 2, PER_WEAPON = t.PerWeapon or 0.03, MAX_PENALTY = t.MaxPenalty or 0.18 }
+end
 
 --- Ask the server for carried weapons and compute the counted total.
 local function countCarried()
@@ -40,16 +40,12 @@ local function countCarried()
     return total
 end
 
---- Recompute the target move rate from the current weapon count.
+--- Recompute the target move rate from the current weapon count + active tuning.
 local function refresh()
-    local n = countCarried()
-    local surplus = n - THRESHOLD
-    if surplus <= 0 then
-        moveRate = 1.0
-    else
-        local penalty = math.min(MAX_PENALTY, surplus * PER_WEAPON)
-        moveRate = 1.0 - penalty
-    end
+    local t = activeTuning()
+    if not t then moveRate = 1.0; return end
+    local surplus = countCarried() - t.THRESHOLD
+    moveRate = surplus <= 0 and 1.0 or (1.0 - math.min(t.MAX_PENALTY, surplus * t.PER_WEAPON))
 end
 
 -- Apply loop: SetPedMoveRateOverride must be re-applied every frame while a
