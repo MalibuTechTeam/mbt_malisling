@@ -1,8 +1,10 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNuiEvent } from '../utils/useNuiEvent'
 import { fetchNui } from '../utils/fetchNui'
 import { Icon, type IconName } from './ui/Icon'
 import { GeneralSection } from './sections/GeneralSection'
+import { HolsterSection } from './sections/HolsterSection'
+import { WeaponDropSection } from './sections/WeaponDropSection'
 import './Admin.css'
 
 /**
@@ -39,9 +41,15 @@ export default function AdminDashboard() {
   const [active, setActive] = useState('general')
   const [cfg, setCfg] = useState<any>(null)
   const [version, setVersion] = useState('v2.0')
+  const [dirty, setDirty] = useState(false)        // unsaved changes
+  const [savePulse, setSavePulse] = useState(false) // one-shot pulse on save
+  const baseline = useRef('')                       // last-saved snapshot
 
   useNuiEvent<any>('openAdmin', (data) => {
-    setCfg(data?.config ?? {})
+    const c = data?.config ?? {}
+    setCfg(c)
+    baseline.current = JSON.stringify(c)
+    setDirty(false)
     if (data?.version) setVersion(data.version)
     setActive('general')
     setOpen(true)
@@ -71,13 +79,17 @@ export default function AdminDashboard() {
         node = node[keys[i]]
       }
       node[keys[keys.length - 1]] = value
+      setDirty(JSON.stringify(next) !== baseline.current)
       return next
     })
   }, [])
 
   const save = useCallback(() => {
-    fetchNui('adminSave', cfg)
-    setOpen(false)
+    fetchNui('adminSave', cfg)   // panel stays open; feedback is on the button
+    baseline.current = JSON.stringify(cfg)
+    setDirty(false)
+    setSavePulse(true)
+    window.setTimeout(() => setSavePulse(false), 560)
   }, [cfg])
 
   if (!open || !cfg) return null
@@ -87,12 +99,6 @@ export default function AdminDashboard() {
   return (
     <div className="mbt-admin-overlay">
       <div className="mbt-admin">
-        {/* Close (top-right corner of the panel) */}
-        <button className="mbt-admin__close" onClick={close} aria-label="Close">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-            <path d="M6 6l12 12M18 6 6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-          </svg>
-        </button>
 
         {/* ── Rail ── */}
         <nav className="mbt-admin__rail">
@@ -121,6 +127,17 @@ export default function AdminDashboard() {
           ))}
 
           <div className="mbt-rail__spacer" />
+
+          <button className="mbt-rail__item mbt-rail__exit" onClick={close}>
+            <span className="ic">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M14 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M10 12h11M18 9l3 3-3 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </span>
+            <span className="mbt-rail__tx"><span className="mbt-rail__label">Exit</span></span>
+          </button>
+
           <div className="mbt-rail__status">
             <span className="sdot" />
             <div><b>Running</b><small>Resource status</small></div>
@@ -137,16 +154,22 @@ export default function AdminDashboard() {
               <div className="mbt-admin__meta">Applies live on save</div>
             </div>
             <div className="mbt-admin__head-sp" />
-            <button className="mbt-btn-ghost" onClick={close}>
-              <Icon name="back" size={14} /> Close
-            </button>
-            <button className="mbt-btn-primary" onClick={save}>
+            {dirty && (
+              <span className="mbt-admin__dirty"><i />Unsaved changes</span>
+            )}
+            <button
+              className={`mbt-btn-primary${savePulse ? ' is-complete' : ''}`}
+              onClick={save}
+              disabled={!dirty}
+            >
               <Icon name="save" size={14} /> Save &amp; Apply
             </button>
           </div>
 
           {active === 'general' && <GeneralSection config={cfg} update={update} />}
-          {active !== 'general' && (
+          {active === 'holster' && <HolsterSection config={cfg} update={update} />}
+          {active === 'drop' && <WeaponDropSection config={cfg} update={update} />}
+          {!['general', 'holster', 'drop'].includes(active) && (
             <div className="mbt-section">
               <div className="mbt-section__head">
                 <span className="mbt-section__ic"><Icon name={activeItem?.icon ?? 'configure'} size={16} /></span>
@@ -177,6 +200,9 @@ export default function AdminDashboard() {
               </div>
             ))}
           </div>
+          <div className="mbt-ov__spacer" />
+
+          {/* LIVE APPLY — pinned to the bottom of the overview */}
           <div className="mbt-ov__tip">
             <span className="ic"><Icon name="help" size={15} /></span>
             <div>

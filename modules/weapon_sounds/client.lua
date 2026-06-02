@@ -1,14 +1,15 @@
-if not MBT.Sounds or not MBT.Sounds.Enabled then return end
-
-local volume = MBT.Sounds.Volume or 0.4
+if not MBT.Sounds then return end
 
 local function resolveFile(action, weaponType)
     local tbl = action == 'holster' and MBT.Sounds.Holster or MBT.Sounds.Unholster
     return (tbl and (tbl[weaponType] or tbl.default)) or action
 end
 
+-- Read Enabled/Volume fresh each call so the admin menu's live-apply takes
+-- effect without a restart (cfg is not cached in an upvalue).
 local function playSound(file)
-    SendNUIMessage({ action = 'playHolsterSound', data = { file = file, volume = volume } })
+    if not MBT.Sounds.Enabled then return end
+    SendNUIMessage({ action = 'playHolsterSound', data = { file = file, volume = MBT.Sounds.Volume or 0.4 } })
 end
 
 AddEventHandler('mbt_malisling:onHolster', function(weaponType)

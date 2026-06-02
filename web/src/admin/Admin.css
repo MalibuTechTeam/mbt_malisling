@@ -29,14 +29,11 @@
   color: var(--mbt-text-mid);
 }
 
-.mbt-admin__close {
-  position: absolute; top: 14px; right: 14px; z-index: 5;
-  width: 32px; height: 32px; display: grid; place-items: center;
-  background: var(--mbt-surface-3); border: 1px solid var(--mbt-edge);
-  border-radius: var(--mbt-r-sm); color: var(--mbt-text-lo); cursor: pointer;
-  transition: color var(--mbt-dur) var(--mbt-ease), border-color var(--mbt-dur) var(--mbt-ease);
-}
-.mbt-admin__close:hover { color: var(--mbt-faulty); border-color: rgba(var(--mbt-faulty-rgb), 0.4); }
+/* Exit — last item in the rail (mbt_elevator pattern). Red-tinted on hover. */
+.mbt-rail__exit { color: var(--mbt-text-lo); }
+.mbt-rail__exit:hover { background: rgba(var(--mbt-faulty-rgb), 0.10); color: var(--mbt-faulty); }
+.mbt-rail__exit:hover .ic { color: var(--mbt-faulty); }
+
 
 /* ── Rail ──────────────────────────────────────────────────────────────── */
 .mbt-admin__rail {
@@ -114,10 +111,24 @@
 .mbt-btn-ghost:hover { color: var(--mbt-text-hi); border-color: var(--mbt-edge-hi); }
 .mbt-btn-primary { background: var(--mbt-accent); border: none; color: var(--mbt-surface-base); font-family: var(--mbt-font-display); }
 .mbt-btn-primary:hover { background: var(--mbt-accent-deep); }
+.mbt-btn-primary:disabled { background: var(--mbt-surface-3); color: var(--mbt-text-faint); cursor: not-allowed; }
+.mbt-btn-primary.is-complete { animation: mbt-save-pulse var(--mbt-pulse) ease-out; }
+@keyframes mbt-save-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(var(--mbt-accent-rgb), 0.5); }
+  100% { box-shadow: 0 0 0 7px rgba(var(--mbt-accent-rgb), 0); }
+}
+
+/* Unsaved-changes indicator in the header (mbt_elevator pattern). */
+.mbt-admin__dirty {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 11.5px; font-weight: 600; color: var(--mbt-hacked);
+}
+.mbt-admin__dirty i { width: 7px; height: 7px; border-radius: 50%; background: var(--mbt-hacked); box-shadow: 0 0 8px rgba(var(--mbt-hacked-rgb), 0.5); }
 
 /* ── Overview (optional right column) ──────────────────────────────────── */
 .mbt-admin__overview { width: 300px; flex-shrink: 0; border-left: 1px solid var(--mbt-edge); padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 18px; }
 .mbt-ov__label { display: flex; align-items: center; gap: 7px; font-size: 10px; font-weight: 600; letter-spacing: 0.12em; color: var(--mbt-text-faint); }
+.mbt-ov__spacer { flex: 1 1 auto; }
 .mbt-ov__summary { display: flex; flex-direction: column; }
 .mbt-ov__row { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--mbt-edge-lo); font-size: 12px; }
 .mbt-ov__row:last-child { border-bottom: none; }

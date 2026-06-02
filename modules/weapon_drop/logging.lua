@@ -15,13 +15,14 @@
 
 MBT = MBT or {}
 
-local cfg = (MBT.WeaponDrop or {}).Logging or {}
-
 --- Fire-and-forget log of a weapon drop.
+--- Reads MBT.WeaponDrop.Logging fresh each call so the admin menu's live-apply
+--- (which rewrites MBT.*) takes effect without a restart.
 ---@param src number          dropping player's server id
 ---@param item table          the inventory item ({ name, metadata = { serial, label, ... } })
 ---@param coords vector3      where it landed
 function MBT.LogWeaponDrop(src, item, coords)
+    local cfg = (MBT.WeaponDrop or {}).Logging or {}
     if not cfg.Enabled then return end
     if type(item) ~= 'table' or type(item.name) ~= 'string' then return end
 

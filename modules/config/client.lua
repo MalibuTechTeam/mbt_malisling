@@ -15,7 +15,7 @@ RegisterNetEvent('mbt_malisling:openAdmin', function(payload)
 end)
 
 RegisterNUICallback('adminSave', function(data, cb)
-    SetNuiFocus(false, false)
+    -- Keep NUI focus: the panel stays open after save (shows a confirmation pill).
     TriggerServerEvent('mbt_malisling:adminSave', data)
     cb({})
 end)
@@ -30,13 +30,42 @@ RegisterNetEvent('mbt_malisling:notifyLabel', function(key)
     MBT.NotifyLabel(key)
 end)
 
--- Live apply (broadcast to everyone on save).
-RegisterNetEvent('mbt_malisling:applyConfig', function(d)
+--- Apply an editable config snapshot to MBT.* on this client.
+local function applyConfig(d)
     if type(d) ~= 'table' then return end
     MBT.Debug             = d.Debug
     MBT.EnableSling       = d.EnableSling
     MBT.EnableFlashlight  = d.EnableFlashlight
     MBT.DropWeaponOnDeath = d.DropWeaponOnDeath
     if MBT.UI then MBT.UI.Position = d.UIPosition end
+    if d.Sounds and MBT.Sounds then
+        MBT.Sounds.Enabled     = d.Sounds.Enabled
+        MBT.Sounds.MaxDistance = d.Sounds.MaxDistance
+        MBT.Sounds.Volume      = d.Sounds.Volume
+    end
+    if d.WeaponDrop and MBT.WeaponDrop then
+        MBT.WeaponDrop.WeaponModelProp = d.WeaponDrop.WeaponModelProp
+        MBT.WeaponDrop.OxTargetPickup  = d.WeaponDrop.OxTargetPickup
+        if d.WeaponDrop.Despawn and MBT.WeaponDrop.Despawn then
+            MBT.WeaponDrop.Despawn.Enabled      = d.WeaponDrop.Despawn.Enabled
+            MBT.WeaponDrop.Despawn.Seconds      = d.WeaponDrop.Despawn.Seconds
+            MBT.WeaponDrop.Despawn.BlinkLastSec = d.WeaponDrop.Despawn.BlinkLastSec
+        end
+        if d.WeaponDrop.Logging and MBT.WeaponDrop.Logging then
+            MBT.WeaponDrop.Logging.Enabled = d.WeaponDrop.Logging.Enabled
+            MBT.WeaponDrop.Logging.Webhook = d.WeaponDrop.Logging.Webhook
+            MBT.WeaponDrop.Logging.Console = d.WeaponDrop.Logging.Console
+        end
+    end
     Utils.mbtDebugger('Admin config applied live')
+end
+
+-- Live apply (broadcast to everyone on save).
+RegisterNetEvent('mbt_malisling:applyConfig', applyConfig)
+
+-- On (re)start / fresh join, pull the current live config so this client matches
+-- runtime_config.json without needing a save. Retries until the server answers.
+CreateThread(function()
+    local data = lib.callback.await('mbt_malisling:getRuntimeConfig', false)
+    if data then applyConfig(data) end
 end)
