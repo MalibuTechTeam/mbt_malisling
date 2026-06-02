@@ -5,6 +5,7 @@ import { Icon, type IconName } from './ui/Icon'
 import { GeneralSection } from './sections/GeneralSection'
 import { HolsterSection } from './sections/HolsterSection'
 import { WeaponDropSection } from './sections/WeaponDropSection'
+import { JammingSection, SuppressorSection, SafetySection, ChargeSection, WeightSection } from './sections/CombatSections'
 import './Admin.css'
 
 /**
@@ -169,7 +170,12 @@ export default function AdminDashboard() {
           {active === 'general' && <GeneralSection config={cfg} update={update} />}
           {active === 'holster' && <HolsterSection config={cfg} update={update} />}
           {active === 'drop' && <WeaponDropSection config={cfg} update={update} />}
-          {!['general', 'holster', 'drop'].includes(active) && (
+          {active === 'jamming' && <JammingSection config={cfg} update={update} />}
+          {active === 'suppressor' && <SuppressorSection config={cfg} update={update} />}
+          {active === 'safety' && <SafetySection config={cfg} update={update} />}
+          {active === 'charge' && <ChargeSection config={cfg} update={update} />}
+          {active === 'weight' && <WeightSection config={cfg} update={update} />}
+          {!['general', 'holster', 'drop', 'jamming', 'suppressor', 'safety', 'charge', 'weight'].includes(active) && (
             <div className="mbt-section">
               <div className="mbt-section__head">
                 <span className="mbt-section__ic"><Icon name={activeItem?.icon ?? 'configure'} size={16} /></span>

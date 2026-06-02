@@ -35,6 +35,11 @@ export function ToggleRow({ title, desc, checked, onChange }: { title: string; d
   )
 }
 
+/** Bare toggle for a section header (feature on/off, right-aligned). */
+ToggleRow.Inline = function ToggleRowInline({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
+  return <Toggle checked={checked} onChange={onChange} />
+}
+
 /** A labelled field wrapper (label + optional hint + control). */
 export function FieldBlock({ label, hint, children, style }: { label: string; hint?: string; children: ReactNode; style?: React.CSSProperties }) {
   return (

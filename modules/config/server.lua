@@ -25,6 +25,8 @@ local function num(v, default) if type(v) == 'number' then return v end return d
 local function snapshot()
     local S, D = MBT.Sounds or {}, MBT.WeaponDrop or {}
     local DD, DL = D.Despawn or {}, D.Logging or {}
+    local J, SH = MBT.Jamming or {}, MBT.SuppressorHeat or {}
+    local SF, CH, WW = MBT.Safety or {}, MBT.ChargeWeapon or {}, MBT.WeaponWeight or {}
     return {
         -- General (editable). Debug is intentionally NOT exposed (dev flag → config.lua).
         EnableSling       = b(MBT.EnableSling),
@@ -45,10 +47,40 @@ local function snapshot()
             Despawn = { Enabled = b(DD.Enabled), Seconds = num(DD.Seconds, 300), BlinkLastSec = num(DD.BlinkLastSec, 10) },
             Logging = { Enabled = b(DL.Enabled), Webhook = DL.Webhook or '', Console = b(DL.Console) },
         },
-        -- Overview flags (read-only summary; editable in their own sections later)
-        SuppressorHeat    = { Enabled = b(MBT.SuppressorHeat and MBT.SuppressorHeat.Enabled) },
+        -- Combat / RP
+        Jamming = {
+            Enabled      = b(J.Enabled),
+            Cooldown     = num(J.Cooldown, 5),
+            UnjamPresses = num(J.Unjam and J.Unjam.Presses, 5),
+        },
+        SuppressorHeat = {
+            Enabled       = b(SH.Enabled),
+            Mode          = SH.Mode or 'glow',
+            HeatPerShot   = num(SH.HeatPerShot, 5),
+            DecayRate     = num(SH.DecayRate, 16),
+            WarmThreshold = num(SH.WarmThreshold, 35),
+            HotThreshold  = num(SH.HotThreshold, 75),
+        },
+        Safety = {
+            Enabled      = b(SF.Enabled),
+            DefaultOn    = b(SF.DefaultOn),
+            PerWeapon    = b(SF.PerWeapon),
+            HudIndicator = b(SF.HudIndicator),
+        },
+        ChargeWeapon = {
+            Enabled     = b(CH.Enabled),
+            MaxDistance = num(CH.MaxDistance, 20.0),
+            Cooldown    = num(CH.Cooldown, 1500),
+        },
+        WeaponWeight = {
+            Enabled    = b(WW.Enabled),
+            Mode       = WW.Mode or 'light',
+            Threshold  = num(WW.Threshold, 2),
+            PerWeapon  = num(WW.PerWeapon, 0.03),
+            MaxPenalty = num(WW.MaxPenalty, 0.18),
+        },
+        -- Overview flags (editable in their own sections later)
         Inspect           = { Enabled = b(MBT.Inspect and MBT.Inspect.Enabled) },
-        Safety            = { Enabled = b(MBT.Safety and MBT.Safety.Enabled) },
         NoDrawZones       = { Enabled = b(MBT.NoDrawZones and MBT.NoDrawZones.Enabled) },
         TacticalSling     = { Enabled = b(MBT.TacticalSling and MBT.TacticalSling.Enabled) },
     }
@@ -79,6 +111,36 @@ local function validate(d)
     if type(dl) ~= 'table' or type(dl.Enabled) ~= 'boolean' then return false end
     if type(dl.Webhook) ~= 'string' or #dl.Webhook > 300 then return false end
     if type(dl.Console) ~= 'boolean' then return false end
+    -- Jamming
+    local j = d.Jamming
+    if type(j) ~= 'table' or type(j.Enabled) ~= 'boolean' then return false end
+    if type(j.Cooldown) ~= 'number' or j.Cooldown < 1 or j.Cooldown > 120 then return false end
+    if type(j.UnjamPresses) ~= 'number' or j.UnjamPresses < 1 or j.UnjamPresses > 20 then return false end
+    -- Suppressor Heat
+    local sh = d.SuppressorHeat
+    if type(sh) ~= 'table' or type(sh.Enabled) ~= 'boolean' then return false end
+    if sh.Mode ~= 'glow' and sh.Mode ~= 'light' and sh.Mode ~= 'particle' then return false end
+    if type(sh.HeatPerShot) ~= 'number' or sh.HeatPerShot < 1 or sh.HeatPerShot > 100 then return false end
+    if type(sh.DecayRate) ~= 'number' or sh.DecayRate < 1 or sh.DecayRate > 100 then return false end
+    if type(sh.WarmThreshold) ~= 'number' or sh.WarmThreshold < 0 or sh.WarmThreshold > 100 then return false end
+    if type(sh.HotThreshold) ~= 'number' or sh.HotThreshold < 0 or sh.HotThreshold > 100 then return false end
+    -- Safety
+    local sf = d.Safety
+    if type(sf) ~= 'table' or type(sf.Enabled) ~= 'boolean' then return false end
+    if type(sf.DefaultOn) ~= 'boolean' or type(sf.PerWeapon) ~= 'boolean' or type(sf.HudIndicator) ~= 'boolean' then return false end
+    -- Charge Weapon
+    local ch = d.ChargeWeapon
+    if type(ch) ~= 'table' or type(ch.Enabled) ~= 'boolean' then return false end
+    if type(ch.MaxDistance) ~= 'number' or ch.MaxDistance < 1 or ch.MaxDistance > 100 then return false end
+    if type(ch.Cooldown) ~= 'number' or ch.Cooldown < 0 or ch.Cooldown > 10000 then return false end
+    -- Weapon Weight
+    local ww = d.WeaponWeight
+    if type(ww) ~= 'table' or type(ww.Enabled) ~= 'boolean' then return false end
+    local validModes = { off = true, light = true, medium = true, heavy = true, custom = true }
+    if type(ww.Mode) ~= 'string' or not validModes[ww.Mode] then return false end
+    if type(ww.Threshold) ~= 'number' or ww.Threshold < 0 or ww.Threshold > 20 then return false end
+    if type(ww.PerWeapon) ~= 'number' or ww.PerWeapon < 0 or ww.PerWeapon > 1 then return false end
+    if type(ww.MaxPenalty) ~= 'number' or ww.MaxPenalty < 0 or ww.MaxPenalty > 0.9 then return false end
     return true
 end
 
@@ -99,6 +161,28 @@ local function applyToMBT(d)
     MBT.WeaponDrop.Logging.Enabled     = d.WeaponDrop.Logging.Enabled
     MBT.WeaponDrop.Logging.Webhook     = d.WeaponDrop.Logging.Webhook
     MBT.WeaponDrop.Logging.Console     = d.WeaponDrop.Logging.Console
+    -- Combat / RP
+    MBT.Jamming.Enabled          = d.Jamming.Enabled
+    MBT.Jamming.Cooldown         = d.Jamming.Cooldown
+    MBT.Jamming.Unjam.Presses    = d.Jamming.UnjamPresses
+    MBT.SuppressorHeat.Enabled       = d.SuppressorHeat.Enabled
+    MBT.SuppressorHeat.Mode          = d.SuppressorHeat.Mode
+    MBT.SuppressorHeat.HeatPerShot   = d.SuppressorHeat.HeatPerShot
+    MBT.SuppressorHeat.DecayRate     = d.SuppressorHeat.DecayRate
+    MBT.SuppressorHeat.WarmThreshold = d.SuppressorHeat.WarmThreshold
+    MBT.SuppressorHeat.HotThreshold  = d.SuppressorHeat.HotThreshold
+    MBT.Safety.Enabled      = d.Safety.Enabled
+    MBT.Safety.DefaultOn    = d.Safety.DefaultOn
+    MBT.Safety.PerWeapon    = d.Safety.PerWeapon
+    MBT.Safety.HudIndicator = d.Safety.HudIndicator
+    MBT.ChargeWeapon.Enabled     = d.ChargeWeapon.Enabled
+    MBT.ChargeWeapon.MaxDistance = d.ChargeWeapon.MaxDistance
+    MBT.ChargeWeapon.Cooldown    = d.ChargeWeapon.Cooldown
+    MBT.WeaponWeight.Enabled    = d.WeaponWeight.Enabled
+    MBT.WeaponWeight.Mode       = d.WeaponWeight.Mode
+    MBT.WeaponWeight.Threshold  = d.WeaponWeight.Threshold
+    MBT.WeaponWeight.PerWeapon  = d.WeaponWeight.PerWeapon
+    MBT.WeaponWeight.MaxPenalty = d.WeaponWeight.MaxPenalty
 end
 
 --- The editable subset that gets persisted (overview-only flags excluded).
@@ -111,6 +195,11 @@ local function persistable(d)
             WeaponModelProp = d.WeaponDrop.WeaponModelProp, OxTargetPickup = d.WeaponDrop.OxTargetPickup,
             Despawn = d.WeaponDrop.Despawn, Logging = d.WeaponDrop.Logging,
         },
+        Jamming = d.Jamming,
+        SuppressorHeat = d.SuppressorHeat,
+        Safety = d.Safety,
+        ChargeWeapon = d.ChargeWeapon,
+        WeaponWeight = d.WeaponWeight,
     }
 end
 

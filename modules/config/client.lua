@@ -56,6 +56,23 @@ local function applyConfig(d)
             MBT.WeaponDrop.Logging.Console = d.WeaponDrop.Logging.Console
         end
     end
+    if d.Jamming and MBT.Jamming then
+        MBT.Jamming.Enabled  = d.Jamming.Enabled
+        MBT.Jamming.Cooldown = d.Jamming.Cooldown
+        if MBT.Jamming.Unjam then MBT.Jamming.Unjam.Presses = d.Jamming.UnjamPresses end
+    end
+    if d.SuppressorHeat and MBT.SuppressorHeat then
+        for k, v in pairs(d.SuppressorHeat) do MBT.SuppressorHeat[k] = v end
+    end
+    if d.Safety and MBT.Safety then
+        for k, v in pairs(d.Safety) do MBT.Safety[k] = v end
+    end
+    if d.ChargeWeapon and MBT.ChargeWeapon then
+        for k, v in pairs(d.ChargeWeapon) do MBT.ChargeWeapon[k] = v end
+    end
+    if d.WeaponWeight and MBT.WeaponWeight then
+        for k, v in pairs(d.WeaponWeight) do MBT.WeaponWeight[k] = v end
+    end
     Utils.mbtDebugger('Admin config applied live')
 end
 
