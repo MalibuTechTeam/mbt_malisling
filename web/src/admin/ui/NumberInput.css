@@ -1,0 +1,72 @@
+/* NumberInput — themed up/down steppers replacing the native spinner arrows.
+   The input is borderless inside a bordered wrapper, and the steppers are a
+   real flex column inside that border — so it reads as one unified control. */
+
+.mbt-num {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  height: 38px;
+  background: var(--mbt-surface-base);
+  border: 1px solid var(--mbt-edge);
+  border-radius: var(--mbt-r-sm);
+  overflow: hidden;
+  transition:
+    border-color var(--mbt-dur) var(--mbt-ease),
+    box-shadow var(--mbt-dur) var(--mbt-ease);
+}
+.mbt-num:focus-within {
+  border-color: rgba(var(--mbt-accent-rgb), 0.45);
+  box-shadow: 0 0 0 3px var(--mbt-accent-glow);
+}
+
+/* The inner input drops its own chrome — the wrapper owns the box now. */
+.mbt-num > .mbt-input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: none;
+  border-radius: 0;
+  background: none;
+  padding-right: 6px;
+}
+.mbt-num > .mbt-input:focus {
+  border: none;
+  box-shadow: none;
+}
+
+/* No divider, no separate background — the chevrons float inside the field
+   like the Select's dropdown chevron, so they read as part of the input. */
+.mbt-num__btns {
+  flex-shrink: 0;
+  width: 18px;
+  display: flex;
+  flex-direction: column;
+}
+.mbt-num__btn {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--mbt-text-faint);
+  cursor: pointer;
+  transition: color var(--mbt-dur) var(--mbt-ease);
+}
+.mbt-num__btn:hover {
+  color: var(--mbt-accent);
+}
+.mbt-num__btn:active {
+  color: var(--mbt-accent);
+}
+.mbt-num__btn svg {
+  width: 9px;
+  height: 9px;
+}
+
+/* Error state — the amber border lives on the wrapper. */
+.mbt-field--error .mbt-num {
+  border-color: rgba(var(--mbt-hacked-rgb), 0.55);
+}

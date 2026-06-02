@@ -1,0 +1,94 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   MalibuTech Control Room — shared design tokens
+   Source of truth: DESIGN.md (project root). Shared namespace (--mbt-*) with
+   mbt_emote_menu so every MalibuTech script reads as one system.
+
+   Ladders, not flat values:
+   - surface 1..3  recessed -> default -> raised
+   - text hi..faint  read-first -> disabled-only
+   - edge hi..lo   hover edge -> default border -> faint separator
+   Never #000 / #fff. The accent is rare on screen (One Voice Rule).
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── Accent — the one interactive color (buttons, selection, focus) ────── */
+  --mbt-accent:       #00E676;
+  --mbt-accent-rgb:   0, 230, 118;
+  --mbt-accent-deep:  #00C66B;                       /* hover-on-fill */
+  --mbt-accent-soft:  rgba(0, 230, 118, 0.08);       /* faint tint backgrounds */
+  --mbt-accent-glow:  rgba(0, 230, 118, 0.22);       /* focus ring only */
+
+  /* ── Surface ladder — dark console, three steps of separation ─────────── */
+  --mbt-surface-base: #0C0E14;   /* panel backdrop, deepest layer */
+  --mbt-surface-1:    #0B100E;   /* recessed: input wells, sub-content */
+  --mbt-surface-2:    #121814;   /* default content surface: cards, panels */
+  --mbt-surface-3:    #1A221E;   /* raised: hover, ghost buttons, chips */
+
+  /* ── Text ladder — read-first down to disabled-only ───────────────────── */
+  --mbt-text-hi:      #F2F0EA;   /* headings, values read first */
+  --mbt-text-mid:     #BFBDB4;   /* body, default labels */
+  --mbt-text-lo:      #8C8A82;   /* secondary, metadata, captions */
+  --mbt-text-faint:   #6A6962;   /* disabled and faintest hints ONLY */
+
+  /* ── Edge ladder — borders and separators ─────────────────────────────── */
+  --mbt-edge-hi:      rgba(255, 255, 255, 0.10);   /* hover / focus edge */
+  --mbt-edge:         rgba(255, 255, 255, 0.055);  /* default 1px border */
+  --mbt-edge-lo:      rgba(255, 255, 255, 0.03);   /* faint inner separator */
+
+  /* ── Status trio + info — carried by glyph + shape first, color second ── */
+  --mbt-operational:      #22C55E;
+  --mbt-operational-rgb:  34, 197, 94;
+  --mbt-faulty:           #EF4444;
+  --mbt-faulty-rgb:       239, 68, 68;
+  --mbt-hacked:           #FB8C00;
+  --mbt-hacked-rgb:       251, 140, 0;
+  --mbt-info:             #60A5FA;
+  --mbt-info-rgb:         96, 165, 250;
+
+  /* ── Radius ───────────────────────────────────────────────────────────── */
+  --mbt-r-sm:    8px;
+  --mbt-r-md:    10px;
+  --mbt-r-lg:    18px;    /* the panel shell */
+  --mbt-r-pill:  999px;
+
+  /* ── Spacing ──────────────────────────────────────────────────────────── */
+  --mbt-space-xs:   4px;
+  --mbt-space-sm:   8px;
+  --mbt-space-md:   12px;
+  --mbt-space-lg:   16px;
+  --mbt-space-xl:   24px;
+  --mbt-space-2xl:  32px;
+
+  /* ── Motion — one ease curve, feedback only ───────────────────────────── */
+  --mbt-ease:       cubic-bezier(0.16, 1, 0.3, 1);   /* enter / move */
+  --mbt-ease-exit:  cubic-bezier(0.4, 0, 1, 1);      /* exits only — fast out */
+  --mbt-dur-fast:   120ms;   /* exits, press feedback */
+  --mbt-dur:        180ms;   /* default state transitions */
+  --mbt-dur-slow:   240ms;   /* entrances, view transitions */
+  --mbt-dur-car:    420ms;   /* the one deliberate slower move: car to floor */
+  --mbt-pulse:      520ms;   /* one-shot Save completion pulse */
+
+  /* ── Typography ───────────────────────────────────────────────────────── */
+  --mbt-font-display: "Outfit Variable", "Outfit", system-ui, -apple-system, sans-serif;
+  --mbt-font-body:    "Inter Variable", "Inter", system-ui, -apple-system, sans-serif;
+  --mbt-font-mono:    "JetBrains Mono Variable", "JetBrains Mono", "Consolas", monospace;
+
+  /* ── Elevation — tonal first; shadow only for floating objects ────────── */
+  --mbt-shadow-panel:
+    0 44px 96px rgba(0, 0, 0, 0.74),
+    0 10px 30px rgba(0, 0, 0, 0.54),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --mbt-shadow-overlay: 0 16px 40px rgba(0, 0, 0, 0.6);
+}
+
+/* Reduced-motion: collapse all token durations. Component CSS additionally
+   drops transforms and looping animations (see the rework brief, Section 7). */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --mbt-dur-fast: 0.01ms;
+    --mbt-dur:      0.01ms;
+    --mbt-dur-slow: 0.01ms;
+    --mbt-dur-car:  0.01ms;
+    --mbt-pulse:    0.01ms;
+  }
+}

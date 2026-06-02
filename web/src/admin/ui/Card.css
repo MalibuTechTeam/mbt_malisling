@@ -1,0 +1,83 @@
+/* Card — bordered section block for the Config view (matches the merged
+   mockup's `.card`). Quiet chrome: surface-2, neutral icon, faint inner
+   separator. Composed inside `.mbt-card-grid` for the dashboard layout. */
+
+.mbt-card {
+  background: var(--mbt-surface-2);
+  border: 1px solid var(--mbt-edge);
+  border-radius: var(--mbt-r-md);
+  min-width: 0;
+}
+/* Hero — one focal card (Interaction Zone). One surface step down + a faint
+   top edge, not accent. */
+.mbt-card--hero {
+  background: var(--mbt-surface-1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.mbt-card__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 15px;
+  border-bottom: 1px solid var(--mbt-edge-lo);
+}
+.mbt-card__ic {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  background: var(--mbt-surface-3);
+  border: 1px solid var(--mbt-edge);
+  border-radius: var(--mbt-r-sm);
+  color: var(--mbt-text-lo);
+}
+.mbt-card__head-tx {
+  min-width: 0;
+}
+.mbt-card__title {
+  font-family: var(--mbt-font-display);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--mbt-text-hi);
+}
+.mbt-card__sub {
+  margin-top: 2px;
+  font-family: var(--mbt-font-body);
+  font-size: 11px;
+  color: var(--mbt-text-lo);
+}
+.mbt-card__action {
+  margin-left: auto;
+}
+.mbt-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px 18px;
+}
+
+/* ── Grid wrappers ───────────────────────────────────────────────────────── */
+.mbt-card-grid {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.mbt-card-grid:last-child {
+  margin-bottom: 0;
+}
+.mbt-card-grid--2 {
+  grid-template-columns: 1fr 1fr;
+}
+.mbt-card-grid--floors {
+  grid-template-columns: 300px 1fr;
+}
+@media (max-width: 1100px) {
+  .mbt-card-grid--2,
+  .mbt-card-grid--floors {
+    grid-template-columns: 1fr;
+  }
+}

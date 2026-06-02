@@ -1,0 +1,105 @@
+/* Select — Control-Room dropdown (custom listbox, not a native <select>). */
+
+.mbt-select2 {
+  position: relative;
+  width: 100%;
+}
+
+.mbt-select2__btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  height: 38px;
+  padding: 0 12px;
+  background: var(--mbt-surface-base);
+  border: 1px solid var(--mbt-edge);
+  border-radius: var(--mbt-r-sm);
+  color: var(--mbt-text-hi);
+  font-family: var(--mbt-font-body);
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--mbt-dur) var(--mbt-ease);
+}
+.mbt-select2__btn:hover {
+  border-color: var(--mbt-edge-hi);
+}
+.mbt-select2__btn.is-open,
+.mbt-select2__btn:focus-visible {
+  outline: none;
+  border-color: rgba(var(--mbt-accent-rgb), 0.45);
+}
+
+.mbt-select2__chev {
+  flex-shrink: 0;
+  color: var(--mbt-text-lo);
+  transition: transform var(--mbt-dur) var(--mbt-ease);
+}
+.mbt-select2__btn.is-open .mbt-select2__chev {
+  transform: rotate(180deg);
+}
+
+.mbt-select2__menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 30;
+  margin: 0;
+  padding: 5px;
+  list-style: none;
+  max-height: 240px;
+  overflow-y: auto;
+  background: var(--mbt-surface-3);
+  border: 1px solid var(--mbt-edge-hi);
+  border-radius: var(--mbt-r-md);
+  box-shadow: var(--mbt-shadow-overlay);
+  transform-origin: top center;
+  animation: mbt-select-in var(--mbt-dur) var(--mbt-ease);
+  scrollbar-width: thin;
+  scrollbar-color: var(--mbt-surface-3) transparent;
+}
+@keyframes mbt-select-in {
+  from {
+    opacity: 0;
+    transform: scale(0.98) translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mbt-select2__menu {
+    animation: none;
+  }
+}
+
+.mbt-select2__opt {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 9px;
+  padding: 8px 10px;
+  border-radius: var(--mbt-r-sm);
+  font-family: var(--mbt-font-body);
+  font-size: 13px;
+  color: var(--mbt-text-mid);
+  cursor: pointer;
+  transition:
+    background var(--mbt-dur-fast) var(--mbt-ease),
+    color var(--mbt-dur-fast) var(--mbt-ease);
+}
+.mbt-select2__opt:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--mbt-text-hi);
+}
+.mbt-select2__opt.is-selected {
+  color: var(--mbt-text-hi);
+}
+.mbt-select2__opt.is-selected svg {
+  color: var(--mbt-accent);
+  flex-shrink: 0;
+}

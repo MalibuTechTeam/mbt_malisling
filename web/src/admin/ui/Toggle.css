@@ -1,0 +1,52 @@
+/* Toggle — a switch control. Consumes --mbt-* tokens. */
+
+.mbt-toggle {
+  display: inline-flex;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.mbt-toggle input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.mbt-toggle__track {
+  display: flex;
+  align-items: center;
+  width: 40px;
+  height: 22px;
+  padding: 0 2px;
+  background: var(--mbt-surface-3);
+  border: 1px solid var(--mbt-edge);
+  border-radius: var(--mbt-r-pill);
+  transition:
+    background var(--mbt-dur) var(--mbt-ease),
+    border-color var(--mbt-dur) var(--mbt-ease);
+}
+
+.mbt-toggle__thumb {
+  width: 16px;
+  height: 16px;
+  background: var(--mbt-text-lo);
+  border-radius: 50%;
+  transition:
+    transform var(--mbt-dur) var(--mbt-ease),
+    background var(--mbt-dur) var(--mbt-ease);
+}
+
+.mbt-toggle input:checked + .mbt-toggle__track {
+  background: var(--mbt-accent-soft);
+  border-color: rgba(var(--mbt-accent-rgb), 0.5);
+}
+.mbt-toggle input:checked + .mbt-toggle__track .mbt-toggle__thumb {
+  transform: translateX(18px);
+  background: var(--mbt-accent);
+}
+
+.mbt-toggle input:focus-visible + .mbt-toggle__track {
+  outline: 2px solid var(--mbt-accent-glow);
+  outline-offset: 2px;
+}

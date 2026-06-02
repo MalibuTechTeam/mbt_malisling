@@ -1,0 +1,121 @@
+/* mbt_malisling — Admin dashboard shell. Consumes the shared --mbt-* design
+   system (styles/tokens.css). Panel + rail + center + overview, matching the
+   mbt_elevator Control-Room dashboard so every MBT script reads as one product. */
+
+/* Section/field/setting/input primitives live in the atom kit's Field.css.
+   Sections use those classes directly (not always via the Field component), so
+   import it here once so the styles are always present. */
+@import "./ui/Field.css";
+
+.mbt-admin-overlay {
+  position: fixed; inset: 0; z-index: 9999;
+  display: grid; place-items: center;
+  background: radial-gradient(900px 600px at 70% 10%, rgba(40, 58, 92, 0.18), transparent 70%),
+              rgba(3, 5, 8, 0.55);
+  font-family: var(--mbt-font-body);
+  animation: mbt-admin-fade var(--mbt-dur-slow) var(--mbt-ease);
+}
+@keyframes mbt-admin-fade { from { opacity: 0 } to { opacity: 1 } }
+
+.mbt-admin {
+  width: min(1360px, 94vw); height: min(880px, 92vh);
+  display: flex; overflow: hidden;
+  border-radius: var(--mbt-r-lg); border: 1px solid var(--mbt-edge-hi);
+  background:
+    radial-gradient(120% 60% at 50% 0%, rgba(var(--mbt-accent-rgb), 0.05), transparent 60%),
+    linear-gradient(180deg, #121814 0%, #0C100E 54%, #090C0A 100%);
+  box-shadow: var(--mbt-shadow-panel);
+  color: var(--mbt-text-mid);
+}
+
+/* ── Rail ──────────────────────────────────────────────────────────────── */
+.mbt-admin__rail {
+  width: 212px; flex-shrink: 0; display: flex; flex-direction: column;
+  background: rgba(0, 0, 0, 0.28); border-right: 1px solid var(--mbt-edge);
+  padding: 20px 14px;
+}
+.mbt-rail__logo { display: flex; align-items: center; gap: 9px; padding: 0 4px 22px; }
+.mbt-rail__logo .ic { color: var(--mbt-accent); display: grid; place-items: center; }
+.mbt-rail__logo b { font-family: var(--mbt-font-display); font-size: 14px; font-weight: 700; color: var(--mbt-text-hi); letter-spacing: 0.02em; display: block; line-height: 1.1; }
+.mbt-rail__logo span { font-size: 8px; letter-spacing: 0.18em; color: var(--mbt-text-faint); display: block; }
+
+.mbt-rail__group { font-size: 9px; font-weight: 600; letter-spacing: 0.14em; color: var(--mbt-text-faint); padding: 14px 8px 8px; }
+.mbt-rail__item {
+  display: flex; align-items: center; gap: 11px; padding: 9px 8px; width: 100%;
+  border: none; background: none; text-align: left; cursor: pointer; position: relative;
+  border-radius: var(--mbt-r-md); color: var(--mbt-text-lo);
+  transition: color var(--mbt-dur) var(--mbt-ease), background var(--mbt-dur) var(--mbt-ease);
+}
+.mbt-rail__item:hover { background: var(--mbt-surface-3); color: var(--mbt-text-mid); }
+.mbt-rail__item.is-active { background: var(--mbt-accent-soft); color: var(--mbt-text-hi); }
+.mbt-rail__item.is-active::before {
+  content: ""; position: absolute; left: -14px; top: 9px; width: 2px; height: calc(100% - 18px);
+  background: var(--mbt-accent); border-radius: 0 2px 2px 0;
+}
+.mbt-rail__item .ic { flex-shrink: 0; color: var(--mbt-text-faint); display: grid; place-items: center; }
+.mbt-rail__item.is-active .ic { color: var(--mbt-accent); }
+.mbt-rail__tx { min-width: 0; }
+.mbt-rail__label { font-size: 13px; font-weight: 500; display: block; }
+.mbt-rail__hint { font-size: 10px; color: var(--mbt-text-faint); margin-top: 1px; display: block; }
+.mbt-rail__dot { margin-left: auto; width: 6px; height: 6px; border-radius: 50%; background: var(--mbt-accent); box-shadow: 0 0 8px var(--mbt-accent-glow); flex-shrink: 0; }
+.mbt-rail__off { margin-left: auto; font-size: 10px; color: var(--mbt-text-faint); flex-shrink: 0; }
+
+.mbt-rail__spacer { flex: 1; }
+.mbt-rail__status { display: flex; align-items: center; gap: 9px; padding: 11px; margin-top: 8px; background: var(--mbt-surface-2); border: 1px solid var(--mbt-edge); border-radius: var(--mbt-r-md); }
+.mbt-rail__status .sdot { width: 7px; height: 7px; border-radius: 50%; background: var(--mbt-operational); box-shadow: 0 0 8px var(--mbt-operational); }
+.mbt-rail__status b { font-size: 11px; font-weight: 600; color: var(--mbt-text-mid); display: block; }
+.mbt-rail__status small { font-size: 9px; color: var(--mbt-text-faint); }
+.mbt-rail__status .ver { margin-left: auto; font-family: var(--mbt-font-mono); font-size: 9px; color: var(--mbt-text-faint); }
+
+/* ── Center ────────────────────────────────────────────────────────────── */
+.mbt-admin__center { flex: 1; min-width: 0; overflow-y: auto; padding: 20px 24px 30px; }
+.mbt-admin__center::-webkit-scrollbar { width: 10px; }
+.mbt-admin__center::-webkit-scrollbar-thumb { background: var(--mbt-surface-3); border-radius: var(--mbt-r-pill); border: 3px solid transparent; background-clip: padding-box; }
+
+.mbt-admin__crumb { font-size: 11px; color: var(--mbt-text-lo); margin-bottom: 14px; }
+.mbt-admin__crumb b { color: var(--mbt-text-mid); font-weight: 600; }
+.mbt-admin__head { display: flex; align-items: center; gap: 13px; margin-bottom: 18px; }
+.mbt-admin__title { font-family: var(--mbt-font-display); font-size: 20px; font-weight: 700; color: var(--mbt-text-hi); letter-spacing: -0.01em; }
+.mbt-admin__meta { font-size: 11px; color: var(--mbt-text-faint); margin-top: 4px; }
+.mbt-admin__head-sp { flex: 1; }
+
+/* Section panel chrome — the kit's .mbt-section is bare (it was wrapped by a
+   card in elevator). Give it the card surface + border + spacing here. */
+.mbt-admin__center .mbt-section {
+  background: var(--mbt-surface-2);
+  border: 1px solid var(--mbt-edge);
+  border-radius: var(--mbt-r-md);
+  margin-bottom: 16px;
+}
+.mbt-admin__center .mbt-section:last-child { margin-bottom: 0; }
+.mbt-admin__center .mbt-section__ic {
+  width: 30px; height: 30px; flex-shrink: 0; display: grid; place-items: center;
+  background: var(--mbt-surface-3); border: 1px solid var(--mbt-edge);
+  border-radius: var(--mbt-r-sm); color: var(--mbt-accent);
+}
+.mbt-admin__center .mbt-section__title { font-family: var(--mbt-font-display); font-size: 13px; font-weight: 700; color: var(--mbt-text-hi); letter-spacing: 0.04em; }
+.mbt-admin__center .mbt-section__sub { font-size: 11px; color: var(--mbt-text-lo); margin-top: 2px; }
+
+.mbt-btn-ghost, .mbt-btn-primary {
+  display: flex; align-items: center; gap: 7px; height: 38px; padding: 0 16px;
+  border-radius: var(--mbt-r-md); font-size: 12.5px; font-weight: 600; cursor: pointer;
+}
+.mbt-btn-ghost { background: var(--mbt-surface-3); border: 1px solid var(--mbt-edge); color: var(--mbt-text-mid); font-family: var(--mbt-font-body); }
+.mbt-btn-ghost:hover { color: var(--mbt-text-hi); border-color: var(--mbt-edge-hi); }
+.mbt-btn-primary { background: var(--mbt-accent); border: none; color: var(--mbt-surface-base); font-family: var(--mbt-font-display); }
+.mbt-btn-primary:hover { background: var(--mbt-accent-deep); }
+
+/* ── Overview (optional right column) ──────────────────────────────────── */
+.mbt-admin__overview { width: 300px; flex-shrink: 0; border-left: 1px solid var(--mbt-edge); padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 18px; }
+.mbt-ov__label { display: flex; align-items: center; gap: 7px; font-size: 10px; font-weight: 600; letter-spacing: 0.12em; color: var(--mbt-text-faint); }
+.mbt-ov__summary { display: flex; flex-direction: column; }
+.mbt-ov__row { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--mbt-edge-lo); font-size: 12px; }
+.mbt-ov__row:last-child { border-bottom: none; }
+.mbt-ov__row .k { color: var(--mbt-text-lo); }
+.mbt-ov__row .v { font-family: var(--mbt-font-display); font-weight: 600; color: var(--mbt-text-hi); }
+.mbt-ov__row .v.is-on { color: var(--mbt-accent); }
+.mbt-ov__row .v.is-off { color: var(--mbt-text-faint); }
+.mbt-ov__tip { display: flex; gap: 10px; padding: 13px; background: var(--mbt-accent-soft); border: 1px solid rgba(var(--mbt-accent-rgb), 0.2); border-radius: var(--mbt-r-md); }
+.mbt-ov__tip .ic { color: var(--mbt-accent); flex-shrink: 0; }
+.mbt-ov__tip b { font-family: var(--mbt-font-display); font-size: 11px; font-weight: 700; color: var(--mbt-text-hi); letter-spacing: 0.06em; display: block; margin-bottom: 3px; }
+.mbt-ov__tip p { font-size: 11.5px; line-height: 1.5; color: var(--mbt-text-lo); }

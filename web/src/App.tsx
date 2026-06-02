@@ -7,6 +7,7 @@ import ConfigUI from './components/ConfigUI'
 import InspectUI from './components/InspectUI'
 import NoDrawUI from './components/NoDrawUI'
 import SafetyUI from './components/SafetyUI'
+import AdminDashboard from './admin/AdminDashboard'
 
 debugData([{
   action: 'showHolster',
@@ -64,6 +65,7 @@ export default function App() {
       <InspectUI />
       <NoDrawUI />
       <SafetyUI />
+      <AdminDashboard />
     </>
   )
 }

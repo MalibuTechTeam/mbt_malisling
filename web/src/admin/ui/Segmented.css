@@ -1,0 +1,39 @@
+/* Segmented — a small segmented (tab-like) control. */
+
+.mbt-segmented {
+  display: inline-flex;
+  gap: 3px;
+  padding: 3px;
+  background: var(--mbt-surface-1);
+  border: 1px solid var(--mbt-edge);
+  border-radius: var(--mbt-r-sm);
+}
+
+.mbt-seg {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 14px;
+  border: none;
+  background: none;
+  border-radius: 6px;
+  font-family: var(--mbt-font-body);
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--mbt-text-lo);
+  cursor: pointer;
+  transition:
+    color var(--mbt-dur) var(--mbt-ease),
+    background var(--mbt-dur) var(--mbt-ease);
+}
+.mbt-seg:hover {
+  color: var(--mbt-text-mid);
+}
+.mbt-seg.is-active {
+  background: var(--mbt-surface-3);
+  color: var(--mbt-text-hi);
+}
+.mbt-seg:focus-visible {
+  outline: 2px solid var(--mbt-accent-glow);
+  outline-offset: -2px;
+}

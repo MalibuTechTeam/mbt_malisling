@@ -1,0 +1,472 @@
+/* Field — shared form + section primitives for the config view.
+   Consumes the --mbt-* tokens. Imported by every config section. */
+
+/* ── Section wrapper ──────────────────────────────────────────────────── */
+/* The section is now a transparent layout wrapper — the visible surfaces are
+   the Cards it contains (no card-in-card). Surface ladder inside a card:
+   card surface-2 -> sub-panels surface-1 -> input wells surface-base. */
+.mbt-section {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  /* Calm entrance on section switch — the active section remounts each
+     time the rail target changes, so this fires per swap. */
+  animation: mbt-section-in 180ms var(--mbt-ease);
+}
+
+@keyframes mbt-section-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mbt-section { animation: none; }
+}
+
+.mbt-section__head {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 15px 18px;
+  border-bottom: 1px solid var(--mbt-edge-lo);
+}
+.mbt-section__ic {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  background: var(--mbt-surface-3);
+  border: 1px solid var(--mbt-edge);
+  border-radius: var(--mbt-r-sm);
+  color: var(--mbt-accent);
+}
+.mbt-section__head-tx {
+  flex: 1;
+  min-width: 0;
+}
+.mbt-section__title {
+  font-family: var(--mbt-font-display);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--mbt-text-hi);
+}
+.mbt-section__sub {
+  margin-top: 2px;
+  font-family: var(--mbt-font-body);
+  font-size: 11px;
+  color: var(--mbt-text-lo);
+}
+
+.mbt-section__body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px 18px;
+}
+
+/* ── Field (label + control + hint) ───────────────────────────────────── */
+.mbt-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mbt-field-row {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+.mbt-field-row > .mbt-field {
+  flex: 1;
+  min-width: 0;
+}
+/* Width presets so short/numeric fields stay consistent and don't sprawl in
+   a wide card. They cap the field; in a field-row they sit left, flush. */
+.mbt-field.mbt-field--sm {
+  flex: 0 0 auto;
+  width: 156px;
+  max-width: 100%;
+}
+.mbt-field.mbt-field--md {
+  flex: 0 1 auto;
+  width: 340px;
+  max-width: 100%;
+}
+/* Coordinate + vec3 rows fill their card (no cap) so cards don't show an
+   empty right edge. Width is governed by the card, not the field. */
+
+/* Responsive: stack paired fields on narrow content. */
+@media (max-width: 860px) {
+  .mbt-field-row {
+    flex-direction: column;
+    gap: 16px;
+  }
+  .mbt-field.mbt-field--sm,
+  .mbt-field.mbt-field--md {
+    width: 100%;
+  }
+}
+
+.mbt-field__label {
+  font-family: var(--mbt-font-body);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--mbt-text-lo);
+}
+
+.mbt-field__req {
+  margin-left: 3px;
+  color: var(--mbt-hacked);
+  font-weight: 700;
+}
+
+.mbt-field__hint {
+  font-family: var(--mbt-font-body);
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--mbt-text-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Required-but-empty validation message — amber, paired with the amber input
+   border below. Reads as "you still need this to deploy", not a hard error. */
+.mbt-field__err {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--mbt-font-body);
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--mbt-hacked);
+}
+.mbt-field__err svg {
+  flex-shrink: 0;
+}
+
+/* ── Inputs ───────────────────────────────────────────────────────────── */
+.mbt-input,
+.mbt-select {
+  height: 38px;
+  padding: 0 12px;
+  background: var(--mbt-surface-base);
+  border: 1px solid var(--mbt-edge);
+  border-radius: var(--mbt-r-sm);
+  font-family: var(--mbt-font-body);
+  /* 13px (not 14) so a single short value doesn't read "chunky" next to the
+     12.5px mono coord readouts — keeps every field visually the same weight. */
+  font-size: 13px;
+  color: var(--mbt-text-hi);
+  outline: none;
+  transition: border-color var(--mbt-dur) var(--mbt-ease);
+}
+.mbt-input:focus,
+.mbt-select:focus {
+  border-color: rgba(var(--mbt-accent-rgb), 0.45);
+  box-shadow: 0 0 0 3px var(--mbt-accent-glow);
+}
+.mbt-input::placeholder {
+  color: var(--mbt-text-faint);
+}
+/* Hide the native (un-themeable) spinner arrows everywhere; NumberInput adds
+   themed steppers where stepping is useful. */
+input[type="number"] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+/* Read-only system key (Elevator ID): visibly inert — dimmed, no caret, not
+   selectable, and it never lights up on focus/hover. */
+.mbt-input--readonly,
+.mbt-input--readonly:focus {
+  color: var(--mbt-text-faint);
+  background: var(--mbt-surface-1);
+  border-color: var(--mbt-edge-lo);
+  box-shadow: none;
+  opacity: 0.65;
+  cursor: default;
+  user-select: none;
+  pointer-events: none;
+}
+.mbt-input--error,
+.mbt-input--error:focus {
+  border-color: rgba(var(--mbt-faulty-rgb), 0.6);
+}
+
+/* Amber border for a required-but-empty field (Field error state). Persists
+   through focus so the "still required" signal isn't masked by the accent ring. */
+.mbt-field--error .mbt-input,
+.mbt-field--error .mbt-input:focus {
+  border-color: rgba(var(--mbt-hacked-rgb), 0.55);
+  box-shadow: none;
+}
+
+.mbt-select {
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 30px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238C8A82' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+}
+.mbt-select option {
+  background: var(--mbt-surface-2);
+  color: var(--mbt-text-hi);
+}
+
+/* ── Setting block (toggle-gated section item) ────────────────────────── */
+/* Sub-panel inside the section card — one step down the ladder (surface-1). */
+.mbt-setting {
+  padding: 14px 16px;
+  background: var(--mbt-surface-1);
+  border: 1px solid var(--mbt-edge);
+  border-radius: var(--mbt-r-md);
+}
+.mbt-setting__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.mbt-setting__info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.mbt-setting__title {
+  font-family: var(--mbt-font-display);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--mbt-text-hi);
+}
+.mbt-setting__desc {
+  font-family: var(--mbt-font-body);
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--mbt-text-lo);
+}
+.mbt-setting__body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--mbt-edge-lo);
+}
+.mbt-setting--off .mbt-setting__body {
+  display: none;
+}
+
+/* ── Capture field (coord display + capture button) ───────────────────── */
+.mbt-capture-field {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.mbt-coord-display {
+  flex: 1;
+  min-width: 180px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: 38px;
+  padding: 0 12px;
+  background: var(--mbt-surface-base);
+  border: 1px solid var(--mbt-edge);
+  border-radius: var(--mbt-r-sm);
+  font-family: var(--mbt-font-mono);
+  font-size: 12.5px;
+  color: var(--mbt-text-mid);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.mbt-coord-display .k {
+  margin-right: 5px;
+  color: var(--mbt-text-faint);
+}
+/* Placeholder shown when a capture target hasn't been set yet. */
+.mbt-coord-empty {
+  font-family: var(--mbt-font-body);
+  font-style: italic;
+  color: var(--mbt-text-faint);
+}
+/* Required-but-unset: amber, to flag the user must capture it. */
+.mbt-coord-empty--req {
+  color: var(--mbt-hacked);
+  font-style: normal;
+}
+.mbt-coord-warn {
+  margin-left: auto;
+  flex-shrink: 0;
+  color: var(--mbt-hacked);
+}
+/* Inline "configured" check at the right end of a placed coordinate readout. */
+.mbt-coord-ok {
+  margin-left: auto;
+  flex-shrink: 0;
+  color: var(--mbt-operational);
+}
+.mbt-btn-capture {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 38px;
+  padding: 0 13px;
+  background: var(--mbt-surface-3);
+  border: 1px solid var(--mbt-edge);
+  border-radius: var(--mbt-r-sm);
+  color: var(--mbt-text-mid);
+  font-family: var(--mbt-font-body);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    color var(--mbt-dur) var(--mbt-ease),
+    border-color var(--mbt-dur) var(--mbt-ease);
+}
+.mbt-btn-capture:hover {
+  color: var(--mbt-accent);
+  border-color: rgba(var(--mbt-accent-rgb), 0.35);
+}
+.mbt-btn-capture:focus-visible {
+  outline: 2px solid var(--mbt-accent-glow);
+  outline-offset: 1px;
+}
+
+/* Unset capture field: the readout reads as an empty placeholder (dashed,
+   faint) and the Capture button becomes the primary call to action. A set
+   field uses the default solid readout + quiet button above. */
+.mbt-capture-field--unset .mbt-coord-display {
+  border-style: dashed;
+  color: var(--mbt-text-faint);
+}
+.mbt-capture-field--unset .mbt-btn-capture {
+  background: var(--mbt-accent-soft);
+  border-color: rgba(var(--mbt-accent-rgb), 0.4);
+  color: var(--mbt-accent);
+}
+.mbt-capture-field--unset .mbt-btn-capture:hover {
+  background: rgba(var(--mbt-accent-rgb), 0.14);
+  border-color: rgba(var(--mbt-accent-rgb), 0.55);
+}
+
+/* ── Confirmation line (e.g. "Arrival point configured") ──────────────── */
+.mbt-okline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--mbt-font-body);
+  font-size: 11.5px;
+  color: var(--mbt-operational);
+}
+
+/* ── Notice (inline informational note) ───────────────────────────────── */
+.mbt-notice {
+  padding: 9px 11px;
+  background: rgba(var(--mbt-hacked-rgb), 0.08);
+  border: 1px solid rgba(var(--mbt-hacked-rgb), 0.25);
+  border-radius: var(--mbt-r-sm);
+  font-family: var(--mbt-font-body);
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--mbt-text-mid);
+}
+
+/* ── Tag editor (chips + inline input) ────────────────────────────────── */
+.mbt-tag-editor {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 5px 8px;
+  background: var(--mbt-surface-base);
+  border: 1px solid var(--mbt-edge);
+  border-radius: var(--mbt-r-sm);
+  transition: border-color var(--mbt-dur) var(--mbt-ease);
+}
+.mbt-tag-editor:focus-within {
+  border-color: rgba(var(--mbt-accent-rgb), 0.45);
+}
+
+.mbt-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 4px 3px 9px;
+  background: var(--mbt-surface-3);
+  border: 1px solid var(--mbt-edge);
+  border-radius: var(--mbt-r-sm);
+  font-family: var(--mbt-font-mono);
+  font-size: 11px;
+  color: var(--mbt-text-mid);
+}
+.mbt-tag__x {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: none;
+  color: var(--mbt-text-faint);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    color var(--mbt-dur-fast) var(--mbt-ease),
+    background var(--mbt-dur-fast) var(--mbt-ease);
+}
+.mbt-tag__x:hover {
+  color: var(--mbt-faulty);
+  background: rgba(var(--mbt-faulty-rgb), 0.12);
+}
+
+.mbt-tag-editor__input {
+  flex: 1;
+  min-width: 90px;
+  height: 24px;
+  border: none;
+  background: none;
+  outline: none;
+  font-family: var(--mbt-font-body);
+  font-size: 13px;
+  color: var(--mbt-text-hi);
+}
+.mbt-tag-editor__input::placeholder {
+  color: var(--mbt-text-faint);
+}
+
+.mbt-tag-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  padding: 0 9px;
+  background: var(--mbt-surface-3);
+  border: 1px solid var(--mbt-edge);
+  border-radius: var(--mbt-r-sm);
+  color: var(--mbt-text-lo);
+  font-family: var(--mbt-font-body);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    color var(--mbt-dur) var(--mbt-ease),
+    border-color var(--mbt-dur) var(--mbt-ease);
+}
+.mbt-tag-add:hover {
+  color: var(--mbt-accent);
+  border-color: rgba(var(--mbt-accent-rgb), 0.35);
+}
