@@ -49,8 +49,3 @@ RegisterCommand(cfg.Command, rename, false)
 if cfg.Key and cfg.Key ~= '' then
     RegisterKeyMapping(cfg.Command, '[MBT] Name your weapon', 'keyboard', cfg.Key)
 end
-
--- Server-driven localized notification (MBT.NotifyLabel runs client-side).
-RegisterNetEvent('mbt_malisling:notifyLabel', function(key)
-    MBT.NotifyLabel(key)
-end)

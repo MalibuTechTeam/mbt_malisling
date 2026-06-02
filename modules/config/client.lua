@@ -1,55 +1,42 @@
-RegisterCommand('mbtconfig', function()
-    TriggerServerEvent('mbt_malisling:requestConfig')
-end, false)
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Admin config — client
+--
+-- /mbtconfig asks the server (ACE-checked) to open the admin dashboard. The
+-- server replies with openAdmin + the config snapshot, which we forward to the
+-- NUI and give it focus. The dashboard saves via the adminSave NUI callback and
+-- closes via adminClose. applyConfig re-applies the live-broadcast changes.
+-- ─────────────────────────────────────────────────────────────────────────────
 
-RegisterNetEvent('mbt_malisling:openConfigPanel')
-AddEventHandler('mbt_malisling:openConfigPanel', function()
-
-    SendNUIMessage({
-        action = 'openConfig',
-        data   = {
-            debug             = MBT.Debug,
-            dropWeaponOnDeath = MBT.DropWeaponOnDeath,
-            enableSling       = MBT.EnableSling,
-            enableFlashlight  = MBT.EnableFlashlight,
-            uiPosition        = MBT.UI.Position,
-            jamming = {
-                enabled      = MBT.Jamming["Enabled"],
-                cooldown     = MBT.Jamming["Cooldown"],
-                unjamPresses = MBT.Jamming["Unjam"]["Presses"],
-            },
-            throw = {
-                enabled = MBT.Throw["Enabled"],
-                key     = MBT.Throw["Key"],
-            },
-            locale = buildNuiLocale(),
-        }
-    })
+-- The /mbtconfig command is registered SERVER-side (modules/config/server.lua)
+-- so its ACE auto-registers. The server pushes openAdmin straight to us.
+RegisterNetEvent('mbt_malisling:openAdmin', function(payload)
+    SendNUIMessage({ action = 'openAdmin', data = payload })
     SetNuiFocus(true, true)
 end)
 
-RegisterNUICallback('configSave', function(data, cb)
+RegisterNUICallback('adminSave', function(data, cb)
     SetNuiFocus(false, false)
-    TriggerServerEvent('mbt_malisling:saveConfig', data)
+    TriggerServerEvent('mbt_malisling:adminSave', data)
     cb({})
 end)
 
-RegisterNUICallback('configClose', function(_, cb)
+RegisterNUICallback('adminClose', function(_, cb)
     SetNuiFocus(false, false)
     cb({})
 end)
 
-RegisterNetEvent('mbt_malisling:applyConfig')
-AddEventHandler('mbt_malisling:applyConfig', function(data)
-    MBT.Debug                         = data.debug
-    MBT.DropWeaponOnDeath             = data.dropWeaponOnDeath
-    MBT.EnableSling                   = data.enableSling
-    MBT.EnableFlashlight              = data.enableFlashlight
-    MBT.UI.Position                   = data.uiPosition
-    MBT.Jamming["Enabled"]            = data.jamming.enabled
-    MBT.Jamming["Cooldown"]           = data.jamming.cooldown
-    MBT.Jamming["Unjam"]["Presses"]   = data.jamming.unjamPresses
-    MBT.Throw["Enabled"]              = data.throw.enabled
-    MBT.Throw["Key"]                  = data.throw.key
-    Utils.mbtDebugger("Config applied from server")
+-- Server-driven localized notification (shared by config + other modules).
+RegisterNetEvent('mbt_malisling:notifyLabel', function(key)
+    MBT.NotifyLabel(key)
+end)
+
+-- Live apply (broadcast to everyone on save).
+RegisterNetEvent('mbt_malisling:applyConfig', function(d)
+    if type(d) ~= 'table' then return end
+    MBT.Debug             = d.Debug
+    MBT.EnableSling       = d.EnableSling
+    MBT.EnableFlashlight  = d.EnableFlashlight
+    MBT.DropWeaponOnDeath = d.DropWeaponOnDeath
+    if MBT.UI then MBT.UI.Position = d.UIPosition end
+    Utils.mbtDebugger('Admin config applied live')
 end)

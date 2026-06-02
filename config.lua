@@ -12,9 +12,13 @@ MBT.Language           = 'en'
 
 -- ── Admin ─────────────────────────────────────────────────────────────────────
 MBT.Admin              = {
-    Permission = 'command.mbtconfig', -- ACE permission to open the config panel
-    -- Grant it in server.cfg:
-    --   add_ace group.admin command.mbtconfig allow
+    Command    = 'mbtconfig',          -- chat command that opens the admin dashboard
+    -- ACE permission required. Defaults to 'command.<Command>'. The command is
+    -- registered server-side so its ACE auto-registers: a server with the usual
+    -- `add_ace group.admin command.* allow` (or a wildcard admin principal) works
+    -- with NO extra server.cfg lines — same as mbt_elevator. Override only to use
+    -- a custom ACE object.
+    Permission = nil,
 }
 
 -- ── UI ────────────────────────────────────────────────────────────────────────
@@ -100,6 +104,12 @@ MBT.Labels             = {
         ["descKey"]  = "pose_in_vehicle_desc",
         ["type"]     = "inform",
         ["icon"]     = "fa-solid fa-camera",
+    },
+    ["admin_no_perm"] = {
+        ["titleKey"] = "admin_no_perm_title",
+        ["descKey"]  = "admin_no_perm_desc",
+        ["type"]     = "error",
+        ["icon"]     = "fa-solid fa-lock",
     },
 }
 

@@ -32,6 +32,10 @@ RegisterLocale('it', {
     ['pose_in_vehicle_title']   = 'Posa',
     ['pose_in_vehicle_desc']    = 'Non puoi metterti in posa in un veicolo.',
 
+    -- Admin
+    ['admin_no_perm_title']     = 'Admin',
+    ['admin_no_perm_desc']      = 'Non hai il permesso di aprire il pannello di configurazione.',
+
     -- Custom weapon name
     ['wname_dialog_title']      = 'Nomina arma',
     ['wname_dialog_field']      = 'Nome arma',

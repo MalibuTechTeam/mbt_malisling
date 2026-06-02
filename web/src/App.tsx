@@ -3,7 +3,6 @@ import { debugData } from './utils/debugData'
 import { useNuiEvent } from './utils/useNuiEvent'
 import HolsterUI from './components/HolsterUI'
 import JamUI from './components/JamUI'
-import ConfigUI from './components/ConfigUI'
 import InspectUI from './components/InspectUI'
 import NoDrawUI from './components/NoDrawUI'
 import SafetyUI from './components/SafetyUI'
@@ -61,7 +60,6 @@ export default function App() {
     <>
       <HolsterUI />
       <JamUI />
-      <ConfigUI />
       <InspectUI />
       <NoDrawUI />
       <SafetyUI />
