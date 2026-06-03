@@ -53,10 +53,17 @@ RegisterLocale('it', {
 
     -- NUI: holster prompt
     ['holster_title']           = 'RIPONI ARMA',
+    ['holster_action']          = 'Riponi',
+    ['holster_confirm']         = 'Conferma',
+    ['holster_cancel']          = 'Annulla',
 
     -- NUI: jam minigame
     ['jam_title']               = 'ARMA INCEPPATA',
+    ['jam_status']              = 'INCEPPATA',
     ['jam_clear']               = 'Disinceppa',
+
+    -- NUI: weapon condition HUD
+    ['cond_label']              = 'COND',
 
     -- NUI: weapon inspect
     ['inspect_title']           = 'ISPEZIONE',

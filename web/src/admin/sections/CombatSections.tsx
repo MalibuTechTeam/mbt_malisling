@@ -64,6 +64,7 @@ export function SuppressorSection({ config, update }: SectionProps) {
 /** Weapon Safety — SAFE/FIRE toggle on the held firearm. */
 export function SafetySection({ config, update }: SectionProps) {
   const s = config.Safety ?? {}
+  const c = config.ConditionHUD ?? {}
   return (
     <Section icon="lock" title="WEAPON SAFETY" sub="Toggle the safety on the held firearm (blocks fire, allows aim)."
       action={<ToggleRow.Inline checked={!!s.Enabled} onChange={(v) => update('Safety.Enabled', v)} />}>
@@ -73,6 +74,8 @@ export function SafetySection({ config, update }: SectionProps) {
         checked={!!s.PerWeapon} onChange={(v) => update('Safety.PerWeapon', v)} />
       <ToggleRow title="HUD Indicator" desc="Show the SAFE/FIRE pill while a firearm is in hand"
         checked={!!s.HudIndicator} onChange={(v) => update('Safety.HudIndicator', v)} />
+      <ToggleRow title="Condition Pips" desc="Show the weapon's condition (tier 1-5) next to SAFE/FIRE in the same pill"
+        checked={!!c.Enabled} onChange={(v) => update('ConditionHUD.Enabled', v)} />
     </Section>
   )
 }

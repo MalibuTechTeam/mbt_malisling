@@ -53,10 +53,17 @@ RegisterLocale('fr', {
 
     -- NUI: holster prompt
     ['holster_title']           = 'RANGER L\'ARME',
+    ['holster_action']          = 'Ranger',
+    ['holster_confirm']         = 'Confirmer',
+    ['holster_cancel']          = 'Annuler',
 
     -- NUI: jam minigame
     ['jam_title']               = 'ARME ENRAYÉE',
+    ['jam_status']              = 'ENRAYÉE',
     ['jam_clear']               = 'Désenrayer',
+
+    -- NUI: weapon condition HUD
+    ['cond_label']              = 'ÉTAT',
 
     -- NUI: weapon inspect
     ['inspect_title']           = 'INSPECTION',

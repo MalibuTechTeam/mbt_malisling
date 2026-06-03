@@ -53,10 +53,17 @@ RegisterLocale('en', {
 
     -- NUI: holster prompt
     ['holster_title']           = 'HOLSTER WEAPON',
+    ['holster_action']          = 'Holster',
+    ['holster_confirm']         = 'Confirm',
+    ['holster_cancel']          = 'Cancel',
 
     -- NUI: jam minigame
     ['jam_title']               = 'WEAPON JAMMED',
+    ['jam_status']              = 'JAMMED',
     ['jam_clear']               = 'Clear Jam',
+
+    -- NUI: weapon condition HUD
+    ['cond_label']              = 'COND',
 
     -- NUI: weapon inspect
     ['inspect_title']           = 'INSPECTING',

@@ -74,6 +74,9 @@ local function applyConfig(d)
     if d.Safety and MBT.Safety then
         for k, v in pairs(d.Safety) do MBT.Safety[k] = v end
     end
+    if d.ConditionHUD and MBT.ConditionHUD then
+        MBT.ConditionHUD.Enabled = d.ConditionHUD.Enabled
+    end
     if d.ChargeWeapon and MBT.ChargeWeapon then
         for k, v in pairs(d.ChargeWeapon) do MBT.ChargeWeapon[k] = v end
     end

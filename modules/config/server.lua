@@ -82,6 +82,7 @@ local function snapshot()
             PerWeapon    = b(SF.PerWeapon),
             HudIndicator = b(SF.HudIndicator),
         },
+        ConditionHUD = { Enabled = b(MBT.ConditionHUD and MBT.ConditionHUD.Enabled) },
         ChargeWeapon = {
             Enabled     = b(CH.Enabled),
             MaxDistance = num(CH.MaxDistance, 20.0),
@@ -175,6 +176,8 @@ local function validate(d)
     local sf = d.Safety
     if type(sf) ~= 'table' or type(sf.Enabled) ~= 'boolean' then return false end
     if type(sf.DefaultOn) ~= 'boolean' or type(sf.PerWeapon) ~= 'boolean' or type(sf.HudIndicator) ~= 'boolean' then return false end
+    -- Condition HUD
+    if type(d.ConditionHUD) ~= 'table' or type(d.ConditionHUD.Enabled) ~= 'boolean' then return false end
     -- Charge Weapon
     local ch = d.ChargeWeapon
     if type(ch) ~= 'table' or type(ch.Enabled) ~= 'boolean' then return false end
@@ -256,6 +259,7 @@ local function applyToMBT(d)
     MBT.Safety.DefaultOn    = d.Safety.DefaultOn
     MBT.Safety.PerWeapon    = d.Safety.PerWeapon
     MBT.Safety.HudIndicator = d.Safety.HudIndicator
+    MBT.ConditionHUD.Enabled = d.ConditionHUD.Enabled
     MBT.ChargeWeapon.Enabled     = d.ChargeWeapon.Enabled
     MBT.ChargeWeapon.MaxDistance = d.ChargeWeapon.MaxDistance
     MBT.ChargeWeapon.Cooldown    = d.ChargeWeapon.Cooldown
@@ -307,6 +311,7 @@ local function persistable(d)
         Jamming = d.Jamming,
         SuppressorHeat = d.SuppressorHeat,
         Safety = d.Safety,
+        ConditionHUD = d.ConditionHUD,
         ChargeWeapon = d.ChargeWeapon,
         WeaponWeight = d.WeaponWeight,
         Inspect = d.Inspect,

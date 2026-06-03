@@ -46,8 +46,13 @@ end)
 -- and ships the translated strings to the React app inside each show/open message.
 NUI_LOCALE_KEYS = {
     'holster_title',
+    'holster_action',
+    'holster_confirm',
+    'holster_cancel',
     'jam_title',
+    'jam_status',
     'jam_clear',
+    'cond_label',
     'inspect_title',
     'inspect_serial',
     'inspect_condition',
