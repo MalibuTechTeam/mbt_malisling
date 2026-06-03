@@ -116,7 +116,23 @@ AddEventHandler("CEventGunShotWhizzedBy", function(entities, eventEntity, args)
     if not MBT.Jamming["Enabled"] then return end
     if currentWeapon and not isJammed then
         Utils.mbtDebugger("currentWeapon.metadata.durability ", currentWeapon.metadata.durability)
-        if Utils.getJammingChance(currentWeapon.metadata.durability) and (GetGameTimer() - jammed) > (MBT.Jamming["Cooldown"] * 1000) then
+        if (GetGameTimer() - jammed) <= (MBT.Jamming["Cooldown"] * 1000) then return end
+
+        -- The companion combat resource (if registered) may OVERRIDE the jam
+        -- decision (advanced malfunctions live there, escrowed); when it has no
+        -- opinion (nil) we fall back to malisling's base durability-chance roll.
+        local override = MBT.ShootingBridge and MBT.ShootingBridge.OnJamCheck(
+            GetSelectedPedWeapon(cache.ped),
+            Utils.durabilityToTier(currentWeapon.metadata.durability))
+
+        local shouldJam
+        if override ~= nil then
+            shouldJam = override and true or false
+        else
+            shouldJam = Utils.getJammingChance(currentWeapon.metadata.durability)
+        end
+
+        if shouldJam then
             jammed = GetGameTimer()
             if currentWeapon.slot then
                 jammedSlots[currentWeapon.slot] = true

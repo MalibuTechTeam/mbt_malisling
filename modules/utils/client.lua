@@ -151,3 +151,18 @@ function Utils.getJammingChance(value)
     return random < chance
 end
 
+--- Map a weapon's durability (0-100) to a discrete condition tier 1-5
+--- (5 = pristine, 1 = damaged). Single source of truth for the shooting bridge
+--- export GetWeaponCondition and any condition HUD. Derived on read — no second
+--- metadata field to keep in sync with durability.
+---@param durability number?
+---@return integer? tier  1..5, or nil if durability is unknown
+function Utils.durabilityToTier(durability)
+    if type(durability) ~= 'number' then return nil end
+    if durability >= 85 then return 5 end
+    if durability >= 60 then return 4 end
+    if durability >= 35 then return 3 end
+    if durability >= 10 then return 2 end
+    return 1
+end
+

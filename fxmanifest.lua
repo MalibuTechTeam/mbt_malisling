@@ -48,6 +48,7 @@ server_scripts {
 
 client_scripts {
     'modules/utils/client.lua',
+    'modules/shooting_bridge/client.lua',
     'modules/target/client.lua',
     'modules/weapon_sounds/client.lua',
     'modules/bridge/esx/client.lua',
