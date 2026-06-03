@@ -33,10 +33,10 @@ export default function NoDrawUI() {
           <path d="M5.6 5.6l12.8 12.8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
         </svg>
       </div>
-      <div className="nodraw-content">
-        <div className="nodraw-title">{data.title}</div>
-        <div className="nodraw-subtitle">{data.subtitle}</div>
-      </div>
+      <span className="nodraw-text">
+        {data.title}
+        {data.subtitle && <em className="nodraw-sub">{data.subtitle}</em>}
+      </span>
     </div>
   )
 }

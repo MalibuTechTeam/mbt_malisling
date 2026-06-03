@@ -1,196 +1,121 @@
-/* ── Positioning ─────────────────────────────────────────────── */
-.holster-overlay {
+/* HolsterUI — premium 2-row holster prompt. Borrows the mbt_emote_menu pill
+   recipe (accent corner glow + surface gradient + inset highlight + accent-
+   tinted edge) so it reads as a crafted MBT component, not a flat tooltip.
+   Row 1: icon chip + context. Row 2: the two action hints. */
+
+.holster-pill {
   position: fixed;
   z-index: 9999;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: stretch;
+  padding: 9px 12px;
+  border-radius: 12px;
+  /* Depth recipe: faint accent glow from the top-left + vertical surface
+     gradient. */
+  background:
+    radial-gradient(120% 180% at 0% 0%, var(--mbt-accent-soft), transparent 55%),
+    linear-gradient(180deg, var(--mbt-surface-2), var(--mbt-surface-1));
+  border: 1px solid rgba(var(--mbt-accent-rgb), 0.18);
+  box-shadow:
+    var(--mbt-shadow-overlay),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  font-family: var(--mbt-font-body);
+  white-space: nowrap;
   pointer-events: none;
 }
 
+/* ── Anchors ── */
 .holster-pos-bottom-center {
-  bottom: 80px;
-  left: 50%;
-  transform: translateX(-50%);
+  bottom: 80px; left: 50%; transform: translateX(-50%);
   --pos-transform: translateX(-50%);
 }
-
 .holster-pos-top-center {
-  top: 40px;
-  left: 50%;
-  transform: translateX(-50%);
+  top: 40px; left: 50%; transform: translateX(-50%);
   --pos-transform: translateX(-50%);
 }
-
 .holster-pos-bottom-right {
-  bottom: 80px;
-  right: 30px;
+  bottom: 80px; right: 30px;
   --pos-transform: translateX(0);
 }
 
-/* ── Animations ──────────────────────────────────────────────── */
-.holster-enter {
-  animation: holsterIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+/* ── Enter / exit ──
+   Transient prompt: entrance must feel instant (≤120ms, ease-out), not
+   "presented". */
+.holster-enter { animation: holster-in var(--mbt-dur-fast) var(--mbt-ease) forwards; }
+.holster-exit  { animation: holster-out var(--mbt-dur-fast) var(--mbt-ease-exit) forwards; }
+
+@keyframes holster-in {
+  from { opacity: 0; transform: var(--pos-transform, translateX(-50%)) translateY(12px) scale(0.98); }
+  to   { opacity: 1; transform: var(--pos-transform, translateX(-50%)) translateY(0) scale(1); }
+}
+@keyframes holster-out {
+  from { opacity: 1; transform: var(--pos-transform, translateX(-50%)) translateY(0); }
+  to   { opacity: 0; transform: var(--pos-transform, translateX(-50%)) translateY(8px); }
 }
 
-.holster-exit {
-  animation: holsterOut 0.30s cubic-bezier(0.4, 0, 1, 1) forwards;
-}
-
-@keyframes holsterIn {
-  from {
-    opacity: 0;
-    transform: var(--pos-transform, translateX(-50%)) translateY(24px);
-  }
-  to {
-    opacity: 1;
-    transform: var(--pos-transform, translateX(-50%)) translateY(0);
-  }
-}
-
-@keyframes holsterOut {
-  from {
-    opacity: 1;
-    transform: var(--pos-transform, translateX(-50%)) translateY(0);
-  }
-  to {
-    opacity: 0;
-    transform: var(--pos-transform, translateX(-50%)) translateY(16px);
-  }
-}
-
-/* ── Card ────────────────────────────────────────────────────── */
-.holster-card {
-  width: 420px;
-  background: rgba(8, 9, 18, 0.96);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
-  overflow: hidden;
-  box-shadow:
-    0 24px 64px rgba(0, 0, 0, 0.55),
-    0 0 0 1px rgba(255, 255, 255, 0.04) inset;
-}
-
-/* ── Accent bar ──────────────────────────────────────────────── */
-.holster-accent-bar {
-  height: 3px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 185, 50, 0.8) 30%,
-    rgba(255, 140, 0, 0.9) 60%,
-    transparent
-  );
-}
-
-/* ── Header ──────────────────────────────────────────────────── */
-.holster-header {
+/* ── Row 1: icon chip + context, divided from the actions by a hairline ── */
+.holster-top {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 18px 20px 14px;
+  gap: 9px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--mbt-edge-lo);
 }
-
-.holster-icon {
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 185, 50, 0.12);
-  border: 1px solid rgba(255, 185, 50, 0.25);
-  border-radius: 10px;
-  color: rgba(255, 200, 80, 0.95);
-  flex-shrink: 0;
+.holster-ic {
+  width: 24px;
+  height: 24px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  background: var(--mbt-accent-soft);
+  border: 1px solid rgba(var(--mbt-accent-rgb), 0.25);
+  color: var(--mbt-accent);
 }
+.holster-ic svg { width: 14px; height: 14px; }
 
-.holster-icon svg {
-  width: 22px;
-  height: 22px;
-}
-
-.holster-title-block {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.holster-label {
+.holster-tx {
+  font-family: var(--mbt-font-display);
   font-size: 10px;
   font-weight: 600;
-  letter-spacing: 0.12em;
-  color: rgba(255, 185, 50, 0.75);
+  letter-spacing: 0.14em;
   text-transform: uppercase;
+  color: var(--mbt-text-lo);
 }
-
-.holster-weapon-name {
-  font-size: 18px;
-  font-weight: 700;
-  color: rgba(240, 240, 255, 0.95);
-  letter-spacing: 0.02em;
-}
-
-/* ── Divider ─────────────────────────────────────────────────── */
-.holster-divider {
-  height: 1px;
-  background: rgba(255, 255, 255, 0.06);
-  margin: 0 20px;
-}
-
-/* ── Hints ───────────────────────────────────────────────────── */
-.holster-hints {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 20px 18px;
-}
-
-.holster-hint {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex: 1;
-}
-
-.holster-hint-separator {
-  width: 1px;
-  height: 28px;
-  background: rgba(255, 255, 255, 0.08);
-  flex-shrink: 0;
-}
-
-.holster-hint-label {
+.holster-tx em {
+  font-family: var(--mbt-font-mono);   /* weapon name = identifier → mono */
+  font-style: normal;
+  font-weight: 600;
   font-size: 12px;
-  font-weight: 500;
-  color: rgba(180, 180, 200, 0.8);
-  white-space: nowrap;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--mbt-text-hi);
+  margin-left: 7px;
 }
 
-/* ── Keys ────────────────────────────────────────────────────── */
-.holster-key {
+/* ── Row 2: the two action hints ── */
+.holster-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-top: 8px;
+}
+.holster-hint {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  padding: 4px 9px;
-  border-radius: 6px;
+  gap: 6px;
+}
+.holster-lbl {
   font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  white-space: nowrap;
-  flex-shrink: 0;
+  font-weight: 500;
+  color: var(--mbt-text-lo);          /* secondary action (Cancel) */
+}
+.holster-lbl--primary {
+  color: var(--mbt-text-mid);         /* primary action (Confirm) */
+  font-weight: 600;
 }
 
-.holster-key--confirm {
-  background: rgba(255, 185, 50, 0.15);
-  border: 1px solid rgba(255, 185, 50, 0.5);
-  color: rgba(255, 200, 80, 1);
-  animation: confirmPulse 1.8s ease-in-out infinite;
-}
-
-.holster-key--cancel {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: rgba(200, 200, 210, 0.8);
-}
-
-@keyframes confirmPulse {
-  0%, 100% { box-shadow: none; }
-  50%       { box-shadow: 0 0 10px rgba(255, 185, 50, 0.35), 0 0 20px rgba(255, 185, 50, 0.15); }
+@media (prefers-reduced-motion: reduce) {
+  .holster-enter, .holster-exit { animation: none; }
 }

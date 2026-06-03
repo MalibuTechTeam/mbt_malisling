@@ -1,189 +1,99 @@
-/* ── Positioning ─────────────────────────────────────────────── */
-.jam-overlay {
+/* JamUI — compact unjam minigame. Jam state carried by a faulty-tinted chip
+   (StatusBadge language); progress fills accent pips. Bottom-centre. */
+
+.jam-pill {
   position: fixed;
   bottom: 80px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 9998;
-  pointer-events: none;
   --pos-transform: translateX(-50%);
-}
-
-/* ── Animations ──────────────────────────────────────────────── */
-.jam-enter {
-  animation: jamIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-.jam-exit {
-  animation: jamOut 0.30s cubic-bezier(0.4, 0, 1, 1) forwards;
-}
-
-@keyframes jamIn {
-  from {
-    opacity: 0;
-    transform: var(--pos-transform) translateY(24px);
-  }
-  to {
-    opacity: 1;
-    transform: var(--pos-transform) translateY(0);
-  }
-}
-
-@keyframes jamOut {
-  from {
-    opacity: 1;
-    transform: var(--pos-transform) translateY(0);
-  }
-  to {
-    opacity: 0;
-    transform: var(--pos-transform) translateY(16px);
-  }
-}
-
-/* ── Card ────────────────────────────────────────────────────── */
-.jam-card {
-  width: 380px;
-  background: rgba(8, 9, 18, 0.96);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
-  overflow: hidden;
-  box-shadow:
-    0 24px 64px rgba(0, 0, 0, 0.55),
-    0 0 0 1px rgba(255, 255, 255, 0.04) inset;
-}
-
-/* ── Accent bar ──────────────────────────────────────────────── */
-.jam-accent-bar {
-  height: 3px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(220, 50, 50, 0.8) 30%,
-    rgba(255, 80, 60, 0.9) 60%,
-    transparent
-  );
-  animation: accentPulse 1.2s ease-in-out infinite;
-}
-
-@keyframes accentPulse {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0.5; }
-}
-
-/* ── Header ──────────────────────────────────────────────────── */
-.jam-header {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 18px 20px 14px;
-}
-
-.jam-icon {
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(220, 50, 50, 0.12);
-  border: 1px solid rgba(220, 50, 50, 0.3);
-  border-radius: 10px;
-  color: rgba(255, 90, 70, 0.95);
-  flex-shrink: 0;
-}
-
-.jam-icon svg {
-  width: 22px;
-  height: 22px;
-}
-
-.jam-title-block {
-  display: flex;
+  z-index: 9998;
+  display: inline-flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 9px;
+  padding: 11px 13px;
+  background: var(--mbt-surface-2);
+  border: 1px solid var(--mbt-edge-hi);
+  border-radius: 12px;
+  box-shadow: var(--mbt-shadow-overlay);
+  font-family: var(--mbt-font-body);
+  min-width: 188px;
+  pointer-events: none;
 }
 
-.jam-label {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  color: rgba(220, 60, 50, 0.85);
-  text-transform: uppercase;
+.jam-enter { animation: jam-in var(--mbt-dur-slow) var(--mbt-ease) forwards; }
+.jam-exit  { animation: jam-out var(--mbt-dur-fast) var(--mbt-ease-exit) forwards; }
+
+@keyframes jam-in {
+  from { opacity: 0; transform: var(--pos-transform) translateY(16px); }
+  to   { opacity: 1; transform: var(--pos-transform) translateY(0); }
+}
+@keyframes jam-out {
+  from { opacity: 1; transform: var(--pos-transform) translateY(0); }
+  to   { opacity: 0; transform: var(--pos-transform) translateY(10px); }
 }
 
-.jam-weapon-name {
-  font-size: 18px;
-  font-weight: 700;
-  color: rgba(240, 240, 255, 0.95);
-  letter-spacing: 0.02em;
-}
-
-/* ── Divider ─────────────────────────────────────────────────── */
-.jam-divider {
-  height: 1px;
-  background: rgba(255, 255, 255, 0.06);
-  margin: 0 20px;
-}
-
-/* ── Body ────────────────────────────────────────────────────── */
-.jam-body {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 20px 18px;
-}
-
-/* ── Progress dots ───────────────────────────────────────────── */
-.jam-dots {
+/* ── Header row: alert chip + weapon name ── */
+.jam-top {
   display: flex;
   align-items: center;
   gap: 8px;
 }
-
-.jam-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
-}
-
-.jam-dot--filled {
-  background: rgba(220, 50, 50, 0.85);
-  border-color: rgba(255, 80, 60, 0.7);
-  box-shadow: 0 0 8px rgba(220, 50, 50, 0.5);
-}
-
-/* ── Key hint ────────────────────────────────────────────────── */
-.jam-hint {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.jam-key {
+.jam-chip {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 11px;
+  gap: 6px;
+  padding: 2px 8px 2px 6px;
+  border-radius: var(--mbt-r-pill);
+  background: rgba(var(--mbt-faulty-rgb), 0.13);
+  color: var(--mbt-faulty);
+  font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.04em;
-  background: rgba(220, 50, 50, 0.15);
-  border: 1px solid rgba(220, 50, 50, 0.5);
-  color: rgba(255, 100, 80, 1);
-  animation: keyPulse 1.2s ease-in-out infinite;
+  letter-spacing: 0.06em;
+}
+.jam-chip-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--mbt-faulty);
+  animation: jam-blink 1s infinite;
+}
+@keyframes jam-blink { 50% { opacity: 0.3; } }
+
+.jam-wn {
+  font-size: 11px;
+  color: var(--mbt-text-lo);
 }
 
-.jam-hint-label {
+/* ── Instruction: keycap + label ── */
+.jam-instr {
+  display: flex;
+  align-items: center;
+  gap: 7px;
   font-size: 12px;
-  font-weight: 500;
-  color: rgba(180, 180, 200, 0.8);
-  white-space: nowrap;
+  color: var(--mbt-text-mid);
 }
 
-@keyframes keyPulse {
-  0%, 100% { box-shadow: none; }
-  50%       { box-shadow: 0 0 10px rgba(220, 50, 50, 0.4), 0 0 20px rgba(220, 50, 50, 0.15); }
+/* ── Progress pips ── */
+.jam-pips {
+  display: flex;
+  gap: 5px;
+}
+.jam-pip {
+  width: 22px;
+  height: 5px;
+  border-radius: var(--mbt-r-pill);
+  background: var(--mbt-surface-3);
+  border: 1px solid var(--mbt-edge-lo);
+  transition: background var(--mbt-dur-fast) var(--mbt-ease);
+}
+.jam-pip--on {
+  background: var(--mbt-accent);
+  border-color: transparent;
+  box-shadow: 0 0 8px rgba(var(--mbt-accent-rgb), 0.4);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jam-enter, .jam-exit { animation: none; }
+  .jam-chip-dot { animation: none; }
 }

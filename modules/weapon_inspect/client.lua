@@ -38,6 +38,17 @@ local function conditionLabel(durability)
     return nil
 end
 
+--- durability (0-100) → semantic tone for the overlay's condition value:
+--- 'good' (operational green) / 'warn' (hacked orange) / 'bad' (faulty red).
+---@param durability number?
+---@return string?
+local function conditionTone(durability)
+    if durability == nil then return nil end
+    if durability >= 60 then return 'good' end
+    if durability >= 35 then return 'warn' end
+    return 'bad'
+end
+
 --- Clip count → vague fill label (locale key) for AmmoMode = 'vague'.
 ---@param clip number
 ---@param maxClip number
@@ -66,6 +77,7 @@ local function buildData()
     end
     if cfg.Show.Condition then
         data.condition = conditionLabel(md.durability) or '—'
+        data.conditionTone = conditionTone(md.durability)
     end
     if cfg.Show.Ammo then
         local _, clip = GetAmmoInClip(cache.ped, weaponHash)

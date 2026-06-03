@@ -10,20 +10,23 @@ interface InspectShow {
   Ammo?: boolean
 }
 
+type Tone = 'accent' | 'good' | 'warn' | 'bad'
+
 interface InspectData {
   name?: string
   serial?: string
   condition?: string
+  conditionTone?: 'good' | 'warn' | 'bad'   // durability-derived colour (from Lua)
   ammo?: number | string   // exact count (number) or vague label (string)
   show?: InspectShow
   locale?: Locale
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+function Row({ label, value, tone }: { label: string; value: string; tone?: Tone }) {
   return (
     <div className="insp-row">
       <span className="insp-row-label">{label}</span>
-      <span className="insp-row-value">{value}</span>
+      <span className={`insp-row-value${tone ? ` insp-row-value--${tone}` : ''}`}>{value}</span>
     </div>
   )
 }
@@ -50,32 +53,27 @@ export default function InspectUI() {
   const show = data.show ?? { Serial: true, Condition: true, Name: true, Ammo: true }
   const weaponName = (data.name || 'WEAPON').replace('WEAPON_', '')
 
+  // Ammo accent ONLY when there are rounds: a green "0" reads as "good" when the
+  // gun is actually empty. Empty (exact 0) → faulty; vague labels stay neutral.
+  const ammoTone: Tone | undefined =
+    typeof data.ammo === 'number' ? (data.ammo > 0 ? 'accent' : 'bad') : undefined
+
   return (
     <div className={`insp-overlay ${exiting ? 'insp-exit' : 'insp-enter'}`}>
       <div className="insp-card">
-        <div className="insp-accent-bar" />
         <div className="insp-header">
-          <div className="insp-icon">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.5" />
-              <path d="M16 16l4.5 4.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-            </svg>
-          </div>
-          <div className="insp-title-block">
-            <span className="insp-label">{t('inspect_title', 'INSPECTING')}</span>
-            {show.Name && <span className="insp-weapon-name">{weaponName}</span>}
-          </div>
+          <span className="insp-label">{t('inspect_title', 'INSPECTING')}</span>
+          {show.Name && <span className="insp-weapon-name">{weaponName}</span>}
         </div>
-        <div className="insp-divider" />
         <div className="insp-body">
           {show.Serial && (
             <Row label={t('inspect_serial', 'Serial')} value={data.serial ?? '—'} />
           )}
           {show.Condition && (
-            <Row label={t('inspect_condition', 'Condition')} value={data.condition ?? '—'} />
+            <Row label={t('inspect_condition', 'Condition')} value={data.condition ?? '—'} tone={data.conditionTone} />
           )}
           {show.Ammo && (
-            <Row label={t('inspect_ammo', 'Ammo')} value={data.ammo != null ? String(data.ammo) : '—'} />
+            <Row label={t('inspect_ammo', 'Ammo')} value={data.ammo != null ? String(data.ammo) : '—'} tone={ammoTone} />
           )}
         </div>
       </div>

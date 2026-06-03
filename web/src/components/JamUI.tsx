@@ -40,34 +40,19 @@ export default function JamUI() {
   const dots = Array.from({ length: data.total }, (_, i) => i < progress)
 
   return (
-    <div className={`jam-overlay ${exiting ? 'jam-exit' : 'jam-enter'}`}>
-      <div className="jam-card">
-        <div className="jam-accent-bar" />
-        <div className="jam-header">
-          <div className="jam-icon">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 3L3 9v6l9 6 9-6V9L12 3z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
-              <path d="M12 8v4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-              <circle cx="12" cy="15" r="1" fill="currentColor"/>
-            </svg>
-          </div>
-          <div className="jam-title-block">
-            <span className="jam-label">{t('jam_title', 'WEAPON JAMMED')}</span>
-            <span className="jam-weapon-name">{weaponName}</span>
-          </div>
-        </div>
-        <div className="jam-divider" />
-        <div className="jam-body">
-          <div className="jam-dots">
-            {dots.map((filled, i) => (
-              <div key={i} className={`jam-dot ${filled ? 'jam-dot--filled' : ''}`} />
-            ))}
-          </div>
-          <div className="jam-hint">
-            <span className="jam-key">{data.key}</span>
-            <span className="jam-hint-label">{t('jam_clear', 'Clear Jam')}</span>
-          </div>
-        </div>
+    <div className={`jam-pill ${exiting ? 'jam-exit' : 'jam-enter'}`}>
+      <div className="jam-top">
+        <span className="jam-chip"><span className="jam-chip-dot" />{t('jam_status', 'JAMMED')}</span>
+        <span className="jam-wn">{weaponName}</span>
+      </div>
+      <div className="jam-instr">
+        <span className="mbt-kc">{data.key}</span>
+        <span>{t('jam_clear', 'Clear Jam')}</span>
+      </div>
+      <div className="jam-pips">
+        {dots.map((filled, i) => (
+          <span key={i} className={`jam-pip ${filled ? 'jam-pip--on' : ''}`} />
+        ))}
       </div>
     </div>
   )

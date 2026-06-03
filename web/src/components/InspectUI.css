@@ -1,137 +1,92 @@
-/* ── Positioning ─────────────────────────────────────────────── */
+/* InspectUI — compact weapon inspect panel (local overlay). Header + label/value
+   rows; values in mono. Accent only on the live ammo value. Bottom-centre. */
+
 .insp-overlay {
   position: fixed;
   bottom: 80px;
   left: 50%;
   transform: translateX(-50%);
+  --pos-transform: translateX(-50%);
   z-index: 9998;
   pointer-events: none;
-  --pos-transform: translateX(-50%);
 }
 
-/* ── Animations ──────────────────────────────────────────────── */
-.insp-enter {
-  animation: inspIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
+.insp-enter { animation: insp-in var(--mbt-dur-slow) var(--mbt-ease) forwards; }
+.insp-exit  { animation: insp-out var(--mbt-dur-fast) var(--mbt-ease-exit) forwards; }
 
-.insp-exit {
-  animation: inspOut 0.30s cubic-bezier(0.4, 0, 1, 1) forwards;
-}
-
-@keyframes inspIn {
-  from { opacity: 0; transform: var(--pos-transform) translateY(24px); }
+@keyframes insp-in {
+  from { opacity: 0; transform: var(--pos-transform) translateY(16px); }
   to   { opacity: 1; transform: var(--pos-transform) translateY(0); }
 }
-
-@keyframes inspOut {
+@keyframes insp-out {
   from { opacity: 1; transform: var(--pos-transform) translateY(0); }
-  to   { opacity: 0; transform: var(--pos-transform) translateY(16px); }
+  to   { opacity: 0; transform: var(--pos-transform) translateY(10px); }
 }
 
-/* ── Card ────────────────────────────────────────────────────── */
+/* ── Panel ── */
 .insp-card {
-  width: 320px;
-  background: rgba(8, 9, 18, 0.96);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
+  width: 210px;
+  background: var(--mbt-surface-2);
+  border: 1px solid var(--mbt-edge-hi);
+  border-radius: 12px;
+  box-shadow: var(--mbt-shadow-overlay);
   overflow: hidden;
-  box-shadow:
-    0 24px 64px rgba(0, 0, 0, 0.55),
-    0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+  font-family: var(--mbt-font-body);
 }
 
-/* ── Accent bar ──────────────────────────────────────────────── */
-.insp-accent-bar {
-  height: 3px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(70, 140, 220, 0.8) 30%,
-    rgba(90, 170, 255, 0.9) 60%,
-    transparent
-  );
-}
-
-/* ── Header ──────────────────────────────────────────────────── */
+/* ── Header ── */
 .insp-header {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 18px 20px 14px;
+  padding: 9px 13px 8px;
+  border-bottom: 1px solid var(--mbt-edge-lo);
 }
-
-.insp-icon {
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(70, 140, 220, 0.12);
-  border: 1px solid rgba(70, 140, 220, 0.3);
-  border-radius: 10px;
-  color: rgba(120, 180, 255, 0.95);
-  flex-shrink: 0;
-}
-
-.insp-icon svg {
-  width: 22px;
-  height: 22px;
-}
-
-.insp-title-block {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
 .insp-label {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  color: rgba(110, 170, 240, 0.85);
+  display: block;
+  font-family: var(--mbt-font-mono);
+  font-size: 8.5px;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
+  color: var(--mbt-text-faint);
 }
-
 .insp-weapon-name {
-  font-size: 18px;
+  display: block;
+  font-family: var(--mbt-font-display);
   font-weight: 700;
-  color: rgba(240, 240, 255, 0.95);
-  letter-spacing: 0.02em;
+  font-size: 13px;
+  color: var(--mbt-text-hi);
+  margin-top: 1px;
 }
 
-/* ── Divider ─────────────────────────────────────────────────── */
-.insp-divider {
-  height: 1px;
-  background: rgba(255, 255, 255, 0.06);
-  margin: 0 20px;
-}
-
-/* ── Body (info rows) ────────────────────────────────────────── */
+/* ── Rows ── */
 .insp-body {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 14px 20px 18px;
+  padding: 4px 13px 10px;
 }
-
 .insp-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--mbt-edge-lo);
 }
+.insp-row:last-child { border-bottom: none; }
 
 .insp-row-label {
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 10px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(150, 160, 185, 0.75);
+  color: var(--mbt-text-lo);
 }
-
 .insp-row-value {
-  font-size: 14px;
-  font-weight: 700;
-  color: rgba(235, 240, 255, 0.95);
-  letter-spacing: 0.02em;
+  font-family: var(--mbt-font-mono);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--mbt-text-hi);
   font-variant-numeric: tabular-nums;
+}
+.insp-row-value--accent { color: var(--mbt-accent); }
+.insp-row-value--good   { color: var(--mbt-operational); }
+.insp-row-value--warn   { color: var(--mbt-hacked); }
+.insp-row-value--bad    { color: var(--mbt-faulty); }
+
+@media (prefers-reduced-motion: reduce) {
+  .insp-enter, .insp-exit { animation: none; }
 }

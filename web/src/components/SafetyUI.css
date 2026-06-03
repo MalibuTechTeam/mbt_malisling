@@ -1,49 +1,56 @@
-/* Weapon safety SAFE/FIRE indicator — small pill, bottom-right by default.
-   No backdrop-filter (CEF renders it inconsistently). */
+/* SafetyUI — SAFE / FIRE status pill (mbt_elevator StatusBadge language).
+   Persistent indicator while a firearm is in hand. State carried by glyph +
+   tinted background + colour. SAFE = neutral (calm); FIRE = operational green
+   (weapon ready). Bottom-right so it never collides with the centre prompts. */
+
+/* Top-centre: a clean free zone in the mbt_hud layout. Doesn't co-occur with the
+   No-Draw banner (no-draw holsters the weapon, so the safety pill isn't showing). */
 .safety-pill {
   position: fixed;
-  bottom: 18%;
-  right: 4%;
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  padding: 7px 14px;
-  background: rgba(8, 9, 18, 0.96);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5);
+  top: 32px;
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 9997;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 11px 4px 8px;
+  border-radius: var(--mbt-r-pill);
+  font-family: var(--mbt-font-body);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  box-shadow: var(--mbt-shadow-overlay);
   pointer-events: none;
-  animation: safetyIn 0.18s ease-out;
+  animation: safety-in var(--mbt-dur) var(--mbt-ease);
 }
 
-@keyframes safetyIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-.safety-dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
+.safety-ic {
+  width: 12px;
+  height: 12px;
+  flex: none;
 }
 
 .safety-label {
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.14em;
+  line-height: 1;
 }
 
-/* SAFE = green/calm */
-.safety-safe .safety-dot {
-  background: rgba(70, 210, 120, 0.95);
-  box-shadow: 0 0 8px rgba(70, 210, 120, 0.6);
+.safety-safe {
+  background: var(--mbt-surface-3);
+  color: var(--mbt-text-lo);
+  border: 1px solid var(--mbt-edge);
 }
-.safety-safe .safety-label { color: rgba(120, 230, 160, 0.95); }
 
-/* FIRE = red/hot */
-.safety-fire .safety-dot {
-  background: rgba(235, 70, 60, 0.95);
-  box-shadow: 0 0 8px rgba(235, 70, 60, 0.6);
+.safety-fire {
+  background: rgba(var(--mbt-operational-rgb), 0.12);
+  color: var(--mbt-operational);
 }
-.safety-fire .safety-label { color: rgba(255, 110, 95, 0.95); }
+
+@keyframes safety-in {
+  from { opacity: 0; transform: translate(-50%, -6px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .safety-pill { animation: none; }
+}

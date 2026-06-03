@@ -5,6 +5,11 @@ import './HolsterUI.css'
 
 interface KeybindHint { label: string; display: string }
 
+// Long key names break the keycap shape — abbreviate the common offenders.
+// The visible action label carries the meaning, so a short cap is enough.
+const KEY_ABBR: Record<string, string> = { BACKSPACE: 'BSPC', RIGHTBRACKET: ']', LEFTBRACKET: '[' }
+const shortKey = (k: string) => KEY_ABBR[k.toUpperCase()] ?? k
+
 interface HolsterData {
   weaponLabel: string
   position: 'bottom-center' | 'top-center' | 'bottom-right'
@@ -35,35 +40,28 @@ export default function HolsterUI() {
   const weaponName = data.weaponLabel.replace('WEAPON_', '')
 
   return (
-    <div className={`holster-overlay holster-pos-${data.position} ${exiting ? 'holster-exit' : 'holster-enter'}`}>
-      <div className="holster-card">
-        <div className="holster-accent-bar" />
-        <div className="holster-header">
-          <div className="holster-icon">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M3 8h12l2 4H5L3 8z" fill="currentColor" opacity="0.9"/>
-              <path d="M15 8l1-3h3v3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-              <path d="M7 12v3l1 1h2l1-1v-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </div>
-          <div className="holster-title-block">
-            <span className="holster-label">{t('holster_title', 'HOLSTER WEAPON')}</span>
-            <span className="holster-weapon-name">{weaponName}</span>
-          </div>
-        </div>
-        <div className="holster-divider" />
-        <div className="holster-hints">
-          <div className="holster-hint">
-            <span className="holster-key holster-key--confirm">{data.confirm.display}</span>
-            <span className="holster-hint-label">{data.confirm.label}</span>
-          </div>
-          <div className="holster-hint-separator" />
-          <div className="holster-hint">
-            <span className="holster-key holster-key--cancel">{data.cancel.display}</span>
-            <span className="holster-hint-label">{data.cancel.label}</span>
-          </div>
-        </div>
-      </div>
+    <div className={`holster-pill holster-pos-${data.position} ${exiting ? 'holster-exit' : 'holster-enter'}`}>
+      <span className="holster-top">
+        <span className="holster-ic">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M3 8h12l2 4H5L3 8z" fill="currentColor" opacity="0.9"/>
+            <path d="M15 8l1-3h3v3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+          </svg>
+        </span>
+        <span className="holster-tx">
+          {t('holster_action', 'Holster')} <em>{weaponName}</em>
+        </span>
+      </span>
+      <span className="holster-actions">
+        <span className="holster-hint">
+          <span className="mbt-kc">{shortKey(data.confirm.display)}</span>
+          <span className="holster-lbl holster-lbl--primary">{t('holster_confirm', 'Confirm')}</span>
+        </span>
+        <span className="holster-hint">
+          <span className="mbt-kc">{shortKey(data.cancel.display)}</span>
+          <span className="holster-lbl">{t('holster_cancel', 'Cancel')}</span>
+        </span>
+      </span>
     </div>
   )
 }

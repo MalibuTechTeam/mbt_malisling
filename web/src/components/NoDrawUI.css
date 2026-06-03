@@ -1,67 +1,63 @@
-/* MBT no-draw zone pill — matches the mbt_elevator capture-hint pill language. */
+/* NoDrawUI — compact "no weapons here" pill, top-centre.
+   Alert is carried by a faulty-tinted icon chip (mbt_elevator StatusBadge
+   language), not a coloured bar. Solid surface, no blur — readable over GTA. */
+
 .nodraw-pill {
   position: fixed;
   top: 32px;
   left: 50%;
   transform: translateX(-50%);
-  display: flex;
-  align-items: center;
-  gap: 13px;
-  padding: 12px 20px;
-  background: rgba(10, 12, 18, 0.92);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 14px;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
-  z-index: 9999;
-  pointer-events: none;
   --pos-transform: translateX(-50%);
+  z-index: 9999;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 6px 14px 6px 8px;
+  background: var(--mbt-surface-2);
+  border: 1px solid var(--mbt-edge-hi);
+  border-radius: var(--mbt-r-pill);
+  box-shadow: var(--mbt-shadow-overlay);
+  font-family: var(--mbt-font-body);
+  pointer-events: none;
 }
 
-.nodraw-enter { animation: nodrawIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-.nodraw-exit  { animation: nodrawOut 0.22s cubic-bezier(0.4, 0, 1, 1) forwards; }
+.nodraw-enter { animation: nodraw-in var(--mbt-dur-slow) var(--mbt-ease) forwards; }
+.nodraw-exit  { animation: nodraw-out var(--mbt-dur-fast) var(--mbt-ease-exit) forwards; }
 
-@keyframes nodrawIn {
-  from { opacity: 0; transform: var(--pos-transform) translateY(-16px); }
+@keyframes nodraw-in {
+  from { opacity: 0; transform: var(--pos-transform) translateY(-12px); }
   to   { opacity: 1; transform: var(--pos-transform) translateY(0); }
 }
-@keyframes nodrawOut {
+@keyframes nodraw-out {
   from { opacity: 1; transform: var(--pos-transform) translateY(0); }
-  to   { opacity: 0; transform: var(--pos-transform) translateY(-12px); }
+  to   { opacity: 0; transform: var(--pos-transform) translateY(-10px); }
 }
 
 .nodraw-icon {
-  width: 30px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: rgba(255, 90, 80, 0.95);
-  flex-shrink: 0;
-  animation: nodrawPulse 1.6s ease-in-out infinite;
+  width: 24px;
+  height: 24px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(var(--mbt-faulty-rgb), 0.14);
+  color: var(--mbt-faulty);
 }
+.nodraw-icon svg { width: 14px; height: 14px; }
 
-.nodraw-icon svg { width: 22px; height: 22px; }
-
-@keyframes nodrawPulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50%      { opacity: 0.55; transform: scale(0.92); }
-}
-
-.nodraw-content {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.nodraw-title {
-  font-size: 14px;
-  font-weight: 700;
-  color: #fff;
-  letter-spacing: 0.02em;
-}
-
-.nodraw-subtitle {
+.nodraw-text {
   font-size: 12px;
+  font-weight: 600;
+  color: var(--mbt-text-hi);
+  white-space: nowrap;
+}
+.nodraw-sub {
+  font-style: normal;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--mbt-text-lo);
+  margin-left: 7px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nodraw-enter, .nodraw-exit { animation: none; }
 }

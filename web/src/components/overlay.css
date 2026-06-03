@@ -1,0 +1,23 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   Shared overlay primitives — mbt_malisling gameplay HUD
+   Canonical to the MalibuTech design system (mirrors mbt_elevator CaptureHint
+   keycap + mbt_emote_menu pill). Imported once in App.tsx so every overlay
+   shares one keycap. Keep keycaps NEUTRAL — the accent stays rare.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.mbt-kc {
+  display: inline-grid;
+  place-items: center;
+  min-width: 19px;
+  height: 19px;
+  padding: 0 6px;
+  background: var(--mbt-surface-3);
+  border: 1px solid var(--mbt-edge-hi);
+  border-bottom-width: 2px;          /* tactile key bottom */
+  border-radius: 5px;
+  font-family: var(--mbt-font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--mbt-text-hi);
+  line-height: 1;
+}

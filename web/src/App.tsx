@@ -1,4 +1,5 @@
 import './index.css'
+import './components/overlay.css'
 import { debugData } from './utils/debugData'
 import { useNuiEvent } from './utils/useNuiEvent'
 import HolsterUI from './components/HolsterUI'
@@ -33,6 +34,7 @@ debugData([{
     name: 'WEAPON_CARBINERIFLE',
     serial: 'A7F-3K9Q',
     condition: 'Worn',
+    conditionTone: 'warn',
     ammo: 18,
     show: { Serial: true, Condition: true, Name: true, Ammo: true },
   },
