@@ -6,7 +6,7 @@ import HolsterUI from './components/HolsterUI'
 import JamUI from './components/JamUI'
 import InspectUI from './components/InspectUI'
 import NoDrawUI from './components/NoDrawUI'
-import SafetyUI from './components/SafetyUI'
+import WeaponStatusUI from './components/WeaponStatusUI'
 import AdminDashboard from './admin/AdminDashboard'
 
 debugData([{
@@ -47,9 +47,11 @@ debugData([{
 }], 9500)
 debugData([{ action: 'hideNoDraw', data: {} }], 13000)
 
-debugData([{ action: 'showSafety', data: { state: 'safe' } }], 13500)
-debugData([{ action: 'showSafety', data: { state: 'fire' } }], 15500)
-debugData([{ action: 'hideSafety', data: {} }], 17500)
+debugData([{ action: 'showWeaponStatus', data: { safety: 'safe', condition: 5 } }], 13500)
+debugData([{ action: 'showWeaponStatus', data: { safety: 'fire', condition: 3 } }], 15500)
+debugData([{ action: 'weaponStatusPulse', data: {} }], 16500)
+debugData([{ action: 'showWeaponStatus', data: { safety: 'fire', condition: 1 } }], 17200)
+debugData([{ action: 'hideWeaponStatus', data: {} }], 19000)
 
 export default function App() {
   useNuiEvent<{ file: string; volume: number }>('playHolsterSound', ({ file, volume }) => {
@@ -64,7 +66,7 @@ export default function App() {
       <JamUI />
       <InspectUI />
       <NoDrawUI />
-      <SafetyUI />
+      <WeaponStatusUI />
       <AdminDashboard />
     </>
   )

@@ -1,0 +1,80 @@
+/* WeaponStatusUI — combined Safety + Condition pill. Top-centre, fixed width so
+   it never shifts as state changes. Safety is the dominant readout; condition
+   pips are visually subordinate. Green is exclusive to FIRE. */
+
+.ws-pill {
+  position: fixed;
+  top: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9997;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 11px;
+  height: 30px;
+  padding: 0 13px;
+  min-width: 178px;                 /* locked: SAFE/FIRE + pips never reflow */
+  background: var(--mbt-surface-2);
+  border: 1px solid var(--mbt-edge-hi);
+  border-radius: var(--mbt-r-pill);
+  box-shadow: var(--mbt-shadow-overlay);
+  font-family: var(--mbt-font-body);
+  pointer-events: none;
+  animation: ws-in var(--mbt-dur) var(--mbt-ease);
+}
+
+@keyframes ws-in {
+  from { opacity: 0; transform: translate(-50%, -6px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
+}
+
+/* ── Safety segment — PRIMARY (bold, larger, the only green) ── */
+.ws-safety {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 54px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+.ws-safety svg { width: 13px; height: 13px; flex: none; }
+.ws-safety--fire { color: var(--mbt-operational); }   /* green = active/hot */
+.ws-safety--safe { color: var(--mbt-text-lo); }       /* grey = calm, no threat */
+
+/* Attention cue: pulse when the player tries to fire on safe. */
+.ws-safety.is-pulse { animation: ws-pulse 380ms var(--mbt-ease); }
+@keyframes ws-pulse {
+  0%, 100% { transform: scale(1); filter: none; }
+  40%      { transform: scale(1.16); filter: brightness(1.6); }
+}
+
+.ws-div { width: 1px; height: 15px; background: var(--mbt-edge); flex: none; }
+
+/* ── Condition segment — SECONDARY (muted) ── */
+.ws-cond { display: inline-flex; align-items: center; gap: 7px; }
+.ws-cond__k {
+  font-family: var(--mbt-font-mono);
+  font-size: 8px;
+  letter-spacing: 0.12em;
+  color: var(--mbt-text-faint);
+}
+.ws-cond__pips { display: inline-flex; gap: 3px; }
+.ws-pip {
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  background: var(--mbt-surface-3);
+  border: 1px solid var(--mbt-edge-lo);
+}
+/* good = neutral grey (default, unsignalled) · warn = orange · bad = red */
+.ws-cond--good .ws-pip.is-on { background: var(--mbt-text-lo); }
+.ws-cond--warn .ws-pip.is-on { background: var(--mbt-hacked); }
+.ws-cond--bad  .ws-pip.is-on { background: var(--mbt-faulty); }
+
+@media (prefers-reduced-motion: reduce) {
+  .ws-pill { animation: none; }
+  .ws-safety.is-pulse { animation: none; }
+}

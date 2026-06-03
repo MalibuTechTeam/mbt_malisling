@@ -660,6 +660,19 @@ MBT.Safety             = {
     },
 }
 
+-- ── Weapon Condition HUD ──────────────────────────────────────────────────────
+-- Passive at-a-glance indicator of the held weapon's condition (durability tier
+-- 1-5, 5 = pristine). Rendered as muted pips in the SAME "weapon status" pill as
+-- the Safety SAFE/FIRE indicator (one element, less HUD clutter). The pip colour
+-- only signals a PROBLEM: good = neutral grey (the default, not flagged), worn =
+-- orange, damaged = red — green stays exclusive to the Safety FIRE label.
+-- The pill shows whenever a firearm is in hand and Safety.HudIndicator OR this is
+-- enabled; if both are off it is hidden. Purely visual (data is the same
+-- durability the jamming reads).
+MBT.ConditionHUD       = {
+    Enabled = true,
+}
+
 -- ── Custom Weapon Name ────────────────────────────────────────────────────────
 -- Engrave a custom name on the held firearm (stored in metadata.label, shown by
 -- Weapon Inspect). WHO can do it is fully configurable for the future admin menu.

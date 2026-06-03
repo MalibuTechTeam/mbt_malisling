@@ -72,14 +72,37 @@ local function playClick()
     end
 end
 
-local function setHud(state)  -- state: 'safe' | 'fire' | nil(hide)
-    if not cfg.HudIndicator then return end
-    if state == nil then
-        if hudShown then SendNUIMessage({ action = 'hideSafety', data = {} }); hudShown = false end
+-- Combined "weapon status" pill = Safety segment (this module) + Condition pips
+-- (MBT.ConditionHUD). One NUI element; each segment is nil when its feature is
+-- off. Sent only on change to avoid flooding the NUI from the tight safety loop.
+local lastSafetySent, lastCondSent
+
+--- Condition tier (1-5) for the held weapon, or nil when the Condition HUD is off.
+local function condTier()
+    if not (MBT.ConditionHUD and MBT.ConditionHUD.Enabled) then return nil end
+    local md = currentWeapon and currentWeapon.metadata
+    return Utils.durabilityToTier(md and md.durability)
+end
+
+--- Push the combined pill. `safetyState` = 'safe'|'fire'|nil (nil = safety segment
+--- hidden). The condition segment is resolved here from config + durability.
+local function sendStatus(safetyState)
+    local cond = condTier()
+    if safetyState == nil and cond == nil then
+        if hudShown then SendNUIMessage({ action = 'hideWeaponStatus', data = {} }); hudShown = false end
+        lastSafetySent, lastCondSent = nil, nil
         return
     end
-    SendNUIMessage({ action = 'showSafety', data = { state = state, locale = buildNuiLocale() } })
-    hudShown = true
+    if hudShown and safetyState == lastSafetySent and cond == lastCondSent then return end
+    lastSafetySent, lastCondSent, hudShown = safetyState, cond, true
+    SendNUIMessage({ action = 'showWeaponStatus', data = {
+        safety = safetyState, condition = cond, locale = buildNuiLocale(),
+    } })
+end
+
+local function hideStatus()
+    if hudShown then SendNUIMessage({ action = 'hideWeaponStatus', data = {} }); hudShown = false end
+    lastSafetySent, lastCondSent = nil, nil
 end
 
 --- Short "work the safety" gesture: a truncated, slowed pistol-reload partial.
@@ -104,40 +127,40 @@ local function toggle()
     setSafety(newState)
     playClick()
     playToggleAnim()
-    setHud(newState and 'safe' or 'fire')
+    sendStatus(cfg.HudIndicator and (newState and 'safe' or 'fire') or nil)
 end
 
 RegisterCommand(cfg.Command, toggle, false)
 RegisterKeyMapping(cfg.Command, '[MBT] Toggle weapon safety', 'keyboard', cfg.Key)
 
--- Enforcement + HUD sync. Tight loop only while a firearm is in hand.
+-- Enforcement + combined HUD. Enforcement is independent of the HUD toggles; the
+-- pill shows whenever a firearm is in hand and Safety.HudIndicator OR ConditionHUD
+-- is on. Tight loop (Wait 0) only while the safety is actively blocking fire.
 CreateThread(function()
     while true do
-        if not cfg.Enabled then
-            if hudShown then setHud(nil) end
-            Wait(500)
-            goto continue
-        end
-        local ok = heldFirearm()
-        if ok then
-            local on = isSafetyOn()
-            setHud(on and 'safe' or 'fire')
-            if on then
-                -- Block firing but still allow aiming (realistic: safety on, you
-                -- can raise/aim the weapon, it just won't fire).
+        local sleep = 300
+        if heldFirearm() then
+            local safetyOn = cfg.Enabled and isSafetyOn()
+            if safetyOn then
+                -- Block firing but still allow aiming (safety on, weapon won't fire).
                 DisablePlayerFiring(cache.playerId, true)
-                DisableControlAction(0, 24, true)  -- INPUT_ATTACK
-                DisableControlAction(0, 257, true) -- INPUT_ATTACK2
-                Wait(0)
-            else
-                Wait(200)
+                DisableControlAction(0, 24, true)   -- INPUT_ATTACK
+                DisableControlAction(0, 257, true)  -- INPUT_ATTACK2
+                -- Attentional-blindness cue (Gemini): pulse the indicator the moment
+                -- the player tries to fire on safe, so they don't have to be staring
+                -- at the top-centre pill to notice.
+                if IsDisabledControlJustPressed(0, 24) then
+                    SendNUIMessage({ action = 'weaponStatusPulse', data = {} })
+                end
+                sleep = 0
             end
+            local safetyState = (cfg.Enabled and cfg.HudIndicator)
+                and (isSafetyOn() and 'safe' or 'fire') or nil
+            sendStatus(safetyState)
         else
-            setHud(nil)
-            -- Keep the statebag in sync with "no firearm" = not safetied-blocking.
-            Wait(300)
+            hideStatus()
         end
-        ::continue::
+        Wait(sleep)
     end
 end)
 
@@ -145,6 +168,6 @@ exports('IsWeaponSafetyOn', function() return isSafetyOn() end)
 
 AddEventHandler('onResourceStop', function(res)
     if res == GetCurrentResourceName() and hudShown then
-        SendNUIMessage({ action = 'hideSafety', data = {} })
+        SendNUIMessage({ action = 'hideWeaponStatus', data = {} })
     end
 end)
