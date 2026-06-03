@@ -82,7 +82,11 @@ if (-not (Test-Path -LiteralPath $distPath)) {
 }
 
 # --- Ensure target parent exists -------------------------------------------
-$destParent = Split-Path -LiteralPath $Dest -Parent
+# .NET GetDirectoryName (not Split-Path): bracket-safe (the dest path can contain
+# [wip] etc.) and avoids Split-Path's -LiteralPath/-Parent AmbiguousParameterSet
+# bug in Windows PowerShell 5.1. TrimEnd first so a trailing slash doesn't make it
+# return the folder itself instead of its parent.
+$destParent = [System.IO.Path]::GetDirectoryName($Dest.TrimEnd('\','/'))
 if (-not (Test-Path -LiteralPath $destParent)) {
     Write-Error "Target parent folder does not exist: $destParent"
     exit 1
