@@ -744,12 +744,13 @@ MBT.ChargeWeapon       = {
     MaxDistance = 20.0,        -- nearby players who see/hear the rack
     Cooldown    = 1500,        -- ms between racks (anti-spam)
     -- Animation (truncated/slowed reload partial — the hand works the slide).
+    -- Slower = more deliberate/readable as an intimidation rack.
     Animation   = {
         Dict  = 'anim@weapons@first_person@aim_rng@generic@pistol@singleshot@str',
         Anim  = 'reload_aim',
         Flag  = 48,
-        Speed = 0.7,
-        Dur   = 650,
+        Speed = 0.45,
+        Dur   = 1100,
     },
     -- Mechanical sound. 'native' = GTA sound, 'nui' = custom .ogg.
     Sound       = {

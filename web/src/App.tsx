@@ -7,6 +7,7 @@ import JamUI from './components/JamUI'
 import InspectUI from './components/InspectUI'
 import NoDrawUI from './components/NoDrawUI'
 import WeaponStatusUI from './components/WeaponStatusUI'
+import PoseHUD from './components/PoseHUD'
 import AdminDashboard from './admin/AdminDashboard'
 
 debugData([{
@@ -53,6 +54,10 @@ debugData([{ action: 'weaponStatusPulse', data: {} }], 16500)
 debugData([{ action: 'showWeaponStatus', data: { safety: 'fire', condition: 1 } }], 17200)
 debugData([{ action: 'hideWeaponStatus', data: {} }], 19000)
 
+debugData([{ action: 'showPose', data: { name: 'Lean back', index: 2, total: 5 } }], 19500)
+debugData([{ action: 'showPose', data: { name: 'Guard stance', index: 4, total: 5 } }], 21500)
+debugData([{ action: 'hidePose', data: {} }], 23500)
+
 export default function App() {
   useNuiEvent<{ file: string; volume: number }>('playHolsterSound', ({ file, volume }) => {
     const audio = new Audio(`sounds/${file}.ogg`)
@@ -67,6 +72,7 @@ export default function App() {
       <InspectUI />
       <NoDrawUI />
       <WeaponStatusUI />
+      <PoseHUD />
       <AdminDashboard />
     </>
   )

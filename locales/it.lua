@@ -65,6 +65,11 @@ RegisterLocale('it', {
     -- NUI: weapon condition HUD
     ['cond_label']              = 'COND',
 
+    -- NUI: showcase pose mode
+    ['pose_title']              = 'POSA',
+    ['pose_cycle']              = 'Cambia',
+    ['pose_exit']               = 'Esci',
+
     -- NUI: weapon inspect
     ['inspect_title']           = 'ISPEZIONE',
     ['inspect_serial']          = 'Matricola',

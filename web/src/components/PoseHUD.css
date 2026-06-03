@@ -1,0 +1,76 @@
+/* PoseHUD — showcase pose mode panel, bottom-centre. Neutral chrome; the only
+   accent is the active-pose dot. Uses the shared .mbt-kc keycap. */
+
+.pose-hud {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9996;
+  width: 268px;
+  background: linear-gradient(180deg, var(--mbt-surface-2), var(--mbt-surface-1));
+  border: 1px solid var(--mbt-edge-hi);
+  border-radius: 14px;
+  box-shadow: var(--mbt-shadow-overlay), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+  font-family: var(--mbt-font-body);
+  pointer-events: none;
+  animation: pose-in var(--mbt-dur-slow) var(--mbt-ease);
+}
+
+@keyframes pose-in {
+  from { opacity: 0; transform: translate(-50%, 10px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
+}
+
+.pose-hud__top {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 11px 14px 9px;
+}
+.pose-hud__ic {
+  width: 24px; height: 24px; flex: none;
+  display: grid; place-items: center;
+  border-radius: 7px;
+  background: var(--mbt-surface-3);
+  border: 1px solid var(--mbt-edge);
+  color: var(--mbt-text-mid);
+}
+.pose-hud__ic svg { width: 14px; height: 14px; }
+.pose-hud__eyebrow {
+  font-family: var(--mbt-font-display);
+  font-size: 9px; font-weight: 600; letter-spacing: 0.16em;
+  text-transform: uppercase; color: var(--mbt-text-faint);
+}
+.pose-hud__dots { margin-left: auto; display: inline-flex; gap: 4px; }
+.pose-hud__dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--mbt-surface-3); border: 1px solid var(--mbt-edge-lo);
+}
+.pose-hud__dot.is-on {
+  background: var(--mbt-accent); border-color: transparent;
+  box-shadow: 0 0 7px rgba(var(--mbt-accent-rgb), 0.5);
+}
+
+.pose-hud__name {
+  display: flex; align-items: baseline; justify-content: space-between;
+  padding: 0 14px 11px;
+}
+.pose-hud__name b {
+  font-family: var(--mbt-font-display);
+  font-weight: 700; font-size: 17px; color: var(--mbt-text-hi); letter-spacing: -0.01em;
+}
+.pose-hud__idx { font-family: var(--mbt-font-mono); font-size: 11px; color: var(--mbt-text-lo); }
+.pose-hud__idx em { font-style: normal; color: var(--mbt-text-hi); }
+
+.pose-hud__bar { height: 1px; background: var(--mbt-edge-lo); }
+
+.pose-hud__ctrl { display: flex; align-items: center; gap: 16px; padding: 9px 14px; }
+.pose-hud__hint { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: var(--mbt-text-mid); }
+.pose-hud__lbl { color: var(--mbt-text-lo); }
+.pose-hud__sp { flex: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .pose-hud { animation: none; }
+}
