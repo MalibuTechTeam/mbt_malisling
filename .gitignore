@@ -3,3 +3,16 @@ web/dist/
 .agents/
 .claude/
 skills-lock.json
+
+# Strategy / planning docs — live in the Obsidian vault, NOT in this public repo.
+# feature_shooting.md especially documents the PAID/escrowed companion; keeping
+# it (and the funnel strategy) out of the open-source repo is the whole point of
+# the opaque bridge.
+CLAUDE.md
+feature_malisling.md
+feature_shooting.md
+roadmap.md
+roadmap_malisling.md
+
+# Dev-only design mockups (scratch)
+web/mockup-*.html
