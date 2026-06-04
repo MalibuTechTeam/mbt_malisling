@@ -33,7 +33,7 @@ interface Category {
 const CATEGORIES: Category[] = [
   { id: 'core',        label: 'Core',        hint: 'Sling · holster · drop', icon: 'layers',
     sections: [CoreSection, HolsterSection, DropVisualSection, DespawnSection, InterfaceSection, DropLoggingSection] },
-  { id: 'handling',    label: 'Handling',    hint: 'Feel & combat RP',       icon: 'power',
+  { id: 'handling',    label: 'Handling',    hint: 'Feel & combat RP',       icon: 'target',
     // Ordered to pair similar heights for the equal-height grid: the two tall
     // cards (Suppressor, Safety) share row 1; the two short 2-input cards
     // (Jamming, Charge) share row 2; Weight closes.
@@ -42,7 +42,7 @@ const CATEGORIES: Category[] = [
     // Height-paired for the equal-height grid: the two tall cards (Inspect,
     // Throw) share row 1; the shorter Name + the tiny Poses share row 2.
     sections: [InspectSection, ThrowSection, WeaponNameSection, PosesSection] },
-  { id: 'world',       label: 'World',       hint: 'Zones · vehicle',        icon: 'alert',
+  { id: 'world',       label: 'World',       hint: 'Zones · vehicle',        icon: 'globe',
     sections: [NoDrawSection, VehicleSection] },
 ]
 
@@ -102,9 +102,26 @@ export default function AdminDashboard() {
     window.setTimeout(() => setSavePulse(false), 560)
   }, [cfg])
 
+  // Discard — revert the draft to the last-saved snapshot (no NUI round-trip).
+  const discard = useCallback(() => {
+    setCfg(JSON.parse(baseline.current))
+    setDirty(false)
+  }, [])
+
   if (!open || !cfg) return null
 
   const activeCat = CATEGORIES.find((c) => c.id === active) ?? CATEGORIES[0]
+
+  // Key feature flags, shared by the gauge and the overview list below it.
+  const features: [string, boolean][] = [
+    ['Suppressor Heat', !!cfg?.SuppressorHeat?.Enabled],
+    ['Weapon Inspect', !!cfg?.Inspect?.Enabled],
+    ['Weapon Safety', !!cfg?.Safety?.Enabled],
+    ['Condition HUD', !!cfg?.ConditionHUD?.Enabled],
+    ['No-Draw Zones', !!cfg?.NoDrawZones?.Enabled],
+    ['Drop Logging', !!cfg?.WeaponDrop?.Logging?.Enabled],
+  ]
+  const activeCount = features.filter(([, on]) => on).length
 
   return (
     <div className="mbt-admin-overlay">
@@ -114,7 +131,7 @@ export default function AdminDashboard() {
         <nav className="mbt-admin__rail">
           <div className="mbt-rail__logo">
             <span className="ic"><Icon name="logo" size={24} /></span>
-            <div><b>MALIBUTECH</b><span>MALISLING</span></div>
+            <div><b>MBT MALISLING</b><span>MALIBUTECH</span></div>
           </div>
 
           <div className="mbt-rail__group">Categories</div>
@@ -171,10 +188,16 @@ export default function AdminDashboard() {
               <div className="mbt-admin__meta">{activeCat.hint} · {activeCat.sections.length} features · applies live on save</div>
             </div>
             <div className="mbt-admin__head-sp" />
-            {dirty && (
+            {dirty ? (
               <span className="mbt-admin__dirty"><i />Unsaved changes</span>
-            )}
+            ) : null}
+            {dirty ? (
+              <button type="button" className="mbt-btn-ghost" onClick={discard}>
+                Discard
+              </button>
+            ) : null}
             <button
+              type="button"
               className={`mbt-btn-primary${savePulse ? ' is-complete' : ''}`}
               onClick={save}
               disabled={!dirty}
@@ -192,17 +215,24 @@ export default function AdminDashboard() {
 
         {/* ── Overview (right sidebar — mirrors elevator's config view) ── */}
         <aside className="mbt-admin__overview">
+          {/* Active-features gauge — a glanceable summary of the list below
+              (mirrors the elevator overview's data-driven top block). */}
+          <div className="mbt-ov__gauge">
+            <div className="mbt-ov__gauge-head">
+              <span className="mbt-ov__gauge-n">{activeCount}</span>
+              <span className="mbt-ov__gauge-d">/ {features.length} active</span>
+            </div>
+            <div className="mbt-ov__segs" aria-hidden="true">
+              {features.map(([label, on]) => (
+                <span key={label} className={on ? 'is-on' : ''} />
+              ))}
+            </div>
+          </div>
+
           <div className="mbt-ov__label"><Icon name="layers" size={12} /> FEATURE OVERVIEW</div>
           <div className="mbt-ov__summary">
-            {[
-              ['Suppressor Heat', cfg?.SuppressorHeat?.Enabled],
-              ['Weapon Inspect', cfg?.Inspect?.Enabled],
-              ['Weapon Safety', cfg?.Safety?.Enabled],
-              ['Condition HUD', cfg?.ConditionHUD?.Enabled],
-              ['No-Draw Zones', cfg?.NoDrawZones?.Enabled],
-              ['Drop Logging', cfg?.WeaponDrop?.Logging?.Enabled],
-            ].map(([label, on]) => (
-              <div key={label as string} className="mbt-ov__row">
+            {features.map(([label, on]) => (
+              <div key={label} className="mbt-ov__row">
                 <span className="k">{label}</span>
                 <span className={`v ${on ? 'is-on' : 'is-off'}`}>{on ? 'On' : 'Off'}</span>
               </div>

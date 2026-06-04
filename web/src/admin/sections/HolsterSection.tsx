@@ -6,7 +6,7 @@ import { NumberInput } from '../ui/NumberInput'
 export function HolsterSection({ config, update }: SectionProps) {
   const s = config.Sounds ?? {}
   return (
-    <Section icon="book" title="HOLSTER SOUNDS" sub="Audio feedback on holster / unholster.">
+    <Section icon="speaker" title="HOLSTER SOUNDS" sub="Audio feedback on holster / unholster.">
       <ToggleRow title="Enable Sounds" desc="Play a sound when holstering or drawing"
         checked={!!s.Enabled} onChange={(v) => update('Sounds.Enabled', v)} />
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginTop: 4 }}>

@@ -31,11 +31,14 @@
   width: 16px;
   height: 16px;
   background: var(--mbt-text-lo);
-  border-radius: 50%;
+  border-radius: var(--mbt-r-pill);
   transition:
     transform var(--mbt-dur) var(--mbt-ease),
+    width var(--mbt-dur-fast) var(--mbt-ease),
     background var(--mbt-dur) var(--mbt-ease);
 }
+/* Press "squash" — the thumb stretches while held, iOS-like tactility. */
+.mbt-toggle:active .mbt-toggle__thumb { width: 18px; }
 
 .mbt-toggle input:checked + .mbt-toggle__track {
   background: var(--mbt-accent-soft);

@@ -69,9 +69,9 @@
   --mbt-pulse:      520ms;   /* one-shot Save completion pulse */
 
   /* ── Typography ───────────────────────────────────────────────────────── */
-  --mbt-font-display: "Outfit Variable", "Outfit", system-ui, -apple-system, sans-serif;
-  --mbt-font-body:    "Inter Variable", "Inter", system-ui, -apple-system, sans-serif;
-  --mbt-font-mono:    "JetBrains Mono Variable", "JetBrains Mono", "Consolas", monospace;
+  --mbt-font-display: "Outfit", system-ui, -apple-system, sans-serif;
+  --mbt-font-body:    "Inter", system-ui, -apple-system, sans-serif;
+  --mbt-font-mono:    "Geist Mono", ui-monospace, "Consolas", monospace;
 
   /* ── Elevation — tonal first; shadow only for floating objects ────────── */
   --mbt-shadow-panel:

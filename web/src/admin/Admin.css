@@ -20,7 +20,12 @@
 
 .mbt-admin {
   position: relative;
-  width: min(1560px, 95vw); height: min(880px, 92vh);
+  /* Fluid like the elevator panel (90vw×85vh) instead of a fixed island, so it
+     scales with the display. Caps keep cards from sprawling on huge screens.
+     Taller than before (960) so the densest page — Handling — fits without a
+     scrollbar at 1080p; on 1440p+/ultrawide the wider panel lets the auto-fit
+     grid add a 3rd column on its own (fewer rows = no vertical overflow). */
+  width: min(1960px, 92vw); height: min(960px, 90vh);
   display: flex; overflow: hidden;
   border-radius: var(--mbt-r-lg); border: 1px solid var(--mbt-edge-hi);
   background:
@@ -47,7 +52,7 @@
 .mbt-rail__logo b { font-family: var(--mbt-font-display); font-size: 14px; font-weight: 700; color: var(--mbt-text-hi); letter-spacing: 0.02em; display: block; line-height: 1.1; }
 .mbt-rail__logo span { font-size: 8px; letter-spacing: 0.18em; color: var(--mbt-text-faint); display: block; }
 
-.mbt-rail__group { font-size: 9px; font-weight: 600; letter-spacing: 0.14em; color: var(--mbt-text-faint); padding: 14px 8px 8px; }
+.mbt-rail__group { font-size: 10px; font-weight: 600; letter-spacing: 0.12em; color: var(--mbt-text-faint); padding: 14px 8px 8px; }
 .mbt-rail__item {
   display: flex; align-items: center; gap: 11px; padding: 9px 8px; width: 100%;
   border: none; background: none; text-align: left; cursor: pointer; position: relative;
@@ -55,22 +60,25 @@
   transition: color var(--mbt-dur) var(--mbt-ease), background var(--mbt-dur) var(--mbt-ease);
 }
 .mbt-rail__item:hover { background: var(--mbt-surface-3); color: var(--mbt-text-mid); }
+.mbt-rail__item:focus-visible { outline: 2px solid var(--mbt-accent-glow); outline-offset: -2px; }
 .mbt-rail__item.is-active { background: var(--mbt-accent-soft); color: var(--mbt-text-hi); }
 .mbt-rail__item.is-active::before {
   content: ""; position: absolute; left: -14px; top: 9px; width: 2px; height: calc(100% - 18px);
   background: var(--mbt-accent); border-radius: 0 2px 2px 0;
+  transform-origin: center; animation: mbt-rail-bar var(--mbt-dur) var(--mbt-ease);
 }
+@keyframes mbt-rail-bar { from { transform: scaleY(0); opacity: 0 } to { transform: scaleY(1); opacity: 1 } }
 .mbt-rail__item .ic { flex-shrink: 0; color: var(--mbt-text-faint); display: grid; place-items: center; }
 .mbt-rail__item.is-active .ic { color: var(--mbt-accent); }
 .mbt-rail__tx { min-width: 0; }
 .mbt-rail__label { font-size: 13px; font-weight: 500; display: block; }
-.mbt-rail__hint { font-size: 10px; color: var(--mbt-text-faint); margin-top: 1px; display: block; }
+.mbt-rail__hint { font-size: 10px; color: var(--mbt-text-lo); margin-top: 1px; display: block; }
 .mbt-rail__dot { margin-left: auto; width: 6px; height: 6px; border-radius: 50%; background: var(--mbt-accent); box-shadow: 0 0 8px var(--mbt-accent-glow); flex-shrink: 0; }
 .mbt-rail__off { margin-left: auto; font-size: 10px; color: var(--mbt-text-faint); flex-shrink: 0; }
 /* Per-category feature count badge (elevator-style). */
 .mbt-rail__count {
   margin-left: auto; flex-shrink: 0;
-  font-family: var(--mbt-font-mono); font-size: 9.5px; color: var(--mbt-text-faint);
+  font-family: var(--mbt-font-mono); font-size: 10px; color: var(--mbt-text-faint);
   background: var(--mbt-surface-2); border: 1px solid var(--mbt-edge-lo);
   border-radius: var(--mbt-r-pill); padding: 1px 7px;
 }
@@ -81,13 +89,18 @@
 .mbt-rail__status { display: flex; align-items: center; gap: 9px; padding: 11px; margin-top: 8px; background: var(--mbt-surface-2); border: 1px solid var(--mbt-edge); border-radius: var(--mbt-r-md); }
 .mbt-rail__status .sdot { width: 7px; height: 7px; border-radius: 50%; background: var(--mbt-operational); box-shadow: 0 0 8px var(--mbt-operational); }
 .mbt-rail__status b { font-size: 11px; font-weight: 600; color: var(--mbt-text-mid); display: block; }
-.mbt-rail__status small { font-size: 9px; color: var(--mbt-text-faint); }
+.mbt-rail__status small { font-size: 10px; color: var(--mbt-text-faint); }
 .mbt-rail__status .ver { margin-left: auto; font-family: var(--mbt-font-mono); font-size: 9px; color: var(--mbt-text-faint); }
 
 /* ── Center ────────────────────────────────────────────────────────────── */
-.mbt-admin__center { flex: 1; min-width: 0; overflow-y: auto; padding: 20px 24px 30px; }
-.mbt-admin__center::-webkit-scrollbar { width: 10px; }
-.mbt-admin__center::-webkit-scrollbar-thumb { background: var(--mbt-surface-3); border-radius: var(--mbt-r-pill); border: 3px solid transparent; background-clip: padding-box; }
+/* scrollbar-gutter:stable reserves the bar's width so the grid never reflows
+   when it appears (the dense pages scroll on short displays). Thumb is a light
+   translucent fill — elevator parity; surface-3 was too dark to read. */
+.mbt-admin__center { flex: 1; min-width: 0; overflow-y: auto; padding: 20px 24px 30px; scrollbar-gutter: stable; scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, 0.18) transparent; }
+.mbt-admin__center::-webkit-scrollbar { width: 11px; }
+.mbt-admin__center::-webkit-scrollbar-track { background: transparent; }
+.mbt-admin__center::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.14); border-radius: var(--mbt-r-pill); border: 2px solid transparent; background-clip: padding-box; }
+.mbt-admin__center::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.24); background-clip: padding-box; }
 
 .mbt-admin__crumb { font-size: 11px; color: var(--mbt-text-lo); margin-bottom: 14px; }
 .mbt-admin__crumb b { color: var(--mbt-text-mid); font-weight: 600; }
@@ -114,6 +127,10 @@
   grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
   gap: 14px;
   align-items: stretch;
+  /* Top-aligned: cards flow down from the header (conventional for a settings
+     page). Light pages (World) leave empty space below — that reads as honest
+     "few features here", and keeps the cards visually anchored to the title. */
+  align-content: start;
 }
 
 /* Section panel chrome — the kit's .mbt-section is bare (it was wrapped by a
@@ -123,6 +140,12 @@
   border: 1px solid var(--mbt-edge);
   border-radius: var(--mbt-r-md);
   margin: 0;
+  transition: border-color var(--mbt-dur) var(--mbt-ease),
+              box-shadow var(--mbt-dur) var(--mbt-ease);
+}
+.mbt-admin__center .mbt-section:hover {
+  border-color: var(--mbt-edge-hi);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03), 0 6px 18px rgba(0, 0, 0, 0.22);
 }
 .mbt-admin__center .mbt-section--wide { grid-column: 1 / -1; }
 
@@ -166,12 +189,21 @@
 .mbt-btn-ghost, .mbt-btn-primary {
   display: flex; align-items: center; gap: 7px; height: 38px; padding: 0 16px;
   border-radius: var(--mbt-r-md); font-size: 12.5px; font-weight: 600; cursor: pointer;
+  transition: background var(--mbt-dur) var(--mbt-ease),
+              border-color var(--mbt-dur) var(--mbt-ease),
+              color var(--mbt-dur) var(--mbt-ease),
+              transform var(--mbt-dur-fast) var(--mbt-ease);
 }
 .mbt-btn-ghost { background: var(--mbt-surface-3); border: 1px solid var(--mbt-edge); color: var(--mbt-text-mid); font-family: var(--mbt-font-body); }
 .mbt-btn-ghost:hover { color: var(--mbt-text-hi); border-color: var(--mbt-edge-hi); }
+.mbt-btn-ghost:active { transform: translateY(1px); }
 .mbt-btn-primary { background: var(--mbt-accent); border: none; color: var(--mbt-surface-base); font-family: var(--mbt-font-display); }
 .mbt-btn-primary:hover { background: var(--mbt-accent-deep); }
+.mbt-btn-primary:not(:disabled):active { transform: translateY(1px); }
 .mbt-btn-primary:disabled { background: var(--mbt-surface-3); color: var(--mbt-text-faint); cursor: not-allowed; }
+.mbt-btn-ghost:focus-visible, .mbt-btn-primary:focus-visible {
+  outline: 2px solid var(--mbt-accent-glow); outline-offset: 2px;
+}
 .mbt-btn-primary.is-complete { animation: mbt-save-pulse var(--mbt-pulse) ease-out; }
 @keyframes mbt-save-pulse {
   0%   { box-shadow: 0 0 0 0 rgba(var(--mbt-accent-rgb), 0.5); }
@@ -187,6 +219,15 @@
 
 /* ── Overview (optional right column) ──────────────────────────────────── */
 .mbt-admin__overview { width: 300px; flex-shrink: 0; border-left: 1px solid var(--mbt-edge); padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 18px; }
+
+/* Active-features gauge — top block above FEATURE OVERVIEW (elevator pattern). */
+.mbt-ov__gauge { padding: 14px 15px; background: var(--mbt-surface-2); border: 1px solid var(--mbt-edge); border-radius: var(--mbt-r-md); }
+.mbt-ov__gauge-head { display: flex; align-items: baseline; gap: 6px; }
+.mbt-ov__gauge-n { font-family: var(--mbt-font-display); font-size: 28px; font-weight: 700; line-height: 1; color: var(--mbt-text-hi); }
+.mbt-ov__gauge-d { font-size: 12px; font-weight: 600; color: var(--mbt-text-lo); }
+.mbt-ov__segs { display: flex; gap: 3px; margin-top: 12px; }
+.mbt-ov__segs span { flex: 1; height: 4px; border-radius: var(--mbt-r-pill); background: var(--mbt-surface-3); transition: background var(--mbt-dur) var(--mbt-ease); }
+.mbt-ov__segs span.is-on { background: var(--mbt-accent); }
 .mbt-ov__label { display: flex; align-items: center; gap: 7px; font-size: 10px; font-weight: 600; letter-spacing: 0.12em; color: var(--mbt-text-faint); }
 .mbt-ov__spacer { flex: 1 1 auto; }
 .mbt-ov__summary { display: flex; flex-direction: column; }
@@ -200,3 +241,16 @@
 .mbt-ov__tip .ic { color: var(--mbt-accent); flex-shrink: 0; }
 .mbt-ov__tip b { font-family: var(--mbt-font-display); font-size: 11px; font-weight: 700; color: var(--mbt-text-hi); letter-spacing: 0.06em; display: block; margin-bottom: 3px; }
 .mbt-ov__tip p { font-size: 11.5px; line-height: 1.5; color: var(--mbt-text-lo); }
+
+/* ── Responsive ────────────────────────────────────────────────────────────
+   The panel is fluid (see .mbt-admin). On narrow displays the fixed chrome
+   (212px rail + 300px overview) starves the card grid, so below 1400px we drop
+   the Overview — it's a secondary read-out — letting the grid keep two columns.
+   The summary it shows is non-essential (every value is visible in its card). */
+@media (max-width: 1400px) {
+  .mbt-admin__overview { display: none; }
+}
+/* Very narrow: also slim the rail so the grid keeps breathing room. */
+@media (max-width: 1080px) {
+  .mbt-admin__rail { width: 184px; }
+}

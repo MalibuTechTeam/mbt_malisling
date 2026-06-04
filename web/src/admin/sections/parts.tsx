@@ -14,7 +14,7 @@ export function Section({ icon, title, sub, action, children, wide }: { icon: Ic
           <h4 className="mbt-section__title">{title}</h4>
           {sub && <p className="mbt-section__sub">{sub}</p>}
         </div>
-        {action && <><span style={{ flex: 1 }} />{action}</>}
+        {action && <span className="mbt-section__action">{action}</span>}
       </div>
       {children && <div className="mbt-section__body">{children}</div>}
     </div>

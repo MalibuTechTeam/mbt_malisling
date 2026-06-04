@@ -57,6 +57,17 @@
   font-family: var(--mbt-font-body);
   font-size: 11px;
   color: var(--mbt-text-lo);
+  /* One line always: head-tx owns the full width now (no flex spacer stealing
+     half), so a concise sub fits; anything longer ellipses instead of wrapping. */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Header action (the on/off toggle) pinned right; head-tx (flex:1) fills the rest. */
+.mbt-section__action {
+  flex-shrink: 0;
+  margin-left: auto;
+  padding-left: 12px;
 }
 
 .mbt-section__body {
@@ -124,11 +135,14 @@
   font-weight: 700;
 }
 
+/* Hint is content (it explains the setting), not decoration — text-lo keeps it
+   above WCAG AA on the dark surface; text-faint (~3:1) is reserved for truly
+   inert text (placeholders, disabled). */
 .mbt-field__hint {
   font-family: var(--mbt-font-body);
   font-size: 11.5px;
   line-height: 1.4;
-  color: var(--mbt-text-faint);
+  color: var(--mbt-text-lo);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

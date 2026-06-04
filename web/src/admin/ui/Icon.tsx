@@ -47,7 +47,14 @@ export type IconName =
   | "cursor"
   | "layers"
   | "lock"
-  | "palette";
+  | "palette"
+  // malisling-specific glyphs (weapon/audio/world domain)
+  | "speaker"
+  | "flame"
+  | "target"
+  | "pose"
+  | "vehicle"
+  | "globe";
 
 const ICON_PATHS: Record<IconName, ReactNode> = {
   logo: <path d="M4 19V7l8 5 8-5v12" />,
@@ -175,6 +182,44 @@ const ICON_PATHS: Record<IconName, ReactNode> = {
       <circle cx="9" cy="9.5" r="1.4" fill="currentColor" stroke="none" />
       <circle cx="15" cy="9.5" r="1.4" fill="currentColor" stroke="none" />
       <circle cx="9.5" cy="15" r="1.4" fill="currentColor" stroke="none" />
+    </>
+  ),
+
+  speaker: (
+    <>
+      <path d="M4 9v6h3.5L13 19V5L7.5 9H4Z" />
+      <path d="M16.5 9a4 4 0 0 1 0 6" />
+    </>
+  ),
+  flame: (
+    <path d="M12 2.5c2.5 3.5 5 5.5 5 9.5a5 5 0 0 1-10 0c0-2 .8-3.3 2-4.3.3 1.8 1.3 2.8 2.5 2.8-1.3-2.3-1.3-5.3.5-8Z" />
+  ),
+  target: (
+    <>
+      <circle cx="12" cy="12" r="7.5" />
+      <circle cx="12" cy="12" r="3" />
+      <path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3" />
+    </>
+  ),
+  pose: (
+    <>
+      <circle cx="12" cy="5.5" r="2.5" />
+      <path d="M12 8v6M12 10.5 7.5 13M12 10.5 16.5 13M12 14l-2.5 6.5M12 14l2.5 6.5" />
+    </>
+  ),
+  vehicle: (
+    <>
+      <path d="M5 11l1.4-4.2A2 2 0 0 1 8.3 5.5h7.4a2 2 0 0 1 1.9 1.3L19 11" />
+      <path d="M3.5 11h17v4.5a1 1 0 0 1-1 1H18M16 16.5H8M6 16.5H4.5a1 1 0 0 1-1-1V11" />
+      <circle cx="7.5" cy="16.5" r="1.5" />
+      <circle cx="16.5" cy="16.5" r="1.5" />
+    </>
+  ),
+  globe: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M3 12h18" />
+      <path d="M12 3c2.5 2.5 2.5 15 0 18M12 3c-2.5 2.5-2.5 15 0 18" />
     </>
   ),
 };

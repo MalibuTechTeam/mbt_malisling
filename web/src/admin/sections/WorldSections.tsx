@@ -8,9 +8,9 @@ const numUpdate = (update: SectionProps['update'], path: string, def: number, in
 export function NoDrawSection({ config, update }: SectionProps) {
   const n = config.NoDrawZones ?? {}
   return (
-    <Section icon="alert" title="NO-DRAW ZONES" sub="Block drawing firearms in safe areas (zone coords in config.lua)."
+    <Section icon="alert" title="NO-DRAW ZONES" sub="Block drawing firearms in safe-zone areas."
       action={<ToggleRow.Inline checked={!!n.Enabled} onChange={(v) => update('NoDrawZones.Enabled', v)} />}>
-      <ToggleRow title="Allow Melee" desc="Melee weapons stay usable inside zones (block firearms only)"
+      <ToggleRow title="Allow Melee" desc="Melee stays usable inside zones (firearms only)"
         checked={!!n.AllowMelee} onChange={(v) => update('NoDrawZones.AllowMelee', v)} />
       <ToggleRow title="HUD Banner" desc="Show an on-screen banner while inside a no-draw zone"
         checked={!!n.HudIndicator} onChange={(v) => update('NoDrawZones.HudIndicator', v)} />
@@ -29,13 +29,13 @@ export function NoDrawSection({ config, update }: SectionProps) {
 export function VehicleSection({ config, update }: SectionProps) {
   const v = config.VehicleHiding ?? {}
   return (
-    <Section icon="configure" title="VEHICLE SMART HIDING" sub="Slung weapons are always hidden in enclosed vehicles; this controls roofless ones."
+    <Section icon="vehicle" title="VEHICLE SMART HIDING" sub="Hidden in enclosed vehicles; configure roofless ones."
       action={<ToggleRow.Inline checked={!!v.Enabled} onChange={(x) => update('VehicleHiding.Enabled', x)} />}>
       <ToggleRow title="Smart Hiding"
-        desc="On: stay visible on roofless vehicles (bikes/quads/convertibles). Off: hide in any vehicle."
+        desc="On: visible on roofless vehicles. Off: hidden in all."
         checked={!!v.Enabled} onChange={(x) => update('VehicleHiding.Enabled', x)} />
       <ToggleRow title="Roof Check"
-        desc="Also keep visible on any vehicle without a roof (quads, buggies, top-down convertibles)"
+        desc="Keep visible on roofless vehicles too (quads, buggies)"
         checked={!!v.UseRoofCheck} onChange={(x) => update('VehicleHiding.UseRoofCheck', x)} />
     </Section>
   )
@@ -45,7 +45,7 @@ export function VehicleSection({ config, update }: SectionProps) {
 export function TacticalSlingSection({ config, update }: SectionProps) {
   const t = config.TacticalSling ?? {}
   return (
-    <Section icon="layers" title="TACTICAL SLING" sub="Visible strap prop while a long gun is slung. Requires a strap model in stream/."
+    <Section icon="layers" title="TACTICAL SLING" sub="Visible strap prop for slung long guns."
       action={<ToggleRow.Inline checked={!!t.Enabled} onChange={(v) => update('TacticalSling.Enabled', v)} />}>
       <div className="mbt-field__hint" style={{ marginTop: 2 }}>
         Ships disabled until you add a strap prop model to <code>stream/</code> and set

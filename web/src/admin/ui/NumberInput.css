@@ -53,13 +53,16 @@
   background: none;
   color: var(--mbt-text-faint);
   cursor: pointer;
-  transition: color var(--mbt-dur) var(--mbt-ease);
+  transition: color var(--mbt-dur) var(--mbt-ease),
+              background var(--mbt-dur-fast) var(--mbt-ease);
 }
 .mbt-num__btn:hover {
   color: var(--mbt-accent);
+  background: var(--mbt-accent-soft);
 }
 .mbt-num__btn:active {
   color: var(--mbt-accent);
+  background: rgba(var(--mbt-accent-rgb), 0.14);
 }
 .mbt-num__btn svg {
   width: 9px;

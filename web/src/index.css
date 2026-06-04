@@ -1,5 +1,32 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap');
+/* @import must precede every other rule (incl. @font-face) — tokens first. */
 @import './styles/tokens.css';
+
+/* Fonts: Outfit (display) + Inter (body) + Geist Mono (technical readouts).
+   SELF-HOSTED — no CDN/network dependency, so the type identity holds even when
+   CEF is offline or blocks external requests. Variable woff2 (wght 400–700) in
+   src/fonts/ are processed & fingerprinted by Vite (relative url honours
+   base:'./'). font-display:swap avoids invisible text on first paint. */
+@font-face {
+  font-family: "Outfit";
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+  src: url("./fonts/Outfit-Variable.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Inter";
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+  src: url("./fonts/Inter-Variable.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Geist Mono";
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+  src: url("./fonts/GeistMono-Variable.woff2") format("woff2");
+}
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html, body, #root {
   width: 100vw; height: 100vh;

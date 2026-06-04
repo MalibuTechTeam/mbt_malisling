@@ -14,7 +14,7 @@ export function InspectSection({ config, update }: SectionProps) {
   const i = config.Inspect ?? {}
   const show = i.Show ?? {}
   return (
-    <Section icon="search" title="WEAPON INSPECT" sub="Hold the inspect key to examine the held weapon (keybind in config.lua)."
+    <Section icon="search" title="WEAPON INSPECT" sub="Hold the inspect key to examine the held weapon."
       action={<ToggleRow.Inline checked={!!i.Enabled} onChange={(v) => update('Inspect.Enabled', v)} />}>
       <Grid2>
         <FieldBlock label="Sync Distance (m)" hint="How far nearby players see the inspect animation." style={{ marginBottom: 0 }}>
@@ -46,7 +46,7 @@ const NAME_PERMS = [
 export function WeaponNameSection({ config, update }: SectionProps) {
   const w = config.WeaponName ?? {}
   return (
-    <Section icon="book" title="WEAPON NAME" sub="Engrave a custom name on a firearm (command/keybind in config.lua)."
+    <Section icon="book" title="WEAPON NAME" sub="Engrave a custom name on a firearm."
       action={<ToggleRow.Inline checked={!!w.Enabled} onChange={(v) => update('WeaponName.Enabled', v)} />}>
       <Grid2>
         <FieldBlock label="Max Length" hint="Character cap on the engraved name." style={{ marginBottom: 0 }}>
@@ -57,7 +57,7 @@ export function WeaponNameSection({ config, update }: SectionProps) {
           <Segmented value={w.Permission ?? 'everyone'} options={NAME_PERMS} onChange={(v) => update('WeaponName.Permission', v)} />
         </FieldBlock>
       </Grid2>
-      <ToggleRow title="Once Per Weapon" desc="Block re-naming a weapon once it already has a custom name"
+      <ToggleRow title="Once Per Weapon" desc="Block re-naming once a weapon is named"
         checked={!!w.OncePerWeapon} onChange={(v) => update('WeaponName.OncePerWeapon', v)} />
     </Section>
   )
@@ -67,9 +67,9 @@ export function WeaponNameSection({ config, update }: SectionProps) {
 export function PosesSection({ config, update }: SectionProps) {
   const p = config.ShowcasePoses ?? {}
   return (
-    <Section icon="cursor" title="SHOWCASE POSES" sub="Cycle RP idle poses (pose list + command/keybind in config.lua)."
+    <Section icon="pose" title="SHOWCASE POSES" sub="Cycle RP idle poses for screenshots."
       action={<ToggleRow.Inline checked={!!p.Enabled} onChange={(v) => update('ShowcasePoses.Enabled', v)} />}>
-      <ToggleRow title="Sync to Nearby Players" desc="Others see your pose (group photos); covers late arrivals via statebag"
+      <ToggleRow title="Sync to Nearby Players" desc="Others see your pose, including late arrivals"
         checked={!!p.Sync} onChange={(v) => update('ShowcasePoses.Sync', v)} />
     </Section>
   )
@@ -91,7 +91,7 @@ export function ThrowSection({ config, update }: SectionProps) {
   const t = config.Throw ?? {}
   const groups = t.Groups ?? {}
   return (
-    <Section icon="cursor" title="WEAPON THROW" sub="Toss the held weapon (command/keybind + force per group in config.lua)."
+    <Section icon="teleport" title="WEAPON THROW" sub="Toss the held weapon by weapon group."
       action={<ToggleRow.Inline checked={!!t.Enabled} onChange={(v) => update('Throw.Enabled', v)} />}>
       <FieldBlock label="Throwable Weapon Groups" hint="Which weapon groups the player is allowed to throw.">
         <Grid2>

@@ -9,7 +9,7 @@ const numUpdate = (update: SectionProps['update'], path: string, def: number, in
 export function JammingSection({ config, update }: SectionProps) {
   const j = config.Jamming ?? {}
   return (
-    <Section icon="clock" title="WEAPON JAMMING" sub="Low-durability weapons can jam; clear with a key minigame."
+    <Section icon="configure" title="WEAPON JAMMING" sub="Worn weapons can jam; clear with a key minigame."
       action={<ToggleRow.Inline checked={!!j.Enabled} onChange={(v) => update('Jamming.Enabled', v)} />}>
       <Grid2>
         <FieldBlock label="Jam Cooldown (s)" hint="Minimum time between possible jams." style={{ marginBottom: 0 }}>
@@ -34,7 +34,7 @@ const HEAT_MODES = [
 export function SuppressorSection({ config, update }: SectionProps) {
   const s = config.SuppressorHeat ?? {}
   return (
-    <Section icon="power" title="SUPPRESSOR HEAT" sub="Suppressor glows orange→red during sustained fire."
+    <Section icon="flame" title="SUPPRESSOR HEAT" sub="Glows orange→red during sustained fire."
       action={<ToggleRow.Inline checked={!!s.Enabled} onChange={(v) => update('SuppressorHeat.Enabled', v)} />}>
       <FieldBlock label="Render Mode" hint="Glow = no wall reflection · Light = real light · Particle = ptfx.">
         <Segmented value={s.Mode ?? 'glow'} options={HEAT_MODES} onChange={(v) => update('SuppressorHeat.Mode', v)} />
@@ -66,7 +66,7 @@ export function SafetySection({ config, update }: SectionProps) {
   const s = config.Safety ?? {}
   const c = config.ConditionHUD ?? {}
   return (
-    <Section icon="lock" title="WEAPON SAFETY" sub="Toggle the safety on the held firearm (blocks fire, allows aim)."
+    <Section icon="lock" title="WEAPON SAFETY" sub="Block fire on the held firearm (aim still allowed)."
       action={<ToggleRow.Inline checked={!!s.Enabled} onChange={(v) => update('Safety.Enabled', v)} />}>
       <ToggleRow title="Default On" desc="A freshly drawn weapon starts safetied"
         checked={!!s.DefaultOn} onChange={(v) => update('Safety.DefaultOn', v)} />
@@ -74,7 +74,7 @@ export function SafetySection({ config, update }: SectionProps) {
         checked={!!s.PerWeapon} onChange={(v) => update('Safety.PerWeapon', v)} />
       <ToggleRow title="HUD Indicator" desc="Show the SAFE/FIRE pill while a firearm is in hand"
         checked={!!s.HudIndicator} onChange={(v) => update('Safety.HudIndicator', v)} />
-      <ToggleRow title="Condition Pips" desc="Show the weapon's condition (tier 1-5) next to SAFE/FIRE in the same pill"
+      <ToggleRow title="Condition Pips" desc="Show condition (tier 1-5) next to SAFE/FIRE"
         checked={!!c.Enabled} onChange={(v) => update('ConditionHUD.Enabled', v)} />
     </Section>
   )
@@ -84,7 +84,7 @@ export function SafetySection({ config, update }: SectionProps) {
 export function ChargeSection({ config, update }: SectionProps) {
   const c = config.ChargeWeapon ?? {}
   return (
-    <Section icon="cursor" title="CHARGE WEAPON" sub="Rack-the-slide intimidation gesture (anim + sound to nearby players)."
+    <Section icon="target" title="CHARGE WEAPON" sub="Rack-the-slide intimidation (anim + sound nearby)."
       action={<ToggleRow.Inline checked={!!c.Enabled} onChange={(v) => update('ChargeWeapon.Enabled', v)} />}>
       <Grid2>
         <FieldBlock label="Cooldown (ms)" hint="Anti-spam between racks." style={{ marginBottom: 0 }}>
