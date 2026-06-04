@@ -3,10 +3,11 @@ import { Icon, type IconName } from '../ui/Icon'
 import { Toggle } from '../ui/Toggle'
 
 /** Section panel: bordered card with an icon-box head + body.
- *  `action` renders right-aligned in the head (e.g. a segmented control). */
-export function Section({ icon, title, sub, action, children }: { icon: IconName; title: string; sub?: string; action?: ReactNode; children?: ReactNode }) {
+ *  `action` renders right-aligned in the head (e.g. a segmented control).
+ *  `wide` makes the card span both masonry columns (for wide controls). */
+export function Section({ icon, title, sub, action, children, wide }: { icon: IconName; title: string; sub?: string; action?: ReactNode; children?: ReactNode; wide?: boolean }) {
   return (
-    <div className="mbt-section">
+    <div className={`mbt-section${wide ? ' mbt-section--wide' : ''}`}>
       <div className="mbt-section__head">
         <span className="mbt-section__ic"><Icon name={icon} size={16} /></span>
         <div className="mbt-section__head-tx">
@@ -23,7 +24,7 @@ export function Section({ icon, title, sub, action, children }: { icon: IconName
 /** A title + description row with a toggle on the right (card style). */
 export function ToggleRow({ title, desc, checked, onChange }: { title: string; desc?: string; checked: boolean; onChange: (v: boolean) => void }) {
   return (
-    <div className="mbt-setting" style={{ marginBottom: 10 }}>
+    <div className="mbt-setting">
       <div className="mbt-setting__head">
         <div className="mbt-setting__info">
           <span className="mbt-setting__title">{title}</span>

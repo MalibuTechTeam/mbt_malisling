@@ -1,13 +1,14 @@
 /* Segmented — a small segmented (tab-like) control. */
 
 .mbt-segmented {
-  display: inline-flex;
+  display: flex;            /* full width — segments distribute evenly */
   gap: 3px;
   padding: 3px;
   background: var(--mbt-surface-1);
   border: 1px solid var(--mbt-edge);
   border-radius: var(--mbt-r-sm);
 }
+.mbt-seg { flex: 1 1 0; justify-content: center; white-space: nowrap; }
 
 .mbt-seg {
   display: flex;

@@ -66,6 +66,11 @@
   gap: 12px;
   margin-bottom: 12px;
 }
+/* Let cells shrink below their content's intrinsic width so a wide control or a
+   long hint clips/ellipses inside the card instead of overflowing it. */
+.mbt-card-grid > * {
+  min-width: 0;
+}
 .mbt-card-grid:last-child {
   margin-bottom: 0;
 }

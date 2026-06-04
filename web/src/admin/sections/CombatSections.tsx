@@ -101,8 +101,9 @@ export function ChargeSection({ config, update }: SectionProps) {
 }
 
 /** Weapon Weight — carry penalty preset. */
+// 'off' intentionally omitted — the section's Enable toggle turns the feature off
+// (an 'off' preset would just duplicate that). Kept valid in config.lua/validate.
 const WEIGHT_MODES = [
-  { value: 'off', label: 'Off' },
   { value: 'light', label: 'Light' },
   { value: 'medium', label: 'Medium' },
   { value: 'heavy', label: 'Heavy' },

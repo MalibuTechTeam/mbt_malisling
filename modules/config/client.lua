@@ -60,7 +60,6 @@ local function applyConfig(d)
         if d.WeaponDrop.Logging and MBT.WeaponDrop.Logging then
             MBT.WeaponDrop.Logging.Enabled = d.WeaponDrop.Logging.Enabled
             MBT.WeaponDrop.Logging.Webhook = d.WeaponDrop.Logging.Webhook
-            MBT.WeaponDrop.Logging.Console = d.WeaponDrop.Logging.Console
         end
     end
     if d.Jamming and MBT.Jamming then

@@ -1,48 +1,54 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, type ComponentType } from 'react'
 import { useNuiEvent } from '../utils/useNuiEvent'
 import { fetchNui } from '../utils/fetchNui'
 import { Icon, type IconName } from './ui/Icon'
-import { GeneralSection } from './sections/GeneralSection'
+import type { SectionProps } from './sections/parts'
+import { CoreSection, InterfaceSection } from './sections/GeneralSection'
 import { HolsterSection } from './sections/HolsterSection'
-import { WeaponDropSection } from './sections/WeaponDropSection'
+import { DropVisualSection, DespawnSection, DropLoggingSection } from './sections/WeaponDropSection'
 import { JammingSection, SuppressorSection, SafetySection, ChargeSection, WeightSection } from './sections/CombatSections'
 import { InspectSection, WeaponNameSection, PosesSection, ThrowSection } from './sections/InteractionSections'
-import { NoDrawSection, VehicleSection, TacticalSlingSection } from './sections/WorldSections'
+import { NoDrawSection, VehicleSection } from './sections/WorldSections'
 import './Admin.css'
 
 /**
  * AdminDashboard — the malisling admin config panel. Brand-coherent with the
- * mbt_elevator Control-Room dashboard (shared --mbt-* design system): rail +
- * center + overview. Opens on the `openAdmin` NUI event with the full config
- * snapshot, edits a local draft, and saves via the `adminSave` callback which
- * the server broadcasts live to every client.
+ * mbt_elevator Control-Room dashboard (shared --mbt-* design system + ConfigRail
+ * styling): rail + center + overview.
+ *
+ * The rail navigates by CATEGORY (not per-feature) — malisling has many small
+ * features, so each category page stacks several feature cards (fills the page;
+ * no "2-toggle ghost pages"). Forensics is reserved (coming soon) until it ships;
+ * Tactical Sling stays out of the menu until its stream asset exists.
  */
 
-interface RailItem { id: string; label: string; hint?: string; icon: IconName; group: string }
+interface Category {
+  id: string
+  label: string
+  hint: string
+  icon: IconName
+  sections: ComponentType<SectionProps>[]
+}
 
-const RAIL: RailItem[] = [
-  { id: 'general',   label: 'General',         hint: 'Core sling & interface', icon: 'configure', group: 'ESSENTIALS' },
-  { id: 'holster',   label: 'Holster & Sounds',                                icon: 'book',      group: 'ESSENTIALS' },
-  { id: 'drop',      label: 'Weapon Drop',                                     icon: 'layers',    group: 'ESSENTIALS' },
-  { id: 'jamming',   label: 'Jamming',                                         icon: 'clock',     group: 'COMBAT / RP' },
-  { id: 'suppressor',label: 'Suppressor Heat',                                 icon: 'power',     group: 'COMBAT / RP' },
-  { id: 'safety',    label: 'Weapon Safety',                                   icon: 'lock',      group: 'COMBAT / RP' },
-  { id: 'charge',    label: 'Charge Weapon',                                   icon: 'cursor',    group: 'COMBAT / RP' },
-  { id: 'weight',    label: 'Weapon Weight',                                   icon: 'layers',    group: 'COMBAT / RP' },
-  { id: 'inspect',   label: 'Inspect & Ammo',                                  icon: 'search',    group: 'INTERACTION' },
-  { id: 'wname',     label: 'Weapon Name',                                     icon: 'book',      group: 'INTERACTION' },
-  { id: 'poses',     label: 'Showcase Poses',                                  icon: 'cursor',    group: 'INTERACTION' },
-  { id: 'throw',     label: 'Weapon Throw',                                    icon: 'cursor',    group: 'INTERACTION' },
-  { id: 'nodraw',    label: 'No-Draw Zones',                                   icon: 'alert',     group: 'WORLD' },
-  { id: 'vehicle',   label: 'Vehicle Hiding',                                  icon: 'configure', group: 'WORLD' },
-  { id: 'tactical',  label: 'Tactical Sling',                                  icon: 'layers',    group: 'WORLD' },
+const CATEGORIES: Category[] = [
+  { id: 'core',        label: 'Core',        hint: 'Sling · holster · drop', icon: 'layers',
+    sections: [CoreSection, HolsterSection, DropVisualSection, DespawnSection, InterfaceSection, DropLoggingSection] },
+  { id: 'handling',    label: 'Handling',    hint: 'Feel & combat RP',       icon: 'power',
+    // Ordered to pair similar heights for the equal-height grid: the two tall
+    // cards (Suppressor, Safety) share row 1; the two short 2-input cards
+    // (Jamming, Charge) share row 2; Weight closes.
+    sections: [SuppressorSection, SafetySection, JammingSection, ChargeSection, WeightSection] },
+  { id: 'interaction', label: 'Interaction', hint: 'Inspect · name · poses', icon: 'cursor',
+    // Height-paired for the equal-height grid: the two tall cards (Inspect,
+    // Throw) share row 1; the shorter Name + the tiny Poses share row 2.
+    sections: [InspectSection, ThrowSection, WeaponNameSection, PosesSection] },
+  { id: 'world',       label: 'World',       hint: 'Zones · vehicle',        icon: 'alert',
+    sections: [NoDrawSection, VehicleSection] },
 ]
-
-const GROUPS = ['ESSENTIALS', 'COMBAT / RP', 'INTERACTION', 'WORLD']
 
 export default function AdminDashboard() {
   const [open, setOpen] = useState(false)
-  const [active, setActive] = useState('general')
+  const [active, setActive] = useState('core')
   const [cfg, setCfg] = useState<any>(null)
   const [version, setVersion] = useState('v2.0')
   const [dirty, setDirty] = useState(false)        // unsaved changes
@@ -55,7 +61,7 @@ export default function AdminDashboard() {
     baseline.current = JSON.stringify(c)
     setDirty(false)
     if (data?.version) setVersion(data.version)
-    setActive('general')
+    setActive('core')
     setOpen(true)
   })
   useNuiEvent('closeAdmin', () => setOpen(false))
@@ -98,7 +104,7 @@ export default function AdminDashboard() {
 
   if (!open || !cfg) return null
 
-  const activeItem = RAIL.find((r) => r.id === active)
+  const activeCat = CATEGORIES.find((c) => c.id === active) ?? CATEGORIES[0]
 
   return (
     <div className="mbt-admin-overlay">
@@ -111,24 +117,31 @@ export default function AdminDashboard() {
             <div><b>MALIBUTECH</b><span>MALISLING</span></div>
           </div>
 
-          {GROUPS.map((group) => (
-            <div key={group}>
-              <div className="mbt-rail__group">{group}</div>
-              {RAIL.filter((r) => r.group === group).map((it) => (
-                <button
-                  key={it.id}
-                  className={`mbt-rail__item${active === it.id ? ' is-active' : ''}`}
-                  onClick={() => setActive(it.id)}
-                >
-                  <span className="ic"><Icon name={it.icon} size={18} /></span>
-                  <span className="mbt-rail__tx">
-                    <span className="mbt-rail__label">{it.label}</span>
-                    {it.hint && <span className="mbt-rail__hint">{it.hint}</span>}
-                  </span>
-                </button>
-              ))}
-            </div>
+          <div className="mbt-rail__group">Categories</div>
+          {CATEGORIES.map((cat) => (
+            <button
+              key={cat.id}
+              className={`mbt-rail__item${active === cat.id ? ' is-active' : ''}`}
+              onClick={() => setActive(cat.id)}
+            >
+              <span className="ic"><Icon name={cat.icon} size={18} /></span>
+              <span className="mbt-rail__tx">
+                <span className="mbt-rail__label">{cat.label}</span>
+                <span className="mbt-rail__hint">{cat.hint}</span>
+              </span>
+              <span className="mbt-rail__count">{cat.sections.length}</span>
+            </button>
           ))}
+
+          {/* Reserved — appears as a real category once it ships. */}
+          <div className="mbt-rail__item is-soon" aria-disabled="true">
+            <span className="ic"><Icon name="search" size={18} /></span>
+            <span className="mbt-rail__tx">
+              <span className="mbt-rail__label">Forensics</span>
+              <span className="mbt-rail__hint">Serial · custody · casings</span>
+            </span>
+            <span className="mbt-rail__count">soon</span>
+          </div>
 
           <div className="mbt-rail__spacer" />
 
@@ -151,11 +164,11 @@ export default function AdminDashboard() {
 
         {/* ── Center ── */}
         <div className="mbt-admin__center">
-          <div className="mbt-admin__crumb">Configuration <span style={{ opacity: .5 }}>›</span> <b>{activeItem?.label}</b></div>
+          <div className="mbt-admin__crumb">Configuration <span style={{ opacity: .5 }}>›</span> <b>{activeCat.label}</b></div>
           <div className="mbt-admin__head">
             <div>
-              <span className="mbt-admin__title">{activeItem?.label}</span>
-              <div className="mbt-admin__meta">Applies live on save</div>
+              <span className="mbt-admin__title">{activeCat.label}</span>
+              <div className="mbt-admin__meta">{activeCat.hint} · {activeCat.sections.length} features · applies live on save</div>
             </div>
             <div className="mbt-admin__head-sp" />
             {dirty && (
@@ -170,24 +183,14 @@ export default function AdminDashboard() {
             </button>
           </div>
 
-          {active === 'general' && <GeneralSection config={cfg} update={update} />}
-          {active === 'holster' && <HolsterSection config={cfg} update={update} />}
-          {active === 'drop' && <WeaponDropSection config={cfg} update={update} />}
-          {active === 'jamming' && <JammingSection config={cfg} update={update} />}
-          {active === 'suppressor' && <SuppressorSection config={cfg} update={update} />}
-          {active === 'safety' && <SafetySection config={cfg} update={update} />}
-          {active === 'charge' && <ChargeSection config={cfg} update={update} />}
-          {active === 'weight' && <WeightSection config={cfg} update={update} />}
-          {active === 'inspect' && <InspectSection config={cfg} update={update} />}
-          {active === 'wname' && <WeaponNameSection config={cfg} update={update} />}
-          {active === 'poses' && <PosesSection config={cfg} update={update} />}
-          {active === 'throw' && <ThrowSection config={cfg} update={update} />}
-          {active === 'nodraw' && <NoDrawSection config={cfg} update={update} />}
-          {active === 'vehicle' && <VehicleSection config={cfg} update={update} />}
-          {active === 'tactical' && <TacticalSlingSection config={cfg} update={update} />}
+          <div className="mbt-admin__sections">
+            {activeCat.sections.map((Section, i) => (
+              <Section key={`${active}-${i}`} config={cfg} update={update} />
+            ))}
+          </div>
         </div>
 
-        {/* ── Overview ── */}
+        {/* ── Overview (right sidebar — mirrors elevator's config view) ── */}
         <aside className="mbt-admin__overview">
           <div className="mbt-ov__label"><Icon name="layers" size={12} /> FEATURE OVERVIEW</div>
           <div className="mbt-ov__summary">
@@ -195,9 +198,9 @@ export default function AdminDashboard() {
               ['Suppressor Heat', cfg?.SuppressorHeat?.Enabled],
               ['Weapon Inspect', cfg?.Inspect?.Enabled],
               ['Weapon Safety', cfg?.Safety?.Enabled],
+              ['Condition HUD', cfg?.ConditionHUD?.Enabled],
               ['No-Draw Zones', cfg?.NoDrawZones?.Enabled],
               ['Drop Logging', cfg?.WeaponDrop?.Logging?.Enabled],
-              ['Tactical Sling', cfg?.TacticalSling?.Enabled],
             ].map(([label, on]) => (
               <div key={label as string} className="mbt-ov__row">
                 <span className="k">{label}</span>
@@ -206,8 +209,6 @@ export default function AdminDashboard() {
             ))}
           </div>
           <div className="mbt-ov__spacer" />
-
-          {/* LIVE APPLY — pinned to the bottom of the overview */}
           <div className="mbt-ov__tip">
             <span className="ic"><Icon name="help" size={15} /></span>
             <div>

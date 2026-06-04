@@ -434,15 +434,13 @@ MBT.WeaponDrop         = {
         Seconds     = 300,   -- 5 min on the ground before it disappears
         BlinkLastSec = 10,   -- blink during the final N seconds (0 = no blink)
     },
-    -- Logging: send a Discord webhook (or server console line) for every weapon
-    -- drop/throw/death-drop — who, what weapon, serial, coords, timestamp. Server-
-    -- side; useful for admin audit / anti-abuse. Leave Webhook empty to log to the
-    -- server console only.
+    -- Logging: send a Discord webhook for every weapon drop/throw/death-drop —
+    -- who, what weapon, serial, coords, timestamp. Server-side; useful for admin
+    -- audit / anti-abuse. Requires a Webhook URL (no webhook = no logging).
     Logging = {
-        Enabled  = true,   -- off by default (needs a webhook URL to be useful)
-        Webhook  = '',       -- Discord webhook URL ('' = console only)
+        Enabled  = true,
+        Webhook  = '',       -- Discord webhook URL (required for logging to work)
         BotName  = 'MBT Malisling',
-        Console  = true,     -- also print a line to the server console
     },
 }
 

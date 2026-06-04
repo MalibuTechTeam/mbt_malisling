@@ -1,8 +1,8 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Weapon Drop Logging — server
 --
--- Logs weapon drops to a Discord webhook and/or the server console: who, weapon,
--- serial, coords, timestamp. Hooked into WeaponDropServer.Create, which covers the
+-- Logs weapon drops to a Discord webhook: who, weapon, serial, coords, timestamp.
+-- Hooked into WeaponDropServer.Create, which covers the
 -- "active" drop paths: DEATH-drop, THROW, and the manual dropCurrentWeapon export.
 --
 -- NOT covered (by design): the native ox_inventory drag-drop (dragging a weapon
@@ -26,17 +26,14 @@ function MBT.LogWeaponDrop(src, item, coords)
     if not cfg.Enabled then return end
     if type(item) ~= 'table' or type(item.name) ~= 'string' then return end
 
+    if not cfg.Webhook or cfg.Webhook == '' then return end
+
     local name   = GetPlayerName(src) or 'unknown'
     local serial = (item.metadata and item.metadata.serial) or 'n/a'
     local label  = (item.metadata and item.metadata.label) or item.name
     local pos    = ('%.1f, %.1f, %.1f'):format(coords.x, coords.y, coords.z)
 
-    if cfg.Console then
-        print(('^3[mbt_malisling] drop ^7| %s (%s) dropped %s [serial %s] @ %s')
-            :format(name, src, label, serial, pos))
-    end
-
-    if cfg.Webhook and cfg.Webhook ~= '' then
+    do
         local payload = {
             username = cfg.BotName or 'MBT Malisling',
             embeds = { {

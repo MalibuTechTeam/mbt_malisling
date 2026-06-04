@@ -25,15 +25,15 @@
 .mbt-section__head {
   display: flex;
   align-items: center;
-  gap: 11px;
-  padding: 15px 18px;
+  gap: 10px;
+  padding: 11px 14px;
   border-bottom: 1px solid var(--mbt-edge-lo);
 }
 .mbt-section__ic {
   display: grid;
   place-items: center;
-  width: 30px;
-  height: 30px;
+  width: 27px;
+  height: 27px;
   flex-shrink: 0;
   background: var(--mbt-surface-3);
   border: 1px solid var(--mbt-edge);
@@ -62,8 +62,8 @@
 .mbt-section__body {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 16px 18px;
+  gap: 9px;
+  padding: 12px 14px;
 }
 
 /* ── Field (label + control + hint) ───────────────────────────────────── */
@@ -227,40 +227,40 @@ input[type="number"]::-webkit-outer-spin-button {
 /* ── Setting block (toggle-gated section item) ────────────────────────── */
 /* Sub-panel inside the section card — one step down the ladder (surface-1). */
 .mbt-setting {
-  padding: 14px 16px;
+  padding: 9px 12px;
   background: var(--mbt-surface-1);
   border: 1px solid var(--mbt-edge);
   border-radius: var(--mbt-r-md);
 }
 .mbt-setting__head {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 14px;
 }
 .mbt-setting__info {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
 }
 .mbt-setting__title {
   font-family: var(--mbt-font-display);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--mbt-text-hi);
 }
 .mbt-setting__desc {
   font-family: var(--mbt-font-body);
-  font-size: 12px;
-  line-height: 1.45;
+  font-size: 11.5px;
+  line-height: 1.35;
   color: var(--mbt-text-lo);
 }
 .mbt-setting__body {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin-top: 14px;
-  padding-top: 14px;
+  gap: 10px;
+  margin-top: 11px;
+  padding-top: 11px;
   border-top: 1px solid var(--mbt-edge-lo);
 }
 .mbt-setting--off .mbt-setting__body {

@@ -60,7 +60,7 @@ local function snapshot()
             WeaponModelProp = b(D.WeaponModelProp),
             OxTargetPickup  = b(D.OxTargetPickup),
             Despawn = { Enabled = b(DD.Enabled), Seconds = num(DD.Seconds, 300), BlinkLastSec = num(DD.BlinkLastSec, 10) },
-            Logging = { Enabled = b(DL.Enabled), Webhook = DL.Webhook or '', Console = b(DL.Console) },
+            Logging = { Enabled = b(DL.Enabled), Webhook = DL.Webhook or '' },
         },
         -- Combat / RP
         Jamming = {
@@ -158,7 +158,6 @@ local function validate(d)
     local dl = d.WeaponDrop.Logging
     if type(dl) ~= 'table' or type(dl.Enabled) ~= 'boolean' then return false end
     if type(dl.Webhook) ~= 'string' or #dl.Webhook > 300 then return false end
-    if type(dl.Console) ~= 'boolean' then return false end
     -- Jamming
     local j = d.Jamming
     if type(j) ~= 'table' or type(j.Enabled) ~= 'boolean' then return false end
@@ -244,7 +243,6 @@ local function applyToMBT(d)
     MBT.WeaponDrop.Despawn.BlinkLastSec= d.WeaponDrop.Despawn.BlinkLastSec
     MBT.WeaponDrop.Logging.Enabled     = d.WeaponDrop.Logging.Enabled
     MBT.WeaponDrop.Logging.Webhook     = d.WeaponDrop.Logging.Webhook
-    MBT.WeaponDrop.Logging.Console     = d.WeaponDrop.Logging.Console
     -- Combat / RP
     MBT.Jamming.Enabled          = d.Jamming.Enabled
     MBT.Jamming.Cooldown         = d.Jamming.Cooldown

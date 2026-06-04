@@ -20,7 +20,7 @@
 
 .mbt-admin {
   position: relative;
-  width: min(1360px, 94vw); height: min(880px, 92vh);
+  width: min(1560px, 95vw); height: min(880px, 92vh);
   display: flex; overflow: hidden;
   border-radius: var(--mbt-r-lg); border: 1px solid var(--mbt-edge-hi);
   background:
@@ -67,6 +67,15 @@
 .mbt-rail__hint { font-size: 10px; color: var(--mbt-text-faint); margin-top: 1px; display: block; }
 .mbt-rail__dot { margin-left: auto; width: 6px; height: 6px; border-radius: 50%; background: var(--mbt-accent); box-shadow: 0 0 8px var(--mbt-accent-glow); flex-shrink: 0; }
 .mbt-rail__off { margin-left: auto; font-size: 10px; color: var(--mbt-text-faint); flex-shrink: 0; }
+/* Per-category feature count badge (elevator-style). */
+.mbt-rail__count {
+  margin-left: auto; flex-shrink: 0;
+  font-family: var(--mbt-font-mono); font-size: 9.5px; color: var(--mbt-text-faint);
+  background: var(--mbt-surface-2); border: 1px solid var(--mbt-edge-lo);
+  border-radius: var(--mbt-r-pill); padding: 1px 7px;
+}
+/* Reserved category (e.g. Forensics) — visible but inert until it ships. */
+.mbt-rail__item.is-soon { opacity: 0.4; cursor: default; pointer-events: none; }
 
 .mbt-rail__spacer { flex: 1; }
 .mbt-rail__status { display: flex; align-items: center; gap: 9px; padding: 11px; margin-top: 8px; background: var(--mbt-surface-2); border: 1px solid var(--mbt-edge); border-radius: var(--mbt-r-md); }
@@ -87,15 +96,57 @@
 .mbt-admin__meta { font-size: 11px; color: var(--mbt-text-faint); margin-top: 4px; }
 .mbt-admin__head-sp { flex: 1; }
 
+/* Category page: feature cards in a uniform 2-column grid. align-items:stretch
+   makes the two cards in a row the SAME height (like the elevator config cards)
+   — no ragged masonry, no orphan gaps. */
+/* Responsive grid. With the overview sidebar, the centre fits 2 roomy columns
+   (~490px) where every inner control displays correctly — 3 columns here would
+   cramp the paired number inputs. align-items:stretch makes row-mates equal
+   height; .mbt-section is a flex column with a flex:1 body so the card fills
+   that height cleanly (content at top). */
+/* Responsive grid, ROW order (cards read left→right, top→bottom) with row-mates
+   stretched to equal height. .mbt-section is a flex column with a flex:1 body, so
+   a card fills the row height cleanly (content at the top). Cards with fillable
+   content — e.g. the INTERFACE position grid — grow to use the space. The
+   per-category height-pairing order keeps row-mates similar so the fill is even. */
+.mbt-admin__sections {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+  gap: 14px;
+  align-items: stretch;
+}
+
 /* Section panel chrome — the kit's .mbt-section is bare (it was wrapped by a
-   card in elevator). Give it the card surface + border + spacing here. */
+   card in elevator). Give it the card surface + border here. */
 .mbt-admin__center .mbt-section {
   background: var(--mbt-surface-2);
   border: 1px solid var(--mbt-edge);
   border-radius: var(--mbt-r-md);
-  margin-bottom: 16px;
+  margin: 0;
 }
-.mbt-admin__center .mbt-section:last-child { margin-bottom: 0; }
+.mbt-admin__center .mbt-section--wide { grid-column: 1 / -1; }
+
+/* ── HUD position picker (INTERFACE card) — 2×2 button grid ──
+   flex:1 + grid-auto-rows:1fr lets the four buttons grow to fill the card, so
+   INTERFACE sits flush at the same height as its toggle-card row-mates (no void).
+   The buttons reuse the surface-1 sub-panel look of the toggle settings. */
+.mbt-pospick {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 7px;
+  flex: 1; grid-auto-rows: 1fr; min-height: 96px;
+}
+.mbt-pospick__btn {
+  display: grid; place-items: center; padding: 10px 8px; border-radius: var(--mbt-r-md);
+  font-family: var(--mbt-font-body); font-size: 12px; font-weight: 500; cursor: pointer;
+  background: var(--mbt-surface-1); border: 1px solid var(--mbt-edge); color: var(--mbt-text-lo);
+  transition: background var(--mbt-dur) var(--mbt-ease), color var(--mbt-dur) var(--mbt-ease),
+              border-color var(--mbt-dur) var(--mbt-ease), transform var(--mbt-dur-fast) var(--mbt-ease);
+}
+.mbt-pospick__btn:hover { color: var(--mbt-text-mid); border-color: var(--mbt-edge-hi); }
+.mbt-pospick__btn:active { transform: scale(0.98); }
+.mbt-pospick__btn.is-on {
+  background: var(--mbt-accent-soft); border-color: rgba(var(--mbt-accent-rgb), 0.4); color: var(--mbt-text-hi);
+}
+
 .mbt-admin__center .mbt-section__ic {
   width: 30px; height: 30px; flex-shrink: 0; display: grid; place-items: center;
   background: var(--mbt-surface-3); border: 1px solid var(--mbt-edge);
