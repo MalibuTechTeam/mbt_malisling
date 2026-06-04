@@ -51,6 +51,20 @@ RegisterLocale('it', {
     -- Interaction prompts
     ['pickup_weapon']           = 'Raccogli arma',
 
+    -- Vehicle trunk weapon rack
+    ['trunk_stow']              = 'Riponi arma nel bagagliaio',
+    ['trunk_retrieve']          = 'Prendi arma dal bagagliaio',
+    ['trunk_locked_title']      = 'Bagagliaio Chiuso',
+    ['trunk_locked_desc']       = 'Il veicolo è bloccato.',
+    ['trunk_full_title']        = 'Rastrelliera Piena',
+    ['trunk_full_desc']         = 'Non c\'è più spazio in questo bagagliaio.',
+    ['trunk_no_plate_title']    = 'Bagagliaio',
+    ['trunk_no_plate_desc']     = 'Questo veicolo non ha una targa valida.',
+    ['trunk_wrong_type_title']  = 'Bagagliaio',
+    ['trunk_wrong_type_desc']   = 'Solo armi lunghe nel bagagliaio.',
+    ['trunk_inv_full_title']    = 'Bagagliaio',
+    ['trunk_inv_full_desc']     = 'Spazio inventario insufficiente.',
+
     -- NUI: holster prompt
     ['holster_title']           = 'RIPONI ARMA',
     ['holster_action']          = 'Riponi',

@@ -51,6 +51,20 @@ RegisterLocale('fr', {
     -- Interaction prompts
     ['pickup_weapon']           = 'Ramasser l\'arme',
 
+    -- Vehicle trunk weapon rack
+    ['trunk_stow']              = 'Ranger l\'arme dans le coffre',
+    ['trunk_retrieve']          = 'Prendre l\'arme du coffre',
+    ['trunk_locked_title']      = 'Coffre Verrouillé',
+    ['trunk_locked_desc']       = 'Le véhicule est verrouillé.',
+    ['trunk_full_title']        = 'Râtelier Plein',
+    ['trunk_full_desc']         = 'Plus de place dans ce coffre.',
+    ['trunk_no_plate_title']    = 'Coffre',
+    ['trunk_no_plate_desc']     = 'Ce véhicule n\'a pas de plaque valide.',
+    ['trunk_wrong_type_title']  = 'Coffre',
+    ['trunk_wrong_type_desc']   = 'Seules les armes longues vont au coffre.',
+    ['trunk_inv_full_title']    = 'Coffre',
+    ['trunk_inv_full_desc']     = 'Espace d\'inventaire insuffisant.',
+
     -- NUI: holster prompt
     ['holster_title']           = 'RANGER L\'ARME',
     ['holster_action']          = 'Ranger',

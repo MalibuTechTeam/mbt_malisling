@@ -1,0 +1,142 @@
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Weapon-Prop Position Editor — server
+--
+-- Persists per-type (and per-job) weapon-prop attach offsets in a dedicated
+-- oxmysql table (mbt_weapon_positions), overriding the config.lua defaults.
+-- Admin-only (ACE), validated server-side, broadcast live to all clients.
+--
+-- oxmysql is soft/feature-gated: without it the editor can't save and the rest
+-- of the script stays DB-free. This is the 2nd documented exception to "no DB".
+-- ─────────────────────────────────────────────────────────────────────────────
+
+local adminCommand = (MBT.Admin and MBT.Admin.Command) or 'mbtconfig'
+local adminPerm    = (MBT.Admin and MBT.Admin.Permission) or ('command.' .. adminCommand)
+
+local WTYPES = { side = true, back = true, back2 = true, melee = true, melee2 = true, melee3 = true, extinguisher = true }
+local BONES  = { [24816] = true, [24818] = true, [57005] = true, [36029] = true,
+                 [58271] = true, [51826] = true, [11816] = true, [23553] = true }
+
+-- Snapshot the config.lua defaults BEFORE any DB override, so Reset can restore them.
+local CONFIG_DEFAULTS = json.decode(json.encode(MBT.PropInfo or {}))
+
+local function hasDb() return GetResourceState('oxmysql') == 'started' end
+
+-- ── Validation ───────────────────────────────────────────────────────────────
+local function isVec(v, lo, hi)
+    return type(v) == 'table' and type(v.x) == 'number' and v.x >= lo and v.x <= hi
+        and type(v.y) == 'number' and v.y >= lo and v.y <= hi
+        and type(v.z) == 'number' and v.z >= lo and v.z <= hi
+end
+
+local function validData(d)
+    if type(d) ~= 'table' then return false end
+    if type(d.Bone) ~= 'number' or not BONES[d.Bone] then return false end
+    if type(d.isPed) ~= 'boolean' then return false end
+    if type(d.RotOrder) ~= 'number' or d.RotOrder < 0 or d.RotOrder > 5 then return false end
+    if type(d.FixedRot) ~= 'boolean' then return false end
+    if type(d.Pos) ~= 'table' or not isVec(d.Pos.male, -2.0, 2.0) or not isVec(d.Pos.female, -2.0, 2.0) then return false end
+    if type(d.Rot) ~= 'table' or not isVec(d.Rot.male, -360.0, 360.0) or not isVec(d.Rot.female, -360.0, 360.0) then return false end
+    return true
+end
+
+--- Strip to the canonical shape (drops anything extra the client may send).
+local function sanitize(d)
+    return {
+        Bone = d.Bone, isPed = d.isPed, RotOrder = d.RotOrder, FixedRot = d.FixedRot,
+        Pos = {
+            male   = { x = d.Pos.male.x,   y = d.Pos.male.y,   z = d.Pos.male.z },
+            female = { x = d.Pos.female.x, y = d.Pos.female.y, z = d.Pos.female.z },
+        },
+        Rot = {
+            male   = { x = d.Rot.male.x,   y = d.Rot.male.y,   z = d.Rot.male.z },
+            female = { x = d.Rot.female.x, y = d.Rot.female.y, z = d.Rot.female.z },
+        },
+    }
+end
+
+-- ── Apply to server-side MBT.* ───────────────────────────────────────────────
+local function applyServer(scope, wtype, data)
+    if scope == 'default' then
+        MBT.PropInfo[wtype] = data
+    else
+        MBT.CustomPropPosition[scope] = MBT.CustomPropPosition[scope] or {}
+        MBT.CustomPropPosition[scope][wtype] = data
+    end
+end
+
+local function resetServer(scope, wtype)
+    if scope == 'default' then
+        MBT.PropInfo[wtype] = json.decode(json.encode(CONFIG_DEFAULTS[wtype]))
+    elseif MBT.CustomPropPosition[scope] then
+        MBT.CustomPropPosition[scope][wtype] = nil
+    end
+end
+
+-- ── Persistence (oxmysql) ────────────────────────────────────────────────────
+local function ensureSchema()
+    if not hasDb() then
+        Utils.mbtWarn('prop_position_editor ~ oxmysql not started; position saving disabled')
+        return
+    end
+    exports.oxmysql:execute([[
+        CREATE TABLE IF NOT EXISTS mbt_weapon_positions (
+            scope VARCHAR(48) NOT NULL,
+            wtype VARCHAR(16) NOT NULL,
+            data  LONGTEXT NOT NULL,
+            PRIMARY KEY (scope, wtype)
+        )
+    ]], {}, function()
+        exports.oxmysql:execute('SELECT scope, wtype, data FROM mbt_weapon_positions', {}, function(rows)
+            if type(rows) ~= 'table' then return end
+            for _, row in ipairs(rows) do
+                local ok, data = pcall(json.decode, row.data)
+                if ok and WTYPES[row.wtype] and validData(data) then
+                    applyServer(row.scope, row.wtype, sanitize(data))
+                end
+            end
+            Utils.mbtDebugger('prop_position_editor ~ loaded', #rows, 'position rows from DB')
+        end)
+    end)
+end
+
+-- ── NUI/admin events (ACE-checked) ───────────────────────────────────────────
+RegisterNetEvent('mbt_malisling:propPos:save', function(payload)
+    local src = source
+    if not IsPlayerAceAllowed(src, adminPerm) then return end
+    if type(payload) ~= 'table' then return end
+    local scope, wtype, data = payload.scope, payload.wtype, payload.data
+    if type(scope) ~= 'string' or scope == '' or not WTYPES[wtype] or not validData(data) then
+        Utils.mbtWarn('propPos:save ~ invalid payload from', src); return
+    end
+    data = sanitize(data)
+    applyServer(scope, wtype, data)
+    if hasDb() then
+        exports.oxmysql:execute(
+            'INSERT INTO mbt_weapon_positions (scope, wtype, data) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE data = VALUES(data)',
+            { scope, wtype, json.encode(data) })
+    end
+    TriggerClientEvent('mbt_malisling:propPos:apply', -1, { scope = scope, wtype = wtype, data = data })
+    Utils.mbtDebugger('propPos saved by', src, scope, wtype)
+end)
+
+RegisterNetEvent('mbt_malisling:propPos:reset', function(payload)
+    local src = source
+    if not IsPlayerAceAllowed(src, adminPerm) then return end
+    if type(payload) ~= 'table' then return end
+    local scope, wtype = payload.scope, payload.wtype
+    if type(scope) ~= 'string' or scope == '' or not WTYPES[wtype] then return end
+    resetServer(scope, wtype)
+    if hasDb() then
+        exports.oxmysql:execute('DELETE FROM mbt_weapon_positions WHERE scope = ? AND wtype = ?', { scope, wtype })
+    end
+    -- For default scope send the restored config default; for a job scope send a
+    -- remove signal (clients drop the override and fall back to their default).
+    local out = (scope == 'default') and MBT.PropInfo[wtype] or false
+    TriggerClientEvent('mbt_malisling:propPos:apply', -1, { scope = scope, wtype = wtype, data = out })
+    Utils.mbtDebugger('propPos reset by', src, scope, wtype)
+end)
+
+AddEventHandler('onServerResourceStart', function(resource)
+    if resource ~= GetCurrentResourceName() then return end
+    ensureSchema()
+end)

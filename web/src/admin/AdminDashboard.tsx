@@ -8,7 +8,9 @@ import { HolsterSection } from './sections/HolsterSection'
 import { DropVisualSection, DespawnSection, DropLoggingSection } from './sections/WeaponDropSection'
 import { JammingSection, SuppressorSection, SafetySection, ChargeSection, WeightSection } from './sections/CombatSections'
 import { InspectSection, WeaponNameSection, PosesSection, ThrowSection } from './sections/InteractionSections'
-import { NoDrawSection, VehicleSection } from './sections/WorldSections'
+import { NoDrawSection, VehicleSection, TrunkRackSection } from './sections/WorldSections'
+import { PositionsSection, type Job, type EditTarget } from './sections/PositionsSection'
+import { PropEditorOverlay } from './PropEditorOverlay'
 import './Admin.css'
 
 /**
@@ -43,7 +45,7 @@ const CATEGORIES: Category[] = [
     // Throw) share row 1; the shorter Name + the tiny Poses share row 2.
     sections: [InspectSection, ThrowSection, WeaponNameSection, PosesSection] },
   { id: 'world',       label: 'World',       hint: 'Zones · vehicle',        icon: 'globe',
-    sections: [NoDrawSection, VehicleSection] },
+    sections: [NoDrawSection, VehicleSection, TrunkRackSection] },
 ]
 
 export default function AdminDashboard() {
@@ -53,6 +55,8 @@ export default function AdminDashboard() {
   const [version, setVersion] = useState('v2.0')
   const [dirty, setDirty] = useState(false)        // unsaved changes
   const [savePulse, setSavePulse] = useState(false) // one-shot pulse on save
+  const [jobs, setJobs] = useState<Job[]>([])       // framework job list (lazy)
+  const [editing, setEditing] = useState<EditTarget | null>(null) // live position editor
   const baseline = useRef('')                       // last-saved snapshot
 
   useNuiEvent<any>('openAdmin', (data) => {
@@ -62,7 +66,10 @@ export default function AdminDashboard() {
     setDirty(false)
     if (data?.version) setVersion(data.version)
     setActive('core')
+    setEditing(null)
     setOpen(true)
+    // Lazy-load the framework job list for the position editor.
+    fetchNui('getJobs').then((list: any) => setJobs(Array.isArray(list) ? list : []))
   })
   useNuiEvent('closeAdmin', () => setOpen(false))
 
@@ -111,6 +118,11 @@ export default function AdminDashboard() {
   if (!open || !cfg) return null
 
   const activeCat = CATEGORIES.find((c) => c.id === active) ?? CATEGORIES[0]
+  const isPositions = active === 'positions'
+  const headLabel = isPositions ? 'Weapon Positions' : activeCat.label
+  const headHint = isPositions
+    ? 'Live weapon-placement editor · per job · saves to oxmysql'
+    : `${activeCat.hint} · ${activeCat.sections.length} features · applies live on save`
 
   // Key feature flags, shared by the gauge and the overview list below it.
   const features: [string, boolean][] = [
@@ -124,7 +136,8 @@ export default function AdminDashboard() {
   const activeCount = features.filter(([, on]) => on).length
 
   return (
-    <div className="mbt-admin-overlay">
+    <>
+    <div className={`mbt-admin-overlay${editing ? ' is-editing' : ''}`}>
       <div className="mbt-admin">
 
         {/* ── Rail ── */}
@@ -149,6 +162,19 @@ export default function AdminDashboard() {
               <span className="mbt-rail__count">{cat.sections.length}</span>
             </button>
           ))}
+
+          {/* Weapon position editor — special live-edit page (not a card grid). */}
+          <button
+            className={`mbt-rail__item${isPositions ? ' is-active' : ''}`}
+            onClick={() => setActive('positions')}
+          >
+            <span className="ic"><Icon name="configure" size={18} /></span>
+            <span className="mbt-rail__tx">
+              <span className="mbt-rail__label">Positions</span>
+              <span className="mbt-rail__hint">Weapon placement · jobs</span>
+            </span>
+            <span className="mbt-rail__count">edit</span>
+          </button>
 
           {/* Reserved — appears as a real category once it ships. */}
           <div className="mbt-rail__item is-soon" aria-disabled="true">
@@ -181,35 +207,41 @@ export default function AdminDashboard() {
 
         {/* ── Center ── */}
         <div className="mbt-admin__center">
-          <div className="mbt-admin__crumb">Configuration <span style={{ opacity: .5 }}>›</span> <b>{activeCat.label}</b></div>
+          <div className="mbt-admin__crumb">Configuration <span style={{ opacity: .5 }}>›</span> <b>{headLabel}</b></div>
           <div className="mbt-admin__head">
             <div>
-              <span className="mbt-admin__title">{activeCat.label}</span>
-              <div className="mbt-admin__meta">{activeCat.hint} · {activeCat.sections.length} features · applies live on save</div>
+              <span className="mbt-admin__title">{headLabel}</span>
+              <div className="mbt-admin__meta">{headHint}</div>
             </div>
             <div className="mbt-admin__head-sp" />
-            {dirty ? (
+            {!isPositions && dirty ? (
               <span className="mbt-admin__dirty"><i />Unsaved changes</span>
             ) : null}
-            {dirty ? (
+            {!isPositions && dirty ? (
               <button type="button" className="mbt-btn-ghost" onClick={discard}>
                 Discard
               </button>
             ) : null}
-            <button
-              type="button"
-              className={`mbt-btn-primary${savePulse ? ' is-complete' : ''}`}
-              onClick={save}
-              disabled={!dirty}
-            >
-              <Icon name="save" size={14} /> Save &amp; Apply
-            </button>
+            {!isPositions ? (
+              <button
+                type="button"
+                className={`mbt-btn-primary${savePulse ? ' is-complete' : ''}`}
+                onClick={save}
+                disabled={!dirty}
+              >
+                <Icon name="save" size={14} /> Save &amp; Apply
+              </button>
+            ) : null}
           </div>
 
           <div className="mbt-admin__sections">
-            {activeCat.sections.map((Section, i) => (
-              <Section key={`${active}-${i}`} config={cfg} update={update} />
-            ))}
+            {isPositions ? (
+              <PositionsSection jobs={jobs} onEdit={(t) => setEditing(t)} />
+            ) : (
+              activeCat.sections.map((Section, i) => (
+                <Section key={`${active}-${i}`} config={cfg} update={update} />
+              ))
+            )}
           </div>
         </div>
 
@@ -249,5 +281,14 @@ export default function AdminDashboard() {
         </aside>
       </div>
     </div>
+    {editing ? (
+      <PropEditorOverlay
+        wtype={editing.wtype}
+        job={editing.job}
+        gender={editing.gender}
+        onClose={() => setEditing(null)}
+      />
+    ) : null}
+    </>
   )
 }

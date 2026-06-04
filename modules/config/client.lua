@@ -119,6 +119,17 @@ local function applyConfig(d)
         MBT.VehicleHiding.Enabled      = d.VehicleHiding.Enabled
         MBT.VehicleHiding.UseRoofCheck = d.VehicleHiding.UseRoofCheck
     end
+    if d.VehicleTrunkRack and MBT.VehicleTrunkRack then
+        MBT.VehicleTrunkRack.Enabled             = d.VehicleTrunkRack.Enabled
+        MBT.VehicleTrunkRack.Capacity            = d.VehicleTrunkRack.Capacity
+        MBT.VehicleTrunkRack.InteractionDistance = d.VehicleTrunkRack.InteractionDistance
+        if d.VehicleTrunkRack.AllowedTypes then
+            MBT.VehicleTrunkRack.AllowedTypes = {
+                ['back']  = d.VehicleTrunkRack.AllowedTypes.back,
+                ['back2'] = d.VehicleTrunkRack.AllowedTypes.back2,
+            }
+        end
+    end
     if d.TacticalSling and MBT.TacticalSling then
         MBT.TacticalSling.Enabled = d.TacticalSling.Enabled
     end

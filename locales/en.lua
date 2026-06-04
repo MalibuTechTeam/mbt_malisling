@@ -51,6 +51,20 @@ RegisterLocale('en', {
     -- Interaction prompts
     ['pickup_weapon']           = 'Pick up weapon',
 
+    -- Vehicle trunk weapon rack
+    ['trunk_stow']              = 'Stow weapon in trunk',
+    ['trunk_retrieve']          = 'Take weapon from trunk',
+    ['trunk_locked_title']      = 'Trunk Locked',
+    ['trunk_locked_desc']       = 'The vehicle is locked.',
+    ['trunk_full_title']        = 'Trunk Rack Full',
+    ['trunk_full_desc']         = 'No more room in this trunk.',
+    ['trunk_no_plate_title']    = 'Trunk',
+    ['trunk_no_plate_desc']     = 'This vehicle has no usable plate.',
+    ['trunk_wrong_type_title']  = 'Trunk',
+    ['trunk_wrong_type_desc']   = 'Only long guns can go in the trunk.',
+    ['trunk_inv_full_title']    = 'Trunk',
+    ['trunk_inv_full_desc']     = 'Not enough inventory space.',
+
     -- NUI: holster prompt
     ['holster_title']           = 'HOLSTER WEAPON',
     ['holster_action']          = 'Holster',

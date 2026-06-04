@@ -254,3 +254,47 @@
 @media (max-width: 1080px) {
   .mbt-admin__rail { width: 184px; }
 }
+
+/* ── Weapon position live editor ───────────────────────────────────────────
+   While editing, the dashboard collapses so the 3D world shows through; the
+   floating .mbt-pe card keeps its own pointer events. */
+.mbt-admin-overlay.is-editing { background: transparent; pointer-events: none; }
+.mbt-admin-overlay.is-editing .mbt-admin { display: none; }
+
+.mbt-pe {
+  position: fixed; right: 24px; top: 50%; transform: translateY(-50%);
+  width: 300px; z-index: 10000; pointer-events: auto;
+  display: flex; flex-direction: column; gap: 12px; padding: 16px;
+  background: linear-gradient(180deg, #121814 0%, #0C100E 100%);
+  border: 1px solid var(--mbt-edge-hi); border-radius: var(--mbt-r-lg);
+  box-shadow: var(--mbt-shadow-panel);
+  font-family: var(--mbt-font-body); color: var(--mbt-text-mid);
+  animation: mbt-admin-fade var(--mbt-dur-slow) var(--mbt-ease);
+}
+.mbt-pe__head { display: flex; align-items: center; gap: 8px; color: var(--mbt-accent); }
+.mbt-pe__head b { font-family: var(--mbt-font-display); font-size: 13px; letter-spacing: 0.05em; color: var(--mbt-text-hi); }
+.mbt-pe__scope { margin-left: auto; font-family: var(--mbt-font-mono); font-size: 10px; color: var(--mbt-text-lo); background: var(--mbt-surface-2); border: 1px solid var(--mbt-edge-lo); border-radius: var(--mbt-r-pill); padding: 2px 8px; }
+
+.mbt-pe__seg { display: flex; gap: 4px; }
+.mbt-pe__seg button { flex: 1; padding: 6px 0; border: 1px solid var(--mbt-edge); background: var(--mbt-surface-1); color: var(--mbt-text-lo); border-radius: var(--mbt-r-sm); font-size: 12px; cursor: pointer; transition: color var(--mbt-dur) var(--mbt-ease), background var(--mbt-dur) var(--mbt-ease), border-color var(--mbt-dur) var(--mbt-ease); }
+.mbt-pe__seg button.is-on { background: var(--mbt-accent-soft); border-color: rgba(var(--mbt-accent-rgb), 0.4); color: var(--mbt-text-hi); }
+.mbt-pe__seg .mbt-pe__copy { flex: 0 0 auto; padding: 6px 10px; }
+
+.mbt-pe__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.mbt-pe__axis { display: flex; align-items: center; gap: 4px; background: var(--mbt-surface-1); border: 1px solid var(--mbt-edge); border-radius: var(--mbt-r-sm); padding: 4px 6px; }
+.mbt-pe__axlabel { font-family: var(--mbt-font-mono); font-size: 10px; color: var(--mbt-text-faint); width: 26px; }
+.mbt-pe__nudge { width: 20px; height: 20px; display: grid; place-items: center; border: none; background: var(--mbt-surface-3); color: var(--mbt-text-mid); border-radius: 5px; cursor: pointer; font-size: 14px; line-height: 1; transition: color var(--mbt-dur) var(--mbt-ease); }
+.mbt-pe__nudge:hover { color: var(--mbt-accent); }
+.mbt-pe__val { flex: 1; text-align: center; font-family: var(--mbt-font-mono); font-size: 11px; color: var(--mbt-text-hi); }
+
+.mbt-pe__bone { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--mbt-text-lo); }
+.mbt-pe__bone .mbt-select { flex: 1; height: 32px; }
+
+.mbt-pe__cam { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--mbt-text-lo); }
+.mbt-pe__cam span { margin-right: auto; }
+.mbt-pe__cam button { width: 28px; height: 28px; display: grid; place-items: center; border: 1px solid var(--mbt-edge); background: var(--mbt-surface-1); color: var(--mbt-text-mid); border-radius: 6px; cursor: pointer; font-size: 12px; transition: color var(--mbt-dur) var(--mbt-ease), border-color var(--mbt-dur) var(--mbt-ease); }
+.mbt-pe__cam button:hover { border-color: var(--mbt-edge-hi); color: var(--mbt-text-hi); }
+
+.mbt-pe__actions { display: flex; gap: 6px; }
+.mbt-pe__actions .mbt-btn-ghost { flex: 0 0 auto; height: 34px; padding: 0 12px; }
+.mbt-pe__actions .mbt-btn-primary { flex: 1; height: 34px; justify-content: center; }

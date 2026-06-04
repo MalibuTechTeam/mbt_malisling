@@ -30,6 +30,7 @@ server_scripts {
     'modules/bridge/ox/server.lua',
     'modules/bridge/qb/server.lua',
     'modules/bridge/qbox/server.lua',
+    'modules/bridge/jobs.lua',
     'modules/inventory/ox/server.lua',
     'modules/inventory/qb/server.lua',
     'modules/weapon_drop/logging.lua',
@@ -42,6 +43,8 @@ server_scripts {
     'modules/weapon_weight/server.lua',
     'modules/charge_weapon/server.lua',
     'modules/showcase_poses/server.lua',
+    'modules/vehicle_trunk_rack/server.lua',
+    'modules/prop_position_editor/server.lua',
     'modules/config/server.lua',
     'core/server.lua',
 }
@@ -71,6 +74,8 @@ client_scripts {
     'modules/weapon_weight/client.lua',
     'modules/charge_weapon/client.lua',
     'modules/showcase_poses/client.lua',
+    'modules/vehicle_trunk_rack/client.lua',
+    'modules/prop_position_editor/client.lua',
     'modules/no_draw_zones/client.lua',
     'modules/prop_editor/client.lua',
 }
@@ -88,3 +93,8 @@ files {
 -- Supported inventories (soft dependencies — detected at runtime):
 --   ox_inventory  >= 2.30.0
 --   qb-inventory  (any modern version)
+--
+-- oxmysql: soft dependency, used ONLY by the Vehicle Trunk Weapon Rack for
+-- persistence (table mbt_vehicle_trunk). Detected at runtime — if oxmysql isn't
+-- started that feature disables itself and the rest of the script stays DB-free.
+-- This is the one documented exception to the "no database" rule.

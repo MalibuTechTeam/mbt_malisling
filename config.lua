@@ -33,6 +33,36 @@ end
 -- Notification labels. Text is resolved from locales/<lang>.lua via titleKey/descKey;
 -- only presentation (type, icon) lives here. Fired through MBT.NotifyLabel(key).
 MBT.Labels             = {
+    ["trunk_locked"] = {
+        ["titleKey"] = "trunk_locked_title",
+        ["descKey"]  = "trunk_locked_desc",
+        ["type"]     = "error",
+        ["icon"]     = "fa-solid fa-lock",
+    },
+    ["trunk_full"] = {
+        ["titleKey"] = "trunk_full_title",
+        ["descKey"]  = "trunk_full_desc",
+        ["type"]     = "inform",
+        ["icon"]     = "fa-solid fa-box-archive",
+    },
+    ["trunk_no_plate"] = {
+        ["titleKey"] = "trunk_no_plate_title",
+        ["descKey"]  = "trunk_no_plate_desc",
+        ["type"]     = "error",
+        ["icon"]     = "fa-solid fa-car",
+    },
+    ["trunk_wrong_type"] = {
+        ["titleKey"] = "trunk_wrong_type_title",
+        ["descKey"]  = "trunk_wrong_type_desc",
+        ["type"]     = "inform",
+        ["icon"]     = "fa-solid fa-gun",
+    },
+    ["trunk_inv_full"] = {
+        ["titleKey"] = "trunk_inv_full_title",
+        ["descKey"]  = "trunk_inv_full_desc",
+        ["type"]     = "error",
+        ["icon"]     = "fa-solid fa-box-archive",
+    },
     ["has_jammed"] = {
         ["titleKey"] = "jam_jammed_title",
         ["descKey"]  = "jam_jammed_desc",
@@ -465,6 +495,36 @@ MBT.VehicleHiding      = {
     -- quads, buggies, convertibles with the top down. Convertibles count as
     -- "having a roof" even with the top down, so those stay hidden.
     UseRoofCheck       = true,
+}
+
+-- ── Vehicle Trunk Weapon Rack ───────────────────────────────────────────────────
+-- Stow a long gun in a vehicle's trunk (boot opens, anim, weapon prop racked in
+-- the trunk, synced to nearby players) and retrieve it later. Persisted in a
+-- dedicated oxmysql table (mbt_vehicle_trunk) keyed by plate, so racked weapons
+-- survive restarts/despawn. NOTE: this is the ONE documented exception to the
+-- "no database" rule — oxmysql is soft/feature-gated (off if oxmysql isn't started).
+MBT.VehicleTrunkRack   = {
+    Enabled             = true,
+    -- Allowed weapon 'type' values from data/weapons.lua. Long guns by default
+    -- (back = rifles/shotguns/smg/sniper/mg, back2 = launchers/heavy).
+    AllowedTypes        = { ['back'] = true, ['back2'] = true },
+    Capacity            = 2,        -- max racked weapons per vehicle (per plate)
+    InteractionDistance = 2.5,      -- reach at the rear of the vehicle
+    -- Animations (config-driven so server owners can swap to custom clips).
+    Animation = {
+        PlaceDict       = 'anim@gangops@facility@servers@bodysearch@',
+        PlaceAnim       = 'player_search',
+        PlaceMs         = 1600,
+        TakeDict        = 'anim@gangops@facility@servers@bodysearch@',
+        TakeAnim        = 'player_search',
+        TakeMs          = 1400,
+        BootOpenDelayMs = 350,
+    },
+    -- Prop attach offset inside the open boot, per weapon type (tune like props).
+    PropOffset = {
+        ['back']  = { Pos = { x = 0.0, y = -0.55, z = 0.45 }, Rot = { x = 0.0, y = 90.0, z = 0.0 } },
+        ['back2'] = { Pos = { x = 0.0, y = -0.55, z = 0.45 }, Rot = { x = 0.0, y = 90.0, z = 0.0 } },
+    },
 }
 
 -- ── Weapon Inspect ────────────────────────────────────────────────────────────

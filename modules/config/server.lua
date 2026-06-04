@@ -36,6 +36,8 @@ local function snapshot()
     local SF, CH, WW = MBT.Safety or {}, MBT.ChargeWeapon or {}, MBT.WeaponWeight or {}
     local IN, WN = MBT.Inspect or {}, MBT.WeaponName or {}
     local SP, ND, VH, TS = MBT.ShowcasePoses or {}, MBT.NoDrawZones or {}, MBT.VehicleHiding or {}, MBT.TacticalSling or {}
+    local VTR = MBT.VehicleTrunkRack or {}
+    local vat = VTR.AllowedTypes or {}
     local TH, INS = MBT.Throw or {}, IN.Show or {}
     local thg = TH.Groups or {}
     local throwGroups = {}
@@ -130,6 +132,12 @@ local function snapshot()
             Enabled      = b(VH.Enabled),
             UseRoofCheck = b(VH.UseRoofCheck),
         },
+        VehicleTrunkRack = {
+            Enabled             = b(VTR.Enabled),
+            Capacity            = num(VTR.Capacity, 2),
+            InteractionDistance = num(VTR.InteractionDistance, 2.5),
+            AllowedTypes        = { back = b(vat['back']), back2 = b(vat['back2']) },
+        },
         TacticalSling = { Enabled = b(TS.Enabled) },
     }
 end
@@ -221,6 +229,13 @@ local function validate(d)
     -- Vehicle Hiding
     local vh = d.VehicleHiding
     if type(vh) ~= 'table' or type(vh.Enabled) ~= 'boolean' or type(vh.UseRoofCheck) ~= 'boolean' then return false end
+    -- Vehicle Trunk Rack
+    local vtr = d.VehicleTrunkRack
+    if type(vtr) ~= 'table' or type(vtr.Enabled) ~= 'boolean' then return false end
+    if type(vtr.Capacity) ~= 'number' or vtr.Capacity < 1 or vtr.Capacity > 10 then return false end
+    if type(vtr.InteractionDistance) ~= 'number' or vtr.InteractionDistance < 1 or vtr.InteractionDistance > 10 then return false end
+    if type(vtr.AllowedTypes) ~= 'table'
+        or type(vtr.AllowedTypes.back) ~= 'boolean' or type(vtr.AllowedTypes.back2) ~= 'boolean' then return false end
     -- Tactical Sling
     local ts = d.TacticalSling
     if type(ts) ~= 'table' or type(ts.Enabled) ~= 'boolean' then return false end
@@ -293,6 +308,15 @@ local function applyToMBT(d)
     MBT.NoDrawZones.NotifyCooldown = d.NoDrawZones.NotifyCooldown
     MBT.VehicleHiding.Enabled      = d.VehicleHiding.Enabled
     MBT.VehicleHiding.UseRoofCheck = d.VehicleHiding.UseRoofCheck
+    if MBT.VehicleTrunkRack then
+        MBT.VehicleTrunkRack.Enabled             = d.VehicleTrunkRack.Enabled
+        MBT.VehicleTrunkRack.Capacity            = d.VehicleTrunkRack.Capacity
+        MBT.VehicleTrunkRack.InteractionDistance = d.VehicleTrunkRack.InteractionDistance
+        MBT.VehicleTrunkRack.AllowedTypes        = {
+            ['back']  = d.VehicleTrunkRack.AllowedTypes.back,
+            ['back2'] = d.VehicleTrunkRack.AllowedTypes.back2,
+        }
+    end
     MBT.TacticalSling.Enabled = d.TacticalSling.Enabled
 end
 
@@ -318,6 +342,7 @@ local function persistable(d)
         Throw = d.Throw,
         NoDrawZones = d.NoDrawZones,
         VehicleHiding = d.VehicleHiding,
+        VehicleTrunkRack = d.VehicleTrunkRack,
         TacticalSling = d.TacticalSling,
     }
 end
