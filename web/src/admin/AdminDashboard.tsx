@@ -8,7 +8,7 @@ import { HolsterSection } from './sections/HolsterSection'
 import { DropVisualSection, DespawnSection, DropLoggingSection } from './sections/WeaponDropSection'
 import { JammingSection, SuppressorSection, SafetySection, ChargeSection, WeightSection } from './sections/CombatSections'
 import { InspectSection, WeaponNameSection, PosesSection, ThrowSection } from './sections/InteractionSections'
-import { NoDrawSection, VehicleSection, TrunkRackSection } from './sections/WorldSections'
+import { NoDrawSection, VehicleSection, TrunkRackSection, TrunkPositionsSection } from './sections/WorldSections'
 import { PositionsSection, type Job, type EditTarget } from './sections/PositionsSection'
 import { PropEditorOverlay } from './PropEditorOverlay'
 import './Admin.css'
@@ -45,7 +45,7 @@ const CATEGORIES: Category[] = [
     // Throw) share row 1; the shorter Name + the tiny Poses share row 2.
     sections: [InspectSection, ThrowSection, WeaponNameSection, PosesSection] },
   { id: 'world',       label: 'World',       hint: 'Zones · vehicle',        icon: 'globe',
-    sections: [NoDrawSection, VehicleSection, TrunkRackSection] },
+    sections: [NoDrawSection, VehicleSection, TrunkRackSection, TrunkPositionsSection] },
 ]
 
 export default function AdminDashboard() {

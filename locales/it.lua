@@ -54,6 +54,7 @@ RegisterLocale('it', {
     -- Vehicle trunk weapon rack
     ['trunk_stow']              = 'Riponi arma nel bagagliaio',
     ['trunk_retrieve']          = 'Prendi arma dal bagagliaio',
+    ['trunk_view']              = 'Apri / chiudi bagagliaio',
     ['trunk_locked_title']      = 'Bagagliaio Chiuso',
     ['trunk_locked_desc']       = 'Il veicolo è bloccato.',
     ['trunk_full_title']        = 'Rastrelliera Piena',

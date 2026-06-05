@@ -1,5 +1,7 @@
+import { useState, useEffect, useCallback } from 'react'
 import { Section, ToggleRow, FieldBlock, Grid2, type SectionProps } from './parts'
 import { NumberInput } from '../ui/NumberInput'
+import { fetchNui } from '../../utils/fetchNui'
 
 const numUpdate = (update: SectionProps['update'], path: string, def: number, int = false) =>
   (raw: string) => update(path, raw === '' ? def : (int ? parseInt(raw, 10) : parseFloat(raw)) || def)
@@ -80,6 +82,60 @@ export function TrunkRackSection({ config, update }: SectionProps) {
             onChange={numUpdate(update, 'VehicleTrunkRack.InteractionDistance', 2.5)} />
         </FieldBlock>
       </Grid2>
+    </Section>
+  )
+}
+
+const VEHICLE_CLASSES: Record<number, string> = {
+  0: 'Compacts', 1: 'Sedans', 2: 'SUVs', 3: 'Coupes', 4: 'Muscle', 5: 'Sports Classics',
+  6: 'Sports', 7: 'Super', 8: 'Motorcycles', 9: 'Off-road', 10: 'Industrial', 11: 'Utility',
+  12: 'Vans', 13: 'Cycles', 14: 'Boats', 15: 'Helicopters', 16: 'Planes', 17: 'Service',
+  18: 'Emergency', 19: 'Military', 20: 'Commercial', 21: 'Trains',
+}
+interface TrunkOverride { scope: string; data: { Pos: { x: number; y: number; z: number }; Rot: { x: number; y: number; z: number } } }
+
+/** Trunk Positions — manage the per-class trunk prop offsets (tuned in-world). */
+export function TrunkPositionsSection(_: SectionProps) {
+  const [list, setList] = useState<TrunkOverride[]>([])
+  const refresh = useCallback(() => {
+    fetchNui('trunkOffsets:get').then((r: any) => setList(Array.isArray(r) ? r : []))
+  }, [])
+  useEffect(() => { refresh() }, [refresh])
+
+  const label = (scope: string) => {
+    const [kind, key] = scope.split(':')
+    if (kind === 'class') return VEHICLE_CLASSES[Number(key)] ?? `Class ${key}`
+    return key
+  }
+  const reset = (scope: string) => {
+    fetchNui('trunkOffsets:reset', { scope }).then(() => window.setTimeout(refresh, 150))
+  }
+
+  return (
+    <Section icon="vehicle" title="TRUNK POSITIONS" sub="Per-class trunk weapon placement (set in-world).">
+      <div className="mbt-notice">
+        Stand at a vehicle with a weapon stowed and run <code>/mbt_trunktune</code> — arrows + Q/E to position,
+        SHIFT for big steps, <b>ENTER</b> saves that vehicle class, BACKSPACE exits. Saved here, applies live.
+      </div>
+      {list.length === 0 ? (
+        <div className="mbt-field__hint" style={{ marginTop: 2 }}>
+          No saved overrides yet — every class uses the default placement.
+        </div>
+      ) : (
+        list.map((o) => (
+          <div key={o.scope} className="mbt-setting">
+            <div className="mbt-setting__head">
+              <div className="mbt-setting__info">
+                <span className="mbt-setting__title">{label(o.scope)}</span>
+                <span className="mbt-setting__desc">
+                  z {o.data.Pos.z.toFixed(2)} · y {o.data.Pos.y.toFixed(2)} · rz {o.data.Rot.z.toFixed(0)}°
+                </span>
+              </div>
+              <button type="button" className="mbt-btn-ghost" onClick={() => reset(o.scope)}>Reset</button>
+            </div>
+          </div>
+        ))
+      )}
     </Section>
   )
 }

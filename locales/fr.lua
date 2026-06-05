@@ -54,6 +54,7 @@ RegisterLocale('fr', {
     -- Vehicle trunk weapon rack
     ['trunk_stow']              = 'Ranger l\'arme dans le coffre',
     ['trunk_retrieve']          = 'Prendre l\'arme du coffre',
+    ['trunk_view']              = 'Ouvrir / fermer le coffre',
     ['trunk_locked_title']      = 'Coffre Verrouillé',
     ['trunk_locked_desc']       = 'Le véhicule est verrouillé.',
     ['trunk_full_title']        = 'Râtelier Plein',

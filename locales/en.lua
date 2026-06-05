@@ -54,6 +54,7 @@ RegisterLocale('en', {
     -- Vehicle trunk weapon rack
     ['trunk_stow']              = 'Stow weapon in trunk',
     ['trunk_retrieve']          = 'Take weapon from trunk',
+    ['trunk_view']              = 'Open / close trunk',
     ['trunk_locked_title']      = 'Trunk Locked',
     ['trunk_locked_desc']       = 'The vehicle is locked.',
     ['trunk_full_title']        = 'Trunk Rack Full',

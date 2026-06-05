@@ -60,6 +60,82 @@ local function saveRack(plate)
     end
 end
 
+-- ── Prop-offset overrides (admin-tunable via /mbt_trunktune, DB-persisted) ────────
+-- Per-class (or per-model) prop placement, set in-world by an admin and broadcast
+-- live to every client. Scope = 'class:<n>' or 'model:<name>'.
+local adminCommand = (MBT.Admin and MBT.Admin.Command) or 'mbtconfig'
+local adminPerm    = (MBT.Admin and MBT.Admin.Permission) or ('command.' .. adminCommand)
+local trunkOffsets = {}   -- [scope] = { Pos = {x,y,z}, Rot = {x,y,z} }
+
+local function validOffset(d)
+    if type(d) ~= 'table' or type(d.Pos) ~= 'table' or type(d.Rot) ~= 'table' then return false end
+    for _, a in ipairs({ 'x', 'y', 'z' }) do
+        if type(d.Pos[a]) ~= 'number' or d.Pos[a] < -3 or d.Pos[a] > 3 then return false end
+        if type(d.Rot[a]) ~= 'number' or d.Rot[a] < -360 or d.Rot[a] > 360 then return false end
+    end
+    return true
+end
+local function sanitizeOffset(d)
+    return { Pos = { x = d.Pos.x, y = d.Pos.y, z = d.Pos.z }, Rot = { x = d.Rot.x, y = d.Rot.y, z = d.Rot.z } }
+end
+local function validScope(s)
+    if type(s) ~= 'string' then return false end
+    local kind, key = s:match('^(%a+):(.+)$')
+    if kind == 'class' then return tonumber(key) ~= nil end
+    if kind == 'model' then return #key > 0 and #key <= 48 end
+    return false
+end
+
+local function ensureOffsetSchema()
+    if not hasDb() then return end
+    exports.oxmysql:execute([[
+        CREATE TABLE IF NOT EXISTS mbt_trunk_offsets (
+            scope VARCHAR(48) NOT NULL PRIMARY KEY,
+            data LONGTEXT NOT NULL
+        )
+    ]], {}, function()
+        exports.oxmysql:execute('SELECT scope, data FROM mbt_trunk_offsets', {}, function(rows)
+            if type(rows) ~= 'table' then return end
+            for _, row in ipairs(rows) do
+                local ok, d = pcall(json.decode, row.data)
+                if ok and validOffset(d) then trunkOffsets[row.scope] = sanitizeOffset(d) end
+            end
+            Utils.mbtDebugger('vehicle_trunk_rack ~ loaded', #rows, 'offset overrides from DB')
+        end)
+    end)
+end
+
+lib.callback.register('mbt_malisling:getTrunkOffsets', function()
+    local out = {}
+    for scope, d in pairs(trunkOffsets) do out[#out + 1] = { scope = scope, data = d } end
+    return out
+end)
+
+RegisterNetEvent('mbt_malisling:trunkOffset:save', function(payload)
+    local src = source
+    if not IsPlayerAceAllowed(src, adminPerm) then return end
+    if type(payload) ~= 'table' or not validScope(payload.scope) or not validOffset(payload.data) then return end
+    local d = sanitizeOffset(payload.data)
+    trunkOffsets[payload.scope] = d
+    if hasDb() then
+        exports.oxmysql:execute(
+            'INSERT INTO mbt_trunk_offsets (scope, data) VALUES (?, ?) ON DUPLICATE KEY UPDATE data = VALUES(data)',
+            { payload.scope, json.encode(d) })
+    end
+    TriggerClientEvent('mbt_malisling:trunkOffset:apply', -1, { scope = payload.scope, data = d })
+end)
+
+RegisterNetEvent('mbt_malisling:trunkOffset:reset', function(payload)
+    local src = source
+    if not IsPlayerAceAllowed(src, adminPerm) then return end
+    if type(payload) ~= 'table' or not validScope(payload.scope) then return end
+    trunkOffsets[payload.scope] = nil
+    if hasDb() then
+        exports.oxmysql:execute('DELETE FROM mbt_trunk_offsets WHERE scope = ?', { payload.scope })
+    end
+    TriggerClientEvent('mbt_malisling:trunkOffset:apply', -1, { scope = payload.scope, data = false })
+end)
+
 -- ── Helpers ────────────────────────────────────────────────────────────────────
 --- Server-side plate (never trust the client). Blank/whitespace → nil (refused).
 local function vehPlate(veh)
@@ -180,4 +256,5 @@ end)
 AddEventHandler('onServerResourceStart', function(resource)
     if resource ~= GetCurrentResourceName() then return end
     ensureSchema()
+    ensureOffsetSchema()
 end)

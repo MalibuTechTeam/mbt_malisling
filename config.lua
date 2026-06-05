@@ -520,10 +520,22 @@ MBT.VehicleTrunkRack   = {
         TakeMs          = 1400,
         BootOpenDelayMs = 350,
     },
-    -- Prop attach offset inside the open boot, per weapon type (tune like props).
+    -- Prop attach offset. The 'boot' bone already sits at each vehicle's trunk, so
+    -- the offset stays SMALL (it auto-scales per vehicle). Optional per-class
+    -- overrides (GetVehicleClass index) fine-tune specific classes; vehicles with
+    -- no 'boot' bone fall back to a model-dimensions rear position.
     PropOffset = {
-        ['back']  = { Pos = { x = 0.0, y = -0.55, z = 0.45 }, Rot = { x = 0.0, y = 90.0, z = 0.0 } },
-        ['back2'] = { Pos = { x = 0.0, y = -0.55, z = 0.45 }, Rot = { x = 0.0, y = 90.0, z = 0.0 } },
+        -- Resolution order: ByModel (exact) > ByClass > Default. Tune with /mbt_trunktune
+        -- (ENTER saves the model). Offsets are in 'boot'-bone space (visible at the trunk).
+        Default = { Pos = { x = 0.0, y = -0.10, z = -0.30 }, Rot = { x = 0.0, y = 0.0, z = 0.0 } },
+        -- Per-MODEL (precise). Key = lowercase model name. Paste tuner output here.
+        ByModel = {
+            -- ['sultan'] = { Pos = { x = 0.0, y = -0.10, z = -0.30 }, Rot = { x = 0.0, y = 0.0, z = 0.0 } },
+        },
+        -- Per-CLASS (rough fallback). GetVehicleClass: 12 = Vans, 2 = SUVs, 20 = Commercial…
+        ByClass = {
+            -- [12] = { Pos = { x = 0.0, y = -0.20, z = 0.05 }, Rot = { x = 0.0, y = 0.0, z = 0.0 } }, -- Vans
+        },
     },
 }
 
