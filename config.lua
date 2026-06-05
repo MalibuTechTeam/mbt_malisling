@@ -510,15 +510,22 @@ MBT.VehicleTrunkRack   = {
     AllowedTypes        = { ['back'] = true, ['back2'] = true },
     Capacity            = 2,        -- max racked weapons per vehicle (per plate)
     InteractionDistance = 2.5,      -- reach at the rear of the vehicle
+    EquipOnRetrieve     = false,    -- true = take the weapon straight into hand on retrieve (ox + qb)
     -- Animations (config-driven so server owners can swap to custom clips).
+    -- Player anims (config-driven, swap freely). Place = bend & put the weapon in;
+    -- Take = bend & lift it out; Close = the ox 'return_case' hands-closing gesture
+    -- (played positioned, like ox_inventory's closeTrunk).
     Animation = {
-        PlaceDict       = 'anim@gangops@facility@servers@bodysearch@',
-        PlaceAnim       = 'player_search',
-        PlaceMs         = 1600,
-        TakeDict        = 'anim@gangops@facility@servers@bodysearch@',
-        TakeAnim        = 'player_search',
-        TakeMs          = 1400,
-        BootOpenDelayMs = 350,
+        PlaceDict       = 'pickup_object',
+        PlaceAnim       = 'putdown_low',
+        PlaceMs         = 1000,
+        TakeDict        = 'pickup_object',
+        TakeAnim        = 'pickup_low',
+        TakeMs          = 1000,
+        CloseDict       = 'anim@heists@fleeca_bank@scope_out@return_case',
+        CloseAnim       = 'trevor_action',
+        CloseMs         = 900,
+        BootOpenDelayMs = 250,
     },
     -- Prop attach offset. The 'boot' bone already sits at each vehicle's trunk, so
     -- the offset stays SMALL (it auto-scales per vehicle). Optional per-class

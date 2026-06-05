@@ -171,6 +171,11 @@ RegisterNUICallback('propEdit:stop', function(_, cb)
     cb({})
 end)
 
+-- NUI → server bridge: the Positions section fetches the framework job list.
+RegisterNUICallback('getJobs', function(_, cb)
+    cb(lib.callback.await('mbt_malisling:getJobs', false) or {})
+end)
+
 AddEventHandler('onResourceStop', function(res)
     if res == GetCurrentResourceName() and editing then stopEditing() end
 end)

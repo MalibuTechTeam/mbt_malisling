@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Section, ToggleRow, FieldBlock, Grid2, type SectionProps } from './parts'
 import { NumberInput } from '../ui/NumberInput'
+import { Icon } from '../ui/Icon'
 import { fetchNui } from '../../utils/fetchNui'
 
 const numUpdate = (update: SectionProps['update'], path: string, def: number, int = false) =>
@@ -82,6 +83,8 @@ export function TrunkRackSection({ config, update }: SectionProps) {
             onChange={numUpdate(update, 'VehicleTrunkRack.InteractionDistance', 2.5)} />
         </FieldBlock>
       </Grid2>
+      <ToggleRow title="Retrieve to Hand" desc="Take the weapon straight into hand on retrieve (ox + qb)"
+        checked={!!t.EquipOnRetrieve} onChange={(v) => update('VehicleTrunkRack.EquipOnRetrieve', v)} />
     </Section>
   )
 }
@@ -93,14 +96,21 @@ const VEHICLE_CLASSES: Record<number, string> = {
   18: 'Emergency', 19: 'Military', 20: 'Commercial', 21: 'Trains',
 }
 interface TrunkOverride { scope: string; data: { Pos: { x: number; y: number; z: number }; Rot: { x: number; y: number; z: number } } }
+interface TrunkStart { ok: boolean; model: string; class: number; off: TrunkOverride['data'] }
+interface TrunkPositionsProps extends SectionProps { onEdit?: (s: TrunkStart) => void }
 
-/** Trunk Positions — manage the per-class trunk prop offsets (tuned in-world). */
-export function TrunkPositionsSection(_: SectionProps) {
+/** Trunk Positions — feature toggle + live in-world editor + per-model/class offsets. */
+export function TrunkPositionsSection({ config, update, onEdit }: TrunkPositionsProps) {
+  const t = config?.VehicleTrunkRack ?? {}
   const [list, setList] = useState<TrunkOverride[]>([])
   const refresh = useCallback(() => {
     fetchNui('trunkOffsets:get').then((r: any) => setList(Array.isArray(r) ? r : []))
   }, [])
   useEffect(() => { refresh() }, [refresh])
+
+  const openEditor = () => {
+    fetchNui('trunkEdit:start').then((r: any) => { if (r?.ok && onEdit) onEdit(r) })
+  }
 
   const label = (scope: string) => {
     const [kind, key] = scope.split(':')
@@ -112,29 +122,43 @@ export function TrunkPositionsSection(_: SectionProps) {
   }
 
   return (
-    <Section icon="vehicle" title="TRUNK POSITIONS" sub="Per-class trunk weapon placement (set in-world).">
+    <Section icon="vehicle" title="TRUNK POSITIONS" sub="Where the weapon sits in a vehicle's trunk."
+      action={
+        <span className="mbt-section__action-row">
+          <button type="button" className="mbt-btn-primary mbt-btn--sm" onClick={openEditor}
+            disabled={!t.Enabled} title={t.Enabled ? '' : 'Enable the trunk rack first'}>
+            <Icon name="configure" size={13} /> Live Editor
+          </button>
+          <ToggleRow.Inline checked={!!t.Enabled} onChange={(v) => update('VehicleTrunkRack.Enabled', v)} />
+        </span>
+      }>
       <div className="mbt-notice">
-        Stand at a vehicle with a weapon stowed and run <code>/mbt_trunktune</code> — arrows + Q/E to position,
-        SHIFT for big steps, <b>ENTER</b> saves that vehicle class, BACKSPACE exits. Saved here, applies live.
+        Stand behind a vehicle, hit <b>Live Editor</b>, nudge the weapon into place, then Save per
+        <b> model</b> (exact) or <b>class</b> (broad). Applies live. <code>/mbt_trunktune</code> is the key-driven tuner.
       </div>
       {list.length === 0 ? (
-        <div className="mbt-field__hint" style={{ marginTop: 2 }}>
-          No saved overrides yet — every class uses the default placement.
+        <div className="mbt-field__hint" style={{ marginTop: 2, whiteSpace: 'normal' }}>
+          No saved overrides yet — every vehicle uses the default placement.
         </div>
       ) : (
-        list.map((o) => (
-          <div key={o.scope} className="mbt-setting">
-            <div className="mbt-setting__head">
-              <div className="mbt-setting__info">
-                <span className="mbt-setting__title">{label(o.scope)}</span>
-                <span className="mbt-setting__desc">
+        <div className="mbt-trunk-list">
+          {list.map((o) => (
+            <div key={o.scope} className="mbt-trunk-row">
+              <span className="mbt-trunk-row__info">
+                <span className="mbt-trunk-row__name">
+                  <span className="mbt-trunk-row__nm">{label(o.scope)}</span>
+                  <span className={`mbt-trunk-row__tag mbt-trunk-row__tag--${o.scope.startsWith('class:') ? 'class' : 'model'}`}>
+                    {o.scope.startsWith('class:') ? 'class' : 'model'}
+                  </span>
+                </span>
+                <span className="mbt-trunk-row__coords">
                   z {o.data.Pos.z.toFixed(2)} · y {o.data.Pos.y.toFixed(2)} · rz {o.data.Rot.z.toFixed(0)}°
                 </span>
-              </div>
+              </span>
               <button type="button" className="mbt-btn-ghost" onClick={() => reset(o.scope)}>Reset</button>
             </div>
-          </div>
-        ))
+          ))}
+        </div>
       )}
     </Section>
   )

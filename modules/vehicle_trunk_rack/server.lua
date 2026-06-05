@@ -235,7 +235,19 @@ lib.callback.register('mbt_malisling:trunkRack:retrieve', function(src, data)
     table.remove(racks[plate], index)
     saveRack(plate)
     publish(veh, plate)
-    return { ok = true }
+
+    -- Optional equip-on-retrieve: ox uses the returned slot (useSlot); qb finds the
+    -- weapon client-side and triggers its normal use-weapon flow. We just return the
+    -- identifiers the client needs.
+    local serial = entry.metadata and entry.metadata.serial
+    local equipSlot
+    if GetResourceState('ox_inventory') == 'started' then
+        local ok2, s = pcall(function()
+            return exports.ox_inventory:GetSlotIdWithItem(src, entry.name, { serial = serial }, true)
+        end)
+        if ok2 then equipSlot = s end
+    end
+    return { ok = true, equipSlot = equipSlot, name = entry.name, serial = serial }
 end)
 
 -- ── Re-publish (late-join / respawned vehicle) ──────────────────────────────────

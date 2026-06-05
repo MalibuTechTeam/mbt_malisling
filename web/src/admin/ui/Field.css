@@ -10,8 +10,10 @@
   flex-direction: column;
   width: 100%;
   /* Calm entrance on section switch — the active section remounts each
-     time the rail target changes, so this fires per swap. */
-  animation: mbt-section-in 180ms var(--mbt-ease);
+     time the rail target changes, so this fires per swap. `both` holds the
+     from-state through any stagger delay (see .mbt-admin__sections) so a
+     delayed card doesn't flash visible first. */
+  animation: mbt-section-in 180ms var(--mbt-ease) both;
 }
 
 @keyframes mbt-section-in {
@@ -279,6 +281,99 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 .mbt-setting--off .mbt-setting__body {
   display: none;
+}
+
+/* ── Compact override list (Trunk Positions) ──────────────────────────────
+   Two-column grid of dense cells (name over coords + Reset) so a long list
+   stays short; capped height with a skinned scrollbar (matches the center pane). */
+.mbt-trunk-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  max-height: 256px;
+  overflow-y: auto;
+  padding-right: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+.mbt-trunk-list::-webkit-scrollbar { width: 11px; }
+.mbt-trunk-list::-webkit-scrollbar-track { background: transparent; }
+.mbt-trunk-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: var(--mbt-r-pill);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+.mbt-trunk-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.24);
+  background-clip: padding-box;
+}
+.mbt-trunk-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 6px 9px;
+  background: var(--mbt-surface-1);
+  border: 1px solid var(--mbt-edge);
+  border-radius: var(--mbt-r-sm);
+}
+.mbt-trunk-row__info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1;
+  min-width: 0;
+}
+.mbt-trunk-row__name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-family: var(--mbt-font-display);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--mbt-text-hi);
+}
+.mbt-trunk-row__nm {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Scope badge — class (broad, accent) vs model (exact, neutral). */
+.mbt-trunk-row__tag {
+  flex-shrink: 0;
+  padding: 1px 5px;
+  border-radius: var(--mbt-r-pill);
+  font-family: var(--mbt-font-body);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--mbt-text-faint);
+  background: var(--mbt-surface-3);
+  border: 1px solid var(--mbt-edge);
+}
+.mbt-trunk-row__tag--class {
+  color: var(--mbt-accent);
+  background: var(--mbt-accent-soft);
+  border-color: rgba(var(--mbt-accent-rgb), 0.25);
+}
+.mbt-trunk-row__coords {
+  font-family: var(--mbt-font-mono);
+  font-size: 10.5px;
+  color: var(--mbt-text-lo);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mbt-trunk-row .mbt-btn-ghost {
+  flex-shrink: 0;
+  height: 24px;
+  padding: 0 9px;
+  font-size: 11px;
+  border-radius: var(--mbt-r-sm);
 }
 
 /* ── Capture field (coord display + capture button) ───────────────────── */

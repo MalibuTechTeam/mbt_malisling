@@ -11,6 +11,7 @@ import { InspectSection, WeaponNameSection, PosesSection, ThrowSection } from '.
 import { NoDrawSection, VehicleSection, TrunkRackSection, TrunkPositionsSection } from './sections/WorldSections'
 import { PositionsSection, type Job, type EditTarget } from './sections/PositionsSection'
 import { PropEditorOverlay } from './PropEditorOverlay'
+import { TrunkEditorOverlay } from './TrunkEditorOverlay'
 import './Admin.css'
 
 /**
@@ -45,7 +46,7 @@ const CATEGORIES: Category[] = [
     // Throw) share row 1; the shorter Name + the tiny Poses share row 2.
     sections: [InspectSection, ThrowSection, WeaponNameSection, PosesSection] },
   { id: 'world',       label: 'World',       hint: 'Zones · vehicle',        icon: 'globe',
-    sections: [NoDrawSection, VehicleSection, TrunkRackSection, TrunkPositionsSection] },
+    sections: [NoDrawSection, VehicleSection, TrunkRackSection] },
 ]
 
 export default function AdminDashboard() {
@@ -57,7 +58,10 @@ export default function AdminDashboard() {
   const [savePulse, setSavePulse] = useState(false) // one-shot pulse on save
   const [jobs, setJobs] = useState<Job[]>([])       // framework job list (lazy)
   const [editing, setEditing] = useState<EditTarget | null>(null) // live position editor
+  const [trunkEditing, setTrunkEditing] = useState<{ model: string; vclass: number; off: any } | null>(null)
+  const [closing, setClosing] = useState(false)     // playing the exit animation before unmount
   const baseline = useRef('')                       // last-saved snapshot
+  const closeTimer = useRef<number | null>(null)    // deferred-unmount timer
 
   useNuiEvent<any>('openAdmin', (data) => {
     const c = data?.config ?? {}
@@ -67,16 +71,30 @@ export default function AdminDashboard() {
     if (data?.version) setVersion(data.version)
     setActive('core')
     setEditing(null)
+    setTrunkEditing(null)
+    // Cancel any in-flight close so a re-open snaps back instantly.
+    if (closeTimer.current) { window.clearTimeout(closeTimer.current); closeTimer.current = null }
+    setClosing(false)
     setOpen(true)
     // Lazy-load the framework job list for the position editor.
     fetchNui('getJobs').then((list: any) => setJobs(Array.isArray(list) ? list : []))
   })
-  useNuiEvent('closeAdmin', () => setOpen(false))
 
-  const close = useCallback(() => {
-    setOpen(false)
-    fetchNui('adminClose')
+  // Play the exit animation, then unmount. `notify` releases NUI focus (user-
+  // initiated close); the game-initiated closeAdmin event already dropped it.
+  const beginClose = useCallback((notify: boolean) => {
+    if (closeTimer.current) return
+    setClosing(true)
+    closeTimer.current = window.setTimeout(() => {
+      closeTimer.current = null
+      setClosing(false)
+      setOpen(false)
+      if (notify) fetchNui('adminClose')
+    }, 150)
   }, [])
+
+  useNuiEvent('closeAdmin', () => beginClose(false))
+  const close = useCallback(() => beginClose(true), [beginClose])
 
   useEffect(() => {
     if (!open) return
@@ -119,9 +137,9 @@ export default function AdminDashboard() {
 
   const activeCat = CATEGORIES.find((c) => c.id === active) ?? CATEGORIES[0]
   const isPositions = active === 'positions'
-  const headLabel = isPositions ? 'Weapon Positions' : activeCat.label
+  const headLabel = isPositions ? 'Positions' : activeCat.label
   const headHint = isPositions
-    ? 'Live weapon-placement editor · per job · saves to oxmysql'
+    ? 'Weapon-on-body editor + vehicle-trunk placement · set in-world · saved to oxmysql'
     : `${activeCat.hint} · ${activeCat.sections.length} features · applies live on save`
 
   // Key feature flags, shared by the gauge and the overview list below it.
@@ -137,7 +155,7 @@ export default function AdminDashboard() {
 
   return (
     <>
-    <div className={`mbt-admin-overlay${editing ? ' is-editing' : ''}`}>
+    <div className={`mbt-admin-overlay${editing || trunkEditing ? ' is-editing' : ''}${closing ? ' is-closing' : ''}`}>
       <div className="mbt-admin">
 
         {/* ── Rail ── */}
@@ -171,7 +189,7 @@ export default function AdminDashboard() {
             <span className="ic"><Icon name="configure" size={18} /></span>
             <span className="mbt-rail__tx">
               <span className="mbt-rail__label">Positions</span>
-              <span className="mbt-rail__hint">Weapon placement · jobs</span>
+              <span className="mbt-rail__hint">Body & trunk placement</span>
             </span>
             <span className="mbt-rail__count">edit</span>
           </button>
@@ -214,29 +232,31 @@ export default function AdminDashboard() {
               <div className="mbt-admin__meta">{headHint}</div>
             </div>
             <div className="mbt-admin__head-sp" />
-            {!isPositions && dirty ? (
+            {dirty ? (
               <span className="mbt-admin__dirty"><i />Unsaved changes</span>
             ) : null}
-            {!isPositions && dirty ? (
+            {dirty ? (
               <button type="button" className="mbt-btn-ghost" onClick={discard}>
                 Discard
               </button>
             ) : null}
-            {!isPositions ? (
-              <button
-                type="button"
-                className={`mbt-btn-primary${savePulse ? ' is-complete' : ''}`}
-                onClick={save}
-                disabled={!dirty}
-              >
-                <Icon name="save" size={14} /> Save &amp; Apply
-              </button>
-            ) : null}
+            <button
+              type="button"
+              className={`mbt-btn-primary${savePulse ? ' is-complete' : ''}`}
+              onClick={save}
+              disabled={!dirty}
+            >
+              <Icon name="save" size={14} /> Save &amp; Apply
+            </button>
           </div>
 
           <div className="mbt-admin__sections">
             {isPositions ? (
-              <PositionsSection jobs={jobs} onEdit={(t) => setEditing(t)} />
+              <>
+                <PositionsSection jobs={jobs} onEdit={(t) => setEditing(t)} />
+                <TrunkPositionsSection config={cfg} update={update}
+                  onEdit={(s) => setTrunkEditing({ model: s.model, vclass: s.class, off: s.off })} />
+              </>
             ) : (
               activeCat.sections.map((Section, i) => (
                 <Section key={`${active}-${i}`} config={cfg} update={update} />
@@ -287,6 +307,14 @@ export default function AdminDashboard() {
         job={editing.job}
         gender={editing.gender}
         onClose={() => setEditing(null)}
+      />
+    ) : null}
+    {trunkEditing ? (
+      <TrunkEditorOverlay
+        model={trunkEditing.model}
+        vclass={trunkEditing.vclass}
+        off={trunkEditing.off}
+        onClose={() => setTrunkEditing(null)}
       />
     ) : null}
     </>

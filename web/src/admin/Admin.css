@@ -18,8 +18,37 @@
 }
 @keyframes mbt-admin-fade { from { opacity: 0 } to { opacity: 1 } }
 
+/* Exit — AdminDashboard keeps the tree mounted one fast beat (is-closing) so
+   the panel scales/fades out instead of hard-cutting. Durations collapse to
+   ~0 under prefers-reduced-motion via the tokens. */
+.mbt-admin-overlay.is-closing {
+  animation: mbt-admin-fade-out var(--mbt-dur-fast) var(--mbt-ease-exit) forwards;
+  pointer-events: none;
+}
+.mbt-admin-overlay.is-closing .mbt-admin {
+  animation: mbt-admin-panel-out var(--mbt-dur-fast) var(--mbt-ease-exit) forwards;
+}
+@keyframes mbt-admin-fade-out { to { opacity: 0 } }
+@keyframes mbt-admin-panel-out { to { opacity: 0; transform: translateY(6px) scale(0.985); } }
+@keyframes mbt-admin-panel-in {
+  from { opacity: 0; transform: translateY(20px) scale(0.965); }
+  to   { opacity: 1; transform: none; }
+}
+/* Three-column assemble: rail, center, overview fade in staggered so the shell
+   appears then populates (premium "settle"), instead of one flat fade. */
+.mbt-admin__rail     { animation: mbt-admin-fade var(--mbt-dur-slow) var(--mbt-ease) both; animation-delay: 60ms; }
+.mbt-admin__center   { animation: mbt-admin-fade var(--mbt-dur-slow) var(--mbt-ease) both; animation-delay: 110ms; }
+.mbt-admin__overview { animation: mbt-admin-fade var(--mbt-dur-slow) var(--mbt-ease) both; animation-delay: 150ms; }
+@media (prefers-reduced-motion: reduce) {
+  .mbt-admin__rail, .mbt-admin__center, .mbt-admin__overview { animation: none; }
+}
+
 .mbt-admin {
   position: relative;
+  /* Entrance: rise + settle from 98.5% (never from scale(0)/nothing), paired
+     with the overlay fade. `both` holds the from-state so there's no flash. */
+  transform-origin: center;
+  animation: mbt-admin-panel-in var(--mbt-dur-slow) var(--mbt-ease) both;
   /* Fluid like the elevator panel (90vw×85vh) instead of a fixed island, so it
      scales with the display. Caps keep cards from sprawling on huge screens.
      Taller than before (960) so the densest page — Handling — fits without a
@@ -133,6 +162,14 @@
   align-content: start;
 }
 
+/* Stagger the cards on category switch — they cascade in rather than popping
+   together. Delays are short (total < 220ms) so it reads as rhythm, not lag. */
+.mbt-admin__sections > .mbt-section:nth-child(1) { animation-delay: 0ms; }
+.mbt-admin__sections > .mbt-section:nth-child(2) { animation-delay: 45ms; }
+.mbt-admin__sections > .mbt-section:nth-child(3) { animation-delay: 90ms; }
+.mbt-admin__sections > .mbt-section:nth-child(4) { animation-delay: 135ms; }
+.mbt-admin__sections > .mbt-section:nth-child(5) { animation-delay: 180ms; }
+
 /* Section panel chrome — the kit's .mbt-section is bare (it was wrapped by a
    card in elevator). Give it the card surface + border here. */
 .mbt-admin__center .mbt-section {
@@ -204,6 +241,10 @@
 .mbt-btn-ghost:focus-visible, .mbt-btn-primary:focus-visible {
   outline: 2px solid var(--mbt-accent-glow); outline-offset: 2px;
 }
+/* Compact button for a section header action (sits next to the title). */
+.mbt-btn--sm { height: 30px; padding: 0 12px; font-size: 12px; gap: 6px; border-radius: var(--mbt-r-sm); }
+/* Header action holding a button + a toggle, kept on one baseline. */
+.mbt-section__action-row { display: inline-flex; align-items: center; gap: 12px; }
 .mbt-btn-primary.is-complete { animation: mbt-save-pulse var(--mbt-pulse) ease-out; }
 @keyframes mbt-save-pulse {
   0%   { box-shadow: 0 0 0 0 rgba(var(--mbt-accent-rgb), 0.5); }
@@ -226,8 +267,27 @@
 .mbt-ov__gauge-n { font-family: var(--mbt-font-display); font-size: 28px; font-weight: 700; line-height: 1; color: var(--mbt-text-hi); }
 .mbt-ov__gauge-d { font-size: 12px; font-weight: 600; color: var(--mbt-text-lo); }
 .mbt-ov__segs { display: flex; gap: 3px; margin-top: 12px; }
-.mbt-ov__segs span { flex: 1; height: 4px; border-radius: var(--mbt-r-pill); background: var(--mbt-surface-3); transition: background var(--mbt-dur) var(--mbt-ease); }
+.mbt-ov__segs span {
+  flex: 1; height: 4px; border-radius: var(--mbt-r-pill); background: var(--mbt-surface-3);
+  transition: background var(--mbt-dur) var(--mbt-ease);
+  /* Charge-in sweep left→right once the overview column has settled. */
+  transform-origin: left center;
+  animation: mbt-seg-in var(--mbt-dur-slow) var(--mbt-ease) both;
+}
 .mbt-ov__segs span.is-on { background: var(--mbt-accent); }
+@keyframes mbt-seg-in { from { transform: scaleX(0); opacity: 0; } to { transform: scaleX(1); opacity: 1; } }
+.mbt-ov__segs span:nth-child(1)  { animation-delay: 190ms; }
+.mbt-ov__segs span:nth-child(2)  { animation-delay: 215ms; }
+.mbt-ov__segs span:nth-child(3)  { animation-delay: 240ms; }
+.mbt-ov__segs span:nth-child(4)  { animation-delay: 265ms; }
+.mbt-ov__segs span:nth-child(5)  { animation-delay: 290ms; }
+.mbt-ov__segs span:nth-child(6)  { animation-delay: 315ms; }
+.mbt-ov__segs span:nth-child(7)  { animation-delay: 340ms; }
+.mbt-ov__segs span:nth-child(8)  { animation-delay: 365ms; }
+.mbt-ov__segs span:nth-child(n+9) { animation-delay: 390ms; }
+@media (prefers-reduced-motion: reduce) {
+  .mbt-ov__segs span { animation: none; }
+}
 .mbt-ov__label { display: flex; align-items: center; gap: 7px; font-size: 10px; font-weight: 600; letter-spacing: 0.12em; color: var(--mbt-text-faint); }
 .mbt-ov__spacer { flex: 1 1 auto; }
 .mbt-ov__summary { display: flex; flex-direction: column; }
@@ -269,7 +329,13 @@
   border: 1px solid var(--mbt-edge-hi); border-radius: var(--mbt-r-lg);
   box-shadow: var(--mbt-shadow-panel);
   font-family: var(--mbt-font-body); color: var(--mbt-text-mid);
-  animation: mbt-admin-fade var(--mbt-dur-slow) var(--mbt-ease);
+  /* Emerges from its home edge (right) rather than fading from nowhere. The
+     keyframe carries translateY(-50%) so vertical centering is preserved. */
+  animation: mbt-pe-in var(--mbt-dur-slow) var(--mbt-ease) both;
+}
+@keyframes mbt-pe-in {
+  from { opacity: 0; transform: translateY(-50%) translateX(18px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(-50%) translateX(0) scale(1); }
 }
 .mbt-pe__head { display: flex; align-items: center; gap: 8px; color: var(--mbt-accent); }
 .mbt-pe__head b { font-family: var(--mbt-font-display); font-size: 13px; letter-spacing: 0.05em; color: var(--mbt-text-hi); }
@@ -288,7 +354,8 @@
 .mbt-pe__val { flex: 1; text-align: center; font-family: var(--mbt-font-mono); font-size: 11px; color: var(--mbt-text-hi); }
 
 .mbt-pe__bone { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--mbt-text-lo); }
-.mbt-pe__bone .mbt-select { flex: 1; height: 32px; }
+.mbt-pe__bone .mbt-select2 { flex: 1; }
+.mbt-pe__bone .mbt-select2__btn { height: 32px; font-size: 13px; }
 
 .mbt-pe__cam { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--mbt-text-lo); }
 .mbt-pe__cam span { margin-right: auto; }

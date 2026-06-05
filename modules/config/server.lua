@@ -136,6 +136,7 @@ local function snapshot()
             Enabled             = b(VTR.Enabled),
             Capacity            = num(VTR.Capacity, 2),
             InteractionDistance = num(VTR.InteractionDistance, 2.5),
+            EquipOnRetrieve     = b(VTR.EquipOnRetrieve),
             AllowedTypes        = { back = b(vat['back']), back2 = b(vat['back2']) },
         },
         TacticalSling = { Enabled = b(TS.Enabled) },
@@ -234,6 +235,7 @@ local function validate(d)
     if type(vtr) ~= 'table' or type(vtr.Enabled) ~= 'boolean' then return false end
     if type(vtr.Capacity) ~= 'number' or vtr.Capacity < 1 or vtr.Capacity > 10 then return false end
     if type(vtr.InteractionDistance) ~= 'number' or vtr.InteractionDistance < 1 or vtr.InteractionDistance > 10 then return false end
+    if type(vtr.EquipOnRetrieve) ~= 'boolean' then return false end
     if type(vtr.AllowedTypes) ~= 'table'
         or type(vtr.AllowedTypes.back) ~= 'boolean' or type(vtr.AllowedTypes.back2) ~= 'boolean' then return false end
     -- Tactical Sling
@@ -312,6 +314,7 @@ local function applyToMBT(d)
         MBT.VehicleTrunkRack.Enabled             = d.VehicleTrunkRack.Enabled
         MBT.VehicleTrunkRack.Capacity            = d.VehicleTrunkRack.Capacity
         MBT.VehicleTrunkRack.InteractionDistance = d.VehicleTrunkRack.InteractionDistance
+        MBT.VehicleTrunkRack.EquipOnRetrieve     = d.VehicleTrunkRack.EquipOnRetrieve
         MBT.VehicleTrunkRack.AllowedTypes        = {
             ['back']  = d.VehicleTrunkRack.AllowedTypes.back,
             ['back2'] = d.VehicleTrunkRack.AllowedTypes.back2,

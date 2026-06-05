@@ -47,48 +47,77 @@ local function bootBone(veh)
     return b
 end
 
+--- Boot door(s) for this vehicle (ox_inventory logic): vans (class 12) use the rear
+--- doors {2,3}; everything else uses door 5 (the boot).
+local function bootDoorList(veh)
+    if GetVehicleClass(veh) == 12 then return { 2, 3 } end
+    return { 5 }
+end
+
 local function openBoot(veh)
     if NetworkGetEntityIsNetworked(veh) and not NetworkHasControlOfEntity(veh) then
         NetworkRequestControlOfEntity(veh)
         local deadline = GetGameTimer() + 600
         while not NetworkHasControlOfEntity(veh) and GetGameTimer() < deadline do Wait(50) end
     end
-    SetVehicleDoorOpen(veh, 5, false, false)   -- door 5 = boot
+    for _, d in ipairs(bootDoorList(veh)) do SetVehicleDoorOpen(veh, d, false, false) end
 end
 
 local function shutBoot(veh)
-    if DoesEntityExist(veh) then SetVehicleDoorShut(veh, 5, false) end
+    if not DoesEntityExist(veh) then return end
+    for _, d in ipairs(bootDoorList(veh)) do SetVehicleDoorShut(veh, d, false) end
 end
 
-local function playAnim(dict, name, ms)
-    ms = ms or 1500
+local function playAnim(dict, name, ms, flag)
+    ms = ms or 1000
     if not dict or dict == '' or not name or name == '' or not DoesAnimDictExist(dict) then Wait(ms); return end
     lib.requestAnimDict(dict)
-    TaskPlayAnim(cache.ped, dict, name, 4.0, -4.0, ms, 49, 0.0, false, false, false)
+    TaskPlayAnim(cache.ped, dict, name, 4.0, -4.0, ms, flag or 49, 0.0, false, false, false)
     Wait(ms)
     ClearPedTasks(cache.ped)
 end
 
--- ── Stow / Retrieve flows ────────────────────────────────────────────────────────
+--- Positioned anim (TaskPlayAnimAdvanced) at the ped's current spot — ox uses this for
+--- the 'return_case'/'trevor_action' close gesture; plain TaskPlayAnim doesn't show it.
+local function playAnimAdvanced(dict, name, ms)
+    ms = ms or 1000
+    if not dict or dict == '' or not name or name == '' or not DoesAnimDictExist(dict) then Wait(ms); return end
+    lib.requestAnimDict(dict)
+    local p = GetEntityCoords(cache.ped, true)
+    TaskPlayAnimAdvanced(cache.ped, dict, name, p.x, p.y, p.z, 0.0, 0.0, GetEntityHeading(cache.ped),
+        2.0, 2.0, ms, 49, 0.25, 0, 0)
+    Wait(ms)
+    ClearPedTasks(cache.ped)
+end
+
+-- ── Stow / Retrieve flows — mirror ox_inventory's open/close-trunk feel ────────────
+--- Open boot → bend & place/take anim → run op() → close gesture → shut boot.
+local function trunkAction(veh, place, op)
+    local a = cfg.Animation or {}
+    openBoot(veh)
+    Wait(a.BootOpenDelayMs or 250)
+    if place then
+        playAnim(a.PlaceDict, a.PlaceAnim, a.PlaceMs)      -- bend & put the weapon in
+    else
+        playAnim(a.TakeDict, a.TakeAnim, a.TakeMs)         -- bend & lift the weapon out
+    end
+    local res = op()
+    playAnimAdvanced(a.CloseDict, a.CloseAnim, a.CloseMs)  -- hands close the lid (positioned)
+    Wait(150)
+    shutBoot(veh)
+    return res
+end
+
 local function doStow(veh)
     if busy or not cfg.Enabled or not veh or veh == 0 then return end
     if cache.vehicle or not holdingLongGun() then return end
     if GetEntitySpeed(veh) > 1.0 then return end
     busy = true
-
-    local slot  = CurrentWeapon.slot
-    local netId = VehToNet(veh)
-    local a     = cfg.Animation or {}
-
-    openBoot(veh)
-    Wait(a.BootOpenDelayMs or 350)
-    local res = lib.callback.await('mbt_malisling:trunkRack:stow', false, { netId = netId, slot = slot })
-    -- Anim blocking so the boot stays open for the whole placement (props show while open).
-    playAnim(a.PlaceDict, a.PlaceAnim, a.PlaceMs)
-    Wait(200)
-    shutBoot(veh)
+    local slot, netId = CurrentWeapon.slot, VehToNet(veh)
+    local res = trunkAction(veh, true, function()
+        return lib.callback.await('mbt_malisling:trunkRack:stow', false, { netId = netId, slot = slot })
+    end)
     busy = false
-
     if not res or not res.ok then
         if res and res.reason then MBT.NotifyLabel(res.reason) end
     end
@@ -98,20 +127,29 @@ local function retrieveIndex(veh, index)
     if busy or not cfg.Enabled or not veh or veh == 0 then return end
     if GetEntitySpeed(veh) > 1.0 then return end
     busy = true
-
     local netId = VehToNet(veh)
-    local a     = cfg.Animation or {}
-
-    openBoot(veh)
-    Wait(a.BootOpenDelayMs or 350)
-    local res = lib.callback.await('mbt_malisling:trunkRack:retrieve', false, { netId = netId, index = index })
-    playAnim(a.TakeDict, a.TakeAnim, a.TakeMs)
-    Wait(200)
-    shutBoot(veh)
+    local res = trunkAction(veh, false, function()
+        return lib.callback.await('mbt_malisling:trunkRack:retrieve', false, { netId = netId, index = index })
+    end)
     busy = false
-
-    if not res or not res.ok then
-        if res and res.reason then MBT.NotifyLabel(res.reason) end
+    if res and res.ok then
+        -- Equip straight into hand when enabled; otherwise the weapon stays in inventory.
+        if cfg.EquipOnRetrieve then
+            if GetResourceState('ox_inventory') == 'started' and res.equipSlot then
+                exports.ox_inventory:useSlot(res.equipSlot)                  -- ox: equip the slot
+            elseif GetResourceState('qb-inventory') == 'started' and res.name
+                and PlayerData and PlayerData.items then
+                -- qb: trigger the normal use-weapon flow (avoids desync vs raw GiveWeaponToPed)
+                for _, it in pairs(PlayerData.items) do
+                    if it.name == res.name and (not res.serial or (it.info and it.info.serie == res.serial)) then
+                        TriggerServerEvent('qb-inventory:server:useItem', it)
+                        break
+                    end
+                end
+            end
+        end
+    elseif res and res.reason then
+        MBT.NotifyLabel(res.reason)
     end
 end
 
@@ -149,7 +187,11 @@ local function clearProps(veh)
 end
 
 local function bootIsOpen(veh)
-    return GetVehicleDoorAngleRatio(veh, 5) > 0.8   -- door 5 = boot; fully open avoids the open-swing slide
+    -- Fully open (avoids the open-swing slide); checks the boot door(s), vans included.
+    for _, d in ipairs(bootDoorList(veh)) do
+        if GetVehicleDoorAngleRatio(veh, d) > 0.8 then return true end
+    end
+    return false
 end
 
 -- Live dev tuner state (/mbt_trunktune) — overrides the offset for one vehicle.
@@ -294,6 +336,150 @@ RegisterNUICallback('trunkOffsets:reset', function(data, cb)
     cb({})
 end)
 
+-- ── Trunk live editor (admin NUI) ─────────────────────────────────────────────
+-- Same UX as the weapon-prop editor: the dashboard collapses, an orbit camera
+-- frames the open trunk, and a preview weapon rides the boot bone while the admin
+-- nudges the offset live. Targets the CLOSEST vehicle (its real scale → precise).
+-- Spawns its own preview weapon, so you can tune an empty vehicle too. Save writes
+-- the per-model or per-class override through the ACE-checked offset event.
+local tedit = nil   -- { veh, model, class, off, prop, cam, orbit }
+
+local function teditAttach()
+    if not tedit or not tedit.prop or not DoesEntityExist(tedit.prop) then return end
+    local bone = GetEntityBoneIndexByName(tedit.veh, 'boot')
+    if bone == -1 then bone = 0 end
+    local o = tedit.off
+    AttachEntityToEntity(tedit.prop, tedit.veh, bone,
+        o.Pos.x, o.Pos.y, o.Pos.z, o.Rot.x, o.Rot.y, o.Rot.z,
+        false, false, false, false, 2, true)
+end
+
+local function teditUpdateCam()
+    if not tedit or not tedit.cam then return end
+    local bone = GetEntityBoneIndexByName(tedit.veh, 'boot')
+    local c = (bone ~= -1) and GetWorldPositionOfEntityBone(tedit.veh, bone) or GetEntityCoords(tedit.veh)
+    local orb = tedit.orbit
+    local yawR, pitchR = math.rad(orb.yaw), math.rad(orb.pitch)
+    SetCamCoord(tedit.cam,
+        c.x + orb.dist * math.cos(pitchR) * math.sin(yawR),
+        c.y + orb.dist * math.cos(pitchR) * math.cos(yawR),
+        c.z + 0.2 + orb.dist * math.sin(pitchR))
+    PointCamAtCoord(tedit.cam, c.x, c.y, c.z)
+end
+
+local function teditStop()
+    if not tedit then return end
+    local veh = tedit.veh
+    if tedit.prop and DoesEntityExist(tedit.prop) then DeleteEntity(tedit.prop) end
+    if tedit.cam then
+        RenderScriptCams(false, false, 0, true, true)
+        DestroyCam(tedit.cam, false)
+    end
+    tedit = nil
+    if veh and DoesEntityExist(veh) then shutBoot(veh) end
+end
+
+RegisterNUICallback('trunkEdit:start', function(_, cb)
+    if tedit then cb({ ok = false, reason = 'busy' }); return end
+    if cache.vehicle then
+        lib.notify({ type = 'inform', description = 'Exit the vehicle first, then open the trunk editor.' })
+        cb({ ok = false, reason = 'on_foot' }); return
+    end
+    local veh = lib.getClosestVehicle(GetEntityCoords(cache.ped), 6.0, false)
+    if not veh or veh == 0 then
+        lib.notify({ type = 'inform', description = 'Stand near a vehicle, then open the trunk editor.' })
+        cb({ ok = false, reason = 'no_vehicle' }); return
+    end
+
+    local model = string.lower(GetDisplayNameFromVehicleModel(GetEntityModel(veh)) or '?')
+    local class = GetVehicleClass(veh)
+    local b = offsetFor(veh)
+    local off = { Pos = { x = b.Pos.x, y = b.Pos.y, z = b.Pos.z },
+                  Rot = { x = b.Rot.x, y = b.Rot.y, z = b.Rot.z } }
+
+    openBoot(veh)
+    local hash = joaat('WEAPON_CARBINERIFLE')
+    lib.requestWeaponAsset(hash, 1000, 31, 1)
+    local prop = CreateWeaponObject(hash, 50, 0.0, 0.0, 0.0, true, 1.0, 0)
+    if prop then SetEntityCollision(prop, false, false) end
+
+    tedit = {
+        veh = veh, model = model, class = class, off = off, prop = prop,
+        cam = CreateCam('DEFAULT_SCRIPTED_CAMERA', true),
+        orbit = { yaw = (GetEntityHeading(veh) + 180.0) % 360, pitch = -15.0, dist = 2.6 },
+    }
+    teditAttach()
+    teditUpdateCam()
+    RenderScriptCams(true, false, 0, true, true)
+
+    -- Re-frame once the lid is fully open (the boot bone height settles).
+    CreateThread(function()
+        local deadline = GetGameTimer() + 1500
+        while tedit and GetGameTimer() < deadline and not bootIsOpen(tedit.veh) do Wait(100) end
+        if tedit then teditAttach(); teditUpdateCam() end
+    end)
+
+    cb({ ok = true, model = model, class = class, off = off })
+end)
+
+RegisterNUICallback('trunkEdit:update', function(d, cb)
+    if tedit and type(d) == 'table' and type(d.off) == 'table'
+        and type(d.off.Pos) == 'table' and type(d.off.Rot) == 'table' then
+        local o = d.off
+        tedit.off = {
+            Pos = { x = tonumber(o.Pos.x) or 0.0, y = tonumber(o.Pos.y) or 0.0, z = tonumber(o.Pos.z) or 0.0 },
+            Rot = { x = tonumber(o.Rot.x) or 0.0, y = tonumber(o.Rot.y) or 0.0, z = tonumber(o.Rot.z) or 0.0 },
+        }
+        teditAttach()
+    end
+    cb({})
+end)
+
+RegisterNUICallback('trunkEdit:cam', function(d, cb)
+    if tedit and tedit.cam and type(d) == 'table' then
+        local orb = tedit.orbit
+        orb.yaw   = (orb.yaw + (tonumber(d.dyaw) or 0)) % 360
+        orb.pitch = math.max(-80.0, math.min(80.0, orb.pitch + (tonumber(d.dpitch) or 0)))
+        orb.dist  = math.max(1.0, math.min(6.0, orb.dist + (tonumber(d.dzoom) or 0)))
+        teditUpdateCam()
+    end
+    cb({})
+end)
+
+RegisterNUICallback('trunkEdit:reset', function(_, cb)
+    if tedit then
+        tedit.off = { Pos = { x = DEFAULT_OFFSET.Pos.x, y = DEFAULT_OFFSET.Pos.y, z = DEFAULT_OFFSET.Pos.z },
+                      Rot = { x = 0.0, y = 0.0, z = 0.0 } }
+        teditAttach()
+        cb(tedit.off)
+    else
+        cb({})
+    end
+end)
+
+RegisterNUICallback('trunkEdit:save', function(d, cb)
+    if tedit and type(d) == 'table' then
+        local scope = (d.scope == 'class') and ('class:' .. tedit.class) or ('model:' .. tedit.model)
+        TriggerServerEvent('mbt_malisling:trunkOffset:save', {
+            scope = scope,
+            data  = { Pos = { x = tedit.off.Pos.x, y = tedit.off.Pos.y, z = tedit.off.Pos.z },
+                      Rot = { x = tedit.off.Rot.x, y = tedit.off.Rot.y, z = tedit.off.Rot.z } },
+        })
+        cb({ ok = true, scope = (d.scope == 'class') and 'class' or 'model' })
+    else
+        cb({ ok = false })
+    end
+end)
+
+RegisterNUICallback('trunkEdit:stop', function(_, cb)
+    teditStop()
+    cb({})
+end)
+
+AddEventHandler('onResourceStop', function(res)
+    if res == GetCurrentResourceName() then teditStop() end
+end)
+
 -- ── Interaction (ox_target preferred, [E] fallback) ──────────────────────────────
 if GetResourceState('ox_target') == 'started' then
     exports.ox_target:addGlobalVehicle({
@@ -333,14 +519,7 @@ if GetResourceState('ox_target') == 'started' then
             end,
             onSelect = function(data)
                 local veh = data.entity
-                if bootIsOpen(veh) then
-                    SetVehicleDoorShut(veh, 5, false)
-                else
-                    if NetworkGetEntityIsNetworked(veh) and not NetworkHasControlOfEntity(veh) then
-                        NetworkRequestControlOfEntity(veh)
-                    end
-                    SetVehicleDoorOpen(veh, 5, false, false)
-                end
+                if bootIsOpen(veh) then shutBoot(veh) else openBoot(veh) end
             end,
         },
     })
@@ -391,10 +570,7 @@ RegisterCommand('mbt_trunktune', function()
         lib.notify({ type = 'inform', description = 'Stand near a vehicle with a stowed weapon, then run /mbt_trunktune.' })
         return
     end
-    if NetworkGetEntityIsNetworked(veh) and not NetworkHasControlOfEntity(veh) then
-        NetworkRequestControlOfEntity(veh)
-    end
-    SetVehicleDoorOpen(veh, 5, false, false)
+    openBoot(veh)
     local b = offsetFor(veh)
     tuning = {
         veh = veh, class = GetVehicleClass(veh),
@@ -445,7 +621,7 @@ RegisterCommand('mbt_trunktune', function()
             end
             if IsDisabledControlJustPressed(0, 177) then  -- BACKSPACE → exit
                 local v = tuning.veh; tuning = nil
-                SetVehicleDoorShut(v, 5, false)
+                shutBoot(v)
                 renderRack(v)
             end
         end

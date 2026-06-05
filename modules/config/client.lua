@@ -123,6 +123,7 @@ local function applyConfig(d)
         MBT.VehicleTrunkRack.Enabled             = d.VehicleTrunkRack.Enabled
         MBT.VehicleTrunkRack.Capacity            = d.VehicleTrunkRack.Capacity
         MBT.VehicleTrunkRack.InteractionDistance = d.VehicleTrunkRack.InteractionDistance
+        MBT.VehicleTrunkRack.EquipOnRetrieve     = d.VehicleTrunkRack.EquipOnRetrieve
         if d.VehicleTrunkRack.AllowedTypes then
             MBT.VehicleTrunkRack.AllowedTypes = {
                 ['back']  = d.VehicleTrunkRack.AllowedTypes.back,

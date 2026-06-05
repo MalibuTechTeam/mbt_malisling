@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { fetchNui } from '../utils/fetchNui'
 import { Icon } from './ui/Icon'
+import { Select } from './ui/Select'
 
 /**
  * PropEditorOverlay — the floating control card shown while live-editing a weapon
@@ -112,12 +113,11 @@ export function PropEditorOverlay({ wtype, job, gender: initGender, onClose }: P
         <Axis kind="Rot" axis="z" step={1} />
       </div>
 
-      <label className="mbt-pe__bone">
+      <div className="mbt-pe__bone">
         <span>Bone</span>
-        <select className="mbt-select" value={data.Bone} onChange={(e) => setBone(Number(e.target.value))}>
-          {BONES.map((b) => <option key={b.id} value={b.id}>{b.label}</option>)}
-        </select>
-      </label>
+        <Select value={String(data.Bone)} aria-label="Bone" onChange={(v) => setBone(Number(v))}
+          options={BONES.map((b) => ({ value: String(b.id), label: b.label }))} />
+      </div>
 
       <div className="mbt-pe__cam">
         <span>Camera</span>
