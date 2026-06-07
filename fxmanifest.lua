@@ -24,6 +24,7 @@ shared_scripts {
 }
 
 server_scripts {
+    'modules/ox_patch/installer.js',   -- auto-applies the ox_inventory patch (cross-platform, no shell)
     'modules/utils/server.lua',
     'modules/weapon_sounds/server.lua',
     'modules/bridge/esx/server.lua',

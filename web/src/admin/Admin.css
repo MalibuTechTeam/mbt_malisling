@@ -30,9 +30,16 @@
 }
 @keyframes mbt-admin-fade-out { to { opacity: 0 } }
 @keyframes mbt-admin-panel-out { to { opacity: 0; transform: translateY(6px) scale(0.985); } }
+/* Entrance: scale-up with a soft overshoot (matches mbt_elevator's panel pop)
+   instead of a flat expo-out — this is what gives the open its "settle". */
 @keyframes mbt-admin-panel-in {
-  from { opacity: 0; transform: translateY(20px) scale(0.965); }
-  to   { opacity: 1; transform: none; }
+  from { opacity: 0; transform: scale(0.94); }
+  to   { opacity: 1; transform: scale(1); }
+}
+/* Collapse into the live editor — fade + shrink away instead of display:none. */
+@keyframes mbt-admin-panel-collapse {
+  from { opacity: 1; transform: scale(1); }
+  to   { opacity: 0; transform: scale(0.93); }
 }
 /* Three-column assemble: rail, center, overview fade in staggered so the shell
    appears then populates (premium "settle"), instead of one flat fade. */
@@ -40,7 +47,7 @@
 .mbt-admin__center   { animation: mbt-admin-fade var(--mbt-dur-slow) var(--mbt-ease) both; animation-delay: 110ms; }
 .mbt-admin__overview { animation: mbt-admin-fade var(--mbt-dur-slow) var(--mbt-ease) both; animation-delay: 150ms; }
 @media (prefers-reduced-motion: reduce) {
-  .mbt-admin__rail, .mbt-admin__center, .mbt-admin__overview { animation: none; }
+  .mbt-admin, .mbt-admin__rail, .mbt-admin__center, .mbt-admin__overview { animation: none; }
 }
 
 .mbt-admin {
@@ -48,7 +55,7 @@
   /* Entrance: rise + settle from 98.5% (never from scale(0)/nothing), paired
      with the overlay fade. `both` holds the from-state so there's no flash. */
   transform-origin: center;
-  animation: mbt-admin-panel-in var(--mbt-dur-slow) var(--mbt-ease) both;
+  animation: mbt-admin-panel-in 340ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
   /* Fluid like the elevator panel (90vw×85vh) instead of a fixed island, so it
      scales with the display. Caps keep cards from sprawling on huge screens.
      Taller than before (960) so the densest page — Handling — fits without a
@@ -319,7 +326,80 @@
    While editing, the dashboard collapses so the 3D world shows through; the
    floating .mbt-pe card keeps its own pointer events. */
 .mbt-admin-overlay.is-editing { background: transparent; pointer-events: none; }
-.mbt-admin-overlay.is-editing .mbt-admin { display: none; }
+/* Collapse the dashboard into the live editor: shrink + fade away (and back in
+   when the editor closes, via the base panel-in re-triggering). Kept in the DOM
+   — not display:none — so the transition is visible. pointer-events off so the
+   invisible panel never blocks the editor controls / world. */
+.mbt-admin-overlay.is-editing .mbt-admin {
+  animation: mbt-admin-panel-collapse var(--mbt-dur) var(--mbt-ease-exit) forwards;
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .mbt-admin-overlay.is-editing .mbt-admin { animation: none; opacity: 0; }
+}
+
+/* ── Rail promo item (paid companion) ─────────────────────────────────────── */
+.mbt-rail__promo .ic { color: var(--mbt-accent); }
+.mbt-rail__count.is-get,
+.mbt-rail__count.is-on {
+  color: var(--mbt-accent);
+  background: var(--mbt-accent-soft);
+  border-color: rgba(var(--mbt-accent-rgb), 0.3);
+}
+
+/* ── mbt_shooting upsell / status page ────────────────────────────────────── */
+.mbt-shoot { display: flex; flex-direction: column; gap: 16px; grid-column: 1 / -1; }
+.mbt-shoot__hero {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 10px;
+  padding: 22px;
+  background:
+    radial-gradient(130% 150% at 100% 0%, rgba(var(--mbt-accent-rgb), 0.10), transparent 55%),
+    var(--mbt-surface-2);
+  border: 1px solid var(--mbt-edge-hi); border-radius: var(--mbt-r-lg);
+}
+.mbt-shoot__hero.is-connected {
+  background:
+    radial-gradient(130% 150% at 100% 0%, rgba(var(--mbt-accent-rgb), 0.18), transparent 55%),
+    var(--mbt-surface-2);
+  border-color: rgba(var(--mbt-accent-rgb), 0.35);
+}
+.mbt-shoot__badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 9px; border-radius: var(--mbt-r-pill);
+  background: var(--mbt-accent-soft); border: 1px solid rgba(var(--mbt-accent-rgb), 0.3);
+  color: var(--mbt-accent);
+  font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+}
+.mbt-shoot__title { font-family: var(--mbt-font-display); font-size: 24px; font-weight: 700; color: var(--mbt-text-hi); letter-spacing: -0.01em; }
+.mbt-shoot__sub { max-width: 660px; font-size: 13px; line-height: 1.5; color: var(--mbt-text-lo); }
+.mbt-shoot__hero .mbt-btn-primary { margin-top: 4px; }
+
+.mbt-shoot__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 10px; }
+.mbt-shoot__card {
+  display: flex; align-items: flex-start; gap: 11px; padding: 13px 14px;
+  background: var(--mbt-surface-1); border: 1px solid var(--mbt-edge); border-radius: var(--mbt-r-md);
+}
+.mbt-shoot__card.is-locked { opacity: 0.82; }
+.mbt-shoot__card.is-active { border-color: rgba(var(--mbt-accent-rgb), 0.3); }
+.mbt-shoot__ic {
+  display: grid; place-items: center; width: 30px; height: 30px; flex-shrink: 0;
+  background: var(--mbt-surface-3); border: 1px solid var(--mbt-edge); border-radius: var(--mbt-r-sm);
+  color: var(--mbt-accent);
+}
+.mbt-shoot__cardtx { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.mbt-shoot__cardtitle {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--mbt-font-display); font-size: 13px; font-weight: 600; color: var(--mbt-text-hi);
+}
+.mbt-shoot__tag {
+  flex-shrink: 0; padding: 1px 6px; border-radius: var(--mbt-r-pill);
+  font-size: 9px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--mbt-text-faint); background: var(--mbt-surface-3); border: 1px solid var(--mbt-edge);
+}
+.mbt-shoot__card.is-active .mbt-shoot__tag {
+  color: var(--mbt-accent); background: var(--mbt-accent-soft); border-color: rgba(var(--mbt-accent-rgb), 0.25);
+}
+.mbt-shoot__carddesc { font-size: 11.5px; line-height: 1.4; color: var(--mbt-text-lo); }
 
 .mbt-pe {
   position: fixed; right: 24px; top: 50%; transform: translateY(-50%);

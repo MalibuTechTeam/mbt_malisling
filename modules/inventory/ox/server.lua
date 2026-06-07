@@ -79,11 +79,13 @@ local function appendMalisling()
         return
     end
 
-    Utils.mbtWarn(
-        "La patch ox_inventory non e' completa (hook=" .. tostring(hasHook ~= nil) ..
-        " sendAnim=" .. tostring(hasAppend ~= nil) .. "). " ..
-        "Esegui install_ox_patch.ps1 (nella cartella di mbt_malisling) con il server spento, " ..
-        "poi riavvia il server."
+    -- The cross-platform auto-patcher (modules/ox_patch/installer.js) applies this
+    -- at startup and reloads ox_inventory. This check runs before that on first
+    -- boot, so keep it calm — it self-resolves. install_ox_patch.ps1 stays as a
+    -- manual fallback for read-only/locked-down hosts.
+    Utils.mbtDebugger(
+        "appendMalisling ~ patch non ancora presente (hook=" .. tostring(hasHook ~= nil) ..
+        " sendAnim=" .. tostring(hasAppend ~= nil) .. "). L'auto-patcher la applichera' all'avvio."
     )
 end
 

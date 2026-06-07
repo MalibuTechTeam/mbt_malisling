@@ -75,6 +75,14 @@ MBT.ShootingBridge = {
     OnUnholster = function(weaponType)
         callBridge('OnUnholster', weaponType)
     end,
+
+    --- True when a companion combat resource has registered and is running. Used
+    --- by the admin menu to flip its "mbt_shooting" panel from upsell to connected.
+    --- (Reveals only that a companion exists — never any of its logic.)
+    ---@return boolean
+    IsConnected = function()
+        return bridgeResource ~= nil and GetResourceState(bridgeResource) == 'started'
+    end,
 }
 
 -- Holster / unholster: forward malisling's existing internal events (no edits to

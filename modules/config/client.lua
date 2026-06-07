@@ -17,6 +17,10 @@ local THROW_GROUPS = {
 -- The /mbtconfig command is registered SERVER-side (modules/config/server.lua)
 -- so its ACE auto-registers. The server pushes openAdmin straight to us.
 RegisterNetEvent('mbt_malisling:openAdmin', function(payload)
+    -- Companion presence is client-side (the bridge is registered locally), so we
+    -- stamp it onto the server's snapshot here for the menu's mbt_shooting panel.
+    payload = payload or {}
+    payload.companion = MBT.ShootingBridge and MBT.ShootingBridge.IsConnected() or false
     SendNUIMessage({ action = 'openAdmin', data = payload })
     SetNuiFocus(true, true)
 end)
@@ -24,6 +28,18 @@ end)
 RegisterNUICallback('adminSave', function(data, cb)
     -- Keep NUI focus: the panel stays open after save (shows a confirmation pill).
     TriggerServerEvent('mbt_malisling:adminSave', data)
+    cb({})
+end)
+
+-- "Get mbt_shooting" CTA from the admin menu's companion page → surface the store
+-- link in-game (CEF can't open an external browser). Edit the URL to your Tebex.
+RegisterNUICallback('shootingLink', function(_, cb)
+    lib.notify({
+        title = 'mbt_shooting',
+        description = 'Get the combat add-on → malibutech.tebex.io',
+        type = 'inform',
+        duration = 8000,
+    })
     cb({})
 end)
 

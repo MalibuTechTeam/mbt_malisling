@@ -12,6 +12,7 @@ import { NoDrawSection, VehicleSection, TrunkRackSection, TrunkPositionsSection 
 import { PositionsSection, type Job, type EditTarget } from './sections/PositionsSection'
 import { PropEditorOverlay } from './PropEditorOverlay'
 import { TrunkEditorOverlay } from './TrunkEditorOverlay'
+import { ShootingSection } from './sections/ShootingSection'
 import './Admin.css'
 
 /**
@@ -60,6 +61,7 @@ export default function AdminDashboard() {
   const [editing, setEditing] = useState<EditTarget | null>(null) // live position editor
   const [trunkEditing, setTrunkEditing] = useState<{ model: string; vclass: number; off: any } | null>(null)
   const [closing, setClosing] = useState(false)     // playing the exit animation before unmount
+  const [companion, setCompanion] = useState(false) // mbt_shooting bridge connected
   const baseline = useRef('')                       // last-saved snapshot
   const closeTimer = useRef<number | null>(null)    // deferred-unmount timer
 
@@ -69,6 +71,7 @@ export default function AdminDashboard() {
     baseline.current = JSON.stringify(c)
     setDirty(false)
     if (data?.version) setVersion(data.version)
+    setCompanion(!!data?.companion)
     setActive('core')
     setEditing(null)
     setTrunkEditing(null)
@@ -137,10 +140,13 @@ export default function AdminDashboard() {
 
   const activeCat = CATEGORIES.find((c) => c.id === active) ?? CATEGORIES[0]
   const isPositions = active === 'positions'
-  const headLabel = isPositions ? 'Positions' : activeCat.label
-  const headHint = isPositions
-    ? 'Weapon-on-body editor + vehicle-trunk placement · set in-world · saved to oxmysql'
-    : `${activeCat.hint} · ${activeCat.sections.length} features · applies live on save`
+  const isShooting = active === 'shooting'
+  const headLabel = isShooting ? 'mbt_shooting' : isPositions ? 'Positions' : activeCat.label
+  const headHint = isShooting
+    ? (companion ? 'Companion detected · combat depth is live' : 'Paid add-on · skill, condition, malfunctions, range')
+    : isPositions
+      ? 'Weapon-on-body editor + vehicle-trunk placement · set in-world · saved to oxmysql'
+      : `${activeCat.hint} · ${activeCat.sections.length} features · applies live on save`
 
   // Key feature flags, shared by the gauge and the overview list below it.
   const features: [string, boolean][] = [
@@ -204,6 +210,19 @@ export default function AdminDashboard() {
             <span className="mbt-rail__count">soon</span>
           </div>
 
+          {/* Paid companion — upsell page (flips to "connected" when the bridge is up). */}
+          <button
+            className={`mbt-rail__item mbt-rail__promo${isShooting ? ' is-active' : ''}`}
+            onClick={() => setActive('shooting')}
+          >
+            <span className="ic"><Icon name="layers" size={18} /></span>
+            <span className="mbt-rail__tx">
+              <span className="mbt-rail__label">mbt_shooting</span>
+              <span className="mbt-rail__hint">Combat depth add-on</span>
+            </span>
+            <span className={`mbt-rail__count${companion ? ' is-on' : ' is-get'}`}>{companion ? 'on' : 'get'}</span>
+          </button>
+
           <div className="mbt-rail__spacer" />
 
           <button className="mbt-rail__item mbt-rail__exit" onClick={close}>
@@ -251,7 +270,9 @@ export default function AdminDashboard() {
           </div>
 
           <div className="mbt-admin__sections">
-            {isPositions ? (
+            {isShooting ? (
+              <ShootingSection companion={companion} />
+            ) : isPositions ? (
               <>
                 <PositionsSection jobs={jobs} onEdit={(t) => setEditing(t)} />
                 <TrunkPositionsSection config={cfg} update={update}
