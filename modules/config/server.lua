@@ -25,6 +25,11 @@ local adminCommand    = (MBT.Admin and MBT.Admin.Command) or 'mbtconfig'
 -- with NO extra server.cfg lines — same as mbt_elevator.
 local adminPerm       = (MBT.Admin and MBT.Admin.Permission) or ('command.' .. adminCommand)
 
+-- ox_inventory auto-patch outcome (set by modules/ox_patch/installer.js via a
+-- server-local event). 'ok' = patched/present · '<reason>' = failed · nil = n/a
+-- (qb-inventory / ox not found → the JS never reports). Surfaced in the sidebar.
+local oxPatchStatus = nil
+
 local function b(v) return v and true or false end
 local function num(v, default) if type(v) == 'number' then return v end return default end
 
@@ -367,6 +372,7 @@ local function openFor(src)
     TriggerClientEvent('mbt_malisling:openAdmin', src, {
         config  = snapshot(),
         version = GetResourceMetadata(GetCurrentResourceName(), 'version', 0) or 'v2',
+        oxPatch = oxPatchStatus or false,   -- 'ok' | failure reason | false (n/a) → sidebar status
     })
 end
 
@@ -385,6 +391,14 @@ end, false)
 RegisterNetEvent('mbt_malisling:requestConfig', function()
     local src = source
     if IsPlayerAceAllowed(src, adminPerm) then openFor(src) end
+end)
+
+-- ox_inventory auto-patch outcome from the JS patcher (server-local event, not a
+-- net event → clients cannot spoof it). Stored and shown in the dashboard sidebar
+-- to admins (openFor includes it in the openAdmin payload).
+AddEventHandler('mbt_malisling:oxPatchResult', function(ok, reason)
+    if ok then oxPatchStatus = 'ok' return end
+    oxPatchStatus = (type(reason) == 'string' and reason ~= '') and reason or 'see server console'
 end)
 
 RegisterNetEvent('mbt_malisling:adminSave', function(data)

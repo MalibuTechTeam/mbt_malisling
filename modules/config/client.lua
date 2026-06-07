@@ -43,6 +43,7 @@ RegisterNUICallback('shootingLink', function(_, cb)
     cb({})
 end)
 
+
 RegisterNUICallback('adminClose', function(_, cb)
     SetNuiFocus(false, false)
     cb({})

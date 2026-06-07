@@ -84,8 +84,8 @@ local function appendMalisling()
     -- boot, so keep it calm — it self-resolves. install_ox_patch.ps1 stays as a
     -- manual fallback for read-only/locked-down hosts.
     Utils.mbtDebugger(
-        "appendMalisling ~ patch non ancora presente (hook=" .. tostring(hasHook ~= nil) ..
-        " sendAnim=" .. tostring(hasAppend ~= nil) .. "). L'auto-patcher la applichera' all'avvio."
+        "appendMalisling ~ patch not present yet (hook=" .. tostring(hasHook ~= nil) ..
+        " sendAnim=" .. tostring(hasAppend ~= nil) .. "). The auto-patcher will apply it at startup."
     )
 end
 

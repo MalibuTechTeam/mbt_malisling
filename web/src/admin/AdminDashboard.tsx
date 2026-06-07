@@ -62,6 +62,7 @@ export default function AdminDashboard() {
   const [trunkEditing, setTrunkEditing] = useState<{ model: string; vclass: number; off: any } | null>(null)
   const [closing, setClosing] = useState(false)     // playing the exit animation before unmount
   const [companion, setCompanion] = useState(false) // mbt_shooting bridge connected
+  const [oxPatch, setOxPatch] = useState<string | false>(false) // ox auto-patch failure reason
   const baseline = useRef('')                       // last-saved snapshot
   const closeTimer = useRef<number | null>(null)    // deferred-unmount timer
 
@@ -72,6 +73,7 @@ export default function AdminDashboard() {
     setDirty(false)
     if (data?.version) setVersion(data.version)
     setCompanion(!!data?.companion)
+    setOxPatch(typeof data?.oxPatch === 'string' ? data.oxPatch : false)
     setActive('core')
     setEditing(null)
     setTrunkEditing(null)
@@ -288,6 +290,18 @@ export default function AdminDashboard() {
 
         {/* ── Overview (right sidebar — mirrors elevator's config view) ── */}
         <aside className="mbt-admin__overview">
+          {oxPatch === 'ok' ? (
+            <div className="mbt-ov__ok"><Icon name="check" size={13} /> ox_inventory integration active</div>
+          ) : oxPatch ? (
+            <div className="mbt-ov__warn" role="alert">
+              <span className="mbt-ov__warn-ic"><Icon name="alert" size={15} /></span>
+              <div>
+                <b>ox_inventory patch failed</b>
+                <p>{oxPatch}. Run <code>install_ox_patch.ps1</code> in the server folder, then restart — the weapon-on-back holster flow needs it.</p>
+              </div>
+            </div>
+          ) : null}
+
           {/* Active-features gauge — a glanceable summary of the list below
               (mirrors the elevator overview's data-driven top block). */}
           <div className="mbt-ov__gauge">

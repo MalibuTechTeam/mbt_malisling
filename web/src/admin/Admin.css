@@ -304,6 +304,16 @@
 .mbt-ov__row .v { font-family: var(--mbt-font-display); font-weight: 600; color: var(--mbt-text-hi); }
 .mbt-ov__row .v.is-on { color: var(--mbt-accent); }
 .mbt-ov__row .v.is-off { color: var(--mbt-text-faint); }
+/* Sidebar warning (e.g. ox_inventory auto-patch failed) — red-tinted, sits at
+   the top of the overview so an admin sees it the moment they open the panel. */
+.mbt-ov__warn { display: flex; gap: 10px; padding: 12px 13px; background: rgba(var(--mbt-faulty-rgb), 0.10); border: 1px solid rgba(var(--mbt-faulty-rgb), 0.30); border-radius: var(--mbt-r-md); }
+.mbt-ov__warn-ic { flex-shrink: 0; margin-top: 1px; color: var(--mbt-faulty); }
+.mbt-ov__warn b { display: block; margin-bottom: 3px; font-family: var(--mbt-font-display); font-size: 12px; font-weight: 700; color: var(--mbt-faulty); }
+.mbt-ov__warn p { font-size: 11.5px; line-height: 1.45; color: var(--mbt-text-mid); }
+.mbt-ov__warn code { font-family: var(--mbt-font-mono); font-size: 10.5px; color: var(--mbt-text-hi); }
+/* Healthy-state counterpart — subtle one-liner, not a full banner. */
+.mbt-ov__ok { display: flex; align-items: center; gap: 7px; padding: 8px 11px; font-size: 11px; font-weight: 600; color: var(--mbt-operational); background: rgba(var(--mbt-operational-rgb), 0.08); border: 1px solid rgba(var(--mbt-operational-rgb), 0.22); border-radius: var(--mbt-r-md); }
+
 .mbt-ov__tip { display: flex; gap: 10px; padding: 13px; background: var(--mbt-accent-soft); border: 1px solid rgba(var(--mbt-accent-rgb), 0.2); border-radius: var(--mbt-r-md); }
 .mbt-ov__tip .ic { color: var(--mbt-accent); flex-shrink: 0; }
 .mbt-ov__tip b { font-family: var(--mbt-font-display); font-size: 11px; font-weight: 700; color: var(--mbt-text-hi); letter-spacing: 0.06em; display: block; margin-bottom: 3px; }
