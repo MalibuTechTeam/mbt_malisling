@@ -57,10 +57,12 @@ end)
 -- weaponanims block, where `anim` and `data` are both in scope). Weapon.Equip blocks
 -- until mbt_malisling writes the result to LocalPlayer.state.malisling_holster_result,
 -- then either proceeds with the equip or returns early (cancel = stay on sling).
--- Verifica che la patch manuale sia stata applicata.
--- La patch va applicata una volta sola con install_ox_patch.ps1 (nella cartella di mbt_malisling).
--- fxv2_oal in ox_inventory impedisce qualsiasi modifica a runtime: SaveResourceFile è bloccato
--- da FiveM e io.open viene ignorato perché fxv2_oal serve i client dalla cache bytecode.
+-- Verify the ox_inventory patch is present. It is applied automatically by
+-- modules/ox_patch/installer.js (server JS: fs write + `ensure ox_inventory` so
+-- fxv2_oal recompiles the patched source). The Lua sandbox can't do this itself
+-- (SaveResourceFile is blocked cross-resource, io.open(write) is denied), hence
+-- the JS path. install_ox_patch.ps1 stays as a manual fallback for write-blocked
+-- hosts. This check just reports the current state.
 local function appendMalisling()
     local resourcePath = GetResourcePath('ox_inventory')
     if not resourcePath then return end
