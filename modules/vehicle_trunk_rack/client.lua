@@ -419,7 +419,8 @@ RegisterNUICallback('trunkEdit:start', function(_, cb)
         if tedit then teditAttach(); teditUpdateCam() end
     end)
 
-    cb({ ok = true, model = model, class = class, off = off })
+    cb({ ok = true, model = model, class = class, off = off,
+         view = { yaw = tedit.orbit.yaw, pitch = tedit.orbit.pitch, dist = tedit.orbit.dist } })
 end)
 
 RegisterNUICallback('trunkEdit:update', function(d, cb)
@@ -438,9 +439,10 @@ end)
 RegisterNUICallback('trunkEdit:cam', function(d, cb)
     if tedit and tedit.cam and type(d) == 'table' then
         local orb = tedit.orbit
-        orb.yaw   = (orb.yaw + (tonumber(d.dyaw) or 0)) % 360
-        orb.pitch = math.max(-80.0, math.min(80.0, orb.pitch + (tonumber(d.dpitch) or 0)))
-        orb.dist  = math.max(1.0, math.min(6.0, orb.dist + (tonumber(d.dzoom) or 0)))
+        -- Absolute values from the NUI sliders (clamped).
+        if d.yaw   ~= nil then orb.yaw   = tonumber(d.yaw) % 360 end
+        if d.pitch ~= nil then orb.pitch = math.max(-80.0, math.min(80.0, tonumber(d.pitch) or orb.pitch)) end
+        if d.dist  ~= nil then orb.dist  = math.max(1.0, math.min(6.0, tonumber(d.dist) or orb.dist)) end
         teditUpdateCam()
     end
     cb({})

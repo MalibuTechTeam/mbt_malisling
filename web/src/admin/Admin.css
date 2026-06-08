@@ -297,7 +297,17 @@
 }
 .mbt-ov__label { display: flex; align-items: center; gap: 7px; font-size: 10px; font-weight: 600; letter-spacing: 0.12em; color: var(--mbt-text-faint); }
 .mbt-ov__spacer { flex: 1 1 auto; }
-.mbt-ov__summary { display: flex; flex-direction: column; }
+/* Feature overview — compact 2-column status grid (dot = on/off) so all ~17
+   features fit the sidebar without scrolling. */
+.mbt-ov__summary { display: flex; flex-direction: column; gap: 3px; }
+.mbt-ov__group { display: grid; grid-template-columns: 1fr 1fr; gap: 5px 12px; align-items: center; }
+.mbt-ov__grouphead { grid-column: 1 / -1; margin: 9px 0 1px; font-size: 9.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--mbt-text-faint); }
+.mbt-ov__group:first-child .mbt-ov__grouphead { margin-top: 0; }
+.mbt-ov__feat { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.mbt-ov__dot { flex-shrink: 0; width: 7px; height: 7px; border-radius: 50%; background: var(--mbt-text-faint); }
+.mbt-ov__feat.is-on .mbt-ov__dot { background: var(--mbt-operational); box-shadow: 0 0 6px rgba(var(--mbt-operational-rgb), 0.45); }
+.mbt-ov__featname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; color: var(--mbt-text-lo); }
+.mbt-ov__feat.is-on .mbt-ov__featname { color: var(--mbt-text-mid); }
 .mbt-ov__row { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--mbt-edge-lo); font-size: 12px; }
 .mbt-ov__row:last-child { border-bottom: none; }
 .mbt-ov__row .k { color: var(--mbt-text-lo); }
@@ -447,10 +457,29 @@
 .mbt-pe__bone .mbt-select2 { flex: 1; }
 .mbt-pe__bone .mbt-select2__btn { height: 32px; font-size: 13px; }
 
-.mbt-pe__cam { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--mbt-text-lo); }
-.mbt-pe__cam span { margin-right: auto; }
-.mbt-pe__cam button { width: 28px; height: 28px; display: grid; place-items: center; border: 1px solid var(--mbt-edge); background: var(--mbt-surface-1); color: var(--mbt-text-mid); border-radius: 6px; cursor: pointer; font-size: 12px; transition: color var(--mbt-dur) var(--mbt-ease), border-color var(--mbt-dur) var(--mbt-ease); }
-.mbt-pe__cam button:hover { border-color: var(--mbt-edge-hi); color: var(--mbt-text-hi); }
+/* Axis grid header — clarifies the two columns (Position / Rotation). */
+.mbt-pe__gridhead { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 1px; }
+.mbt-pe__gridhead span { font-size: 9.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--mbt-text-faint); }
+
+/* Camera + axis groups — labelled sliders (absolute), replace the old step buttons. */
+.mbt-pe__cam { display: flex; flex-direction: column; gap: 7px; }
+.mbt-pe__axgroup { display: flex; flex-direction: column; gap: 7px; }
+.mbt-pe__camhead { font-size: 9.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--mbt-text-faint); }
+.mbt-pe__slider { display: grid; grid-template-columns: 80px 1fr 46px; align-items: center; gap: 9px; }
+.mbt-pe__slabel { font-size: 11px; color: var(--mbt-text-lo); }
+.mbt-pe__sval { font-family: var(--mbt-font-mono); font-size: 11px; color: var(--mbt-text-hi); text-align: right; }
+.mbt-pe__slider input[type="range"] {
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: 4px; border-radius: var(--mbt-r-pill);
+  background: var(--mbt-surface-3); outline: none; cursor: pointer;
+}
+.mbt-pe__slider input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 13px; height: 13px; border-radius: 50%;
+  background: var(--mbt-accent); cursor: pointer;
+  border: 2px solid var(--mbt-surface-base);
+  box-shadow: 0 0 0 1px rgba(var(--mbt-accent-rgb), 0.4);
+}
 
 .mbt-pe__actions { display: flex; gap: 6px; }
 .mbt-pe__actions .mbt-btn-ghost { flex: 0 0 auto; height: 34px; padding: 0 12px; }

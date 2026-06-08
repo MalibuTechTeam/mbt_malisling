@@ -96,7 +96,7 @@ const VEHICLE_CLASSES: Record<number, string> = {
   18: 'Emergency', 19: 'Military', 20: 'Commercial', 21: 'Trains',
 }
 interface TrunkOverride { scope: string; data: { Pos: { x: number; y: number; z: number }; Rot: { x: number; y: number; z: number } } }
-interface TrunkStart { ok: boolean; model: string; class: number; off: TrunkOverride['data'] }
+interface TrunkStart { ok: boolean; model: string; class: number; off: TrunkOverride['data']; view?: { yaw: number; pitch: number; dist: number } }
 interface TrunkPositionsProps extends SectionProps { onEdit?: (s: TrunkStart) => void }
 
 /** Trunk Positions — feature toggle + live in-world editor + per-model/class offsets. */

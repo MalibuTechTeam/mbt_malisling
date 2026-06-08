@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { fetchNui } from '../utils/fetchNui'
 import { Icon } from './ui/Icon'
 import { Select } from './ui/Select'
+import { CamSlider } from './ui/CamSlider'
 
 /**
  * PropEditorOverlay — the floating control card shown while live-editing a weapon
@@ -28,24 +29,47 @@ const BONES = [
   { id: 36029, label: 'Left hand' },
 ]
 
+// Wrap an angle to -180..180 and force the attach flags the Lua side needs:
+// isPed=true (so the native applies full pitch/roll/yaw — isPed=false ignored pitch
+// and only took negative roll, which produced the NaN matrix), integer Bone/RotOrder.
+const normAngle = (v: number) => { const m = ((((Number(v) || 0) + 180) % 360) + 360) % 360; return m - 180 }
+const normalizeData = (d: Data): Data => {
+  const c = structuredClone(d)
+  return {
+    ...c,
+    Bone: Math.trunc(Number(d.Bone) || 0),
+    RotOrder: Math.trunc(Number(d.RotOrder) || 2),
+    FixedRot: d.FixedRot !== false,
+    isPed: true,
+    Rot: {
+      male:   { x: normAngle(d.Rot.male.x),   y: normAngle(d.Rot.male.y),   z: normAngle(d.Rot.male.z) },
+      female: { x: normAngle(d.Rot.female.x), y: normAngle(d.Rot.female.y), z: normAngle(d.Rot.female.z) },
+    },
+  }
+}
+
 export function PropEditorOverlay({ wtype, job, gender: initGender, onClose }: Props) {
   const [data, setData] = useState<Data | null>(null)
   const [gender, setGender] = useState<'male' | 'female'>(initGender === 'female' ? 'female' : 'male')
   const [saved, setSaved] = useState(false)
+  const [view, setView] = useState({ yaw: 180, pitch: -5, dist: 2.4 })
 
   // Enter edit mode once; leave on unmount.
   useEffect(() => {
     let alive = true
     fetchNui('propEdit:start', { wtype, job, gender }).then((r: any) => {
-      if (alive && r?.ok && r.data) setData(r.data)
+      if (!alive || !r?.ok || !r.data) return
+      setData(normalizeData(r.data))
+      if (r.view) setView(r.view)
     })
     return () => { alive = false; fetchNui('propEdit:stop') }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wtype, job])
 
   const push = useCallback((next: Data, g: 'male' | 'female') => {
-    setData(next)
-    fetchNui('propEdit:update', { data: next, gender: g })
+    const normalized = normalizeData(next)
+    setData(normalized)
+    fetchNui('propEdit:update', { data: normalized, gender: g })
   }, [])
 
   if (!data) return null
@@ -58,11 +82,14 @@ export function PropEditorOverlay({ wtype, job, gender: initGender, onClose }: P
     ;(next[kind][g] as any)[axis] = v
     push(next, g)
   }
-  const nudge = (kind: 'Pos' | 'Rot', axis: 'x' | 'y' | 'z', d: number) => {
-    const cur = (kind === 'Pos' ? pos : rot)[axis]
-    setAxis(kind, axis, +(cur + d).toFixed(3))
+  // Rotations are circular — map to -180..180 so the rest position (0°) is the
+  // slider centre (small drags = small changes, no 0/360 wrap jump).
+  const n180 = (v: number) => { const m = (((v % 360) + 360) % 360); return m > 180 ? m - 360 : m }
+  const setCam = (key: 'yaw' | 'pitch' | 'dist', v: number) => {
+    const next = { ...view, [key]: v }
+    setView(next)
+    fetchNui('propEdit:cam', next)
   }
-  const cam = (dyaw = 0, dpitch = 0, dzoom = 0) => fetchNui('propEdit:cam', { dyaw, dpitch, dzoom })
   const setBone = (b: number) => push({ ...structuredClone(data), Bone: b }, g)
   const copyGender = () => {
     const other = g === 'male' ? 'female' : 'male'
@@ -72,23 +99,17 @@ export function PropEditorOverlay({ wtype, job, gender: initGender, onClose }: P
     setData(next)
   }
   const save = () => {
-    fetchNui('propEdit:save', { scope: job, wtype, data })
+    fetchNui('propEdit:save', { scope: job, wtype, data: normalizeData(data) })
     setSaved(true); window.setTimeout(() => setSaved(false), 1200)
   }
-  const reset = () => fetchNui('propEdit:reset', { scope: job, wtype })
-  const close = () => { fetchNui('propEdit:stop'); onClose() }
-
-  const Axis = ({ kind, axis, step }: { kind: 'Pos' | 'Rot'; axis: 'x' | 'y' | 'z'; step: number }) => {
-    const val = (kind === 'Pos' ? pos : rot)[axis]
-    return (
-      <div className="mbt-pe__axis">
-        <span className="mbt-pe__axlabel">{kind === 'Pos' ? 'P' : 'R'} {axis.toUpperCase()}</span>
-        <button className="mbt-pe__nudge" onClick={() => nudge(kind, axis, -step)}>−</button>
-        <span className="mbt-pe__val">{val.toFixed(kind === 'Pos' ? 3 : 1)}</span>
-        <button className="mbt-pe__nudge" onClick={() => nudge(kind, axis, step)}>+</button>
-      </div>
-    )
+  // Reset to the FACTORY default (config.lua) — clears any saved override and snaps
+  // the sliders + live preview back to a known-good position (Lua returns it).
+  const reset = () => {
+    fetchNui('propEdit:reset', { scope: job, wtype, gender: g }).then((r: any) => {
+      if (r && r.Pos) setData(normalizeData(r))
+    })
   }
+  const close = () => { fetchNui('propEdit:stop'); onClose() }
 
   return (
     <div className="mbt-pe">
@@ -104,13 +125,17 @@ export function PropEditorOverlay({ wtype, job, gender: initGender, onClose }: P
         <button className="mbt-pe__copy" onClick={copyGender}>Copy →</button>
       </div>
 
-      <div className="mbt-pe__grid">
-        <Axis kind="Pos" axis="x" step={0.01} />
-        <Axis kind="Rot" axis="x" step={1} />
-        <Axis kind="Pos" axis="y" step={0.01} />
-        <Axis kind="Rot" axis="y" step={1} />
-        <Axis kind="Pos" axis="z" step={0.01} />
-        <Axis kind="Rot" axis="z" step={1} />
+      <div className="mbt-pe__axgroup">
+        <span className="mbt-pe__camhead">Position (m)</span>
+        <CamSlider label="Left / Right" min={-1} max={1} step={0.005} val={pos.x} fmt={(v) => v.toFixed(3)} onChange={(v) => setAxis('Pos', 'x', v)} />
+        <CamSlider label="Fwd / Back"   min={-1} max={1} step={0.005} val={pos.y} fmt={(v) => v.toFixed(3)} onChange={(v) => setAxis('Pos', 'y', v)} />
+        <CamSlider label="Up / Down"    min={-1} max={1} step={0.005} val={pos.z} fmt={(v) => v.toFixed(3)} onChange={(v) => setAxis('Pos', 'z', v)} />
+      </div>
+      <div className="mbt-pe__axgroup">
+        <span className="mbt-pe__camhead">Rotation (°)</span>
+        <CamSlider label="Pitch" min={-180} max={180} step={1} val={n180(rot.x)} unit="°" fmt={(v) => String(Math.round(v))} onChange={(v) => setAxis('Rot', 'x', v)} />
+        <CamSlider label="Roll"  min={-180} max={180} step={1} val={n180(rot.y)} unit="°" fmt={(v) => String(Math.round(v))} onChange={(v) => setAxis('Rot', 'y', v)} />
+        <CamSlider label="Yaw"   min={-180} max={180} step={1} val={n180(rot.z)} unit="°" fmt={(v) => String(Math.round(v))} onChange={(v) => setAxis('Rot', 'z', v)} />
       </div>
 
       <div className="mbt-pe__bone">
@@ -120,13 +145,10 @@ export function PropEditorOverlay({ wtype, job, gender: initGender, onClose }: P
       </div>
 
       <div className="mbt-pe__cam">
-        <span>Camera</span>
-        <button onClick={() => cam(-20)}>◄</button>
-        <button onClick={() => cam(20)}>►</button>
-        <button onClick={() => cam(0, 10)}>▲</button>
-        <button onClick={() => cam(0, -10)}>▼</button>
-        <button onClick={() => cam(0, 0, -0.3)}>＋</button>
-        <button onClick={() => cam(0, 0, 0.3)}>－</button>
+        <span className="mbt-pe__camhead">Camera</span>
+        <CamSlider label="Rotate"   min={0}   max={360} step={1}    val={view.yaw}   unit="°" fmt={(v) => String(Math.round(v))} onChange={(v) => setCam('yaw', v)} />
+        <CamSlider label="Height"   min={-45} max={45}  step={1}    val={view.pitch} unit="°" fmt={(v) => String(Math.round(v))} onChange={(v) => setCam('pitch', v)} />
+        <CamSlider label="Distance" min={1}   max={5}   step={0.05} val={view.dist}  unit="m" fmt={(v) => v.toFixed(1)} onChange={(v) => setCam('dist', v)} />
       </div>
 
       <div className="mbt-pe__actions">

@@ -50,6 +50,31 @@ const CATEGORIES: Category[] = [
     sections: [NoDrawSection, VehicleSection, TrunkRackSection] },
 ]
 
+// Feature overview — every on/off toggle, keyed to the exact config path its
+// section writes (keep in sync when adding a feature). Drives the gauge + list.
+const FEATURES: { label: string; path: string; cat: string }[] = [
+  { label: 'Holster Sounds', path: 'Sounds.Enabled',              cat: 'Core' },
+  { label: 'Drop Despawn',   path: 'WeaponDrop.Despawn.Enabled',  cat: 'Core' },
+  { label: 'Drop Logging',   path: 'WeaponDrop.Logging.Enabled',  cat: 'Core' },
+  { label: 'Suppressor Heat',path: 'SuppressorHeat.Enabled',      cat: 'Handling' },
+  { label: 'Weapon Safety',  path: 'Safety.Enabled',              cat: 'Handling' },
+  { label: 'Condition HUD',  path: 'ConditionHUD.Enabled',        cat: 'Handling' },
+  { label: 'Weapon Jamming', path: 'Jamming.Enabled',             cat: 'Handling' },
+  { label: 'Charge Weapon',  path: 'ChargeWeapon.Enabled',        cat: 'Handling' },
+  { label: 'Weapon Weight',  path: 'WeaponWeight.Enabled',        cat: 'Handling' },
+  { label: 'Weapon Inspect', path: 'Inspect.Enabled',             cat: 'Interaction' },
+  { label: 'Weapon Name',    path: 'WeaponName.Enabled',          cat: 'Interaction' },
+  { label: 'Showcase Poses', path: 'ShowcasePoses.Enabled',       cat: 'Interaction' },
+  { label: 'Weapon Throw',   path: 'Throw.Enabled',               cat: 'Interaction' },
+  { label: 'No-Draw Zones',  path: 'NoDrawZones.Enabled',         cat: 'World' },
+  { label: 'Vehicle Hiding', path: 'VehicleHiding.Enabled',       cat: 'World' },
+  { label: 'Tactical Sling', path: 'TacticalSling.Enabled',       cat: 'World' },
+  { label: 'Trunk Rack',     path: 'VehicleTrunkRack.Enabled',    cat: 'World' },
+]
+const OV_CATS = ['Core', 'Handling', 'Interaction', 'World'] as const
+
+const getPath = (obj: any, path: string) => path.split('.').reduce((o, k) => (o == null ? o : o[k]), obj)
+
 export default function AdminDashboard() {
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState('core')
@@ -59,7 +84,7 @@ export default function AdminDashboard() {
   const [savePulse, setSavePulse] = useState(false) // one-shot pulse on save
   const [jobs, setJobs] = useState<Job[]>([])       // framework job list (lazy)
   const [editing, setEditing] = useState<EditTarget | null>(null) // live position editor
-  const [trunkEditing, setTrunkEditing] = useState<{ model: string; vclass: number; off: any } | null>(null)
+  const [trunkEditing, setTrunkEditing] = useState<{ model: string; vclass: number; off: any; view?: any } | null>(null)
   const [closing, setClosing] = useState(false)     // playing the exit animation before unmount
   const [companion, setCompanion] = useState(false) // mbt_shooting bridge connected
   const [oxPatch, setOxPatch] = useState<string | false>(false) // ox auto-patch failure reason
@@ -150,16 +175,11 @@ export default function AdminDashboard() {
       ? 'Weapon-on-body editor + vehicle-trunk placement · set in-world · saved to oxmysql'
       : `${activeCat.hint} · ${activeCat.sections.length} features · applies live on save`
 
-  // Key feature flags, shared by the gauge and the overview list below it.
-  const features: [string, boolean][] = [
-    ['Suppressor Heat', !!cfg?.SuppressorHeat?.Enabled],
-    ['Weapon Inspect', !!cfg?.Inspect?.Enabled],
-    ['Weapon Safety', !!cfg?.Safety?.Enabled],
-    ['Condition HUD', !!cfg?.ConditionHUD?.Enabled],
-    ['No-Draw Zones', !!cfg?.NoDrawZones?.Enabled],
-    ['Drop Logging', !!cfg?.WeaponDrop?.Logging?.Enabled],
-  ]
-  const activeCount = features.filter(([, on]) => on).length
+  // Real feature state for the overview — derived from the same config paths the
+  // section toggles write (single source of truth, always accurate). Grouped by
+  // category and computed live from the draft.
+  const feats = FEATURES.map((f) => ({ ...f, on: !!getPath(cfg, f.path) }))
+  const activeCount = feats.filter((f) => f.on).length
 
   return (
     <>
@@ -278,7 +298,7 @@ export default function AdminDashboard() {
               <>
                 <PositionsSection jobs={jobs} onEdit={(t) => setEditing(t)} />
                 <TrunkPositionsSection config={cfg} update={update}
-                  onEdit={(s) => setTrunkEditing({ model: s.model, vclass: s.class, off: s.off })} />
+                  onEdit={(s) => setTrunkEditing({ model: s.model, vclass: s.class, off: s.off, view: s.view })} />
               </>
             ) : (
               activeCat.sections.map((Section, i) => (
@@ -307,21 +327,26 @@ export default function AdminDashboard() {
           <div className="mbt-ov__gauge">
             <div className="mbt-ov__gauge-head">
               <span className="mbt-ov__gauge-n">{activeCount}</span>
-              <span className="mbt-ov__gauge-d">/ {features.length} active</span>
+              <span className="mbt-ov__gauge-d">/ {feats.length} active</span>
             </div>
             <div className="mbt-ov__segs" aria-hidden="true">
-              {features.map(([label, on]) => (
-                <span key={label} className={on ? 'is-on' : ''} />
+              {feats.map((f) => (
+                <span key={f.path} className={f.on ? 'is-on' : ''} />
               ))}
             </div>
           </div>
 
           <div className="mbt-ov__label"><Icon name="layers" size={12} /> FEATURE OVERVIEW</div>
           <div className="mbt-ov__summary">
-            {features.map(([label, on]) => (
-              <div key={label} className="mbt-ov__row">
-                <span className="k">{label}</span>
-                <span className={`v ${on ? 'is-on' : 'is-off'}`}>{on ? 'On' : 'Off'}</span>
+            {OV_CATS.map((cat) => (
+              <div key={cat} className="mbt-ov__group">
+                <div className="mbt-ov__grouphead">{cat}</div>
+                {feats.filter((f) => f.cat === cat).map((f) => (
+                  <div key={f.path} className={`mbt-ov__feat${f.on ? ' is-on' : ''}`} title={f.on ? 'On' : 'Off'}>
+                    <span className="mbt-ov__dot" />
+                    <span className="mbt-ov__featname">{f.label}</span>
+                  </div>
+                ))}
               </div>
             ))}
           </div>
@@ -349,6 +374,7 @@ export default function AdminDashboard() {
         model={trunkEditing.model}
         vclass={trunkEditing.vclass}
         off={trunkEditing.off}
+        view={trunkEditing.view}
         onClose={() => setTrunkEditing(null)}
       />
     ) : null}
