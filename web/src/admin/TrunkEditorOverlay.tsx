@@ -17,13 +17,30 @@ interface Off { Pos: Vec; Rot: Vec }
 interface View { yaw: number; pitch: number; dist: number }
 interface Props { model: string; vclass: number; off: Off; view?: View; onClose: () => void }
 
+// Wrap an angle to -180..180 (slider centre = 0°, no 0/360 jump).
+const n180 = (v: number) => { const m = (((v % 360) + 360) % 360); return m > 180 ? m - 360 : m }
+const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, Number(v) || 0))
+// Pitch/Roll are capped at ±45°: larger combined tilt gimbal-locks the vehicle
+// boot-bone attach (yaw stops responding, the prop snaps to a degenerate pose). Yaw
+// stays free. safeOff also scrubs any corrupt rotation reloaded from an old DB row.
+const TRUNK_MAX_TILT = 45
+const safeOff = (o: Off): Off => ({
+  Pos: { ...o.Pos },
+  Rot: {
+    x: clamp(n180(o.Rot.x), -TRUNK_MAX_TILT, TRUNK_MAX_TILT),
+    y: clamp(n180(o.Rot.y), -TRUNK_MAX_TILT, TRUNK_MAX_TILT),
+    z: n180(o.Rot.z),
+  },
+})
+
 export function TrunkEditorOverlay({ model, vclass, off: initOff, view: initView, onClose }: Props) {
-  const [off, setOff] = useState<Off>(initOff)
+  const [off, setOff] = useState<Off>(() => safeOff(initOff))
   const [view, setView] = useState<View>(initView ?? { yaw: 180, pitch: -15, dist: 2.6 })
   const [scope, setScope] = useState<'model' | 'class'>('model')
   const [saved, setSaved] = useState(false)
 
   const push = useCallback((next: Off) => {
+    next = safeOff(next)   // cap pitch/roll to the gimbal-safe range before applying
     setOff(next)
     fetchNui('trunkEdit:update', { off: next })
   }, [])
@@ -33,7 +50,6 @@ export function TrunkEditorOverlay({ model, vclass, off: initOff, view: initView
     next[kind][axis] = v
     push(next)
   }
-  const n180 = (v: number) => { const m = (((v % 360) + 360) % 360); return m > 180 ? m - 360 : m }
   const setCam = (key: 'yaw' | 'pitch' | 'dist', v: number) => {
     const next = { ...view, [key]: v }
     setView(next)
@@ -43,7 +59,7 @@ export function TrunkEditorOverlay({ model, vclass, off: initOff, view: initView
     fetchNui('trunkEdit:save', { scope })
     setSaved(true); window.setTimeout(() => setSaved(false), 1200)
   }
-  const reset = () => fetchNui('trunkEdit:reset').then((r: any) => { if (r?.Pos) setOff(r) })
+  const reset = () => fetchNui('trunkEdit:reset').then((r: any) => { if (r?.Pos) setOff(safeOff(r)) })
   const close = () => { fetchNui('trunkEdit:stop'); onClose() }
 
 
@@ -68,8 +84,8 @@ export function TrunkEditorOverlay({ model, vclass, off: initOff, view: initView
       </div>
       <div className="mbt-pe__axgroup">
         <span className="mbt-pe__camhead">Rotation (°)</span>
-        <CamSlider label="Pitch" min={-180} max={180} step={1} val={n180(off.Rot.x)} unit="°" fmt={(v) => String(Math.round(v))} onChange={(v) => setAxis('Rot', 'x', v)} />
-        <CamSlider label="Roll"  min={-180} max={180} step={1} val={n180(off.Rot.y)} unit="°" fmt={(v) => String(Math.round(v))} onChange={(v) => setAxis('Rot', 'y', v)} />
+        <CamSlider label="Pitch" min={-45} max={45} step={1} val={off.Rot.x} unit="°" fmt={(v) => String(Math.round(v))} onChange={(v) => setAxis('Rot', 'x', v)} />
+        <CamSlider label="Roll"  min={-45} max={45} step={1} val={off.Rot.y} unit="°" fmt={(v) => String(Math.round(v))} onChange={(v) => setAxis('Rot', 'y', v)} />
         <CamSlider label="Yaw"   min={-180} max={180} step={1} val={n180(off.Rot.z)} unit="°" fmt={(v) => String(Math.round(v))} onChange={(v) => setAxis('Rot', 'z', v)} />
       </div>
 

@@ -75,8 +75,25 @@ local function validOffset(d)
     end
     return true
 end
+-- Trunk rotation is a raw Euler offset on the vehicle boot bone; large pitch+roll
+-- gimbal-locks it. Constrain pitch/roll to ±45°, keep yaw free. Runs on every save AND
+-- on load, so any corrupt rotation an earlier build persisted is scrubbed automatically.
+local TRUNK_MAX_TILT = 45.0
+local function clampN(n, lo, hi)
+    n = tonumber(n) or 0.0
+    return (n < lo and lo) or (n > hi and hi) or n
+end
+local function norm180(n)
+    local m = (tonumber(n) or 0.0) % 360.0
+    return (m > 180.0) and (m - 360.0) or m
+end
 local function sanitizeOffset(d)
-    return { Pos = { x = d.Pos.x, y = d.Pos.y, z = d.Pos.z }, Rot = { x = d.Rot.x, y = d.Rot.y, z = d.Rot.z } }
+    return {
+        Pos = { x = clampN(d.Pos.x, -3.0, 3.0), y = clampN(d.Pos.y, -3.0, 3.0), z = clampN(d.Pos.z, -3.0, 3.0) },
+        Rot = { x = clampN(norm180(d.Rot.x), -TRUNK_MAX_TILT, TRUNK_MAX_TILT),
+                y = clampN(norm180(d.Rot.y), -TRUNK_MAX_TILT, TRUNK_MAX_TILT),
+                z = (tonumber(d.Rot.z) or 0.0) % 360.0 },
+    }
 end
 local function validScope(s)
     if type(s) ~= 'string' then return false end

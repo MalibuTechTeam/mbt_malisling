@@ -206,7 +206,12 @@ RegisterNUICallback('propEdit:start', function(d, cb)
     editGender = d.gender or (IsPedMale(ped) and 'male' or 'female')
     applyPreview(editData, editGender)
 
-    orbit.yaw, orbit.pitch, orbit.dist = 180.0, -5.0, 2.4   -- reset to the default view each session
+    -- Default camera: BEHIND the ped so the slung weapon (back/side/hip) is in frame.
+    -- Derived from the ped's real forward vector — a fixed world yaw (180) only framed
+    -- the back when the ped happened to face north; any other heading missed it.
+    local fwd = GetEntityForwardVector(ped)
+    orbit.yaw = math.deg(math.atan(-fwd.x, -fwd.y)) % 360.0
+    orbit.pitch, orbit.dist = -5.0, 2.4
     cam = CreateCam('DEFAULT_SCRIPTED_CAMERA', true)
     updateCam()
     RenderScriptCams(true, false, 0, true, true)

@@ -16,6 +16,31 @@ if not MBT.VehicleTrunkRack then return end
 local cfg = MBT.VehicleTrunkRack
 local DEFAULT_OFFSET = { Pos = { x = 0.0, y = -0.10, z = -0.30 }, Rot = { x = 0.0, y = 0.0, z = 0.0 } }
 
+-- Trunk rotation is a raw Euler offset on the vehicle boot bone (rotOrder=2). Large
+-- pitch+roll combinations gimbal-lock the orientation (yaw stops responding, entRot
+-- snaps to -90,0,0). A weapon laid in a trunk never needs more than a gentle tilt, so
+-- we constrain pitch/roll to ±TRUNK_MAX_TILT and keep yaw free. This also scrubs any
+-- corrupt rotation an earlier build may have persisted (clamped on load + save).
+local TRUNK_MAX_TILT = 45.0
+local function clampN(n, lo, hi)
+    n = tonumber(n) or 0.0
+    return (n < lo and lo) or (n > hi and hi) or n
+end
+local function norm180(n)
+    local m = (tonumber(n) or 0.0) % 360.0
+    return (m > 180.0) and (m - 360.0) or m
+end
+local function safeTrunkOffset(d)
+    d = (type(d) == 'table') and d or DEFAULT_OFFSET
+    local p, r = d.Pos or {}, d.Rot or {}
+    return {
+        Pos = { x = clampN(p.x, -3.0, 3.0), y = clampN(p.y, -3.0, 3.0), z = clampN(p.z, -3.0, 3.0) },
+        Rot = { x = clampN(norm180(r.x), -TRUNK_MAX_TILT, TRUNK_MAX_TILT),
+                y = clampN(norm180(r.y), -TRUNK_MAX_TILT, TRUNK_MAX_TILT),
+                z = (tonumber(r.z) or 0.0) % 360.0 },
+    }
+end
+
 local CurrentWeapon = {}
 local busy          = false
 local rackedProps   = {}  -- [veh] = { [index] = propEntity }
@@ -47,11 +72,50 @@ local function bootBone(veh)
     return b
 end
 
---- Boot door(s) for this vehicle (ox_inventory logic): vans (class 12) use the rear
---- doors {2,3}; everything else uses door 5 (the boot).
+-- ── ox_inventory trunk parity ────────────────────────────────────────────────
+-- ox_inventory keeps per-model flags that decide WHICH door is the storage:
+--   Storage[hash] == 3       → "trunk in the hood" (front, e.g. the Adder) → door 4
+--   Storage[hash] == 0 or 1  → no trunk storage
+--   otherwise (nil)          → normal rear boot                            → door 5
+-- We load ox_inventory's own data file so our open/close + proximity match it
+-- exactly. Feature-gated: without ox_inventory we fall back to the door-5 heuristic.
+local oxStorage = nil
+CreateThread(function()
+    if GetResourceState('ox_inventory') ~= 'started' then return end
+    local chunk = LoadResourceFile('ox_inventory', 'data/vehicles.lua')
+    local fn = chunk and load(chunk)
+    if not fn then return end
+    local ok, data = pcall(fn)
+    if ok and type(data) == 'table' then oxStorage = data.Storage end
+end)
+
+local function hoodTrunk(veh)
+    return oxStorage ~= nil and oxStorage[GetEntityModel(veh)] == 3
+end
+
+--- Boot door(s) for this vehicle, ox_inventory-faithful: hood-trunk models (Adder
+--- etc.) use the front door 4, vans (class 12) the rear doors {2,3}, everything else
+--- the boot door 5 — falling back to the rear doors if the boot door isn't valid.
 local function bootDoorList(veh)
+    if hoodTrunk(veh) then return { 4 } end
     if GetVehicleClass(veh) == 12 then return { 2, 3 } end
-    return { 5 }
+    if GetIsDoorValid(veh, 5) then return { 5 } end
+    return { 2, 3 }
+end
+
+--- Local-space offset from the vehicle origin to the storage opening — front for hood
+--- trunks, rear otherwise. Used as the prop BASE on models with no 'boot' bone (so the
+--- weapon sits in the opening instead of dead-centre/under the car), and in world space
+--- as the editor's proximity + camera anchor.
+local function trunkAnchorLocal(veh)
+    local mn, mx = GetModelDimensions(GetEntityModel(veh))
+    local fy = hoodTrunk(veh) and 1.0 or 0.0   -- max.y = front of the model, min.y = rear
+    return vector3(mn.x + (mx.x - mn.x) * 0.5, mn.y + (mx.y - mn.y) * fy, mn.z + (mx.z - mn.z) * 0.5)
+end
+
+local function trunkAnchor(veh)
+    local o = trunkAnchorLocal(veh)
+    return GetOffsetFromEntityInWorldCoords(veh, o.x, o.y, o.z)
 end
 
 local function openBoot(veh)
@@ -203,9 +267,9 @@ local function offsetFor(veh)
     if tuning and tuning.veh == veh then return tuning.off end
     local po = cfg.PropOffset or {}
     local model = string.lower(GetDisplayNameFromVehicleModel(GetEntityModel(veh)) or '')
-    return (po.ByModel and po.ByModel[model])
+    return safeTrunkOffset((po.ByModel and po.ByModel[model])
         or (po.ByClass and po.ByClass[GetVehicleClass(veh)])
-        or po.Default or DEFAULT_OFFSET
+        or po.Default or DEFAULT_OFFSET)
 end
 
 --- Anchor on the 'boot' bone — it sits at the trunk, so the prop is VISIBLE and easy
@@ -216,8 +280,15 @@ end
 local function anchorFor(veh)
     local off = offsetFor(veh)
     local bone = GetEntityBoneIndexByName(veh, 'boot')
-    if bone == -1 then bone = 0 end
-    return bone, off.Pos.x, off.Pos.y, off.Pos.z, off.Rot
+    local bx, by, bz = 0.0, 0.0, 0.0
+    if bone == -1 then
+        -- No boot bone (e.g. hood-trunk supercars): anchor at the storage opening in
+        -- body space so the prop is visible there, then apply the saved offset on top.
+        bone = 0
+        local b = trunkAnchorLocal(veh)
+        bx, by, bz = b.x, b.y, b.z
+    end
+    return bone, bx + off.Pos.x, by + off.Pos.y, bz + off.Pos.z, off.Rot
 end
 
 local function renderRack(veh)
@@ -236,6 +307,10 @@ local function renderRack(veh)
                 AttachEntityToEntity(obj, veh, bone,
                     ox, oy, oz + (i - 1) * 0.08,   -- stack multiples
                     rot.x, rot.y, rot.z,
+                    -- isPed=FALSE: the target is a VEHICLE (not a ped). The ped editor
+                    -- needed isPed=true because it attaches to a PED; on a vehicle bone
+                    -- isPed=true is wrong and breaks placement — this path always worked
+                    -- with false.
                     false, false, false, false, 2, true)
                 props[i] = obj
             end
@@ -308,8 +383,8 @@ local function applyTrunkOffset(scope, data)
     po.ByClass = po.ByClass or {}
     po.ByModel = po.ByModel or {}
     local kind, key = (scope or ''):match('^(%a+):(.+)$')
-    if kind == 'class' then po.ByClass[tonumber(key)] = data or nil
-    elseif kind == 'model' then po.ByModel[key] = data or nil end
+    if kind == 'class' then po.ByClass[tonumber(key)] = data and safeTrunkOffset(data) or nil
+    elseif kind == 'model' then po.ByModel[key] = data and safeTrunkOffset(data) or nil end
 end
 
 RegisterNetEvent('mbt_malisling:trunkOffset:apply', function(p)
@@ -344,20 +419,41 @@ end)
 -- the per-model or per-class override through the ACE-checked offset event.
 local tedit = nil   -- { veh, model, class, off, prop, cam, orbit }
 
+local TEDIT_WEAPON = 'WEAPON_CARBINERIFLE'
+
 local function teditAttach()
-    if not tedit or not tedit.prop or not DoesEntityExist(tedit.prop) then return end
+    if not tedit or not tedit.veh or not DoesEntityExist(tedit.veh) then return end
+
+    -- THE REAL FIX (Codex): a reused CreateWeaponObject does NOT reliably take a new
+    -- attach rotation — re-attaching the same prop leaves the rotation stuck. The working
+    -- /mbt_trunktune path (renderRack) DELETES + RECREATES the weapon object on every
+    -- change, which is why its rotation works. So we do the same here: rebuild the
+    -- preview prop on every live update. (isPed stays true — the command works with it.)
+    if tedit.prop and DoesEntityExist(tedit.prop) then DeleteEntity(tedit.prop) end
+    local hash = joaat(TEDIT_WEAPON)
+    lib.requestWeaponAsset(hash, 1000, 31, 1)
+    local prop = CreateWeaponObject(hash, 50, 0.0, 0.0, 0.0, true, 1.0, 0)
+    if not prop or not DoesEntityExist(prop) then tedit.prop = nil; return end
+    tedit.prop = prop
+    SetEntityCollision(prop, false, false)
+
     local bone = GetEntityBoneIndexByName(tedit.veh, 'boot')
-    if bone == -1 then bone = 0 end
+    local bx, by, bz = 0.0, 0.0, 0.0
+    if bone == -1 then
+        bone = 0
+        local b = trunkAnchorLocal(tedit.veh)   -- match the runtime rack anchor
+        bx, by, bz = b.x, b.y, b.z
+    end
     local o = tedit.off
-    AttachEntityToEntity(tedit.prop, tedit.veh, bone,
-        o.Pos.x, o.Pos.y, o.Pos.z, o.Rot.x, o.Rot.y, o.Rot.z,
-        false, false, false, false, 2, true)
+    AttachEntityToEntity(prop, tedit.veh, bone,
+        bx + o.Pos.x, by + o.Pos.y, bz + o.Pos.z, o.Rot.x, o.Rot.y, o.Rot.z,
+        false, false, false, false, 2, true)   -- isPed=FALSE (vehicle target, like the command)
 end
 
 local function teditUpdateCam()
     if not tedit or not tedit.cam then return end
     local bone = GetEntityBoneIndexByName(tedit.veh, 'boot')
-    local c = (bone ~= -1) and GetWorldPositionOfEntityBone(tedit.veh, bone) or GetEntityCoords(tedit.veh)
+    local c = (bone ~= -1) and GetWorldPositionOfEntityBone(tedit.veh, bone) or trunkAnchor(tedit.veh)
     local orb = tedit.orbit
     local yawR, pitchR = math.rad(orb.yaw), math.rad(orb.pitch)
     SetCamCoord(tedit.cam,
@@ -376,19 +472,37 @@ local function teditStop()
         DestroyCam(tedit.cam, false)
     end
     tedit = nil
+    SetEntityVisible(cache.ped, true, false)   -- restore the editor's ped
     if veh and DoesEntityExist(veh) then shutBoot(veh) end
 end
 
 RegisterNUICallback('trunkEdit:start', function(_, cb)
     if tedit then cb({ ok = false, reason = 'busy' }); return end
     if cache.vehicle then
-        lib.notify({ type = 'inform', description = 'Exit the vehicle first, then open the trunk editor.' })
+        -- The dashboard shows the reason inline (no ox_lib notify here).
         cb({ ok = false, reason = 'on_foot' }); return
     end
-    local veh = lib.getClosestVehicle(GetEntityCoords(cache.ped), 6.0, false)
+    local pcoords = GetEntityCoords(cache.ped)
+    local veh = lib.getClosestVehicle(pcoords, 6.0, false)
     if not veh or veh == 0 then
-        lib.notify({ type = 'inform', description = 'Stand near a vehicle, then open the trunk editor.' })
         cb({ ok = false, reason = 'no_vehicle' }); return
+    end
+
+    -- (1) Be standing AT the storage opening — front for hood trunks (the Adder),
+    -- rear otherwise — using ox_inventory's own anchor + a small margin over its 1.5m.
+    if #(pcoords - trunkAnchor(veh)) > ((cfg.InteractionDistance or 2.5) + 0.5) then
+        cb({ ok = false, reason = 'not_at_trunk' }); return
+    end
+
+    -- (2) Open the boot and WAIT until it's actually open — you can't place a weapon
+    -- in a closed trunk. This is the real "does it have a usable trunk" test, so it
+    -- covers vehicles with no boot at all (e.g. bikes): they simply never open.
+    openBoot(veh)
+    local deadline = GetGameTimer() + 1500
+    while not bootIsOpen(veh) and GetGameTimer() < deadline do Wait(50) end
+    if not bootIsOpen(veh) then
+        shutBoot(veh)
+        cb({ ok = false, reason = 'trunk_wont_open' }); return
     end
 
     local model = string.lower(GetDisplayNameFromVehicleModel(GetEntityModel(veh)) or '?')
@@ -397,16 +511,23 @@ RegisterNUICallback('trunkEdit:start', function(_, cb)
     local off = { Pos = { x = b.Pos.x, y = b.Pos.y, z = b.Pos.z },
                   Rot = { x = b.Rot.x, y = b.Rot.y, z = b.Rot.z } }
 
-    openBoot(veh)
-    local hash = joaat('WEAPON_CARBINERIFLE')
-    lib.requestWeaponAsset(hash, 1000, 31, 1)
-    local prop = CreateWeaponObject(hash, 50, 0.0, 0.0, 0.0, true, 1.0, 0)
-    if prop then SetEntityCollision(prop, false, false) end
+    -- Hide the editor's own ped so it never stands between the camera and the trunk
+    -- (you're standing AT the opening, so otherwise you'd block your own view).
+    SetEntityVisible(cache.ped, false, false)
 
+    -- Default camera: stand OUTSIDE the storage opening looking straight in — BEHIND the
+    -- car for a rear boot, in FRONT for a hood trunk. Derived from the vehicle's real
+    -- forward vector: the old heading±180 math had a sign mismatch with the orbit's
+    -- sin/cos, so the camera only framed the trunk when the car happened to point north.
+    local fwd = GetEntityForwardVector(veh)
+    local dx, dy = fwd.x, fwd.y
+    if not hoodTrunk(veh) then dx, dy = -dx, -dy end   -- rear boot → camera behind the car
+    local camYaw = math.deg(math.atan(dx, dy)) % 360.0
     tedit = {
-        veh = veh, model = model, class = class, off = off, prop = prop,
+        veh = veh, model = model, class = class, off = off, prop = nil,   -- teditAttach creates it
+        savedOff = safeTrunkOffset(off),   -- Reset baseline: last save, or the open-time offset
         cam = CreateCam('DEFAULT_SCRIPTED_CAMERA', true),
-        orbit = { yaw = (GetEntityHeading(veh) + 180.0) % 360, pitch = -15.0, dist = 2.6 },
+        orbit = { yaw = camYaw, pitch = -15.0, dist = 2.6 },
     }
     teditAttach()
     teditUpdateCam()
@@ -426,11 +547,7 @@ end)
 RegisterNUICallback('trunkEdit:update', function(d, cb)
     if tedit and type(d) == 'table' and type(d.off) == 'table'
         and type(d.off.Pos) == 'table' and type(d.off.Rot) == 'table' then
-        local o = d.off
-        tedit.off = {
-            Pos = { x = tonumber(o.Pos.x) or 0.0, y = tonumber(o.Pos.y) or 0.0, z = tonumber(o.Pos.z) or 0.0 },
-            Rot = { x = tonumber(o.Rot.x) or 0.0, y = tonumber(o.Rot.y) or 0.0, z = tonumber(o.Rot.z) or 0.0 },
-        }
+        tedit.off = safeTrunkOffset(d.off)
         teditAttach()
     end
     cb({})
@@ -450,8 +567,10 @@ end)
 
 RegisterNUICallback('trunkEdit:reset', function(_, cb)
     if tedit then
-        tedit.off = { Pos = { x = DEFAULT_OFFSET.Pos.x, y = DEFAULT_OFFSET.Pos.y, z = DEFAULT_OFFSET.Pos.z },
-                      Rot = { x = 0.0, y = 0.0, z = 0.0 } }
+        -- Revert to the last SAVED offset (or the open-time offset if nothing saved yet),
+        -- NOT the hardcoded stock default. To clear an override entirely, use the per-scope
+        -- Reset in the Trunk Positions list.
+        tedit.off = safeTrunkOffset(tedit.savedOff)
         teditAttach()
         cb(tedit.off)
     else
@@ -462,6 +581,8 @@ end)
 RegisterNUICallback('trunkEdit:save', function(d, cb)
     if tedit and type(d) == 'table' then
         local scope = (d.scope == 'class') and ('class:' .. tedit.class) or ('model:' .. tedit.model)
+        tedit.off = safeTrunkOffset(tedit.off)
+        tedit.savedOff = safeTrunkOffset(tedit.off)   -- Reset now returns here
         TriggerServerEvent('mbt_malisling:trunkOffset:save', {
             scope = scope,
             data  = { Pos = { x = tedit.off.Pos.x, y = tedit.off.Pos.y, z = tedit.off.Pos.z },

@@ -103,13 +103,32 @@ interface TrunkPositionsProps extends SectionProps { onEdit?: (s: TrunkStart) =>
 export function TrunkPositionsSection({ config, update, onEdit }: TrunkPositionsProps) {
   const t = config?.VehicleTrunkRack ?? {}
   const [list, setList] = useState<TrunkOverride[]>([])
+  const [note, setNote] = useState('')   // in-dashboard warning (no ox_lib)
   const refresh = useCallback(() => {
     fetchNui('trunkOffsets:get').then((r: any) => setList(Array.isArray(r) ? r : []))
   }, [])
   useEffect(() => { refresh() }, [refresh])
 
+  // Auto-dismiss the inline warning after a few seconds.
+  useEffect(() => {
+    if (!note) return
+    const id = window.setTimeout(() => setNote(''), 4000)
+    return () => window.clearTimeout(id)
+  }, [note])
+
+  const REASONS: Record<string, string> = {
+    no_vehicle: 'No vehicle nearby — stand behind a car, then open the Live Editor.',
+    on_foot: 'Exit the vehicle first, then open the Live Editor.',
+    not_at_trunk: 'Stand right next to the trunk, then open the Live Editor.',
+    trunk_wont_open: "Couldn't open this vehicle's trunk — it may not have one.",
+    busy: 'The editor is already open.',
+  }
   const openEditor = () => {
-    fetchNui('trunkEdit:start').then((r: any) => { if (r?.ok && onEdit) onEdit(r) })
+    setNote('')
+    fetchNui('trunkEdit:start').then((r: any) => {
+      if (r?.ok) { if (onEdit) onEdit(r) }
+      else setNote(REASONS[r?.reason] ?? "Couldn't open the trunk editor.")
+    })
   }
 
   const label = (scope: string) => {
@@ -133,9 +152,15 @@ export function TrunkPositionsSection({ config, update, onEdit }: TrunkPositions
         </span>
       }>
       <div className="mbt-notice">
-        Stand behind a vehicle, hit <b>Live Editor</b>, nudge the weapon into place, then Save per
-        <b> model</b> (exact) or <b>class</b> (broad). Applies live. <code>/mbt_trunktune</code> is the key-driven tuner.
+        Stand right <b>next to the trunk</b> and hit <b>Live Editor</b> — it opens the boot for you, then
+        nudge the weapon into place and Save per <b>model</b> (exact) or <b>class</b> (broad). Applies live.
+        <code>/mbt_trunktune</code> is the key-driven tuner.
       </div>
+      {note && (
+        <div className="mbt-notice mbt-notice--warn" role="alert" onClick={() => setNote('')}>
+          <Icon name="alert" size={13} /> {note}
+        </div>
+      )}
       {list.length === 0 ? (
         <div className="mbt-field__hint" style={{ marginTop: 2, whiteSpace: 'normal' }}>
           No saved overrides yet — every vehicle uses the default placement.

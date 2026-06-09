@@ -491,6 +491,25 @@ input[type="number"]::-webkit-outer-spin-button {
   color: var(--mbt-text-mid);
 }
 
+/* Warning variant — shown in-dashboard instead of an ox_lib notify (e.g. the
+   trunk Live Editor when no vehicle is nearby). Click to dismiss; auto-hides. */
+.mbt-notice--warn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 7px;
+  background: rgba(var(--mbt-faulty-rgb), 0.10);
+  border-color: rgba(var(--mbt-faulty-rgb), 0.32);
+  color: var(--mbt-text-hi);
+  cursor: pointer;
+  animation: mbt-notice-in 0.18s ease-out;
+}
+.mbt-notice--warn svg { flex: none; color: rgb(var(--mbt-faulty-rgb)); }
+@keyframes mbt-notice-in {
+  from { opacity: 0; transform: translateY(-3px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 /* ── Tag editor (chips + inline input) ────────────────────────────────── */
 .mbt-tag-editor {
   display: flex;
