@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { cloneElement, isValidElement, type ReactNode } from 'react'
 import { Icon, type IconName } from '../ui/Icon'
 import { Toggle } from '../ui/Toggle'
 
@@ -14,7 +14,15 @@ export function Section({ icon, title, sub, action, children, wide }: { icon: Ic
           <h4 className="mbt-section__title">{title}</h4>
           {sub && <p className="mbt-section__sub">{sub}</p>}
         </div>
-        {action && <span className="mbt-section__action">{action}</span>}
+        {action && (
+          <span className="mbt-section__action">
+            {/* A header on/off toggle (ToggleRow.Inline) has no label of its own —
+                inject the section title so screen readers announce what it controls. */}
+            {isValidElement(action) && action.type === ToggleRow.Inline
+              ? cloneElement(action as any, { label: (action.props as any).label ?? title })
+              : action}
+          </span>
+        )}
       </div>
       {children && <div className="mbt-section__body">{children}</div>}
     </div>
@@ -30,15 +38,18 @@ export function ToggleRow({ title, desc, checked, onChange }: { title: string; d
           <span className="mbt-setting__title">{title}</span>
           {desc && <span className="mbt-setting__desc">{desc}</span>}
         </div>
-        <Toggle checked={checked} onChange={onChange} />
+        {/* The visible title isn't tied to the checkbox, so name it for AT. */}
+        <Toggle checked={checked} onChange={onChange} aria-label={title} />
       </div>
     </div>
   )
 }
 
-/** Bare toggle for a section header (feature on/off, right-aligned). */
-ToggleRow.Inline = function ToggleRowInline({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
-  return <Toggle checked={checked} onChange={onChange} />
+/** Bare toggle for a section header (feature on/off, right-aligned). `label` is
+ *  the accessible name (the section's feature name) — required so screen readers
+ *  announce what the switch controls. */
+ToggleRow.Inline = function ToggleRowInline({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label?: string }) {
+  return <Toggle checked={checked} onChange={onChange} aria-label={label || 'Feature toggle'} />
 }
 
 /** A labelled field wrapper (label + optional hint + control). */

@@ -484,3 +484,20 @@
 .mbt-pe__actions { display: flex; gap: 6px; }
 .mbt-pe__actions .mbt-btn-ghost { flex: 0 0 auto; height: 34px; padding: 0 12px; }
 .mbt-pe__actions .mbt-btn-primary { flex: 1; height: 34px; justify-content: center; }
+
+/* ── Focus-visible coverage ─────────────────────────────────────────────────
+   Keyboard ring for the controls that previously had none: the HUD position
+   picker, the live-editor segment/copy buttons, the nudge buttons, and the
+   range sliders. Matches the rail/button/toggle convention (accent-glow ring). */
+.mbt-pospick__btn:focus-visible,
+.mbt-pe__seg button:focus-visible,
+.mbt-pe__nudge:focus-visible,
+.mbt-pe__slider input[type="range"]:focus-visible {
+  outline: 2px solid var(--mbt-accent-glow);
+  outline-offset: 2px;
+}
+/* The track outline reads faintly on a 4px bar — also ring the thumb so the
+   focused slider is unmistakable. */
+.mbt-pe__slider input[type="range"]:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 1px rgba(var(--mbt-accent-rgb), 0.4), 0 0 0 4px var(--mbt-accent-glow);
+}

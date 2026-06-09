@@ -148,7 +148,7 @@ export function TrunkPositionsSection({ config, update, onEdit }: TrunkPositions
             disabled={!t.Enabled} title={t.Enabled ? '' : 'Enable the trunk rack first'}>
             <Icon name="configure" size={13} /> Live Editor
           </button>
-          <ToggleRow.Inline checked={!!t.Enabled} onChange={(v) => update('VehicleTrunkRack.Enabled', v)} />
+          <ToggleRow.Inline label="Trunk Rack" checked={!!t.Enabled} onChange={(v) => update('VehicleTrunkRack.Enabled', v)} />
         </span>
       }>
       <div className="mbt-notice">
@@ -157,8 +157,10 @@ export function TrunkPositionsSection({ config, update, onEdit }: TrunkPositions
         <code>/mbt_trunktune</code> is the key-driven tuner.
       </div>
       {note && (
-        <div className="mbt-notice mbt-notice--warn" role="alert" onClick={() => setNote('')}>
-          <Icon name="alert" size={13} /> {note}
+        <div className="mbt-notice mbt-notice--warn" role="alert">
+          <Icon name="alert" size={13} />
+          <span>{note}</span>
+          <button type="button" className="mbt-notice__x" aria-label="Dismiss warning" onClick={() => setNote('')}>×</button>
         </div>
       )}
       {list.length === 0 ? (

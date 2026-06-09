@@ -198,6 +198,7 @@ export default function AdminDashboard() {
             <button
               key={cat.id}
               className={`mbt-rail__item${active === cat.id ? ' is-active' : ''}`}
+              aria-current={active === cat.id ? 'page' : undefined}
               onClick={() => setActive(cat.id)}
             >
               <span className="ic"><Icon name={cat.icon} size={18} /></span>
@@ -212,6 +213,7 @@ export default function AdminDashboard() {
           {/* Weapon position editor — special live-edit page (not a card grid). */}
           <button
             className={`mbt-rail__item${isPositions ? ' is-active' : ''}`}
+            aria-current={isPositions ? 'page' : undefined}
             onClick={() => setActive('positions')}
           >
             <span className="ic"><Icon name="configure" size={18} /></span>
@@ -235,6 +237,7 @@ export default function AdminDashboard() {
           {/* Paid companion — upsell page (flips to "connected" when the bridge is up). */}
           <button
             className={`mbt-rail__item mbt-rail__promo${isShooting ? ' is-active' : ''}`}
+            aria-current={isShooting ? 'page' : undefined}
             onClick={() => setActive('shooting')}
           >
             <span className="ic"><Icon name="layers" size={18} /></span>
