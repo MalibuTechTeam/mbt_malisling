@@ -23,6 +23,11 @@
   --mbt-surface-1:    #0B100E;   /* recessed: input wells, sub-content */
   --mbt-surface-2:    #121814;   /* default content surface: cards, panels */
   --mbt-surface-3:    #1A221E;   /* raised: hover, ghost buttons, chips */
+  /* The console panel backdrop — a warm vertical gradient with a whisper of accent
+     at the top edge. Shared by the dashboard shell and floating editor cards. */
+  --mbt-surface-panel-gradient:
+    radial-gradient(120% 60% at 50% 0%, rgba(var(--mbt-accent-rgb), 0.05), transparent 60%),
+    linear-gradient(180deg, #121814 0%, #0C100E 54%, #090C0A 100%);
 
   /* ── Text ladder — read-first down to disabled-only ───────────────────── */
   --mbt-text-hi:      #F2F0EA;   /* headings, values read first */
@@ -34,6 +39,8 @@
   --mbt-edge-hi:      rgba(255, 255, 255, 0.10);   /* hover / focus edge */
   --mbt-edge:         rgba(255, 255, 255, 0.055);  /* default 1px border */
   --mbt-edge-lo:      rgba(255, 255, 255, 0.03);   /* faint inner separator */
+  --mbt-scroll-thumb:       rgba(255, 255, 255, 0.14);   /* custom scrollbar thumb */
+  --mbt-scroll-thumb-hover: rgba(255, 255, 255, 0.24);
 
   /* ── Status trio + info — carried by glyph + shape first, color second ── */
   --mbt-operational:      #22C55E;

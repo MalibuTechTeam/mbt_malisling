@@ -64,9 +64,7 @@
   width: min(1960px, 92vw); height: min(960px, 90vh);
   display: flex; overflow: hidden;
   border-radius: var(--mbt-r-lg); border: 1px solid var(--mbt-edge-hi);
-  background:
-    radial-gradient(120% 60% at 50% 0%, rgba(var(--mbt-accent-rgb), 0.05), transparent 60%),
-    linear-gradient(180deg, #121814 0%, #0C100E 54%, #090C0A 100%);
+  background: var(--mbt-surface-panel-gradient);
   box-shadow: var(--mbt-shadow-panel);
   color: var(--mbt-text-mid);
 }
@@ -88,7 +86,7 @@
 .mbt-rail__logo b { font-family: var(--mbt-font-display); font-size: 14px; font-weight: 700; color: var(--mbt-text-hi); letter-spacing: 0.02em; display: block; line-height: 1.1; }
 .mbt-rail__logo span { font-size: 8px; letter-spacing: 0.18em; color: var(--mbt-text-faint); display: block; }
 
-.mbt-rail__group { font-size: 10px; font-weight: 600; letter-spacing: 0.12em; color: var(--mbt-text-faint); padding: 14px 8px 8px; }
+.mbt-rail__group { font-size: 10px; font-weight: 600; letter-spacing: 0.12em; color: var(--mbt-text-lo); padding: 14px 8px 8px; }
 .mbt-rail__item {
   display: flex; align-items: center; gap: 11px; padding: 9px 8px; width: 100%;
   border: none; background: none; text-align: left; cursor: pointer; position: relative;
@@ -132,17 +130,17 @@
 /* scrollbar-gutter:stable reserves the bar's width so the grid never reflows
    when it appears (the dense pages scroll on short displays). Thumb is a light
    translucent fill — elevator parity; surface-3 was too dark to read. */
-.mbt-admin__center { flex: 1; min-width: 0; overflow-y: auto; padding: 20px 24px 30px; scrollbar-gutter: stable; scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, 0.18) transparent; }
+.mbt-admin__center { flex: 1; min-width: 0; overflow-y: auto; padding: 20px 24px 30px; scrollbar-gutter: stable; scrollbar-width: thin; scrollbar-color: var(--mbt-scroll-thumb) transparent; }
 .mbt-admin__center::-webkit-scrollbar { width: 11px; }
 .mbt-admin__center::-webkit-scrollbar-track { background: transparent; }
-.mbt-admin__center::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.14); border-radius: var(--mbt-r-pill); border: 2px solid transparent; background-clip: padding-box; }
-.mbt-admin__center::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.24); background-clip: padding-box; }
+.mbt-admin__center::-webkit-scrollbar-thumb { background: var(--mbt-scroll-thumb); border-radius: var(--mbt-r-pill); border: 2px solid transparent; background-clip: padding-box; }
+.mbt-admin__center::-webkit-scrollbar-thumb:hover { background: var(--mbt-scroll-thumb-hover); background-clip: padding-box; }
 
 .mbt-admin__crumb { font-size: 11px; color: var(--mbt-text-lo); margin-bottom: 14px; }
 .mbt-admin__crumb b { color: var(--mbt-text-mid); font-weight: 600; }
 .mbt-admin__head { display: flex; align-items: center; gap: 13px; margin-bottom: 18px; }
 .mbt-admin__title { font-family: var(--mbt-font-display); font-size: 20px; font-weight: 700; color: var(--mbt-text-hi); letter-spacing: -0.01em; }
-.mbt-admin__meta { font-size: 11px; color: var(--mbt-text-faint); margin-top: 4px; }
+.mbt-admin__meta { font-size: 11px; color: var(--mbt-text-lo); margin-top: 4px; }
 .mbt-admin__head-sp { flex: 1; }
 /* Page-level alert in the center (e.g. ox_inventory patch failed) — sits below
    the header, above the cards, so it survives the <1400px overview drop. */
@@ -222,7 +220,8 @@
   background: var(--mbt-surface-3); border: 1px solid var(--mbt-edge);
   border-radius: var(--mbt-r-sm); color: var(--mbt-accent);
 }
-.mbt-admin__center .mbt-section__title { font-family: var(--mbt-font-display); font-size: 13px; font-weight: 700; color: var(--mbt-text-hi); letter-spacing: 0.04em; }
+/* .mbt-section__title styling lives in Field.css (single source — was a divergent
+   duplicate here that dropped text-transform). */
 .mbt-admin__center .mbt-section__sub { font-size: 11px; color: var(--mbt-text-lo); margin-top: 2px; }
 
 /* Two-column grid: cards stretch to equal height, body fills remaining space so
@@ -286,25 +285,18 @@
 }
 .mbt-ov__segs span.is-on { background: var(--mbt-accent); }
 @keyframes mbt-seg-in { from { transform: scaleX(0); opacity: 0; } to { transform: scaleX(1); opacity: 1; } }
-.mbt-ov__segs span:nth-child(1)  { animation-delay: 190ms; }
-.mbt-ov__segs span:nth-child(2)  { animation-delay: 215ms; }
-.mbt-ov__segs span:nth-child(3)  { animation-delay: 240ms; }
-.mbt-ov__segs span:nth-child(4)  { animation-delay: 265ms; }
-.mbt-ov__segs span:nth-child(5)  { animation-delay: 290ms; }
-.mbt-ov__segs span:nth-child(6)  { animation-delay: 315ms; }
-.mbt-ov__segs span:nth-child(7)  { animation-delay: 340ms; }
-.mbt-ov__segs span:nth-child(8)  { animation-delay: 365ms; }
-.mbt-ov__segs span:nth-child(n+9) { animation-delay: 390ms; }
+/* One quick entrance — the long per-segment stagger (up to 390ms) was too much
+   ceremony for a dense admin readout; all segments settle together now. */
 @media (prefers-reduced-motion: reduce) {
   .mbt-ov__segs span { animation: none; }
 }
-.mbt-ov__label { display: flex; align-items: center; gap: 7px; font-size: 10px; font-weight: 600; letter-spacing: 0.12em; color: var(--mbt-text-faint); }
+.mbt-ov__label { display: flex; align-items: center; gap: 7px; font-size: 10px; font-weight: 600; letter-spacing: 0.12em; color: var(--mbt-text-lo); }
 .mbt-ov__spacer { flex: 1 1 auto; }
 /* Feature overview — compact 2-column status grid (dot = on/off) so all ~17
    features fit the sidebar without scrolling. */
 .mbt-ov__summary { display: flex; flex-direction: column; gap: 3px; }
 .mbt-ov__group { display: grid; grid-template-columns: 1fr 1fr; gap: 5px 12px; align-items: center; }
-.mbt-ov__grouphead { grid-column: 1 / -1; margin: 9px 0 1px; font-size: 9.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--mbt-text-faint); }
+.mbt-ov__grouphead { grid-column: 1 / -1; margin: 9px 0 1px; font-size: 9.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--mbt-text-lo); }
 .mbt-ov__group:first-child .mbt-ov__grouphead { margin-top: 0; }
 .mbt-ov__feat { display: flex; align-items: center; gap: 7px; min-width: 0; }
 .mbt-ov__dot { flex-shrink: 0; width: 7px; height: 7px; border-radius: 50%; background: var(--mbt-text-faint); }
@@ -428,7 +420,7 @@
   position: fixed; right: 24px; top: 50%; transform: translateY(-50%);
   width: 300px; z-index: 10000; pointer-events: auto;
   display: flex; flex-direction: column; gap: 12px; padding: 16px;
-  background: linear-gradient(180deg, #121814 0%, #0C100E 100%);
+  background: var(--mbt-surface-panel-gradient);   /* shared panel treatment */
   border: 1px solid var(--mbt-edge-hi); border-radius: var(--mbt-r-lg);
   box-shadow: var(--mbt-shadow-panel);
   font-family: var(--mbt-font-body); color: var(--mbt-text-mid);
@@ -467,7 +459,7 @@
 /* Camera + axis groups — labelled sliders (absolute), replace the old step buttons. */
 .mbt-pe__cam { display: flex; flex-direction: column; gap: 7px; }
 .mbt-pe__axgroup { display: flex; flex-direction: column; gap: 7px; }
-.mbt-pe__camhead { font-size: 9.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--mbt-text-faint); }
+.mbt-pe__camhead { font-size: 9.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--mbt-text-lo); }
 .mbt-pe__slider { display: grid; grid-template-columns: 80px 1fr 46px; align-items: center; gap: 9px; }
 .mbt-pe__slabel { font-size: 11px; color: var(--mbt-text-lo); }
 .mbt-pe__sval { font-family: var(--mbt-font-mono); font-size: 11px; color: var(--mbt-text-hi); text-align: right; }

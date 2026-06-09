@@ -54,6 +54,7 @@
   text-transform: uppercase;
   color: var(--mbt-text-hi);
 }
+/* (font-display lives here now — the old .mbt-admin__center override was removed.) */
 .mbt-section__sub {
   margin-top: 2px;
   font-family: var(--mbt-font-body);
