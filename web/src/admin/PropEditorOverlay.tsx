@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { fetchNui } from '../utils/fetchNui'
 import { Icon } from './ui/Icon'
 import { Select } from './ui/Select'
@@ -72,6 +72,24 @@ export function PropEditorOverlay({ wtype, job, gender: initGender, onClose }: P
     fetchNui('propEdit:update', { data: normalized, gender: g })
   }, [])
 
+  // Dialog behaviour: Escape closes the editor (the dashboard yields Escape while
+  // an editor is open, so this won't also close the whole panel). onClose unmounts
+  // us, and the unmount cleanup above fires propEdit:stop.
+  const cardRef = useRef<HTMLDivElement>(null)
+  const didFocus = useRef(false)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopPropagation(); onClose() } }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+  // Move focus into the card once, when it first renders (not on every update).
+  useEffect(() => {
+    if (data && !didFocus.current) {
+      didFocus.current = true
+      cardRef.current?.querySelector<HTMLElement>('button, input, [tabindex]')?.focus()
+    }
+  }, [data])
+
   if (!data) return null
   const g = gender
   const pos = data.Pos[g]
@@ -112,7 +130,8 @@ export function PropEditorOverlay({ wtype, job, gender: initGender, onClose }: P
   const close = () => { fetchNui('propEdit:stop'); onClose() }
 
   return (
-    <div className="mbt-pe">
+    <div className="mbt-pe" ref={cardRef} role="dialog" aria-modal="true"
+      aria-label={`Weapon position editor — ${wtype.toUpperCase()}`}>
       <div className="mbt-pe__head">
         <Icon name="configure" size={14} />
         <b>{wtype.toUpperCase()}</b>
@@ -154,7 +173,7 @@ export function PropEditorOverlay({ wtype, job, gender: initGender, onClose }: P
       <div className="mbt-pe__actions">
         <button className="mbt-btn-ghost" onClick={reset}>Reset</button>
         <button className="mbt-btn-ghost" onClick={close}>Close</button>
-        <button className={`mbt-btn-primary${saved ? ' is-complete' : ''}`} onClick={save}>
+        <button className={`mbt-btn-primary${saved ? ' is-complete' : ''}`} onClick={save} aria-live="polite">
           <Icon name="save" size={13} /> {saved ? 'Saved' : 'Save'}
         </button>
       </div>

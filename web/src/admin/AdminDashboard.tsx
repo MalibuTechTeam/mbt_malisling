@@ -128,10 +128,15 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (!open) return
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') close() }
+    const onKey = (e: KeyboardEvent) => {
+      // A live editor owns Escape while it's open (it closes itself first); the
+      // dashboard must not also close out from under it.
+      if (editing || trunkEditing) return
+      if (e.key === 'Escape') close()
+    }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [open, close])
+  }, [open, close, editing, trunkEditing])
 
   // Path-based updater: update("Jamming.Cooldown", 8) writes into the draft.
   const update = useCallback((path: string, value: unknown) => {
@@ -294,6 +299,18 @@ export default function AdminDashboard() {
             </button>
           </div>
 
+          {/* Critical ox_inventory patch failure — kept in the center so it's
+              visible even at narrow widths where the overview is hidden. */}
+          {oxPatch && oxPatch !== 'ok' ? (
+            <div className="mbt-ov__warn mbt-admin__alert" role="alert">
+              <span className="mbt-ov__warn-ic"><Icon name="alert" size={15} /></span>
+              <div>
+                <b>ox_inventory patch failed</b>
+                <p>{oxPatch}. Run <code>install_ox_patch.ps1</code> in the server folder, then restart — the weapon-on-back holster flow needs it.</p>
+              </div>
+            </div>
+          ) : null}
+
           <div className="mbt-admin__sections">
             {isShooting ? (
               <ShootingSection companion={companion} />
@@ -313,16 +330,10 @@ export default function AdminDashboard() {
 
         {/* ── Overview (right sidebar — mirrors elevator's config view) ── */}
         <aside className="mbt-admin__overview">
+          {/* Healthy one-liner stays in the overview (non-critical). The FAILURE
+              banner lives in the center so it survives the <1400px overview drop. */}
           {oxPatch === 'ok' ? (
             <div className="mbt-ov__ok"><Icon name="check" size={13} /> ox_inventory integration active</div>
-          ) : oxPatch ? (
-            <div className="mbt-ov__warn" role="alert">
-              <span className="mbt-ov__warn-ic"><Icon name="alert" size={15} /></span>
-              <div>
-                <b>ox_inventory patch failed</b>
-                <p>{oxPatch}. Run <code>install_ox_patch.ps1</code> in the server folder, then restart — the weapon-on-back holster flow needs it.</p>
-              </div>
-            </div>
           ) : null}
 
           {/* Active-features gauge — a glanceable summary of the list below

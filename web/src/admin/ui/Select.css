@@ -96,6 +96,12 @@
   background: rgba(255, 255, 255, 0.05);
   color: var(--mbt-text-hi);
 }
+/* Keyboard cursor (roving highlight) — accent-tinted, distinct from the selected
+   value's check. Wins over :hover (mouse-enter syncs the two anyway). */
+.mbt-select2__opt.is-active {
+  background: var(--mbt-accent-soft);
+  color: var(--mbt-text-hi);
+}
 .mbt-select2__opt.is-selected {
   color: var(--mbt-text-hi);
 }

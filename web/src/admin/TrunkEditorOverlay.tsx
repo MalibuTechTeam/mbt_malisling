@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { fetchNui } from '../utils/fetchNui'
 import { Icon } from './ui/Icon'
 import { CamSlider } from './ui/CamSlider'
@@ -62,9 +62,22 @@ export function TrunkEditorOverlay({ model, vclass, off: initOff, view: initView
   const reset = () => fetchNui('trunkEdit:reset').then((r: any) => { if (r?.Pos) setOff(safeOff(r)) })
   const close = () => { fetchNui('trunkEdit:stop'); onClose() }
 
+  const cardRef = useRef<HTMLDivElement>(null)
+  // Stop the Lua editor on ANY unmount path (button, Escape, parent close) so the
+  // camera/ped never get left in edit state.
+  useEffect(() => () => { fetchNui('trunkEdit:stop') }, [])
+  // Focus into the card once on open.
+  useEffect(() => { cardRef.current?.querySelector<HTMLElement>('button, input, [tabindex]')?.focus() }, [])
+  // Escape closes the editor (the dashboard yields Escape while an editor is open).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopPropagation(); onClose() } }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
 
   return (
-    <div className="mbt-pe">
+    <div className="mbt-pe" ref={cardRef} role="dialog" aria-modal="true"
+      aria-label={`Trunk weapon editor — ${model}`}>
       <div className="mbt-pe__head">
         <Icon name="vehicle" size={14} />
         <b>TRUNK</b>
@@ -99,7 +112,7 @@ export function TrunkEditorOverlay({ model, vclass, off: initOff, view: initView
       <div className="mbt-pe__actions">
         <button className="mbt-btn-ghost" onClick={reset}>Reset</button>
         <button className="mbt-btn-ghost" onClick={close}>Close</button>
-        <button className={`mbt-btn-primary${saved ? ' is-complete' : ''}`} onClick={save}>
+        <button className={`mbt-btn-primary${saved ? ' is-complete' : ''}`} onClick={save} aria-live="polite">
           <Icon name="save" size={13} /> {saved ? 'Saved' : (scope === 'model' ? 'Save model' : 'Save class')}
         </button>
       </div>

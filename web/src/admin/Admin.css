@@ -144,6 +144,9 @@
 .mbt-admin__title { font-family: var(--mbt-font-display); font-size: 20px; font-weight: 700; color: var(--mbt-text-hi); letter-spacing: -0.01em; }
 .mbt-admin__meta { font-size: 11px; color: var(--mbt-text-faint); margin-top: 4px; }
 .mbt-admin__head-sp { flex: 1; }
+/* Page-level alert in the center (e.g. ox_inventory patch failed) — sits below
+   the header, above the cards, so it survives the <1400px overview drop. */
+.mbt-admin__alert { margin-bottom: 16px; }
 
 /* Category page: feature cards in a uniform 2-column grid. align-items:stretch
    makes the two cards in a row the SAME height (like the elevator config cards)
