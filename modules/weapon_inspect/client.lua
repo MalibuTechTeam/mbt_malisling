@@ -110,7 +110,15 @@ local function startInspect()
     TaskPlayAnim(cache.ped, anim.Dict, anim.Anim, 8.0, -8.0, -1, anim.Flag or 48,
         0.0, false, false, false)
 
-    SendNUIMessage({ action = 'showInspect', data = buildData() })
+    local data = buildData()
+    -- Chain of Custody: fetch the weapon's chain from the server ledger by serial
+    -- (it's not in item metadata — see chain_of_custody/server.lua for why).
+    local md = (currentWeapon and currentWeapon.metadata) or {}
+    if MBT.ChainOfCustody and MBT.ChainOfCustody.Enabled and MBT.ChainOfCustody.ShowInInspect and md.serial then
+        local chain = lib.callback.await('mbt_malisling:getCustody', 1000, md.serial)
+        if type(chain) == 'table' and #chain > 0 then data.custody = chain end
+    end
+    SendNUIMessage({ action = 'showInspect', data = data })
     TriggerServerEvent('mbt_malisling:syncInspect', 'start')
 
     -- Auto-cancel: leave inspect the moment it stops making sense.

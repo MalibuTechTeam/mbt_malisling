@@ -90,6 +90,10 @@ RegisterLocale('fr', {
     ['inspect_serial']          = 'Série',
     ['inspect_condition']       = 'État',
     ['inspect_ammo']            = 'Munitions',
+    -- Chain of Custody (Forensics)
+    ['inspect_custody']         = 'Chaîne de Possession',
+    ['custody_origin']          = 'origine',
+    ['custody_now']             = 'actuel',
     -- Condition tiers (durability)
     ['cond_pristine']           = 'Impeccable',
     ['cond_good']               = 'Bon',

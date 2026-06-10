@@ -90,6 +90,10 @@ RegisterLocale('it', {
     ['inspect_serial']          = 'Matricola',
     ['inspect_condition']       = 'Condizione',
     ['inspect_ammo']            = 'Munizioni',
+    -- Chain of Custody (Forensics)
+    ['inspect_custody']         = 'Catena di Custodia',
+    ['custody_origin']          = 'origine',
+    ['custody_now']             = 'attuale',
     -- Condition tiers (durability)
     ['cond_pristine']           = 'Perfetta',
     ['cond_good']               = 'Buona',

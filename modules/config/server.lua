@@ -42,6 +42,7 @@ local function snapshot()
     local IN, WN = MBT.Inspect or {}, MBT.WeaponName or {}
     local SP, ND, VH, TS = MBT.ShowcasePoses or {}, MBT.NoDrawZones or {}, MBT.VehicleHiding or {}, MBT.TacticalSling or {}
     local VTR = MBT.VehicleTrunkRack or {}
+    local CC = MBT.ChainOfCustody or {}
     local vat = VTR.AllowedTypes or {}
     local TH, INS = MBT.Throw or {}, IN.Show or {}
     local thg = TH.Groups or {}
@@ -125,6 +126,11 @@ local function snapshot()
         Throw = {
             Enabled = b(TH.Enabled),
             Groups  = throwGroups,
+        },
+        ChainOfCustody = {
+            Enabled       = b(CC.Enabled),
+            MaxEntries    = num(CC.MaxEntries, 10),
+            ShowInInspect = b(CC.ShowInInspect),
         },
         -- World
         NoDrawZones = {
@@ -227,6 +233,10 @@ local function validate(d)
     for name in pairs(THROW_GROUPS) do
         if type(th.Groups[name]) ~= 'boolean' then return false end
     end
+    -- Chain of Custody
+    local cc = d.ChainOfCustody
+    if type(cc) ~= 'table' or type(cc.Enabled) ~= 'boolean' or type(cc.ShowInInspect) ~= 'boolean' then return false end
+    if type(cc.MaxEntries) ~= 'number' or cc.MaxEntries < 2 or cc.MaxEntries > 50 then return false end
     -- No-Draw Zones
     local nd = d.NoDrawZones
     if type(nd) ~= 'table' or type(nd.Enabled) ~= 'boolean' then return false end
@@ -307,6 +317,11 @@ local function applyToMBT(d)
         if MBT.Throw.Groups[hash] then
             MBT.Throw.Groups[hash].Allowed = d.Throw.Groups[name]
         end
+    end
+    if MBT.ChainOfCustody then
+        MBT.ChainOfCustody.Enabled       = d.ChainOfCustody.Enabled
+        MBT.ChainOfCustody.MaxEntries    = d.ChainOfCustody.MaxEntries
+        MBT.ChainOfCustody.ShowInInspect = d.ChainOfCustody.ShowInInspect
     end
     -- World
     MBT.NoDrawZones.Enabled        = d.NoDrawZones.Enabled

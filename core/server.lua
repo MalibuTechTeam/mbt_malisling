@@ -90,6 +90,12 @@ AddEventHandler("mbt_malisling:syncSling", function(data)
             playersToTrack[_source][k] = v
         end
     end
+    -- Chain of Custody: record holders AFTER the sling sync (a server-side ledger
+    -- keyed by serial — NOT a metadata write, which would re-trigger updateInventory
+    -- and re-spawn the slung prop while the weapon is in hand).
+    if MBT.ChainOfCustody and MBT.ChainOfCustody.RecordHolders then
+        MBT.ChainOfCustody.RecordHolders(_source, data.playerWeapons)
+    end
 
     Wait(100)
 

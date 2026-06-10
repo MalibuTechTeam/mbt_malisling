@@ -20,3 +20,13 @@ function getPlayerSex(s)
     if not xPlayer then return 'male' end
     return xPlayer.get('sex') == 'm' and 'male' or 'female'
 end
+
+--- Character name + stable id (for Chain of Custody).
+---@return string name, string id
+function getPlayerName(s)
+    s = tonumber(s)
+    local xPlayer = ESX.GetPlayerFromId(s)
+    if not xPlayer then return GetPlayerName(s) or ('Player ' .. tostring(s)), tostring(s) end
+    local name = (xPlayer.getName and xPlayer.getName()) or GetPlayerName(s) or ('Player ' .. tostring(s))
+    return name, xPlayer.identifier or tostring(s)
+end

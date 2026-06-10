@@ -12,12 +12,15 @@ interface InspectShow {
 
 type Tone = 'accent' | 'good' | 'warn' | 'bad'
 
+interface CustodyEntry { name: string; id: string; at: number }
+
 interface InspectData {
   name?: string
   serial?: string
   condition?: string
   conditionTone?: 'good' | 'warn' | 'bad'   // durability-derived colour (from Lua)
   ammo?: number | string   // exact count (number) or vague label (string)
+  custody?: CustodyEntry[]   // chain of custody (oldest first), optional
   show?: InspectShow
   locale?: Locale
 }
@@ -76,6 +79,23 @@ export default function InspectUI() {
             <Row label={t('inspect_ammo', 'Ammo')} value={data.ammo != null ? String(data.ammo) : '—'} tone={ammoTone} />
           )}
         </div>
+        {Array.isArray(data.custody) && data.custody.length > 0 && (
+          <div className="insp-custody">
+            <span className="insp-custody-title">{t('inspect_custody', 'Chain of Custody')}</span>
+            <div className="insp-custody-list">
+              {data.custody.map((c, i) => (
+                <div className="insp-custody-entry" key={`${c.id}-${i}`}>
+                  <span className="insp-custody-dot" />
+                  <span className="insp-custody-name">{c.name}</span>
+                  {i === 0 && <span className="insp-custody-tag">{t('custody_origin', 'origin')}</span>}
+                  {i === data.custody!.length - 1 && i !== 0 && (
+                    <span className="insp-custody-tag insp-custody-tag--now">{t('custody_now', 'current')}</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

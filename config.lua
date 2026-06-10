@@ -581,6 +581,19 @@ MBT.Inspect            = {
     },
 }
 
+-- ── Chain of Custody (Forensics) ──────────────────────────────────────────────
+-- Each weapon remembers everyone who has carried it, stored in its ox/qb metadata
+-- (so the chain travels with the gun on trades/pickups/loot). A new holder is
+-- appended only when they EQUIP it (server-side), so it works the same on ox and
+-- qb without inventory-swap hooks. Shown in the Inspect overlay.
+MBT.ChainOfCustody     = {
+    Enabled       = true,
+    MaxEntries    = 10,      -- chain cap: origin is always kept + the most recent (MaxEntries-1)
+    ShowInInspect = true,    -- show the chain in the weapon Inspect overlay (the holder's own weapon)
+    -- A "police can read the chain off a dropped/other weapon" view is a future
+    -- add-on (lands with Forensic Shell Casings) — not in this build.
+}
+
 -- ── No-Draw Zones ─────────────────────────────────────────────────────────────
 -- Areas where weapons can't be drawn (hospital, courthouse, bank...). Inside a
 -- zone the player's firing is disabled and any drawn weapon is put away again,

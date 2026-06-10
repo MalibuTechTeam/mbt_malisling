@@ -115,6 +115,9 @@ local function applyConfig(d)
         MBT.ShowcasePoses.Enabled = d.ShowcasePoses.Enabled
         MBT.ShowcasePoses.Sync    = d.ShowcasePoses.Sync
     end
+    if d.ChainOfCustody and MBT.ChainOfCustody then
+        for k, v in pairs(d.ChainOfCustody) do MBT.ChainOfCustody[k] = v end
+    end
     if d.Throw and MBT.Throw then
         MBT.Throw.Enabled = d.Throw.Enabled
         if d.Throw.Groups and MBT.Throw.Groups then

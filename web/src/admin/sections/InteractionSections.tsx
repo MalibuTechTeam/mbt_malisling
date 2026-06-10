@@ -104,3 +104,19 @@ export function ThrowSection({ config, update }: SectionProps) {
     </Section>
   )
 }
+
+/** Chain of Custody — the weapon remembers everyone who carried it (Forensics). */
+export function ChainOfCustodySection({ config, update }: SectionProps) {
+  const c = config.ChainOfCustody ?? {}
+  return (
+    <Section icon="search" title="CHAIN OF CUSTODY" sub="The weapon remembers who has carried it (Forensics)."
+      action={<ToggleRow.Inline checked={!!c.Enabled} onChange={(v) => update('ChainOfCustody.Enabled', v)} />}>
+      <ToggleRow title="Show in Inspect" desc="List previous owners in the weapon inspect overlay"
+        checked={c.ShowInInspect !== false} onChange={(v) => update('ChainOfCustody.ShowInInspect', v)} />
+      <FieldBlock label="Max Entries" hint="Chain length cap (the origin owner is always kept).">
+        <NumberInput min={2} max={50} step={1} value={String(c.MaxEntries ?? 10)}
+          onChange={numUpdate(update, 'ChainOfCustody.MaxEntries', 10, true)} />
+      </FieldBlock>
+    </Section>
+  )
+}

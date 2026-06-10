@@ -87,6 +87,46 @@
 .insp-row-value--warn   { color: var(--mbt-hacked); }
 .insp-row-value--bad    { color: var(--mbt-faulty); }
 
+/* ── Chain of Custody ── */
+.insp-custody {
+  padding: 8px 13px 10px;
+  border-top: 1px solid var(--mbt-edge-lo);
+}
+.insp-custody-title {
+  display: block;
+  font-family: var(--mbt-font-mono);
+  font-size: 8.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--mbt-text-faint);
+  margin-bottom: 6px;
+}
+.insp-custody-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 132px;
+  overflow-y: auto;
+}
+.insp-custody-entry { display: flex; align-items: center; gap: 7px; }
+.insp-custody-dot {
+  flex: none; width: 5px; height: 5px; border-radius: 50%;
+  background: var(--mbt-text-faint);
+}
+.insp-custody-entry:last-child .insp-custody-dot { background: var(--mbt-accent); }
+.insp-custody-name {
+  flex: 1; min-width: 0;
+  font-size: 11px; color: var(--mbt-text-mid);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.insp-custody-tag {
+  flex: none;
+  font-family: var(--mbt-font-mono); font-size: 8px;
+  letter-spacing: 0.06em; text-transform: uppercase; color: var(--mbt-text-faint);
+  border: 1px solid var(--mbt-edge-lo); border-radius: var(--mbt-r-pill); padding: 1px 6px;
+}
+.insp-custody-tag--now { color: var(--mbt-accent); border-color: rgba(var(--mbt-accent-rgb), 0.3); }
+
 @media (prefers-reduced-motion: reduce) {
   .insp-enter, .insp-exit { animation: none; }
 }

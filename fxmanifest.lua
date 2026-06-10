@@ -46,6 +46,7 @@ server_scripts {
     'modules/showcase_poses/server.lua',
     'modules/vehicle_trunk_rack/server.lua',
     'modules/prop_position_editor/server.lua',
+    'modules/chain_of_custody/server.lua',
     'modules/config/server.lua',
     'core/server.lua',
 }

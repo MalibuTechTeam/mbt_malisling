@@ -20,3 +20,15 @@ function getPlayerSex(s)
     if not xPlayer then return 'male' end
     return xPlayer.PlayerData.charinfo.gender == 0 and 'male' or 'female'
 end
+
+--- Character name + stable id (for Chain of Custody).
+---@return string name, string id
+function getPlayerName(s)
+    s = tonumber(s)
+    local xPlayer = QBCore.Functions.GetPlayer(s)
+    if not xPlayer then return GetPlayerName(s) or ('Player ' .. tostring(s)), tostring(s) end
+    local ci = xPlayer.PlayerData.charinfo or {}
+    local name = ((ci.firstname or '') .. ' ' .. (ci.lastname or '')):match('^%s*(.-)%s*$')
+    if not name or name == '' then name = GetPlayerName(s) or ('Player ' .. tostring(s)) end
+    return name, xPlayer.PlayerData.citizenid or tostring(s)
+end
