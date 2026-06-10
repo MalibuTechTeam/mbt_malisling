@@ -8,7 +8,7 @@ import { HolsterSection } from './sections/HolsterSection'
 import { DropVisualSection, DespawnSection, DropLoggingSection } from './sections/WeaponDropSection'
 import { JammingSection, SuppressorSection, SafetySection, ChargeSection, WeightSection } from './sections/CombatSections'
 import { InspectSection, WeaponNameSection, PosesSection, ThrowSection, ChainOfCustodySection } from './sections/InteractionSections'
-import { NoDrawSection, VehicleSection, TrunkRackSection, TrunkPositionsSection } from './sections/WorldSections'
+import { NoDrawSection, VehicleSection, TrunkRackSection, WeaponRackSection, TrunkPositionsSection } from './sections/WorldSections'
 import { PositionsSection, type Job, type EditTarget } from './sections/PositionsSection'
 import { PropEditorOverlay } from './PropEditorOverlay'
 import { TrunkEditorOverlay } from './TrunkEditorOverlay'
@@ -47,7 +47,7 @@ const CATEGORIES: Category[] = [
     // Throw) share row 1; the shorter Name + the tiny Poses share row 2.
     sections: [InspectSection, ThrowSection, WeaponNameSection, PosesSection, ChainOfCustodySection] },
   { id: 'world',       label: 'World',       hint: 'Zones · vehicle',        icon: 'globe',
-    sections: [NoDrawSection, VehicleSection, TrunkRackSection] },
+    sections: [NoDrawSection, VehicleSection, TrunkRackSection, WeaponRackSection] },
 ]
 
 // Feature overview — every on/off toggle, keyed to the exact config path its
@@ -71,6 +71,7 @@ const FEATURES: { label: string; path: string; cat: string }[] = [
   { label: 'Vehicle Hiding', path: 'VehicleHiding.Enabled',       cat: 'World' },
   { label: 'Tactical Sling', path: 'TacticalSling.Enabled',       cat: 'World' },
   { label: 'Trunk Rack',     path: 'VehicleTrunkRack.Enabled',    cat: 'World' },
+  { label: 'Weapon Rack',    path: 'WeaponRack.Enabled',          cat: 'World' },
 ]
 const OV_CATS = ['Core', 'Handling', 'Interaction', 'World'] as const
 

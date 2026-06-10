@@ -151,6 +151,19 @@ local function applyConfig(d)
             }
         end
     end
+    if d.WeaponRack and MBT.WeaponRack then
+        MBT.WeaponRack.Enabled             = d.WeaponRack.Enabled
+        MBT.WeaponRack.Capacity            = d.WeaponRack.Capacity
+        MBT.WeaponRack.InteractionDistance = d.WeaponRack.InteractionDistance
+        MBT.WeaponRack.EquipOnRetrieve     = d.WeaponRack.EquipOnRetrieve
+        if d.WeaponRack.AllowedTypes then
+            MBT.WeaponRack.AllowedTypes = {
+                ['back']  = d.WeaponRack.AllowedTypes.back,
+                ['back2'] = d.WeaponRack.AllowedTypes.back2,
+                ['side']  = d.WeaponRack.AllowedTypes.side,
+            }
+        end
+    end
     if d.TacticalSling and MBT.TacticalSling then
         MBT.TacticalSling.Enabled = d.TacticalSling.Enabled
     end

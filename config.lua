@@ -63,6 +63,36 @@ MBT.Labels             = {
         ["type"]     = "error",
         ["icon"]     = "fa-solid fa-box-archive",
     },
+    ["rack_full"] = {
+        ["titleKey"] = "rack_full_title",
+        ["descKey"]  = "rack_full_desc",
+        ["type"]     = "inform",
+        ["icon"]     = "fa-solid fa-box-archive",
+    },
+    ["rack_wrong_type"] = {
+        ["titleKey"] = "rack_wrong_type_title",
+        ["descKey"]  = "rack_wrong_type_desc",
+        ["type"]     = "inform",
+        ["icon"]     = "fa-solid fa-gun",
+    },
+    ["rack_no_access"] = {
+        ["titleKey"] = "rack_no_access_title",
+        ["descKey"]  = "rack_no_access_desc",
+        ["type"]     = "error",
+        ["icon"]     = "fa-solid fa-lock",
+    },
+    ["rack_inv_full"] = {
+        ["titleKey"] = "rack_inv_full_title",
+        ["descKey"]  = "rack_inv_full_desc",
+        ["type"]     = "error",
+        ["icon"]     = "fa-solid fa-box-archive",
+    },
+    ["rack_no_cert"] = {
+        ["titleKey"] = "rack_no_cert_title",
+        ["descKey"]  = "rack_no_cert_desc",
+        ["type"]     = "error",
+        ["icon"]     = "fa-solid fa-id-card",
+    },
     ["has_jammed"] = {
         ["titleKey"] = "jam_jammed_title",
         ["descKey"]  = "jam_jammed_desc",
@@ -543,6 +573,74 @@ MBT.VehicleTrunkRack   = {
         ByClass = {
             -- [12] = { Pos = { x = 0.0, y = -0.20, z = 0.05 }, Rot = { x = 0.0, y = 0.0, z = 0.0 } }, -- Vans
         },
+    },
+}
+
+-- ── Weapon Rack / Gun Locker ────────────────────────────────────────────────────
+-- Place a weapon onto a fixed world rack and retrieve it later. Like the Trunk Rack
+-- but anchored to a config-defined world prop instead of a vehicle: racks are STATIC
+-- (defined in Locations), so they always work with no DB. The weapon never lives in a
+-- stash — its {name,count,metadata} is held server-side and re-minted into the
+-- inventory on retrieve via the ox/qb Inventory bridge, exactly like the Trunk Rack.
+--
+-- Stored weapons are persisted in a self-managed oxmysql table (mbt_weapon_racks),
+-- keyed by rack id, so they survive restarts. oxmysql is SOFT/feature-gated: without
+-- it the racks still work but their contents reset on restart (in-memory only) — the
+-- rest of the script stays DB-free. Weapon props are rendered LOCALLY by every client
+-- from replicated GlobalState (never networked objects → no weapon-object sync jitter).
+MBT.WeaponRack         = {
+    Enabled             = true,
+    Capacity            = 4,        -- max weapons per rack
+    InteractionDistance = 2.0,
+    EquipOnRetrieve     = false,    -- take the weapon straight into hand on retrieve (ox + qb)
+    -- Allowed weapon 'type' values from data/weapons.lua (side = pistols, back =
+    -- rifles/shotguns/smg/sniper, back2 = heavy/launcher, melee = melee).
+    AllowedTypes        = { ['back'] = true, ['back2'] = true, ['side'] = true },
+    -- Default rack prop. Per-location may override via Locations[].prop. The Offsets
+    -- below are tuned to THIS prop — swapping the prop means re-tuning. A live in-world
+    -- offset editor (per prop, per type) lands in v1.1; until then tune here.
+    -- NOTE: verify the prop exists on your build; replace with your rack/locker model.
+    DefaultProp         = `xm_prop_xm_gunlocker_01a`,
+    -- Per-type placement on the rack prop, in the rack's LOCAL space (rack forward = +y,
+    -- up = +z). Each successive slot is shifted by SlotSpacing along SlotAxis so weapons
+    -- don't overlap. Rot is a local Euler applied on top of the rack's heading.
+    Offsets             = {
+        ['back']  = { Pos = { x = -0.30, y = 0.10, z = 1.05 }, Rot = { x = 0.0, y = 0.0, z = 90.0 } },
+        ['back2'] = { Pos = { x = -0.30, y = 0.10, z = 1.05 }, Rot = { x = 0.0, y = 0.0, z = 90.0 } },
+        ['side']  = { Pos = { x = -0.30, y = 0.10, z = 0.95 }, Rot = { x = 270.0, y = 0.0, z = 0.0 } },
+    },
+    SlotAxis            = 'x',       -- spread slots along this LOCAL axis of the rack
+    SlotSpacing         = 0.22,      -- metres between adjacent slots
+    -- Premium interaction feel, works out of the box — no tuning needed:
+    --   • FaceRack: the ped turns to face the rack before the gesture.
+    --   • Place/Take: an anim SEQUENCE (list of steps, played in order). The default
+    --     is a chest-height handling gesture that reads as "hanging / lifting a gun
+    --     off a rack". Add/replace steps to compose your own sequence.
+    --   • Sound: plays the holster (place) / unholster (take) weapon sound, synced
+    --     to nearby players via the existing sounds module.
+    Animation           = {
+        FaceRack = true,
+        Sound    = true,
+        Place    = {
+            { Dict = 'mp_common', Anim = 'givetake1_a', Ms = 850 },
+        },
+        Take     = {
+            { Dict = 'mp_common', Anim = 'givetake2_a', Ms = 850 },
+        },
+    },
+    -- Optional map blip per rack location.
+    Blip                = { Enabled = false, Sprite = 110, Color = 1, Scale = 0.8, Label = 'Armory' },
+    -- ── Conversion seam (no-op without mbt_shooting) ──────────────────────────────
+    -- When true AND mbt_shooting is installed, retrieving a weapon class requires the
+    -- matching academy certification (enforced by shooting). Without shooting this
+    -- NEVER blocks — the rack UI just surfaces the requirement as info. Free build = seam only.
+    RequireCert         = false,
+    -- Static rack locations (always work, no DB). v1.1 adds in-world item placement.
+    -- id  = stable unique key (used as the persistence/sync key — keep it unique & stable).
+    -- job = nil/false → anyone; a job string → only that job may use the rack.
+    Locations           = {
+        -- { id = 'mrpd_armory', coords = vec4(452.6, -980.0, 30.7, 90.0),
+        --   prop = `xm_prop_xm_gunlocker_01a`, job = 'police', label = 'MRPD Armory' },
     },
 }
 

@@ -1,0 +1,151 @@
+/* RackPickerUI — key-driven weapon picker for the world weapon rack. Same card
+   language as InspectUI; each entry shows the weapon's forensic identity (engraved
+   name, serial, condition tier). Selection is driven from Lua (no mouse focus). */
+
+.rkp-overlay {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  --pos-transform: translateX(-50%);
+  z-index: 9998;
+  pointer-events: none;
+}
+
+.rkp-enter { animation: rkp-in var(--mbt-dur-slow) var(--mbt-ease) forwards; }
+.rkp-exit  { animation: rkp-out var(--mbt-dur-fast) var(--mbt-ease-exit) forwards; }
+
+@keyframes rkp-in {
+  from { opacity: 0; transform: var(--pos-transform) translateY(16px); }
+  to   { opacity: 1; transform: var(--pos-transform) translateY(0); }
+}
+@keyframes rkp-out {
+  from { opacity: 1; transform: var(--pos-transform) translateY(0); }
+  to   { opacity: 0; transform: var(--pos-transform) translateY(10px); }
+}
+
+/* ── Panel ── */
+.rkp-card {
+  width: 248px;
+  background: var(--mbt-surface-2);
+  border: 1px solid var(--mbt-edge-hi);
+  border-radius: 12px;
+  box-shadow: var(--mbt-shadow-overlay);
+  overflow: hidden;
+  font-family: var(--mbt-font-body);
+}
+
+/* ── Header ── */
+.rkp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 13px 8px;
+  border-bottom: 1px solid var(--mbt-edge-lo);
+}
+.rkp-label {
+  font-family: var(--mbt-font-mono);
+  font-size: 8.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--mbt-text-faint);
+}
+.rkp-count {
+  font-family: var(--mbt-font-mono);
+  font-size: 9px;
+  color: var(--mbt-text-lo);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── List ── */
+.rkp-list {
+  padding: 6px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+.rkp-entry {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  transition: background var(--mbt-dur-fast) var(--mbt-ease),
+              border-color var(--mbt-dur-fast) var(--mbt-ease);
+}
+.rkp-entry--sel {
+  background: rgba(var(--mbt-accent-rgb), 0.08);
+  border-color: rgba(var(--mbt-accent-rgb), 0.3);
+}
+
+.rkp-marker {
+  flex: none;
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--mbt-edge-hi);
+  transition: background var(--mbt-dur-fast) var(--mbt-ease);
+}
+.rkp-entry--sel .rkp-marker { background: var(--mbt-accent); }
+
+.rkp-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.rkp-name {
+  font-family: var(--mbt-font-display);
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--mbt-text-mid);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  transition: color var(--mbt-dur-fast) var(--mbt-ease);
+}
+.rkp-entry--sel .rkp-name { color: var(--mbt-text-hi); }
+.rkp-serial {
+  font-family: var(--mbt-font-mono);
+  font-size: 9px;
+  color: var(--mbt-text-faint);
+  letter-spacing: 0.04em;
+}
+
+.rkp-cond {
+  flex: none;
+  font-family: var(--mbt-font-mono);
+  font-size: 8.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--mbt-text-faint);
+  border: 1px solid var(--mbt-edge-lo);
+  border-radius: var(--mbt-r-pill);
+  padding: 1px 7px;
+}
+.rkp-cond--good { color: var(--mbt-operational); border-color: rgba(74, 222, 128, 0.25); }
+.rkp-cond--warn { color: var(--mbt-hacked);      border-color: rgba(251, 146, 60, 0.25); }
+.rkp-cond--bad  { color: var(--mbt-faulty);      border-color: rgba(248, 113, 113, 0.25); }
+
+/* ── Footer (key hints) ── */
+.rkp-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 8px 13px 9px;
+  border-top: 1px solid var(--mbt-edge-lo);
+}
+.rkp-hint { display: inline-flex; align-items: center; gap: 5px; }
+.rkp-hint-lbl {
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--mbt-text-lo);
+}
+.rkp-hint-lbl--primary { color: var(--mbt-text-hi); }
+
+@media (prefers-reduced-motion: reduce) {
+  .rkp-enter, .rkp-exit { animation: none; }
+  .rkp-entry, .rkp-marker, .rkp-name { transition: none; }
+}

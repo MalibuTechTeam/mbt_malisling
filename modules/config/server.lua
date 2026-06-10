@@ -43,7 +43,9 @@ local function snapshot()
     local SP, ND, VH, TS = MBT.ShowcasePoses or {}, MBT.NoDrawZones or {}, MBT.VehicleHiding or {}, MBT.TacticalSling or {}
     local VTR = MBT.VehicleTrunkRack or {}
     local CC = MBT.ChainOfCustody or {}
+    local WR = MBT.WeaponRack or {}
     local vat = VTR.AllowedTypes or {}
+    local war = WR.AllowedTypes or {}
     local TH, INS = MBT.Throw or {}, IN.Show or {}
     local thg = TH.Groups or {}
     local throwGroups = {}
@@ -150,6 +152,13 @@ local function snapshot()
             EquipOnRetrieve     = b(VTR.EquipOnRetrieve),
             AllowedTypes        = { back = b(vat['back']), back2 = b(vat['back2']) },
         },
+        WeaponRack = {
+            Enabled             = b(WR.Enabled),
+            Capacity            = num(WR.Capacity, 4),
+            InteractionDistance = num(WR.InteractionDistance, 2.0),
+            EquipOnRetrieve     = b(WR.EquipOnRetrieve),
+            AllowedTypes        = { back = b(war['back']), back2 = b(war['back2']), side = b(war['side']) },
+        },
         TacticalSling = { Enabled = b(TS.Enabled) },
     }
 end
@@ -253,6 +262,15 @@ local function validate(d)
     if type(vtr.EquipOnRetrieve) ~= 'boolean' then return false end
     if type(vtr.AllowedTypes) ~= 'table'
         or type(vtr.AllowedTypes.back) ~= 'boolean' or type(vtr.AllowedTypes.back2) ~= 'boolean' then return false end
+    -- Weapon Rack
+    local wr = d.WeaponRack
+    if type(wr) ~= 'table' or type(wr.Enabled) ~= 'boolean' then return false end
+    if type(wr.Capacity) ~= 'number' or wr.Capacity < 1 or wr.Capacity > 12 then return false end
+    if type(wr.InteractionDistance) ~= 'number' or wr.InteractionDistance < 1 or wr.InteractionDistance > 10 then return false end
+    if type(wr.EquipOnRetrieve) ~= 'boolean' then return false end
+    if type(wr.AllowedTypes) ~= 'table'
+        or type(wr.AllowedTypes.back) ~= 'boolean' or type(wr.AllowedTypes.back2) ~= 'boolean'
+        or type(wr.AllowedTypes.side) ~= 'boolean' then return false end
     -- Tactical Sling
     local ts = d.TacticalSling
     if type(ts) ~= 'table' or type(ts.Enabled) ~= 'boolean' then return false end
@@ -340,6 +358,17 @@ local function applyToMBT(d)
             ['back2'] = d.VehicleTrunkRack.AllowedTypes.back2,
         }
     end
+    if MBT.WeaponRack then
+        MBT.WeaponRack.Enabled             = d.WeaponRack.Enabled
+        MBT.WeaponRack.Capacity            = d.WeaponRack.Capacity
+        MBT.WeaponRack.InteractionDistance = d.WeaponRack.InteractionDistance
+        MBT.WeaponRack.EquipOnRetrieve     = d.WeaponRack.EquipOnRetrieve
+        MBT.WeaponRack.AllowedTypes        = {
+            ['back']  = d.WeaponRack.AllowedTypes.back,
+            ['back2'] = d.WeaponRack.AllowedTypes.back2,
+            ['side']  = d.WeaponRack.AllowedTypes.side,
+        }
+    end
     MBT.TacticalSling.Enabled = d.TacticalSling.Enabled
 end
 
@@ -366,6 +395,7 @@ local function persistable(d)
         NoDrawZones = d.NoDrawZones,
         VehicleHiding = d.VehicleHiding,
         VehicleTrunkRack = d.VehicleTrunkRack,
+        WeaponRack = d.WeaponRack,
         TacticalSling = d.TacticalSling,
     }
 end

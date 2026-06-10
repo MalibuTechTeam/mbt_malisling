@@ -66,6 +66,24 @@ RegisterLocale('fr', {
     ['trunk_inv_full_title']    = 'Coffre',
     ['trunk_inv_full_desc']     = 'Espace d\'inventaire insuffisant.',
 
+    -- Râtelier d'armes / casier
+    ['rack_stow']               = 'Placer l\'arme sur le râtelier',
+    ['rack_retrieve']           = 'Prendre l\'arme du râtelier',
+    ['rack_full_title']         = 'Râtelier Plein',
+    ['rack_full_desc']          = 'Plus de place sur ce râtelier.',
+    ['rack_wrong_type_title']   = 'Râtelier',
+    ['rack_wrong_type_desc']    = 'Cette arme ne va pas sur le râtelier.',
+    ['rack_no_access_title']    = 'Râtelier',
+    ['rack_no_access_desc']     = 'Vous n\'avez pas accès à ce râtelier.',
+    ['rack_inv_full_title']     = 'Râtelier',
+    ['rack_inv_full_desc']      = 'Espace d\'inventaire insuffisant.',
+    ['rack_no_cert_title']      = 'Râtelier',
+    ['rack_no_cert_desc']       = 'Vous n\'êtes pas certifié pour cette arme.',
+    ['rack_picker_title']       = 'RÂTELIER',
+    ['rack_picker_select']      = 'Choisir',
+    ['rack_picker_take']        = 'Prendre',
+    ['rack_picker_cancel']      = 'Annuler',
+
     -- NUI: holster prompt
     ['holster_title']           = 'RANGER L\'ARME',
     ['holster_action']          = 'Ranger',

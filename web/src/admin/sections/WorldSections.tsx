@@ -89,6 +89,44 @@ export function TrunkRackSection({ config, update }: SectionProps) {
   )
 }
 
+/** Weapon Rack / Gun Locker — stow weapons on a fixed world rack (oxmysql-persisted).
+ *  Rack locations, props and offsets are defined in config.lua (MBT.WeaponRack.Locations). */
+export function WeaponRackSection({ config, update }: SectionProps) {
+  const t = config.WeaponRack ?? {}
+  const at = t.AllowedTypes ?? {}
+  return (
+    <Section icon="layers" title="WEAPON RACK" sub="Stow weapons on fixed world racks / gun lockers."
+      action={<ToggleRow.Inline checked={!!t.Enabled} onChange={(v) => update('WeaponRack.Enabled', v)} />}>
+      <FieldBlock label="Allowed Weapons" hint="Which weapon types can go on a rack.">
+        <Grid2>
+          <ToggleRow title="Rifles / Long guns" checked={!!at.back}
+            onChange={(v) => update('WeaponRack.AllowedTypes.back', v)} />
+          <ToggleRow title="Heavy / Launchers" checked={!!at.back2}
+            onChange={(v) => update('WeaponRack.AllowedTypes.back2', v)} />
+        </Grid2>
+        <ToggleRow title="Pistols / Sidearms" checked={!!at.side}
+          onChange={(v) => update('WeaponRack.AllowedTypes.side', v)} />
+      </FieldBlock>
+      <Grid2>
+        <FieldBlock label="Capacity" hint="Max weapons per rack." style={{ marginBottom: 0 }}>
+          <NumberInput min={1} max={12} step={1} value={String(t.Capacity ?? 4)}
+            onChange={numUpdate(update, 'WeaponRack.Capacity', 4, true)} />
+        </FieldBlock>
+        <FieldBlock label="Reach (m)" hint="Interaction distance at the rack." style={{ marginBottom: 0 }}>
+          <NumberInput min={1} max={10} step={0.5} value={String(t.InteractionDistance ?? 2.0)}
+            onChange={numUpdate(update, 'WeaponRack.InteractionDistance', 2.0)} />
+        </FieldBlock>
+      </Grid2>
+      <ToggleRow title="Retrieve to Hand" desc="Take the weapon straight into hand on retrieve (ox + qb)"
+        checked={!!t.EquipOnRetrieve} onChange={(v) => update('WeaponRack.EquipOnRetrieve', v)} />
+      <div className="mbt-field__hint" style={{ marginTop: 2 }}>
+        Rack locations, props and per-type offsets live in <code>config.lua</code>
+        (<code>MBT.WeaponRack.Locations</code>) — along with per-job access &amp; certification gating.
+      </div>
+    </Section>
+  )
+}
+
 const VEHICLE_CLASSES: Record<number, string> = {
   0: 'Compacts', 1: 'Sedans', 2: 'SUVs', 3: 'Coupes', 4: 'Muscle', 5: 'Sports Classics',
   6: 'Sports', 7: 'Super', 8: 'Motorcycles', 9: 'Off-road', 10: 'Industrial', 11: 'Utility',

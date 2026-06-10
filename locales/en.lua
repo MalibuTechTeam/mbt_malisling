@@ -66,6 +66,24 @@ RegisterLocale('en', {
     ['trunk_inv_full_title']    = 'Trunk',
     ['trunk_inv_full_desc']     = 'Not enough inventory space.',
 
+    -- Weapon rack / gun locker
+    ['rack_stow']               = 'Place weapon on rack',
+    ['rack_retrieve']           = 'Take weapon from rack',
+    ['rack_full_title']         = 'Rack Full',
+    ['rack_full_desc']          = 'No more room on this rack.',
+    ['rack_wrong_type_title']   = 'Weapon Rack',
+    ['rack_wrong_type_desc']    = 'This weapon can\'t go on the rack.',
+    ['rack_no_access_title']    = 'Weapon Rack',
+    ['rack_no_access_desc']     = 'You don\'t have access to this rack.',
+    ['rack_inv_full_title']     = 'Weapon Rack',
+    ['rack_inv_full_desc']      = 'Not enough inventory space.',
+    ['rack_no_cert_title']      = 'Weapon Rack',
+    ['rack_no_cert_desc']       = 'You aren\'t certified for this weapon.',
+    ['rack_picker_title']       = 'WEAPON RACK',
+    ['rack_picker_select']      = 'Select',
+    ['rack_picker_take']        = 'Take',
+    ['rack_picker_cancel']      = 'Cancel',
+
     -- NUI: holster prompt
     ['holster_title']           = 'HOLSTER WEAPON',
     ['holster_action']          = 'Holster',

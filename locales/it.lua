@@ -66,6 +66,24 @@ RegisterLocale('it', {
     ['trunk_inv_full_title']    = 'Bagagliaio',
     ['trunk_inv_full_desc']     = 'Spazio inventario insufficiente.',
 
+    -- Rastrelliera armi / armadietto
+    ['rack_stow']               = 'Riponi arma sulla rastrelliera',
+    ['rack_retrieve']           = 'Prendi arma dalla rastrelliera',
+    ['rack_full_title']         = 'Rastrelliera Piena',
+    ['rack_full_desc']          = 'Non c\'è più spazio su questa rastrelliera.',
+    ['rack_wrong_type_title']   = 'Rastrelliera',
+    ['rack_wrong_type_desc']    = 'Quest\'arma non può andare sulla rastrelliera.',
+    ['rack_no_access_title']    = 'Rastrelliera',
+    ['rack_no_access_desc']     = 'Non hai accesso a questa rastrelliera.',
+    ['rack_inv_full_title']     = 'Rastrelliera',
+    ['rack_inv_full_desc']      = 'Spazio inventario insufficiente.',
+    ['rack_no_cert_title']      = 'Rastrelliera',
+    ['rack_no_cert_desc']       = 'Non sei certificato per quest\'arma.',
+    ['rack_picker_title']       = 'RASTRELLIERA',
+    ['rack_picker_select']      = 'Seleziona',
+    ['rack_picker_take']        = 'Prendi',
+    ['rack_picker_cancel']      = 'Annulla',
+
     -- NUI: holster prompt
     ['holster_title']           = 'RIPONI ARMA',
     ['holster_action']          = 'Riponi',

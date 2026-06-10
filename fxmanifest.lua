@@ -47,6 +47,7 @@ server_scripts {
     'modules/vehicle_trunk_rack/server.lua',
     'modules/prop_position_editor/server.lua',
     'modules/chain_of_custody/server.lua',
+    'modules/weapon_rack/server.lua',
     'modules/config/server.lua',
     'core/server.lua',
 }
@@ -77,6 +78,7 @@ client_scripts {
     'modules/charge_weapon/client.lua',
     'modules/showcase_poses/client.lua',
     'modules/vehicle_trunk_rack/client.lua',
+    'modules/weapon_rack/client.lua',
     'modules/prop_position_editor/client.lua',
     'modules/no_draw_zones/client.lua',
     'modules/prop_editor/client.lua',
