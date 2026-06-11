@@ -135,7 +135,10 @@ $excludeFiles = @(
     '*.bak',
     '*.swp',
     '.DS_Store',
-    'Thumbs.db'
+    'Thumbs.db',
+    # Server-side saved state: lives only on the server, /MIR must never purge it
+    # (deleting it wipes the admin dashboard's saved toggles on every deploy).
+    'runtime_config.json'
 )
 
 $robocopyArgs = @($Src, $Dest) + $robocopyOpts
