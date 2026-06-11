@@ -9,6 +9,8 @@ import NoDrawUI from './components/NoDrawUI'
 import WeaponStatusUI from './components/WeaponStatusUI'
 import PoseHUD from './components/PoseHUD'
 import RackPickerUI from './components/RackPickerUI'
+import EvidenceUI from './components/EvidenceUI'
+import HandoffUI from './components/HandoffUI'
 import AdminDashboard from './admin/AdminDashboard'
 
 debugData([{
@@ -73,6 +75,18 @@ debugData([{
 debugData([{ action: 'updateRackPicker', data: { index: 2 } }], 25500)
 debugData([{ action: 'hideRackPicker', data: {} }], 28000)
 
+debugData([{
+  action: 'showEvidence',
+  data: { weapon: 'WEAPON_PISTOL', serial: 'A7••••9Q', agoMin: 5 },
+}], 28500)
+debugData([{ action: 'hideEvidence', data: {} }], 31500)
+
+debugData([{
+  action: 'showHandoff',
+  data: { fromName: 'John Doe', weapon: 'WEAPON_CARBINERIFLE', label: 'Punisher', serial: 'A7F-3K9Q' },
+}], 32000)
+debugData([{ action: 'hideHandoff', data: {} }], 35500)
+
 export default function App() {
   useNuiEvent<{ file: string; volume: number }>('playHolsterSound', ({ file, volume }) => {
     const audio = new Audio(`sounds/${file}.ogg`)
@@ -89,6 +103,8 @@ export default function App() {
       <WeaponStatusUI />
       <PoseHUD />
       <RackPickerUI />
+      <EvidenceUI />
+      <HandoffUI />
       <AdminDashboard />
     </>
   )

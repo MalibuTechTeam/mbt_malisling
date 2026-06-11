@@ -1,0 +1,103 @@
+/* HandoffUI — incoming weapon-offer prompt. Same pill recipe as HolsterUI
+   (accent corner glow + surface gradient + accent-tinted edge): row 1 = icon +
+   "<player> offers you <weapon>", row 2 = accept/decline key hints. */
+
+.hof-pill {
+  position: fixed;
+  bottom: 140px;
+  left: 50%;
+  transform: translateX(-50%);
+  --pos-transform: translateX(-50%);
+  z-index: 9999;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: stretch;
+  padding: 9px 12px;
+  border-radius: 12px;
+  background:
+    radial-gradient(120% 180% at 0% 0%, var(--mbt-accent-soft), transparent 55%),
+    linear-gradient(180deg, var(--mbt-surface-2), var(--mbt-surface-1));
+  border: 1px solid rgba(var(--mbt-accent-rgb), 0.18);
+  box-shadow:
+    var(--mbt-shadow-overlay),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  font-family: var(--mbt-font-body);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.hof-enter { animation: hof-in var(--mbt-dur-fast) var(--mbt-ease) forwards; }
+.hof-exit  { animation: hof-out var(--mbt-dur-fast) var(--mbt-ease-exit) forwards; }
+
+@keyframes hof-in {
+  from { opacity: 0; transform: var(--pos-transform) translateY(12px) scale(0.98); }
+  to   { opacity: 1; transform: var(--pos-transform) translateY(0) scale(1); }
+}
+@keyframes hof-out {
+  from { opacity: 1; transform: var(--pos-transform) translateY(0); }
+  to   { opacity: 0; transform: var(--pos-transform) translateY(8px); }
+}
+
+/* ── Row 1 ── */
+.hof-top {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--mbt-edge-lo);
+}
+.hof-ic {
+  width: 24px;
+  height: 24px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  background: var(--mbt-accent-soft);
+  border: 1px solid rgba(var(--mbt-accent-rgb), 0.25);
+  color: var(--mbt-accent);
+}
+.hof-ic svg { width: 14px; height: 14px; }
+
+.hof-tx {
+  font-family: var(--mbt-font-display);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--mbt-text-mid);
+}
+.hof-from { color: var(--mbt-text-hi); font-weight: 700; }
+.hof-tx em {
+  font-style: normal;
+  color: var(--mbt-accent);
+  font-weight: 700;
+}
+.hof-serial {
+  margin-left: 7px;
+  font-family: var(--mbt-font-mono);
+  font-size: 9px;
+  letter-spacing: 0.05em;
+  text-transform: none;
+  color: var(--mbt-text-faint);
+}
+
+/* ── Row 2: key hints ── */
+.hof-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding-top: 8px;
+}
+.hof-hint { display: inline-flex; align-items: center; gap: 5px; }
+.hof-lbl {
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--mbt-text-lo);
+}
+.hof-lbl--primary { color: var(--mbt-text-hi); }
+
+@media (prefers-reduced-motion: reduce) {
+  .hof-enter, .hof-exit { animation: none; }
+}

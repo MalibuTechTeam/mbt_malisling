@@ -44,6 +44,8 @@ local function snapshot()
     local VTR = MBT.VehicleTrunkRack or {}
     local CC = MBT.ChainOfCustody or {}
     local WR = MBT.WeaponRack or {}
+    local SC = MBT.ShellCasings or {}
+    local HO = MBT.Handoff or {}
     local vat = VTR.AllowedTypes or {}
     local war = WR.AllowedTypes or {}
     local TH, INS = MBT.Throw or {}, IN.Show or {}
@@ -168,6 +170,20 @@ local function snapshot()
             },
         },
         TacticalSling = { Enabled = b(TS.Enabled) },
+        ShellCasings = {
+            Enabled       = b(SC.Enabled),
+            Chance        = num(SC.Chance, 0.5),
+            ExpireMinutes = num(SC.ExpireMinutes, 30),
+            MaxCasings    = num(SC.MaxCasings, 150),
+            SerialReveal  = (SC.SerialReveal == 'full' or SC.SerialReveal == 'none')
+                            and SC.SerialReveal or 'partial',
+            AllowCollect  = b(SC.AllowCollect),
+        },
+        Handoff = {
+            Enabled       = b(HO.Enabled),
+            MaxDistance   = num(HO.MaxDistance, 2.5),
+            EquipOnAccept = b(HO.EquipOnAccept),
+        },
     }
 end
 
@@ -288,6 +304,17 @@ local function validate(d)
     -- Tactical Sling
     local ts = d.TacticalSling
     if type(ts) ~= 'table' or type(ts.Enabled) ~= 'boolean' then return false end
+    -- Shell Casings
+    local sc = d.ShellCasings
+    if type(sc) ~= 'table' or type(sc.Enabled) ~= 'boolean' or type(sc.AllowCollect) ~= 'boolean' then return false end
+    if type(sc.Chance) ~= 'number' or sc.Chance < 0 or sc.Chance > 1 then return false end
+    if type(sc.ExpireMinutes) ~= 'number' or sc.ExpireMinutes < 1 or sc.ExpireMinutes > 720 then return false end
+    if type(sc.MaxCasings) ~= 'number' or sc.MaxCasings < 10 or sc.MaxCasings > 1000 then return false end
+    if sc.SerialReveal ~= 'partial' and sc.SerialReveal ~= 'full' and sc.SerialReveal ~= 'none' then return false end
+    -- Handoff
+    local ho = d.Handoff
+    if type(ho) ~= 'table' or type(ho.Enabled) ~= 'boolean' or type(ho.EquipOnAccept) ~= 'boolean' then return false end
+    if type(ho.MaxDistance) ~= 'number' or ho.MaxDistance < 1 or ho.MaxDistance > 10 then return false end
     return true
 end
 
@@ -392,6 +419,19 @@ local function applyToMBT(d)
         MBT.WeaponRack.Placement.Access       = d.WeaponRack.Placement.Access
     end
     MBT.TacticalSling.Enabled = d.TacticalSling.Enabled
+    if MBT.ShellCasings then
+        MBT.ShellCasings.Enabled       = d.ShellCasings.Enabled
+        MBT.ShellCasings.Chance        = d.ShellCasings.Chance
+        MBT.ShellCasings.ExpireMinutes = d.ShellCasings.ExpireMinutes
+        MBT.ShellCasings.MaxCasings    = d.ShellCasings.MaxCasings
+        MBT.ShellCasings.SerialReveal  = d.ShellCasings.SerialReveal
+        MBT.ShellCasings.AllowCollect  = d.ShellCasings.AllowCollect
+    end
+    if MBT.Handoff then
+        MBT.Handoff.Enabled       = d.Handoff.Enabled
+        MBT.Handoff.MaxDistance   = d.Handoff.MaxDistance
+        MBT.Handoff.EquipOnAccept = d.Handoff.EquipOnAccept
+    end
 end
 
 --- The editable subset that gets persisted (overview-only flags excluded).
@@ -419,6 +459,8 @@ local function persistable(d)
         VehicleTrunkRack = d.VehicleTrunkRack,
         WeaponRack = d.WeaponRack,
         TacticalSling = d.TacticalSling,
+        ShellCasings = d.ShellCasings,
+        Handoff = d.Handoff,
     }
 end
 

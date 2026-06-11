@@ -120,3 +120,58 @@ export function ChainOfCustodySection({ config, update }: SectionProps) {
     </Section>
   )
 }
+
+/** Physical Weapon Handoff — hand the drawn weapon to a nearby player. */
+export function HandoffSection({ config, update }: SectionProps) {
+  const h = config.Handoff ?? {}
+  return (
+    <Section icon="cursor" title="WEAPON HANDOFF" sub="Hand your drawn weapon to a nearby player, hand-to-hand."
+      action={<ToggleRow.Inline checked={!!h.Enabled} onChange={(v) => update('Handoff.Enabled', v)} />}>
+      <FieldBlock label="Reach (m)" hint="How close the receiver must be.">
+        <NumberInput min={1} max={10} step={0.5} value={String(h.MaxDistance ?? 2.5)}
+          onChange={numUpdate(update, 'Handoff.MaxDistance', 2.5)} />
+      </FieldBlock>
+      <ToggleRow title="Equip on Accept" desc="The receiver takes the weapon straight into hand (ox)"
+        checked={!!h.EquipOnAccept} onChange={(v) => update('Handoff.EquipOnAccept', v)} />
+      <div className="mbt-field__hint" style={{ marginTop: 2 }}>
+        The handoff key and the give/take animation clips live in <code>config.lua</code> (<code>MBT.Handoff</code>).
+        Serial, condition, custom name and Chain of Custody travel with the weapon.
+      </div>
+    </Section>
+  )
+}
+
+/** Forensic Shell Casings — gunfire leaves serial-linked casings on the ground. */
+const SERIAL_REVEALS = [
+  { value: 'none',    label: 'None' },
+  { value: 'partial', label: 'Partial' },
+  { value: 'full',    label: 'Full' },
+]
+export function ShellCasingsSection({ config, update }: SectionProps) {
+  const s = config.ShellCasings ?? {}
+  return (
+    <Section icon="search" title="SHELL CASINGS" sub="Gunfire leaves serial-linked casings on the ground (Forensics)."
+      action={<ToggleRow.Inline checked={!!s.Enabled} onChange={(v) => update('ShellCasings.Enabled', v)} />}>
+      <Grid2>
+        <FieldBlock label="Drop Chance" hint="Probability (0–1) a shot leaves a recoverable casing." style={{ marginBottom: 0 }}>
+          <NumberInput min={0} max={1} step={0.05} value={String(s.Chance ?? 0.5)}
+            onChange={numUpdate(update, 'ShellCasings.Chance', 0.5)} />
+        </FieldBlock>
+        <FieldBlock label="Expire (min)" hint="Casings disappear after this long." style={{ marginBottom: 0 }}>
+          <NumberInput min={1} max={720} step={5} value={String(s.ExpireMinutes ?? 30)}
+            onChange={numUpdate(update, 'ShellCasings.ExpireMinutes', 30, true)} />
+        </FieldBlock>
+      </Grid2>
+      <FieldBlock label="Serial Reveal" hint="What examining a casing shows of the weapon's serial.">
+        <Segmented value={s.SerialReveal ?? 'partial'} options={SERIAL_REVEALS}
+          onChange={(v) => update('ShellCasings.SerialReveal', v)} />
+      </FieldBlock>
+      <ToggleRow title="Allow Collect" desc="Casings can be picked up — criminals can clean the scene"
+        checked={s.AllowCollect !== false} onChange={(v) => update('ShellCasings.AllowCollect', v)} />
+      <FieldBlock label="World Cap" hint="Max casings in the world (oldest removed first)." style={{ marginBottom: 0 }}>
+        <NumberInput min={10} max={1000} step={10} value={String(s.MaxCasings ?? 150)}
+          onChange={numUpdate(update, 'ShellCasings.MaxCasings', 150, true)} />
+      </FieldBlock>
+    </Section>
+  )
+}

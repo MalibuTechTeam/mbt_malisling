@@ -173,6 +173,15 @@ local function applyConfig(d)
     if d.TacticalSling and MBT.TacticalSling then
         MBT.TacticalSling.Enabled = d.TacticalSling.Enabled
     end
+    if d.ShellCasings and MBT.ShellCasings then
+        MBT.ShellCasings.Enabled      = d.ShellCasings.Enabled
+        MBT.ShellCasings.AllowCollect = d.ShellCasings.AllowCollect
+    end
+    if d.Handoff and MBT.Handoff then
+        MBT.Handoff.Enabled       = d.Handoff.Enabled
+        MBT.Handoff.MaxDistance   = d.Handoff.MaxDistance
+        MBT.Handoff.EquipOnAccept = d.Handoff.EquipOnAccept
+    end
     Utils.mbtDebugger('Admin config applied live')
 end
 

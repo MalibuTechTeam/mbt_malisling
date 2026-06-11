@@ -96,6 +96,34 @@ RegisterLocale('en', {
     ['rack_not_empty_title']    = 'Gun Rack',
     ['rack_not_empty_desc']     = 'Empty the rack before picking it up.',
 
+    -- Forensic shell casings
+    ['casing_examine']          = 'Examine casing',
+    ['casing_collect']          = 'Collect casing',
+    ['casing_title']            = 'SHELL CASING',
+    ['casing_serial']           = 'Serial',
+    ['casing_fired']            = 'Fired',
+    ['casing_ago']              = '%d min ago',
+    ['casing_ago_now']          = 'moments ago',
+    ['casing_collected_title']  = 'Evidence',
+    ['casing_collected_desc']   = 'Casing collected.',
+
+    -- Physical weapon handoff
+    ['handoff_offers']          = 'offers you',
+    ['handoff_accept']          = 'Accept',
+    ['handoff_decline']         = 'Decline',
+    ['handoff_sent_title']      = 'Handoff',
+    ['handoff_sent_desc']       = 'Weapon offered — waiting for an answer.',
+    ['handoff_done_title']      = 'Handoff',
+    ['handoff_done_desc']       = 'Weapon handed over.',
+    ['handoff_declined_title']  = 'Handoff',
+    ['handoff_declined_desc']   = 'The offer was declined.',
+    ['handoff_no_target_title'] = 'Handoff',
+    ['handoff_no_target_desc']  = 'No one close enough to hand the weapon to.',
+    ['handoff_inv_full_title']  = 'Handoff',
+    ['handoff_inv_full_desc']   = 'The receiver has no inventory space.',
+    ['handoff_failed_title']    = 'Handoff',
+    ['handoff_failed_desc']     = 'The handoff failed.',
+
     -- NUI: holster prompt
     ['holster_title']           = 'HOLSTER WEAPON',
     ['holster_action']          = 'Holster',

@@ -96,6 +96,34 @@ RegisterLocale('fr', {
     ['rack_not_empty_title']    = 'Râtelier',
     ['rack_not_empty_desc']     = 'Videz le râtelier avant de le démonter.',
 
+    -- Douilles (forensique)
+    ['casing_examine']          = 'Examiner la douille',
+    ['casing_collect']          = 'Ramasser la douille',
+    ['casing_title']            = 'DOUILLE',
+    ['casing_serial']           = 'Série',
+    ['casing_fired']            = 'Tiré',
+    ['casing_ago']              = 'il y a %d min',
+    ['casing_ago_now']          = 'à l\'instant',
+    ['casing_collected_title']  = 'Preuve',
+    ['casing_collected_desc']   = 'Douille ramassée.',
+
+    -- Remise d'arme en main propre
+    ['handoff_offers']          = 'vous offre',
+    ['handoff_accept']          = 'Accepter',
+    ['handoff_decline']         = 'Refuser',
+    ['handoff_sent_title']      = 'Remise',
+    ['handoff_sent_desc']       = 'Arme offerte — en attente de réponse.',
+    ['handoff_done_title']      = 'Remise',
+    ['handoff_done_desc']       = 'Arme remise.',
+    ['handoff_declined_title']  = 'Remise',
+    ['handoff_declined_desc']   = 'L\'offre a été refusée.',
+    ['handoff_no_target_title'] = 'Remise',
+    ['handoff_no_target_desc']  = 'Personne d\'assez proche pour remettre l\'arme.',
+    ['handoff_inv_full_title']  = 'Remise',
+    ['handoff_inv_full_desc']   = 'Le receveur n\'a pas de place dans son inventaire.',
+    ['handoff_failed_title']    = 'Remise',
+    ['handoff_failed_desc']     = 'La remise a échoué.',
+
     -- NUI: holster prompt
     ['holster_title']           = 'RANGER L\'ARME',
     ['holster_action']          = 'Ranger',

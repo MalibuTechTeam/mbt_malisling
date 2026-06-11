@@ -1,0 +1,83 @@
+/* EvidenceUI — shell-casing examine card (forensics). Same card language as
+   InspectUI, positioned slightly above it so the two can't overlap visually. */
+
+.evd-overlay {
+  position: fixed;
+  bottom: 220px;
+  left: 50%;
+  transform: translateX(-50%);
+  --pos-transform: translateX(-50%);
+  z-index: 9997;
+  pointer-events: none;
+}
+
+.evd-enter { animation: evd-in var(--mbt-dur-slow) var(--mbt-ease) forwards; }
+.evd-exit  { animation: evd-out var(--mbt-dur-fast) var(--mbt-ease-exit) forwards; }
+
+@keyframes evd-in {
+  from { opacity: 0; transform: var(--pos-transform) translateY(12px); }
+  to   { opacity: 1; transform: var(--pos-transform) translateY(0); }
+}
+@keyframes evd-out {
+  from { opacity: 1; transform: var(--pos-transform) translateY(0); }
+  to   { opacity: 0; transform: var(--pos-transform) translateY(8px); }
+}
+
+.evd-card {
+  width: 200px;
+  background: var(--mbt-surface-2);
+  border: 1px solid var(--mbt-edge-hi);
+  border-radius: 12px;
+  box-shadow: var(--mbt-shadow-overlay);
+  overflow: hidden;
+  font-family: var(--mbt-font-body);
+}
+
+.evd-header {
+  padding: 9px 13px 8px;
+  border-bottom: 1px solid var(--mbt-edge-lo);
+}
+.evd-label {
+  display: block;
+  font-family: var(--mbt-font-mono);
+  font-size: 8.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--mbt-accent);
+}
+.evd-weapon {
+  display: block;
+  font-family: var(--mbt-font-display);
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--mbt-text-hi);
+  margin-top: 1px;
+}
+
+.evd-body { padding: 4px 13px 10px; }
+.evd-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--mbt-edge-lo);
+}
+.evd-row:last-child { border-bottom: none; }
+.evd-row-label {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--mbt-text-lo);
+}
+.evd-row-value {
+  font-family: var(--mbt-font-mono);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--mbt-text-hi);
+  font-variant-numeric: tabular-nums;
+}
+.evd-row-value--dim { color: var(--mbt-text-mid); }
+
+@media (prefers-reduced-motion: reduce) {
+  .evd-enter, .evd-exit { animation: none; }
+}

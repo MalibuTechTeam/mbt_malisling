@@ -96,6 +96,34 @@ RegisterLocale('it', {
     ['rack_not_empty_title']    = 'Rastrelliera',
     ['rack_not_empty_desc']     = 'Svuota la rastrelliera prima di smontarla.',
 
+    -- Bossoli forensi
+    ['casing_examine']          = 'Esamina bossolo',
+    ['casing_collect']          = 'Raccogli bossolo',
+    ['casing_title']            = 'BOSSOLO',
+    ['casing_serial']           = 'Seriale',
+    ['casing_fired']            = 'Sparato',
+    ['casing_ago']              = '%d min fa',
+    ['casing_ago_now']          = 'pochi istanti fa',
+    ['casing_collected_title']  = 'Prova',
+    ['casing_collected_desc']   = 'Bossolo raccolto.',
+
+    -- Passaggio arma fisico
+    ['handoff_offers']          = 'ti offre',
+    ['handoff_accept']          = 'Accetta',
+    ['handoff_decline']         = 'Rifiuta',
+    ['handoff_sent_title']      = 'Passaggio',
+    ['handoff_sent_desc']       = 'Arma offerta — in attesa di risposta.',
+    ['handoff_done_title']      = 'Passaggio',
+    ['handoff_done_desc']       = 'Arma consegnata.',
+    ['handoff_declined_title']  = 'Passaggio',
+    ['handoff_declined_desc']   = 'L\'offerta è stata rifiutata.',
+    ['handoff_no_target_title'] = 'Passaggio',
+    ['handoff_no_target_desc']  = 'Nessuno abbastanza vicino a cui passare l\'arma.',
+    ['handoff_inv_full_title']  = 'Passaggio',
+    ['handoff_inv_full_desc']   = 'Chi riceve non ha spazio in inventario.',
+    ['handoff_failed_title']    = 'Passaggio',
+    ['handoff_failed_desc']     = 'Il passaggio non è riuscito.',
+
     -- NUI: holster prompt
     ['holster_title']           = 'RIPONI ARMA',
     ['holster_action']          = 'Riponi',

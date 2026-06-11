@@ -123,6 +123,48 @@ MBT.Labels             = {
         ["type"]     = "error",
         ["icon"]     = "fa-solid fa-box-archive",
     },
+    ["casing_collected"] = {
+        ["titleKey"] = "casing_collected_title",
+        ["descKey"]  = "casing_collected_desc",
+        ["type"]     = "success",
+        ["icon"]     = "fa-solid fa-magnifying-glass",
+    },
+    ["handoff_sent"] = {
+        ["titleKey"] = "handoff_sent_title",
+        ["descKey"]  = "handoff_sent_desc",
+        ["type"]     = "inform",
+        ["icon"]     = "fa-solid fa-hand-holding",
+    },
+    ["handoff_done"] = {
+        ["titleKey"] = "handoff_done_title",
+        ["descKey"]  = "handoff_done_desc",
+        ["type"]     = "success",
+        ["icon"]     = "fa-solid fa-hand-holding",
+    },
+    ["handoff_declined"] = {
+        ["titleKey"] = "handoff_declined_title",
+        ["descKey"]  = "handoff_declined_desc",
+        ["type"]     = "inform",
+        ["icon"]     = "fa-solid fa-hand",
+    },
+    ["handoff_no_target"] = {
+        ["titleKey"] = "handoff_no_target_title",
+        ["descKey"]  = "handoff_no_target_desc",
+        ["type"]     = "inform",
+        ["icon"]     = "fa-solid fa-person-circle-question",
+    },
+    ["handoff_inv_full"] = {
+        ["titleKey"] = "handoff_inv_full_title",
+        ["descKey"]  = "handoff_inv_full_desc",
+        ["type"]     = "error",
+        ["icon"]     = "fa-solid fa-box-archive",
+    },
+    ["handoff_failed"] = {
+        ["titleKey"] = "handoff_failed_title",
+        ["descKey"]  = "handoff_failed_desc",
+        ["type"]     = "error",
+        ["icon"]     = "fa-solid fa-hand",
+    },
     ["has_jammed"] = {
         ["titleKey"] = "jam_jammed_title",
         ["descKey"]  = "jam_jammed_desc",
@@ -745,6 +787,53 @@ MBT.Inspect            = {
         { Min = 10, Key = 'cond_poor' },
         { Min = 0,  Key = 'cond_damaged' },
     },
+}
+
+-- ── Physical Weapon Handoff ───────────────────────────────────────────────────
+-- Hand your drawn weapon to a nearby player, hand-to-hand — no dropping it on the
+-- ground. Press the handoff key while holding a weapon near someone: they get a
+-- key-driven prompt (accept/decline); on accept both play a synced give/take
+-- gesture and the weapon moves atomically WITH its metadata (serial, condition,
+-- custom name — and Chain of Custody records the new holder on equip).
+MBT.Handoff            = {
+    Enabled          = true,
+    Key              = 'G',      -- handoff key (hold a weapon, face a nearby player)
+    MaxDistance      = 2.5,      -- how close the receiver must be
+    RequestTimeoutMs = 8000,     -- offer expires if not answered
+    EquipOnAccept    = false,    -- receiver takes the weapon straight into hand (ox)
+    Animation        = {
+        GiveDict = 'mp_common', GiveAnim = 'givetake1_a', GiveMs = 900,
+        TakeDict = 'mp_common', TakeAnim = 'givetake2_a', TakeMs = 900,
+    },
+}
+
+-- ── Forensic Shell Casings ────────────────────────────────────────────────────
+-- Firing leaves recoverable shell casings on the ground, linked to the weapon's
+-- SERIAL. Anyone can examine a casing (weapon family + masked serial + how long
+-- ago it was fired — configurable) and, if allowed, collect it to clean the scene.
+-- Pairs with Chain of Custody: a recovered serial → the holder ledger = a full
+-- free forensics loop. Casings are ephemeral by design (in-memory, capped,
+-- expiring) — no DB. GTA's own ejected brass is a particle effect (not an
+-- entity), so the persistent layer is ours: a subtle ground glint by default;
+-- servers with a streamed casing model can set Prop to spawn physical casings.
+MBT.ShellCasings       = {
+    Enabled       = true,
+    Chance        = 0.5,      -- probability (0-1, rolled server-side) a shot leaves a casing
+    MinIntervalMs = 1200,     -- per-player throttle between casings (burst-proof)
+    ExpireMinutes = 30,       -- casings disappear after this long
+    MaxCasings    = 150,      -- global cap (oldest removed first)
+    GlintRange    = 12.0,     -- distance at which the ground glint is drawn
+    InteractRange = 1.2,      -- examine/collect reach
+    -- What the examine card reveals of the serial: 'partial' (A7••••9Q) | 'full' | 'none'
+    SerialReveal  = 'partial',
+    -- Who can EXAMINE: false = everyone; or a job whitelist { ['police'] = true }
+    ExamineJobs   = false,
+    AllowCollect  = true,     -- pick casings up (criminals cleaning the scene)
+    -- Optional physical casing prop (streamed custom model, e.g. from your stream/
+    -- folder). nil = ground glint (no asset needed).
+    Prop          = nil,
+    -- Weapon types that never leave casings (data/weapons.lua types).
+    ExcludeTypes  = { ['melee'] = true, ['melee2'] = true, ['melee3'] = true, ['extinguisher'] = true },
 }
 
 -- ── Chain of Custody (Forensics) ──────────────────────────────────────────────
