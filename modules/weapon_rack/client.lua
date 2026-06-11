@@ -354,7 +354,7 @@ local function despawnRack(id)
     if sr.prop and DoesEntityExist(sr.prop) then
         if GetResourceState('ox_target') == 'started' then
             pcall(function() exports.ox_target:removeLocalEntity(sr.prop, {
-                'mbt_rack_stow_' .. id, 'mbt_rack_retrieve_' .. id }) end)
+                'mbt_rack_stow_' .. id, 'mbt_rack_retrieve_' .. id, 'mbt_rack_pickup_' .. id }) end)
         end
         DeleteEntity(sr.prop)
     end

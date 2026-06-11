@@ -85,3 +85,16 @@ end)
 AddEventHandler('playerDropped', function()
     if source then lastToggle[source] = nil end
 end)
+
+-- Resource restart wipes the module's client state but the replicated statebag
+-- would survive → players stuck concealed with no way to toggle back. Clear all
+-- concealment on start; props re-sync through the normal init checkInventory.
+AddEventHandler('onServerResourceStart', function(res)
+    if res ~= GetCurrentResourceName() then return end
+    for _, src in ipairs(GetPlayers()) do
+        local s = tonumber(src)
+        if s and Player(s).state.mbt_concealed then
+            Player(s).state:set('mbt_concealed', false, true)
+        end
+    end
+end)
