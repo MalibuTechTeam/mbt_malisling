@@ -158,6 +158,8 @@ local function snapshot()
             InteractionDistance = num(WR.InteractionDistance, 2.0),
             EquipOnRetrieve     = b(WR.EquipOnRetrieve),
             AllowedTypes        = { back = b(war['back']), back2 = b(war['back2']), side = b(war['side']) },
+            Logging             = { Enabled = b(WR.Logging and WR.Logging.Enabled),
+                                    Webhook = (WR.Logging and WR.Logging.Webhook) or '' },
         },
         TacticalSling = { Enabled = b(TS.Enabled) },
     }
@@ -271,6 +273,8 @@ local function validate(d)
     if type(wr.AllowedTypes) ~= 'table'
         or type(wr.AllowedTypes.back) ~= 'boolean' or type(wr.AllowedTypes.back2) ~= 'boolean'
         or type(wr.AllowedTypes.side) ~= 'boolean' then return false end
+    if type(wr.Logging) ~= 'table' or type(wr.Logging.Enabled) ~= 'boolean' then return false end
+    if type(wr.Logging.Webhook) ~= 'string' or #wr.Logging.Webhook > 300 then return false end
     -- Tactical Sling
     local ts = d.TacticalSling
     if type(ts) ~= 'table' or type(ts.Enabled) ~= 'boolean' then return false end
@@ -368,6 +372,9 @@ local function applyToMBT(d)
             ['back2'] = d.WeaponRack.AllowedTypes.back2,
             ['side']  = d.WeaponRack.AllowedTypes.side,
         }
+        MBT.WeaponRack.Logging = MBT.WeaponRack.Logging or {}
+        MBT.WeaponRack.Logging.Enabled = d.WeaponRack.Logging.Enabled
+        MBT.WeaponRack.Logging.Webhook = d.WeaponRack.Logging.Webhook
     end
     MBT.TacticalSling.Enabled = d.TacticalSling.Enabled
 end

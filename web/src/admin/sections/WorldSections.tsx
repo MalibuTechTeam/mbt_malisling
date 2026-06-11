@@ -119,9 +119,15 @@ export function WeaponRackSection({ config, update }: SectionProps) {
       </Grid2>
       <ToggleRow title="Retrieve to Hand" desc="Take the weapon straight into hand on retrieve (ox + qb)"
         checked={!!t.EquipOnRetrieve} onChange={(v) => update('WeaponRack.EquipOnRetrieve', v)} />
+      <ToggleRow title="Armory Log" desc="Log store/take (player, job, weapon, serial) to a Discord webhook"
+        checked={!!t.Logging?.Enabled} onChange={(v) => update('WeaponRack.Logging.Enabled', v)} />
+      <FieldBlock label="Discord Webhook" hint="Required — the armory log needs a webhook URL." style={{ marginBottom: 0 }}>
+        <input className="mbt-input" value={t.Logging?.Webhook ?? ''} placeholder="https://discord.com/api/webhooks/..."
+          onChange={(e) => update('WeaponRack.Logging.Webhook', e.target.value)} />
+      </FieldBlock>
       <div className="mbt-field__hint" style={{ marginTop: 2 }}>
         Rack locations, props and per-type offsets live in <code>config.lua</code>
-        (<code>MBT.WeaponRack.Locations</code>) — along with per-job access &amp; certification gating.
+        (<code>MBT.WeaponRack</code>) — along with per-job access &amp; certification gating.
       </div>
     </Section>
   )

@@ -117,6 +117,41 @@ local function canUse(src, loc)
     return getPlayerJob(src) == loc.job
 end
 
+--- Armory audit log → Discord webhook (fire-and-forget). Reads cfg.Logging fresh
+--- each call so the admin menu's live-apply takes effect without a restart.
+---@param src number
+---@param action 'store'|'take'
+---@param loc table        rack location (id/label)
+---@param entry table      { name, metadata }
+local function logRack(src, action, loc, entry)
+    local log = cfg.Logging or {}
+    if not log.Enabled or not log.Webhook or log.Webhook == '' then return end
+
+    local pname  = GetPlayerName(src) or 'unknown'
+    local serial = (entry.metadata and entry.metadata.serial) or 'n/a'
+    local label  = (entry.metadata and entry.metadata.label) or entry.name
+    local job    = getPlayerJob(src)
+    local stored = action == 'store'
+
+    local payload = {
+        username = log.BotName or 'MBT Armory',
+        embeds = { {
+            title = stored and 'Weapon Stored' or 'Weapon Taken',
+            color = stored and 3066993 or 15105570,   -- green / orange
+            fields = {
+                { name = 'Player', value = ('%s (%s)'):format(pname, src), inline = true },
+                { name = 'Job',    value = (job and job ~= '') and job or 'n/a', inline = true },
+                { name = 'Rack',   value = loc.label or loc.id, inline = true },
+                { name = 'Weapon', value = label,  inline = true },
+                { name = 'Serial', value = serial, inline = true },
+            },
+            footer = { text = ('item: %s · rack: %s'):format(entry.name, loc.id) },
+        } },
+    }
+    PerformHttpRequest(log.Webhook, function() end, 'POST',
+        json.encode(payload), { ['Content-Type'] = 'application/json' })
+end
+
 --- Shared guard for stow/retrieve: resolves the rack from its id, then runs
 --- rate / proximity / job checks. Returns (loc, ped) or (loc, ped, reason).
 local function guard(src, data)
@@ -159,6 +194,7 @@ lib.callback.register('mbt_malisling:weaponRack:stow', function(src, data)
     }
     saveRack(id)
     publishAll()
+    logRack(src, 'store', loc, item)
     return { ok = true }
 end)
 
@@ -186,6 +222,7 @@ lib.callback.register('mbt_malisling:weaponRack:retrieve', function(src, data)
     table.remove(racks[loc.id], index)
     saveRack(loc.id)
     publishAll()
+    logRack(src, 'take', loc, entry)
 
     -- Optional equip-on-retrieve: ox uses the returned slot (useSlot); qb finds the
     -- weapon client-side and triggers its normal use-weapon flow.

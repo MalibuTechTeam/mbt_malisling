@@ -630,6 +630,14 @@ MBT.WeaponRack         = {
     },
     -- Optional map blip per rack location.
     Blip                = { Enabled = false, Sprite = 110, Color = 1, Scale = 0.8, Label = 'Armory' },
+    -- Armory audit log → Discord webhook: who stored/took which weapon (serial included)
+    -- at which rack, with their job. Same pattern as WeaponDrop.Logging — set the URL
+    -- here or from the dashboard (World → Weapon Rack). Empty URL = logging off.
+    Logging             = {
+        Enabled = true,
+        Webhook = '',
+        BotName = 'MBT Armory',
+    },
     -- ── Conversion seam (no-op without mbt_shooting) ──────────────────────────────
     -- When true AND mbt_shooting is installed, retrieving a weapon class requires the
     -- matching academy certification (enforced by shooting). Without shooting this
