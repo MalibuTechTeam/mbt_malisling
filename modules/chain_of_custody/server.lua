@@ -67,16 +67,35 @@ local function record(source, serial)
 end
 
 --- Called from core/server.lua AFTER the sling sync with the player's slung
---- weapons. Records the holder for each weapon that has a serial.
+--- weapons. Records the holder for each weapon that has a serial. Weapons WITHOUT
+--- one get a deferred background repair (EnsureSerial, well off the equip path) so
+--- admin-given/legacy guns join the forensic loop instead of silently skipping it.
 ---@param source number
 ---@param playerWeapons table
 function MBT.ChainOfCustody.RecordHolders(source, playerWeapons)
     if type(playerWeapons) ~= 'table' then return end
+    local missing = nil
     for _, v in pairs(playerWeapons) do
         if type(v) == 'table' and v.metadata and v.metadata.serial then
             record(source, v.metadata.serial)
+        elseif type(v) == 'table' and type(v.name) == 'string' then
+            missing = missing or {}
+            missing[v.name] = true
         end
     end
+    if not missing or not MBT.EnsureSerial then return end
+    SetTimeout(1200, function()
+        if not GetPlayerName(source) then return end
+        local items = Inventory:GetInventoryItems(source)
+        if type(items) ~= 'table' then return end
+        for _, item in pairs(items) do
+            if type(item) == 'table' and missing[item.name]
+                and not (item.metadata and item.metadata.serial) then
+                local serial = MBT.EnsureSerial(source, item)
+                if serial then record(source, serial) end
+            end
+        end
+    end)
 end
 
 --- Inspect overlay → fetch a weapon's chain by serial.

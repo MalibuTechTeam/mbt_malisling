@@ -91,6 +91,10 @@ lib.callback.register('mbt_malisling:handoff:respond', function(src, accept)
         return { ok = false }
     end
 
+    -- Forensic backbone: a weapon changing hands always gets a serial first
+    -- (safe transition — the item is being moved anyway).
+    if MBT.EnsureSerial then MBT.EnsureSerial(giver, item) end
+
     -- Atomic move with rollback: the weapon must never vanish.
     local meta = item.metadata
     if not Inventory:RemoveItem(giver, item.name, item.count, nil, item.slot) then

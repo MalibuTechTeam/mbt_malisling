@@ -681,7 +681,11 @@ AddEventHandler('mbt_malisling:syncSling', function (data)
 
     for weaponType, weaponData in pairs(data.playerWeapons) do
         if not playersToTrack[data.playerSource] then return end
-        if weaponData ~= false and propInfoTable[weaponType] ~= nil and (playersToTrack[data.playerSource][weaponType] == false or playersToTrack[data.playerSource][weaponType] == nil) then
+        -- Concealed Carry guard (opaque hook, no-op without the module): skip
+        -- spawning types the player's replicated statebag marks as concealed.
+        if weaponData ~= false and propInfoTable[weaponType] ~= nil
+            and not (MBT.IsTypeConcealed and MBT.IsTypeConcealed(data.playerSource, weaponType))
+            and (playersToTrack[data.playerSource][weaponType] == false or playersToTrack[data.playerSource][weaponType] == nil) then
             Utils.mbtDebugger("syncSling ~ Check passed, creating weapon object!")
             local attachInfo = getAttachInfo({
                 Job = playerJob,

@@ -182,6 +182,15 @@ local function applyConfig(d)
         MBT.Handoff.MaxDistance   = d.Handoff.MaxDistance
         MBT.Handoff.EquipOnAccept = d.Handoff.EquipOnAccept
     end
+    if d.ConcealedCarry and MBT.ConcealedCarry then
+        MBT.ConcealedCarry.Enabled = d.ConcealedCarry.Enabled
+        if d.ConcealedCarry.Tell and MBT.ConcealedCarry.Tell then
+            MBT.ConcealedCarry.Tell.Enabled     = d.ConcealedCarry.Tell.Enabled
+            MBT.ConcealedCarry.Tell.RollSeconds = d.ConcealedCarry.Tell.RollSeconds
+            MBT.ConcealedCarry.Tell.ChanceGood  = d.ConcealedCarry.Tell.ChanceGood
+            MBT.ConcealedCarry.Tell.ChancePoor  = d.ConcealedCarry.Tell.ChancePoor
+        end
+    end
     Utils.mbtDebugger('Admin config applied live')
 end
 

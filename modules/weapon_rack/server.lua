@@ -230,6 +230,10 @@ lib.callback.register('mbt_malisling:weaponRack:stow', function(src, data)
     racks[id] = racks[id] or {}
     if #racks[id] >= (cfg.Capacity or 4) then return { ok = false, reason = 'rack_full' } end
 
+    -- Forensic backbone: a weapon entering an armory always gets a serial (safe
+    -- transition — the item is about to be removed/re-added anyway).
+    if MBT.EnsureSerial then MBT.EnsureSerial(src, item) end
+
     -- Atomic: only commit to the rack if the item actually left the player.
     if not Inventory:RemoveItem(src, item.name, item.count, nil, item.slot) then return { ok = false } end
     racks[id][#racks[id] + 1] = {

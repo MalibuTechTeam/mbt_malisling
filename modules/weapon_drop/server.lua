@@ -25,6 +25,8 @@ if isOx then
     function WeaponDropServer.Create(src, slot, coords)
         local item = Inventory:GetSlot(src, slot)
         if not item then return end
+        -- Forensic backbone: a dropped weapon keeps a serial (safe transition).
+        if MBT.EnsureSerial then MBT.EnsureSerial(src, item) end
         if not Inventory:RemoveItem(src, item.name, item.count, nil, item.slot) then return end
 
         if MBT.LogWeaponDrop then MBT.LogWeaponDrop(src, item, coords) end
@@ -72,6 +74,8 @@ else
     function WeaponDropServer.Create(src, slot, coords, weaponHash)
         local item = Inventory:GetSlot(src, slot)
         if not item then return end
+        -- Forensic backbone: a dropped weapon keeps a serial (safe transition).
+        if MBT.EnsureSerial then MBT.EnsureSerial(src, item) end
         if not Inventory:RemoveItem(src, item.name, item.count, nil, item.slot) then return end
 
         if MBT.LogWeaponDrop then MBT.LogWeaponDrop(src, item, coords) end

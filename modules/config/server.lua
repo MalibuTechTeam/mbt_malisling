@@ -46,6 +46,9 @@ local function snapshot()
     local WR = MBT.WeaponRack or {}
     local SC = MBT.ShellCasings or {}
     local HO = MBT.Handoff or {}
+    local SR = MBT.Serials or {}
+    local CCY = MBT.ConcealedCarry or {}
+    local cct = CCY.Tell or {}
     local vat = VTR.AllowedTypes or {}
     local war = WR.AllowedTypes or {}
     local TH, INS = MBT.Throw or {}, IN.Show or {}
@@ -184,6 +187,21 @@ local function snapshot()
             MaxDistance   = num(HO.MaxDistance, 2.5),
             EquipOnAccept = b(HO.EquipOnAccept),
         },
+        Serials = {
+            EnsureGeneration = b(SR.EnsureGeneration),
+            Format           = (SR.Format == 'oxlike') and 'oxlike' or 'marked',
+            SweepOnLoad      = b(SR.SweepOnLoad),
+        },
+        ConcealedCarry = {
+            Enabled          = b(CCY.Enabled),
+            ToggleCooldownMs = num(CCY.ToggleCooldownMs, 3000),
+            Tell = {
+                Enabled     = cct.Enabled ~= false,
+                RollSeconds = num(cct.RollSeconds, 25),
+                ChanceGood  = num(cct.ChanceGood, 0.15),
+                ChancePoor  = num(cct.ChancePoor, 0.45),
+            },
+        },
     }
 end
 
@@ -315,6 +333,18 @@ local function validate(d)
     local ho = d.Handoff
     if type(ho) ~= 'table' or type(ho.Enabled) ~= 'boolean' or type(ho.EquipOnAccept) ~= 'boolean' then return false end
     if type(ho.MaxDistance) ~= 'number' or ho.MaxDistance < 1 or ho.MaxDistance > 10 then return false end
+    -- Serials
+    local sr = d.Serials
+    if type(sr) ~= 'table' or type(sr.EnsureGeneration) ~= 'boolean' or type(sr.SweepOnLoad) ~= 'boolean' then return false end
+    if sr.Format ~= 'marked' and sr.Format ~= 'oxlike' then return false end
+    -- Concealed Carry
+    local ccy = d.ConcealedCarry
+    if type(ccy) ~= 'table' or type(ccy.Enabled) ~= 'boolean' then return false end
+    if type(ccy.ToggleCooldownMs) ~= 'number' or ccy.ToggleCooldownMs < 0 or ccy.ToggleCooldownMs > 60000 then return false end
+    if type(ccy.Tell) ~= 'table' or type(ccy.Tell.Enabled) ~= 'boolean' then return false end
+    if type(ccy.Tell.RollSeconds) ~= 'number' or ccy.Tell.RollSeconds < 5 or ccy.Tell.RollSeconds > 600 then return false end
+    if type(ccy.Tell.ChanceGood) ~= 'number' or ccy.Tell.ChanceGood < 0 or ccy.Tell.ChanceGood > 1 then return false end
+    if type(ccy.Tell.ChancePoor) ~= 'number' or ccy.Tell.ChancePoor < 0 or ccy.Tell.ChancePoor > 1 then return false end
     return true
 end
 
@@ -432,6 +462,20 @@ local function applyToMBT(d)
         MBT.Handoff.MaxDistance   = d.Handoff.MaxDistance
         MBT.Handoff.EquipOnAccept = d.Handoff.EquipOnAccept
     end
+    if MBT.Serials then
+        MBT.Serials.EnsureGeneration = d.Serials.EnsureGeneration
+        MBT.Serials.Format           = d.Serials.Format
+        MBT.Serials.SweepOnLoad      = d.Serials.SweepOnLoad
+    end
+    if MBT.ConcealedCarry then
+        MBT.ConcealedCarry.Enabled          = d.ConcealedCarry.Enabled
+        MBT.ConcealedCarry.ToggleCooldownMs = d.ConcealedCarry.ToggleCooldownMs
+        MBT.ConcealedCarry.Tell = MBT.ConcealedCarry.Tell or {}
+        MBT.ConcealedCarry.Tell.Enabled     = d.ConcealedCarry.Tell.Enabled
+        MBT.ConcealedCarry.Tell.RollSeconds = d.ConcealedCarry.Tell.RollSeconds
+        MBT.ConcealedCarry.Tell.ChanceGood  = d.ConcealedCarry.Tell.ChanceGood
+        MBT.ConcealedCarry.Tell.ChancePoor  = d.ConcealedCarry.Tell.ChancePoor
+    end
 end
 
 --- The editable subset that gets persisted (overview-only flags excluded).
@@ -461,6 +505,8 @@ local function persistable(d)
         TacticalSling = d.TacticalSling,
         ShellCasings = d.ShellCasings,
         Handoff = d.Handoff,
+        Serials = d.Serials,
+        ConcealedCarry = d.ConcealedCarry,
     }
 end
 

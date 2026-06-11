@@ -121,6 +121,65 @@ export function ChainOfCustodySection({ config, update }: SectionProps) {
   )
 }
 
+/** Concealed Carry — hide holstered small weapons if clothing allows it. */
+export function ConcealedCarrySection({ config, update }: SectionProps) {
+  const c = config.ConcealedCarry ?? {}
+  const t = c.Tell ?? {}
+  return (
+    <Section icon="search" title="CONCEALED CARRY" sub="Hide holstered small weapons — if your clothes can cover them."
+      action={<ToggleRow.Inline checked={!!c.Enabled} onChange={(v) => update('ConcealedCarry.Enabled', v)} />}>
+      <FieldBlock label="Toggle Cooldown (ms)" hint="Anti spam/flicker between conceal toggles.">
+        <NumberInput min={0} max={60000} step={500} value={String(c.ToggleCooldownMs ?? 3000)}
+          onChange={numUpdate(update, 'ConcealedCarry.ToggleCooldownMs', 3000, true)} />
+      </FieldBlock>
+      <ToggleRow title="Waistband Tell" desc="Concealed carriers occasionally adjust their waistband (observable RP tell)"
+        checked={t.Enabled !== false} onChange={(v) => update('ConcealedCarry.Tell.Enabled', v)} />
+      <Grid2>
+        <FieldBlock label="Tell Roll (s)" hint="Seconds between tell chances." style={{ marginBottom: 0 }}>
+          <NumberInput min={5} max={600} step={5} value={String(t.RollSeconds ?? 25)}
+            onChange={numUpdate(update, 'ConcealedCarry.Tell.RollSeconds', 25, true)} />
+        </FieldBlock>
+        <FieldBlock label="Chance poor / good" hint="Per-roll chance by concealment quality." style={{ marginBottom: 0 }}>
+          <Grid2>
+            <NumberInput min={0} max={1} step={0.05} value={String(t.ChancePoor ?? 0.45)}
+              onChange={numUpdate(update, 'ConcealedCarry.Tell.ChancePoor', 0.45)} />
+            <NumberInput min={0} max={1} step={0.05} value={String(t.ChanceGood ?? 0.15)}
+              onChange={numUpdate(update, 'ConcealedCarry.Tell.ChanceGood', 0.15)} />
+          </Grid2>
+        </FieldBlock>
+      </Grid2>
+      <div className="mbt-field__hint" style={{ marginTop: 2 }}>
+        Clothing blocklists, key and concealable types live in <code>config.lua</code>
+        (<code>MBT.ConcealedCarry</code>). Use <code>/mbt_concealdebug</code> in-game to tune custom clothing packs.
+      </div>
+    </Section>
+  )
+}
+
+/** Weapon Serials — ensure-generation: every weapon gets a forensic serial. */
+const SERIAL_FORMATS = [
+  { value: 'marked', label: 'Marked (MBT-…)' },
+  { value: 'oxlike', label: 'Factory-like' },
+]
+export function SerialsSection({ config, update }: SectionProps) {
+  const s = config.Serials ?? {}
+  return (
+    <Section icon="search" title="WEAPON SERIALS" sub="Guarantee every weapon a serial (forensic backbone)."
+      action={<ToggleRow.Inline checked={!!s.EnsureGeneration} onChange={(v) => update('Serials.EnsureGeneration', v)} />}>
+      <FieldBlock label="Generated Format" hint="Marked = auditable field-assigned serials · Factory-like = indistinguishable from ox.">
+        <Segmented value={s.Format ?? 'marked'} options={SERIAL_FORMATS}
+          onChange={(v) => update('Serials.Format', v)} />
+      </FieldBlock>
+      <ToggleRow title="Sweep on Join" desc="Scan a player's weapons shortly after they join and fix missing serials"
+        checked={s.SweepOnLoad !== false} onChange={(v) => update('Serials.SweepOnLoad', v)} />
+      <div className="mbt-field__hint" style={{ marginTop: 2 }}>
+        Serials are written once, on safe inventory transitions only (rack, handoff, drop, sweep) —
+        never while a weapon is in use.
+      </div>
+    </Section>
+  )
+}
+
 /** Physical Weapon Handoff — hand the drawn weapon to a nearby player. */
 export function HandoffSection({ config, update }: SectionProps) {
   const h = config.Handoff ?? {}

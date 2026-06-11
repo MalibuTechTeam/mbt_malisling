@@ -124,6 +124,18 @@ RegisterLocale('fr', {
     ['handoff_failed_title']    = 'Remise',
     ['handoff_failed_desc']     = 'La remise a échoué.',
 
+    -- Port dissimulé
+    ['concealed_on_title']      = 'Port Dissimulé',
+    ['concealed_on_desc']       = 'Arme dissimulée.',
+    ['concealed_off_title']     = 'Port Dissimulé',
+    ['concealed_off_desc']      = 'Arme portée à découvert.',
+    ['concealed_bare_title']    = 'Port Dissimulé',
+    ['concealed_bare_desc']     = 'Rien pour la cacher — couvrez-vous d\'abord.',
+    ['concealed_revealed_title']= 'Port Dissimulé',
+    ['concealed_revealed_desc'] = 'Votre arme est de nouveau visible.',
+    ['concealed_no_weapon_title']= 'Port Dissimulé',
+    ['concealed_no_weapon_desc'] = 'Aucune arme dissimulable dans l\'étui.',
+
     -- NUI: holster prompt
     ['holster_title']           = 'RANGER L\'ARME',
     ['holster_action']          = 'Ranger',

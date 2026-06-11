@@ -165,6 +165,36 @@ MBT.Labels             = {
         ["type"]     = "error",
         ["icon"]     = "fa-solid fa-hand",
     },
+    ["concealed_on"] = {
+        ["titleKey"] = "concealed_on_title",
+        ["descKey"]  = "concealed_on_desc",
+        ["type"]     = "success",
+        ["icon"]     = "fa-solid fa-user-secret",
+    },
+    ["concealed_off"] = {
+        ["titleKey"] = "concealed_off_title",
+        ["descKey"]  = "concealed_off_desc",
+        ["type"]     = "inform",
+        ["icon"]     = "fa-solid fa-eye",
+    },
+    ["concealed_bare"] = {
+        ["titleKey"] = "concealed_bare_title",
+        ["descKey"]  = "concealed_bare_desc",
+        ["type"]     = "error",
+        ["icon"]     = "fa-solid fa-shirt",
+    },
+    ["concealed_revealed"] = {
+        ["titleKey"] = "concealed_revealed_title",
+        ["descKey"]  = "concealed_revealed_desc",
+        ["type"]     = "inform",
+        ["icon"]     = "fa-solid fa-eye",
+    },
+    ["concealed_no_weapon"] = {
+        ["titleKey"] = "concealed_no_weapon_title",
+        ["descKey"]  = "concealed_no_weapon_desc",
+        ["type"]     = "inform",
+        ["icon"]     = "fa-solid fa-gun",
+    },
     ["has_jammed"] = {
         ["titleKey"] = "jam_jammed_title",
         ["descKey"]  = "jam_jammed_desc",
@@ -787,6 +817,65 @@ MBT.Inspect            = {
         { Min = 10, Key = 'cond_poor' },
         { Min = 0,  Key = 'cond_damaged' },
     },
+}
+
+-- ── Concealed Carry ───────────────────────────────────────────────────────────
+-- Carry small weapons CONCEALED: the holster prop is hidden from everyone — IF
+-- your clothes can cover it. Toggle with a key; the server validates everything
+-- (the client only requests). Clothing decides the concealment QUALITY:
+--   none (bare torso → refused) · poor (light top → frequent, obvious waistband
+--   tells) · good (jacket → rare, subtle tells). Quality only affects tells and
+--   the future pat-down flavor — never combat stats (free tier = visual/RP).
+-- A weapon IN HAND is always visible by nature (concealment covers the holstered
+-- prop only). Changing clothes re-checks and force-reveals with a notification.
+MBT.ConcealedCarry     = {
+    Enabled          = true,
+    Key              = 'B',          -- toggle key (concealable weapon must be holstered)
+    ConcealableTypes = { ['side'] = true },
+    ToggleCooldownMs = 3000,         -- anti flicker/spam (server-enforced)
+    -- The waistband-adjust TELL: random cadence, more likely after sprint/jump,
+    -- naturally visible only to nearby players (the anim is networked).
+    Tell             = {
+        Enabled       = true,
+        -- Seconds between tell ROLLS; chance per roll by quality.
+        RollSeconds   = 25,
+        ChanceGood    = 0.15,
+        ChancePoor    = 0.45,
+        MoveBoost     = 2.0,         -- chance multiplier while sprinting/jumping
+        Dict          = 'clothingtie',
+        Anim          = 'try_tie_negative_a',
+        Ms            = 1600,
+    },
+    -- Clothing evaluation (component 11 = top/jacket on freemode peds).
+    -- BLOCKLIST approach (whitelists rot): drawables here = bare/uncoverable torso
+    -- → cannot conceal. LightTops = can conceal but poorly. Anything else = good.
+    -- These are STARTERS — use /mbt_concealdebug in-game to read your outfit's
+    -- drawable IDs and extend per your clothing pack.
+    Clothing         = {
+        BareTorsoMale   = { [15] = true },
+        BareTorsoFemale = { [15] = true },
+        LightTopsMale   = { [5] = true, [16] = true },
+        LightTopsFemale = { [2] = true, [14] = true },
+        -- Per-drawable overrides win over everything: [drawableId] = 'good'|'poor'|'none'
+        OverridesMale   = {},
+        OverridesFemale = {},
+    },
+}
+
+-- ── Weapon Serials (forensic identity backbone) ────────────────────────────────
+-- ox_inventory generates a serial for weapons IT creates — but admin-given,
+-- legacy/imported or custom-shop weapons can lack one, silently skipping the
+-- whole forensic loop (Custody, Shell Casings, rack picker). EnsureGeneration
+-- guarantees every weapon gets a serial the first time the system touches it
+-- (rack stow, handoff, drop/throw, an optional on-join sweep, custody repair) —
+-- written ONCE, on safe inventory transitions only (never while firing).
+MBT.Serials            = {
+    EnsureGeneration = true,
+    -- 'marked'  = MBT-XXXXXXXX → field-assigned serials are auditable and tell an RP
+    --             story (undocumented weapon registered by forensics). Recommended.
+    -- 'oxlike'  = indistinguishable from factory ox serials.
+    Format           = 'marked',
+    SweepOnLoad      = true,    -- scan a player's weapons shortly after they join
 }
 
 -- ── Physical Weapon Handoff ───────────────────────────────────────────────────

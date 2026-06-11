@@ -34,6 +34,7 @@ server_scripts {
     'modules/bridge/jobs.lua',
     'modules/inventory/ox/server.lua',
     'modules/inventory/qb/server.lua',
+    'modules/serials/server.lua',
     'modules/weapon_drop/logging.lua',
     'modules/weapon_drop/server.lua',
     'modules/weapon_jamming/server.lua',
@@ -50,6 +51,7 @@ server_scripts {
     'modules/weapon_rack/server.lua',
     'modules/shell_casings/server.lua',
     'modules/weapon_handoff/server.lua',
+    'modules/concealed_carry/server.lua',
     'modules/config/server.lua',
     'core/server.lua',
 }
@@ -83,6 +85,7 @@ client_scripts {
     'modules/weapon_rack/client.lua',
     'modules/shell_casings/client.lua',
     'modules/weapon_handoff/client.lua',
+    'modules/concealed_carry/client.lua',
     'modules/prop_position_editor/client.lua',
     'modules/no_draw_zones/client.lua',
     'modules/prop_editor/client.lua',

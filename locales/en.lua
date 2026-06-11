@@ -124,6 +124,18 @@ RegisterLocale('en', {
     ['handoff_failed_title']    = 'Handoff',
     ['handoff_failed_desc']     = 'The handoff failed.',
 
+    -- Concealed carry
+    ['concealed_on_title']      = 'Concealed Carry',
+    ['concealed_on_desc']       = 'Weapon concealed.',
+    ['concealed_off_title']     = 'Concealed Carry',
+    ['concealed_off_desc']      = 'Weapon carried openly.',
+    ['concealed_bare_title']    = 'Concealed Carry',
+    ['concealed_bare_desc']     = 'Nothing to hide it under — cover up first.',
+    ['concealed_revealed_title']= 'Concealed Carry',
+    ['concealed_revealed_desc'] = 'Your weapon is visible again.',
+    ['concealed_no_weapon_title']= 'Concealed Carry',
+    ['concealed_no_weapon_desc'] = 'No concealable weapon holstered.',
+
     -- NUI: holster prompt
     ['holster_title']           = 'HOLSTER WEAPON',
     ['holster_action']          = 'Holster',

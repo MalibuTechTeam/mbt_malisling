@@ -124,6 +124,18 @@ RegisterLocale('it', {
     ['handoff_failed_title']    = 'Passaggio',
     ['handoff_failed_desc']     = 'Il passaggio non è riuscito.',
 
+    -- Porto occulto
+    ['concealed_on_title']      = 'Porto Occulto',
+    ['concealed_on_desc']       = 'Arma nascosta.',
+    ['concealed_off_title']     = 'Porto Occulto',
+    ['concealed_off_desc']      = 'Arma portata in vista.',
+    ['concealed_bare_title']    = 'Porto Occulto',
+    ['concealed_bare_desc']     = 'Non hai dove nasconderla — copriti prima.',
+    ['concealed_revealed_title']= 'Porto Occulto',
+    ['concealed_revealed_desc'] = 'La tua arma è di nuovo visibile.',
+    ['concealed_no_weapon_title']= 'Porto Occulto',
+    ['concealed_no_weapon_desc'] = 'Nessun\'arma occultabile nella fondina.',
+
     -- NUI: holster prompt
     ['holster_title']           = 'RIPONI ARMA',
     ['holster_action']          = 'Riponi',
