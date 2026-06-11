@@ -83,6 +83,18 @@ RegisterLocale('fr', {
     ['rack_picker_select']      = 'Choisir',
     ['rack_picker_take']        = 'Prendre',
     ['rack_picker_cancel']      = 'Annuler',
+    ['rack_pickup']             = 'Démonter le râtelier',
+    ['rack_place_hint']         = 'GAUCHE/DROITE tourner ~y~·~s~ SHIFT rapide ~y~·~s~ E placer ~y~·~s~ RETOUR annuler',
+    ['rack_placed_title']       = 'Râtelier',
+    ['rack_placed_desc']        = 'Râtelier installé.',
+    ['rack_picked_up_title']    = 'Râtelier',
+    ['rack_picked_up_desc']     = 'Râtelier démonté — objet rendu.',
+    ['rack_limit_title']        = 'Râtelier',
+    ['rack_limit_desc']         = 'Vous avez atteint votre limite de râteliers.',
+    ['rack_too_close_title']    = 'Râtelier',
+    ['rack_too_close_desc']     = 'Trop proche d\'un autre râtelier.',
+    ['rack_not_empty_title']    = 'Râtelier',
+    ['rack_not_empty_desc']     = 'Videz le râtelier avant de le démonter.',
 
     -- NUI: holster prompt
     ['holster_title']           = 'RANGER L\'ARME',

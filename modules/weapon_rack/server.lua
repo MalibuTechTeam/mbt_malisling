@@ -35,13 +35,19 @@ for _, loc in ipairs(cfg.Locations or {}) do
     end
 end
 
--- Runtime-placed racks (admin /mbt_placerack). Merged into locById so stow/retrieve
--- accept them. NOT persisted yet (reset on restart) — DB persistence + an inventory
--- item are the v1.1 version of this.
+-- Runtime-placed racks — admin (/mbt_placerack) and player (inventory item). Merged
+-- into locById so stow/retrieve accept them, and persisted in mbt_rack_placements
+-- (oxmysql; without it runtime racks reset on restart).
 local adminCommand = (MBT.Admin and MBT.Admin.Command) or 'mbtconfig'
 local adminPerm    = (MBT.Admin and MBT.Admin.Permission) or ('command.' .. adminCommand)
 local dynamicLocs  = {}   -- [id] = loc
 local dynSeq       = 0
+
+--- Stable player identifier (char identifier/citizenid from the framework bridge).
+local function identifierOf(src)
+    local _, id = getPlayerName(src)
+    return id
+end
 
 -- ── Sync (GlobalState; render-only, no metadata leaves the server) ───────────────
 local function publishAll()
@@ -74,21 +80,54 @@ local function ensureSchema()
             data LONGTEXT NOT NULL,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         )
+    ]], {})
+    exports.oxmysql:execute([[
+        CREATE TABLE IF NOT EXISTS mbt_rack_placements (
+            id VARCHAR(64) NOT NULL PRIMARY KEY,
+            data LONGTEXT NOT NULL
+        )
     ]], {}, function()
-        exports.oxmysql:execute('SELECT rack_id, data FROM mbt_weapon_racks', {}, function(rows)
-            if type(rows) == 'table' then
-                for _, row in ipairs(rows) do
-                    -- Skip rows for racks that no longer exist in config (renamed/removed).
-                    if locById[row.rack_id] then
-                        local ok, list = pcall(json.decode, row.data)
-                        if ok and type(list) == 'table' and #list > 0 then racks[row.rack_id] = list end
+        -- Placements FIRST (the contents loader skips ids not in locById), then contents.
+        exports.oxmysql:execute('SELECT id, data FROM mbt_rack_placements', {}, function(prows)
+            if type(prows) == 'table' then
+                for _, row in ipairs(prows) do
+                    local ok, loc = pcall(json.decode, row.data)
+                    if ok and type(loc) == 'table' and type(loc.id) == 'string' and loc.coords then
+                        locById[loc.id]     = loc
+                        dynamicLocs[loc.id] = loc
+                        TriggerClientEvent('mbt_malisling:weaponRack:spawn', -1, loc)
                     end
                 end
-                Utils.mbtDebugger('weapon_rack ~ loaded', #rows, 'rack rows from DB')
+                Utils.mbtDebugger('weapon_rack ~ loaded', #prows, 'placements from DB')
             end
-            publishAll()
+            exports.oxmysql:execute('SELECT rack_id, data FROM mbt_weapon_racks', {}, function(rows)
+                if type(rows) == 'table' then
+                    for _, row in ipairs(rows) do
+                        -- Skip rows for racks that no longer exist (renamed/removed).
+                        if locById[row.rack_id] then
+                            local ok, list = pcall(json.decode, row.data)
+                            if ok and type(list) == 'table' and #list > 0 then racks[row.rack_id] = list end
+                        end
+                    end
+                    Utils.mbtDebugger('weapon_rack ~ loaded', #rows, 'rack rows from DB')
+                end
+                publishAll()
+            end)
         end)
     end)
+end
+
+--- Persist (or delete, with data=nil) a runtime placement. JSON-safe coords table.
+local function savePlacement(loc)
+    if not hasDb() then return end
+    exports.oxmysql:execute(
+        'INSERT INTO mbt_rack_placements (id, data) VALUES (?, ?) ON DUPLICATE KEY UPDATE data = VALUES(data)',
+        { loc.id, json.encode(loc) })
+end
+
+local function deletePlacement(id)
+    if not hasDb() then return end
+    exports.oxmysql:execute('DELETE FROM mbt_rack_placements WHERE id = ?', { id })
 end
 
 --- Write-through: UPSERT the rack, or DELETE the row when it empties.
@@ -111,8 +150,12 @@ local function weaponType(name)
     return w and w.type
 end
 
---- Per-location job gate. No job set → anyone may use the rack.
+--- Per-location access gate: job-locked racks check the player's job; item-placed
+--- racks (loc.owner) optionally lock to their owner (Placement.Access = 'owner').
 local function canUse(src, loc)
+    if loc.owner and (cfg.Placement and cfg.Placement.Access) == 'owner' then
+        if identifierOf(src) ~= loc.owner then return false end
+    end
     if not loc.job then return true end
     return getPlayerJob(src) == loc.job
 end
@@ -237,37 +280,155 @@ lib.callback.register('mbt_malisling:weaponRack:retrieve', function(src, data)
     return { ok = true, equipSlot = equipSlot, name = entry.name, serial = serial }
 end)
 
--- ── Runtime placement (admin) ────────────────────────────────────────────────────
+-- ── Runtime placement (admin command + player item) ───────────────────────────────
 local function finite(n) return type(n) == 'number' and n == n and n > -1e6 and n < 1e6 end
+
+--- Min spacing from every existing rack (placement collision check).
+local function tooClose(x, y, z)
+    local min = (cfg.Placement and cfg.Placement.MinSpacing) or 1.5
+    for _, loc in pairs(locById) do
+        local c = loc.coords
+        if #(vec3(x, y, z) - vec3(c.x, c.y, c.z)) < min then return true end
+    end
+    return false
+end
+
+--- Register a runtime rack: merge, persist, broadcast.
+local function addRuntimeRack(loc)
+    locById[loc.id]     = loc
+    dynamicLocs[loc.id] = loc
+    savePlacement(loc)
+    TriggerClientEvent('mbt_malisling:weaponRack:spawn', -1, loc)
+end
+
+local function removeRuntimeRack(id)
+    dynamicLocs[id] = nil
+    locById[id]     = nil
+    racks[id]       = nil
+    saveRack(id)            -- clears any persisted contents row for this id
+    deletePlacement(id)
+    publishAll()
+    TriggerClientEvent('mbt_malisling:weaponRack:despawn', -1, id)
+end
+
+--- Unique runtime id (restart-safe: os.time prefix avoids reusing old ids).
+local function newRackId(prefix)
+    dynSeq = dynSeq + 1
+    return ('%s_%d_%d'):format(prefix, os.time(), dynSeq)
+end
 
 RegisterNetEvent('mbt_malisling:weaponRack:place', function(p)
     local src = source
     if not IsPlayerAceAllowed(src, adminPerm) then return end
     if type(p) ~= 'table' or not (finite(p.x) and finite(p.y) and finite(p.z)) then return end
-    dynSeq = dynSeq + 1
-    local id  = 'dyn_' .. dynSeq
-    local loc = {
-        id = id, coords = vec4(p.x, p.y, p.z, finite(p.w) and p.w or 0.0),
-        prop  = (type(p.prop) == 'string' and p.prop) or nil,
-        job   = (type(p.job) == 'string' and p.job) or false,
-        label = (type(p.label) == 'string' and p.label) or 'Armory',
+    addRuntimeRack({
+        id = newRackId('dyn'),
+        -- Plain table (not vec4): placements are persisted as JSON.
+        coords  = { x = p.x, y = p.y, z = p.z, w = finite(p.w) and p.w or 0.0 },
+        prop    = (type(p.prop) == 'string' and p.prop) or nil,
+        job     = (type(p.job) == 'string' and p.job) or false,
+        label   = (type(p.label) == 'string' and p.label) or 'Armory',
         dynamic = true,
-    }
-    locById[id]     = loc
-    dynamicLocs[id] = loc
-    TriggerClientEvent('mbt_malisling:weaponRack:spawn', -1, loc)
+    })
 end)
 
 RegisterNetEvent('mbt_malisling:weaponRack:remove', function(id)
     local src = source
     if not IsPlayerAceAllowed(src, adminPerm) then return end
     if type(id) ~= 'string' or not dynamicLocs[id] then return end
-    dynamicLocs[id] = nil
-    locById[id]     = nil
-    racks[id]       = nil
-    saveRack(id)            -- clears any persisted contents row for this id
-    publishAll()
-    TriggerClientEvent('mbt_malisling:weaponRack:despawn', -1, id)
+    removeRuntimeRack(id)
+end)
+
+-- ── Player placement (inventory item) ─────────────────────────────────────────────
+local function placementOn()
+    return cfg.Enabled and cfg.Placement and cfg.Placement.Enabled
+        and type(cfg.Placement.Item) == 'string' and cfg.Placement.Item ~= ''
+end
+
+--- Item used → start the client carry/ghost flow (the item is only consumed on confirm).
+local lastPlaceUse = {}
+local function onUseRackItem(src)
+    if not placementOn() then return end
+    if not hasDb() then return end   -- placements need persistence; config racks still work
+    local now = GetGameTimer()
+    if lastPlaceUse[src] and (now - lastPlaceUse[src]) < 1500 then return end
+    lastPlaceUse[src] = now
+    TriggerClientEvent('mbt_malisling:weaponRack:startPlace', src)
+end
+
+-- ox_inventory path: the item's `server.export = 'mbt_malisling.<item>'` calls this
+-- export on use. Returning false cancels ox's own consume (we consume on confirm).
+exports((MBT.WeaponRack.Placement and MBT.WeaponRack.Placement.Item) or 'mbt_gunrack',
+    function(event, _, inventory)
+        if event == 'usingItem' and inventory and inventory.id then
+            onUseRackItem(inventory.id)
+            return false
+        end
+    end)
+-- Framework path (ESX/QB/QBox usable items) when the bridge provides it.
+if registerUsableItem and MBT.WeaponRack.Placement and MBT.WeaponRack.Placement.Item then
+    pcall(registerUsableItem, MBT.WeaponRack.Placement.Item, onUseRackItem)
+end
+
+--- Ghost confirmed → validate, consume the item, install the rack.
+lib.callback.register('mbt_malisling:weaponRack:placeItem', function(src, p)
+    if not placementOn() or not hasDb() then return { ok = false } end
+    if type(p) ~= 'table' or not (finite(p.x) and finite(p.y) and finite(p.z)) then return { ok = false } end
+
+    local ped = GetPlayerPed(src)
+    if not ped or ped == 0 then return { ok = false } end
+    if #(GetEntityCoords(ped) - vec3(p.x, p.y, p.z)) > 8.0 then return { ok = false } end
+
+    -- Per-player cap (by identifier) + spacing.
+    local owner = identifierOf(src)
+    if not owner then return { ok = false } end
+    local count = 0
+    for _, loc in pairs(dynamicLocs) do
+        if loc.owner == owner then count = count + 1 end
+    end
+    if count >= (cfg.Placement.MaxPerPlayer or 2) then return { ok = false, reason = 'rack_limit' } end
+    if tooClose(p.x, p.y, p.z) then return { ok = false, reason = 'rack_too_close' } end
+
+    -- Atomic: the rack only appears if the item actually left the player.
+    if not Inventory:RemoveItem(src, cfg.Placement.Item, 1) then return { ok = false } end
+
+    addRuntimeRack({
+        id     = newRackId('plr'),
+        coords = { x = p.x, y = p.y, z = p.z, w = finite(p.w) and p.w or 0.0 },
+        prop   = cfg.Placement.Prop or nil,
+        job    = false,
+        label  = cfg.Placement.Label or 'Gun Rack',
+        owner  = owner,
+        dynamic = true,
+    })
+    return { ok = true }
+end)
+
+--- Owner (or admin) picks an EMPTY item-placed rack back up → item returned.
+lib.callback.register('mbt_malisling:weaponRack:pickup', function(src, id)
+    if not placementOn() then return { ok = false } end
+    if not (cfg.Placement.AllowPickup ~= false) then return { ok = false } end
+    local loc = type(id) == 'string' and dynamicLocs[id]
+    if not loc or not loc.owner then return { ok = false } end   -- only item-placed racks
+
+    local ped = GetPlayerPed(src)
+    if not ped or ped == 0 then return { ok = false } end
+    local c = loc.coords
+    if #(GetEntityCoords(ped) - vec3(c.x, c.y, c.z)) > (cfg.InteractionDistance or 2.0) + 2.5 then return { ok = false } end
+
+    if loc.owner ~= identifierOf(src) and not IsPlayerAceAllowed(src, adminPerm) then
+        return { ok = false, reason = 'rack_no_access' }
+    end
+    if racks[id] and #racks[id] > 0 then return { ok = false, reason = 'rack_not_empty' } end
+    if not Inventory:AddItem(src, cfg.Placement.Item, 1) then return { ok = false, reason = 'rack_inv_full' } end
+
+    removeRuntimeRack(id)
+    return { ok = true }
+end)
+
+--- Client-side ownership checks (pickup target option) need the caller's identifier.
+lib.callback.register('mbt_malisling:weaponRack:whoami', function(src)
+    return identifierOf(src)
 end)
 
 --- Late-join / re-init: hand a client the runtime-placed racks so it spawns their props.
@@ -278,7 +439,7 @@ lib.callback.register('mbt_malisling:weaponRack:getDynamic', function()
 end)
 
 AddEventHandler('playerDropped', function()
-    if source then lastUse[source] = nil end
+    if source then lastUse[source] = nil; lastPlaceUse[source] = nil end
 end)
 
 AddEventHandler('onServerResourceStart', function(resource)

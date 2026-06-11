@@ -83,6 +83,18 @@ RegisterLocale('it', {
     ['rack_picker_select']      = 'Seleziona',
     ['rack_picker_take']        = 'Prendi',
     ['rack_picker_cancel']      = 'Annulla',
+    ['rack_pickup']             = 'Smonta rastrelliera',
+    ['rack_place_hint']         = 'SINISTRA/DESTRA ruota ~y~·~s~ SHIFT veloce ~y~·~s~ E piazza ~y~·~s~ BACKSPACE annulla',
+    ['rack_placed_title']       = 'Rastrelliera',
+    ['rack_placed_desc']        = 'Rastrelliera installata.',
+    ['rack_picked_up_title']    = 'Rastrelliera',
+    ['rack_picked_up_desc']     = 'Rastrelliera smontata — oggetto restituito.',
+    ['rack_limit_title']        = 'Rastrelliera',
+    ['rack_limit_desc']         = 'Hai raggiunto il limite di rastrelliere.',
+    ['rack_too_close_title']    = 'Rastrelliera',
+    ['rack_too_close_desc']     = 'Troppo vicina a un\'altra rastrelliera.',
+    ['rack_not_empty_title']    = 'Rastrelliera',
+    ['rack_not_empty_desc']     = 'Svuota la rastrelliera prima di smontarla.',
 
     -- NUI: holster prompt
     ['holster_title']           = 'RIPONI ARMA',

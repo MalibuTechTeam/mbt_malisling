@@ -163,6 +163,12 @@ local function applyConfig(d)
                 ['side']  = d.WeaponRack.AllowedTypes.side,
             }
         end
+        if d.WeaponRack.Placement and MBT.WeaponRack.Placement then
+            MBT.WeaponRack.Placement.Enabled      = d.WeaponRack.Placement.Enabled
+            MBT.WeaponRack.Placement.MaxPerPlayer = d.WeaponRack.Placement.MaxPerPlayer
+            MBT.WeaponRack.Placement.AllowPickup  = d.WeaponRack.Placement.AllowPickup
+            MBT.WeaponRack.Placement.Access       = d.WeaponRack.Placement.Access
+        end
     end
     if d.TacticalSling and MBT.TacticalSling then
         MBT.TacticalSling.Enabled = d.TacticalSling.Enabled

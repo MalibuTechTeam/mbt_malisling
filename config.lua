@@ -93,6 +93,36 @@ MBT.Labels             = {
         ["type"]     = "error",
         ["icon"]     = "fa-solid fa-id-card",
     },
+    ["rack_placed"] = {
+        ["titleKey"] = "rack_placed_title",
+        ["descKey"]  = "rack_placed_desc",
+        ["type"]     = "success",
+        ["icon"]     = "fa-solid fa-screwdriver-wrench",
+    },
+    ["rack_picked_up"] = {
+        ["titleKey"] = "rack_picked_up_title",
+        ["descKey"]  = "rack_picked_up_desc",
+        ["type"]     = "success",
+        ["icon"]     = "fa-solid fa-screwdriver-wrench",
+    },
+    ["rack_limit"] = {
+        ["titleKey"] = "rack_limit_title",
+        ["descKey"]  = "rack_limit_desc",
+        ["type"]     = "error",
+        ["icon"]     = "fa-solid fa-ban",
+    },
+    ["rack_too_close"] = {
+        ["titleKey"] = "rack_too_close_title",
+        ["descKey"]  = "rack_too_close_desc",
+        ["type"]     = "error",
+        ["icon"]     = "fa-solid fa-ruler",
+    },
+    ["rack_not_empty"] = {
+        ["titleKey"] = "rack_not_empty_title",
+        ["descKey"]  = "rack_not_empty_desc",
+        ["type"]     = "error",
+        ["icon"]     = "fa-solid fa-box-archive",
+    },
     ["has_jammed"] = {
         ["titleKey"] = "jam_jammed_title",
         ["descKey"]  = "jam_jammed_desc",
@@ -637,6 +667,36 @@ MBT.WeaponRack         = {
         Enabled = true,
         Webhook = '',
         BotName = 'MBT Armory',
+    },
+    -- ── Player placement (inventory item) ──────────────────────────────────────────
+    -- Use the rack ITEM → the ped physically carries the locker (box-carry anim, you
+    -- walk around with it), rotate it with ←/→, confirm with E → a kneeling mounting
+    -- scenario plays and the rack is installed + persisted (oxmysql). The owner can
+    -- pick an EMPTY rack back up and get the item returned. Needs oxmysql; without it
+    -- item placement is disabled (config/admin racks keep working).
+    --
+    -- ox_inventory item definition (add to ox_inventory/data/items.lua — the export
+    -- name must match the item name):
+    --   ['mbt_gunrack'] = {
+    --       label = 'Gun Rack', weight = 8000, stack = false,
+    --       server = { export = 'mbt_malisling.mbt_gunrack' },
+    --   },
+    -- qb-core (shared/items.lua): ['mbt_gunrack'] = { name = 'mbt_gunrack', label = 'Gun Rack',
+    --   weight = 8000, type = 'item', image = 'gunrack.png', unique = true, useable = true,
+    --   shouldClose = true, description = 'Wall-mountable weapon rack' },
+    Placement           = {
+        Enabled         = true,
+        Item            = 'mbt_gunrack',
+        MaxPerPlayer    = 2,            -- max item-placed racks per player (identifier)
+        AllowPickup     = true,         -- owner can pick an EMPTY rack back up (item returned)
+        Access          = 'everyone',   -- who can use item-placed racks: 'everyone' | 'owner'
+        Label           = 'Gun Rack',
+        Prop            = nil,          -- nil = DefaultProp
+        MinSpacing      = 1.5,          -- min distance from any other rack (m)
+        InstallMs       = 4000,         -- mounting scenario duration
+        -- Premium placement feel (works out of the box; swap clips freely).
+        CarryAnim       = { Dict = 'anim@heists@box_carry@', Anim = 'idle', Flag = 50 },
+        InstallScenario = 'WORLD_HUMAN_HAMMERING',
     },
     -- ── Conversion seam (no-op without mbt_shooting) ──────────────────────────────
     -- When true AND mbt_shooting is installed, retrieving a weapon class requires the

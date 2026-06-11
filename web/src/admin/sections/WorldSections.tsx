@@ -125,6 +125,19 @@ export function WeaponRackSection({ config, update }: SectionProps) {
         <input className="mbt-input" value={t.Logging?.Webhook ?? ''} placeholder="https://discord.com/api/webhooks/..."
           onChange={(e) => update('WeaponRack.Logging.Webhook', e.target.value)} />
       </FieldBlock>
+      <FieldBlock label="Item Placement" hint="Players place their own racks with an inventory item (carry, rotate, mount).">
+        <ToggleRow title="Enable Placement" desc="Use the rack item to install a rack in the world (needs oxmysql)"
+          checked={!!t.Placement?.Enabled} onChange={(v) => update('WeaponRack.Placement.Enabled', v)} />
+        <ToggleRow title="Owner-only Access" desc="Only the player who placed a rack can use it"
+          checked={t.Placement?.Access === 'owner'}
+          onChange={(v) => update('WeaponRack.Placement.Access', v ? 'owner' : 'everyone')} />
+        <ToggleRow title="Allow Pickup" desc="The owner can dismount an empty rack and get the item back"
+          checked={!!t.Placement?.AllowPickup} onChange={(v) => update('WeaponRack.Placement.AllowPickup', v)} />
+        <FieldBlock label="Max per Player" hint="Item-placed racks each player can have at once." style={{ marginBottom: 0 }}>
+          <NumberInput min={1} max={20} step={1} value={String(t.Placement?.MaxPerPlayer ?? 2)}
+            onChange={numUpdate(update, 'WeaponRack.Placement.MaxPerPlayer', 2, true)} />
+        </FieldBlock>
+      </FieldBlock>
       <div className="mbt-field__hint" style={{ marginTop: 2 }}>
         Rack locations, props and per-type offsets live in <code>config.lua</code>
         (<code>MBT.WeaponRack</code>) — along with per-job access &amp; certification gating.

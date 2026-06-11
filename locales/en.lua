@@ -83,6 +83,18 @@ RegisterLocale('en', {
     ['rack_picker_select']      = 'Select',
     ['rack_picker_take']        = 'Take',
     ['rack_picker_cancel']      = 'Cancel',
+    ['rack_pickup']             = 'Pick up rack',
+    ['rack_place_hint']         = 'LEFT/RIGHT rotate ~y~·~s~ SHIFT fast ~y~·~s~ E place ~y~·~s~ BACKSPACE cancel',
+    ['rack_placed_title']       = 'Gun Rack',
+    ['rack_placed_desc']        = 'Rack installed.',
+    ['rack_picked_up_title']    = 'Gun Rack',
+    ['rack_picked_up_desc']     = 'Rack dismounted — item returned.',
+    ['rack_limit_title']        = 'Gun Rack',
+    ['rack_limit_desc']         = 'You\'ve reached your rack limit.',
+    ['rack_too_close_title']    = 'Gun Rack',
+    ['rack_too_close_desc']     = 'Too close to another rack.',
+    ['rack_not_empty_title']    = 'Gun Rack',
+    ['rack_not_empty_desc']     = 'Empty the rack before picking it up.',
 
     -- NUI: holster prompt
     ['holster_title']           = 'HOLSTER WEAPON',

@@ -32,3 +32,9 @@ function getPlayerName(s)
     if not name or name == '' then name = GetPlayerName(s) or ('Player ' .. tostring(s)) end
     return name, xPlayer.PlayerData.citizenid or tostring(s)
 end
+
+--- Framework-native usable item registration (cb receives the player source).
+--- On ox_inventory setups the item's server.export path is used instead.
+function registerUsableItem(name, cb)
+    QBCore.Functions.CreateUseableItem(name, function(source) cb(source) end)
+end

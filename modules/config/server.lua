@@ -160,6 +160,12 @@ local function snapshot()
             AllowedTypes        = { back = b(war['back']), back2 = b(war['back2']), side = b(war['side']) },
             Logging             = { Enabled = b(WR.Logging and WR.Logging.Enabled),
                                     Webhook = (WR.Logging and WR.Logging.Webhook) or '' },
+            Placement           = {
+                Enabled      = b(WR.Placement and WR.Placement.Enabled),
+                MaxPerPlayer = num(WR.Placement and WR.Placement.MaxPerPlayer, 2),
+                AllowPickup  = b(WR.Placement and WR.Placement.AllowPickup),
+                Access       = (WR.Placement and WR.Placement.Access) == 'owner' and 'owner' or 'everyone',
+            },
         },
         TacticalSling = { Enabled = b(TS.Enabled) },
     }
@@ -275,6 +281,10 @@ local function validate(d)
         or type(wr.AllowedTypes.side) ~= 'boolean' then return false end
     if type(wr.Logging) ~= 'table' or type(wr.Logging.Enabled) ~= 'boolean' then return false end
     if type(wr.Logging.Webhook) ~= 'string' or #wr.Logging.Webhook > 300 then return false end
+    local wrp = wr.Placement
+    if type(wrp) ~= 'table' or type(wrp.Enabled) ~= 'boolean' or type(wrp.AllowPickup) ~= 'boolean' then return false end
+    if type(wrp.MaxPerPlayer) ~= 'number' or wrp.MaxPerPlayer < 1 or wrp.MaxPerPlayer > 20 then return false end
+    if wrp.Access ~= 'everyone' and wrp.Access ~= 'owner' then return false end
     -- Tactical Sling
     local ts = d.TacticalSling
     if type(ts) ~= 'table' or type(ts.Enabled) ~= 'boolean' then return false end
@@ -375,6 +385,11 @@ local function applyToMBT(d)
         MBT.WeaponRack.Logging = MBT.WeaponRack.Logging or {}
         MBT.WeaponRack.Logging.Enabled = d.WeaponRack.Logging.Enabled
         MBT.WeaponRack.Logging.Webhook = d.WeaponRack.Logging.Webhook
+        MBT.WeaponRack.Placement = MBT.WeaponRack.Placement or {}
+        MBT.WeaponRack.Placement.Enabled      = d.WeaponRack.Placement.Enabled
+        MBT.WeaponRack.Placement.MaxPerPlayer = d.WeaponRack.Placement.MaxPerPlayer
+        MBT.WeaponRack.Placement.AllowPickup  = d.WeaponRack.Placement.AllowPickup
+        MBT.WeaponRack.Placement.Access       = d.WeaponRack.Placement.Access
     end
     MBT.TacticalSling.Enabled = d.TacticalSling.Enabled
 end

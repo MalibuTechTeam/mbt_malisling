@@ -30,3 +30,9 @@ function getPlayerName(s)
     local name = (xPlayer.getName and xPlayer.getName()) or GetPlayerName(s) or ('Player ' .. tostring(s))
     return name, xPlayer.identifier or tostring(s)
 end
+
+--- Framework-native usable item registration (cb receives the player source).
+--- On ox_inventory setups the item's server.export path is used instead.
+function registerUsableItem(name, cb)
+    ESX.RegisterUsableItem(name, function(source) cb(source) end)
+end

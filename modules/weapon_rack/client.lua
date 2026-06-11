@@ -260,6 +260,16 @@ local function doRetrieve(id)
 end
 
 -- ── Spawn / despawn the rack props ───────────────────────────────────────────────
+-- Own identifier (for the owner-only pickup option), prefetched once: canInteract
+-- runs every frame on hover, so it must NOT await a callback.
+local myIdentifier = nil
+CreateThread(function()
+    Wait(2000)   -- let the framework bridge resolve the character first
+    myIdentifier = lib.callback.await('mbt_malisling:weaponRack:whoami', false) or false
+end)
+
+local doPickup   -- forward declaration (defined with the placement flow below)
+
 local function addTarget(id, prop)
     if GetResourceState('ox_target') ~= 'started' then return end
     exports.ox_target:addLocalEntity(prop, {
@@ -283,6 +293,21 @@ local function addTarget(id, prop)
                 return cfg.Enabled and not cache.vehicle and rackCount(id) > 0
             end,
             onSelect = function() doRetrieve(id) end,
+        },
+        {
+            -- Owner-only: dismount an EMPTY item-placed rack and get the item back.
+            name        = 'mbt_rack_pickup_' .. id,
+            icon        = 'fa-solid fa-screwdriver-wrench',
+            label       = Translate('rack_pickup'),
+            distance    = cfg.InteractionDistance or 2.0,
+            canInteract = function()
+                local sr = spawnedRacks[id]
+                local owner = sr and sr.loc and sr.loc.owner
+                return cfg.Enabled and not cache.vehicle and owner
+                    and cfg.Placement and cfg.Placement.Enabled and cfg.Placement.AllowPickup ~= false
+                    and rackCount(id) == 0 and myIdentifier == owner
+            end,
+            onSelect = function() doPickup(id) end,
         },
     })
 end
@@ -422,6 +447,114 @@ RegisterCommand('mbt_rackcoords', function()
         description = 'Location line copied to clipboard + printed to F8.',
     })
 end, false)
+
+-- ── Player placement (inventory item): carry ghost → rotate → mount ───────────────
+-- Use the rack item → the ped CARRIES the locker (box-carry loop, you can walk
+-- around with it) while a ghost preview floats in front; ←/→ rotates it, E confirms
+-- (kneeling mounting scenario, then the rack solidifies), BACKSPACE cancels.
+local placing = false
+
+local function drawPlaceHint(text)
+    SetTextFont(4); SetTextScale(0.42, 0.42); SetTextColour(255, 255, 255, 255); SetTextCentre(true)
+    SetTextEntry('STRING')
+    AddTextComponentString(text)
+    DrawText(0.5, 0.86)
+end
+
+local function startCarry()
+    local a = (cfg.Placement and cfg.Placement.CarryAnim) or {}
+    if not a.Dict or not DoesAnimDictExist(a.Dict) then return end
+    lib.requestAnimDict(a.Dict)
+    TaskPlayAnim(cache.ped, a.Dict, a.Anim, 4.0, -4.0, -1, a.Flag or 50, 0.0, false, false, false)
+end
+
+local function stopCarry()
+    local a = (cfg.Placement and cfg.Placement.CarryAnim) or {}
+    if a.Dict and a.Anim then StopAnimTask(cache.ped, a.Dict, a.Anim, 2.0) end
+    ClearPedTasks(cache.ped)
+end
+
+RegisterNetEvent('mbt_malisling:weaponRack:startPlace', function()
+    if placing or not cfg.Enabled or not cfg.Placement or not cfg.Placement.Enabled then return end
+    if cache.vehicle then return end
+    placing = true
+
+    local model = cfg.Placement.Prop or cfg.DefaultProp
+    if not lib.requestModel(model, 5000) then placing = false return end
+    local ghost = CreateObject(model, 0.0, 0.0, 0.0, false, false, false)
+    if not ghost or not DoesEntityExist(ghost) then
+        SetModelAsNoLongerNeeded(model); placing = false; return
+    end
+    SetEntityAlpha(ghost, 160, false)
+    SetEntityCollision(ghost, false, false)
+    SetModelAsNoLongerNeeded(model)
+
+    startCarry()
+    local rotOff = 0.0
+    local hint = Translate('rack_place_hint')
+
+    CreateThread(function()
+        local lastX, lastY, lastZ, lastW = 0.0, 0.0, 0.0, 0.0
+        while placing do
+            Wait(0)
+            -- ←/→ rotate (SHIFT = fast) · E confirm · BACKSPACE cancel
+            for _, c in ipairs({ 174, 175, 38, 177, 21, 24, 25 }) do DisableControlAction(0, c, true) end
+            local step = IsDisabledControlPressed(0, 21) and 4.0 or 1.5
+            if IsDisabledControlPressed(0, 174) then rotOff = (rotOff - step) % 360.0 end
+            if IsDisabledControlPressed(0, 175) then rotOff = (rotOff + step) % 360.0 end
+
+            -- Ghost follows you: 1.7m ahead, snapped to the ground.
+            local p = GetOffsetFromEntityInWorldCoords(cache.ped, 0.0, 1.7, 0.0)
+            local found, gz = GetGroundZFor_3dCoord(p.x, p.y, p.z + 1.0, false)
+            lastX, lastY, lastZ = p.x, p.y, found and gz or p.z
+            lastW = (GetEntityHeading(cache.ped) + rotOff) % 360.0
+            SetEntityCoords(ghost, lastX, lastY, lastZ, false, false, false, false)
+            SetEntityHeading(ghost, lastW)
+            drawPlaceHint(hint)
+
+            if IsDisabledControlJustPressed(0, 38) then            -- E → mount it
+                placing = false
+                stopCarry()
+                -- Kneeling mounting scenario while the server validates + installs.
+                local scen = cfg.Placement.InstallScenario
+                if scen and scen ~= '' then TaskStartScenarioInPlace(cache.ped, scen, 0, true) end
+                local res = lib.callback.await('mbt_malisling:weaponRack:placeItem', false,
+                    { x = lastX, y = lastY, z = lastZ, w = lastW })
+                Wait(res and res.ok and (cfg.Placement.InstallMs or 4000) or 300)
+                ClearPedTasks(cache.ped)
+                if DoesEntityExist(ghost) then DeleteEntity(ghost) end
+                if res and res.ok then
+                    MBT.NotifyLabel('rack_placed')
+                elseif res and res.reason then
+                    MBT.NotifyLabel(res.reason)
+                end
+            elseif IsDisabledControlJustPressed(0, 177) then       -- BACKSPACE → cancel
+                placing = false
+                stopCarry()
+                if DoesEntityExist(ghost) then DeleteEntity(ghost) end
+            end
+        end
+        -- Safety: never leak the ghost (resource stop happens via the handler below).
+        if not placing and DoesEntityExist(ghost) then DeleteEntity(ghost) end
+    end)
+end)
+
+--- Owner pickup: short dismount scenario → item back, rack gone (server-validated).
+function doPickup(id)
+    if busy or placing then return end
+    busy = true
+    local scen = cfg.Placement and cfg.Placement.InstallScenario
+    if scen and scen ~= '' then TaskStartScenarioInPlace(cache.ped, scen, 0, true) end
+    Wait(1800)
+    ClearPedTasks(cache.ped)
+    local res = lib.callback.await('mbt_malisling:weaponRack:pickup', false, id)
+    busy = false
+    if res and res.ok then
+        MBT.NotifyLabel('rack_picked_up')
+    elseif res and res.reason then
+        MBT.NotifyLabel(res.reason)
+    end
+end
 
 -- ── Runtime placement (admin) — spawn/despawn pushed by the server ────────────────
 RegisterNetEvent('mbt_malisling:weaponRack:spawn', function(loc)
