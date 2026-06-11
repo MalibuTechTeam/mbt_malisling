@@ -454,11 +454,17 @@ end, false)
 -- (kneeling mounting scenario, then the rack solidifies), BACKSPACE cancels.
 local placing = false
 
-local function drawPlaceHint(text)
-    SetTextFont(4); SetTextScale(0.42, 0.42); SetTextColour(255, 255, 255, 255); SetTextCentre(true)
-    SetTextEntry('STRING')
-    AddTextComponentString(text)
-    DrawText(0.5, 0.86)
+local function showPlaceHints()
+    SendNUIMessage({ action = 'showHint', data = { items = {
+        { k = '←/→',  l = Translate('rack_hint_rotate') },
+        { k = 'SHIFT', l = Translate('rack_hint_fast') },
+        { k = 'E',     l = Translate('rack_hint_place') },
+        { k = 'BSPC',  l = Translate('rack_hint_cancel') },
+    } } })
+end
+
+local function hidePlaceHints()
+    SendNUIMessage({ action = 'hideHint', data = {} })
 end
 
 local function startCarry()
@@ -490,8 +496,8 @@ RegisterNetEvent('mbt_malisling:weaponRack:startPlace', function()
     SetModelAsNoLongerNeeded(model)
 
     startCarry()
+    showPlaceHints()
     local rotOff = 0.0
-    local hint = Translate('rack_place_hint')
 
     CreateThread(function()
         local lastX, lastY, lastZ, lastW = 0.0, 0.0, 0.0, 0.0
@@ -510,10 +516,10 @@ RegisterNetEvent('mbt_malisling:weaponRack:startPlace', function()
             lastW = (GetEntityHeading(cache.ped) + rotOff) % 360.0
             SetEntityCoords(ghost, lastX, lastY, lastZ, false, false, false, false)
             SetEntityHeading(ghost, lastW)
-            drawPlaceHint(hint)
 
             if IsDisabledControlJustPressed(0, 38) then            -- E → mount it
                 placing = false
+                hidePlaceHints()
                 stopCarry()
                 -- Kneeling mounting scenario while the server validates + installs.
                 local scen = cfg.Placement.InstallScenario
@@ -530,6 +536,7 @@ RegisterNetEvent('mbt_malisling:weaponRack:startPlace', function()
                 end
             elseif IsDisabledControlJustPressed(0, 177) then       -- BACKSPACE → cancel
                 placing = false
+                hidePlaceHints()
                 stopCarry()
                 if DoesEntityExist(ghost) then DeleteEntity(ghost) end
             end

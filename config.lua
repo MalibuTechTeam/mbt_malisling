@@ -768,7 +768,8 @@ MBT.WeaponRack         = {
         InstallMs       = 4000,         -- mounting scenario duration
         -- Premium placement feel (works out of the box; swap clips freely).
         CarryAnim       = { Dict = 'anim@heists@box_carry@', Anim = 'idle', Flag = 50 },
-        InstallScenario = 'WORLD_HUMAN_HAMMERING',
+        -- Standing drill (fits mounting a standing locker; HAMMERING = kneeling alt).
+        InstallScenario = 'WORLD_HUMAN_CONST_DRILL',
     },
     -- ── Conversion seam (no-op without mbt_shooting) ──────────────────────────────
     -- When true AND mbt_shooting is installed, retrieving a weapon class requires the
@@ -830,7 +831,9 @@ MBT.Inspect            = {
 -- prop only). Changing clothes re-checks and force-reveals with a notification.
 MBT.ConcealedCarry     = {
     Enabled          = true,
-    Key              = 'B',          -- toggle key (concealable weapon must be holstered)
+    Key              = 'U',          -- toggle key (concealable weapon must be holstered)
+    -- NOTE: FiveM caches keybinds per player — if you change this after first
+    -- join, rebind it in GTA Settings → Key Bindings → FiveM.
     ConcealableTypes = { ['side'] = true },
     ToggleCooldownMs = 3000,         -- anti flicker/spam (server-enforced)
     -- The waistband-adjust TELL: random cadence, more likely after sprint/jump,

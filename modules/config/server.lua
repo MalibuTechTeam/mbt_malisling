@@ -501,6 +501,7 @@ local function persistable(d)
         NoDrawZones = d.NoDrawZones,
         VehicleHiding = d.VehicleHiding,
         VehicleTrunkRack = d.VehicleTrunkRack,
+        ChainOfCustody = d.ChainOfCustody,
         WeaponRack = d.WeaponRack,
         TacticalSling = d.TacticalSling,
         ShellCasings = d.ShellCasings,
@@ -510,15 +511,43 @@ local function persistable(d)
     }
 end
 
+--- Deep-merge SAVED values onto the live template: only keys present in the
+--- template are read from the file (type-checked); anything missing — e.g. a
+--- feature block added after the file was saved — keeps its config.lua default.
+--- Schema auto-migration: an older runtime_config can never wipe the whole
+--- saved state again, it just gains the new defaults.
+local function mergeKnown(template, saved)
+    if type(saved) ~= 'table' then return template end
+    local out = {}
+    for k, tv in pairs(template) do
+        local sv = saved[k]
+        if type(tv) == 'table' then
+            out[k] = mergeKnown(tv, sv)
+        elseif sv ~= nil and type(sv) == type(tv) then
+            out[k] = sv
+        else
+            out[k] = tv
+        end
+    end
+    return out
+end
+
 local function loadRuntimeConfig()
     local raw = LoadResourceFile(GetCurrentResourceName(), CONFIG_FILE)
     if not raw then return end
     local ok, data = pcall(json.decode, raw)
-    if not ok or not validate(data) then
-        Utils.mbtWarn('runtime_config.json invalid or from an old format, ignoring')
+    if not ok or type(data) ~= 'table' then
+        Utils.mbtWarn('runtime_config.json unreadable, ignoring')
         return
     end
-    applyToMBT(data)
+    -- Merge over the current live snapshot (config.lua defaults + any feature
+    -- blocks the file predates), then validate the COMPLETE result.
+    local merged = mergeKnown(snapshot(), data)
+    if not validate(merged) then
+        Utils.mbtWarn('runtime_config.json failed validation after merge, ignoring')
+        return
+    end
+    applyToMBT(merged)
     Utils.mbtDebugger('Runtime config loaded from', CONFIG_FILE)
 end
 

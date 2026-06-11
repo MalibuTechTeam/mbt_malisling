@@ -11,6 +11,7 @@ import PoseHUD from './components/PoseHUD'
 import RackPickerUI from './components/RackPickerUI'
 import EvidenceUI from './components/EvidenceUI'
 import HandoffUI from './components/HandoffUI'
+import HintUI from './components/HintUI'
 import AdminDashboard from './admin/AdminDashboard'
 
 debugData([{
@@ -105,6 +106,7 @@ export default function App() {
       <RackPickerUI />
       <EvidenceUI />
       <HandoffUI />
+      <HintUI />
       <AdminDashboard />
     </>
   )
