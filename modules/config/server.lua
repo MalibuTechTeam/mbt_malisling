@@ -49,6 +49,8 @@ local function snapshot()
     local SR = MBT.Serials or {}
     local CCY = MBT.ConcealedCarry or {}
     local cct = CCY.Tell or {}
+    local PD = MBT.PatDown or {}
+    local pdl = PD.Logging or {}
     local vat = VTR.AllowedTypes or {}
     local war = WR.AllowedTypes or {}
     local TH, INS = MBT.Throw or {}, IN.Show or {}
@@ -202,6 +204,14 @@ local function snapshot()
                 ChancePoor  = num(cct.ChancePoor, 0.45),
             },
         },
+        PatDown = {
+            Enabled        = b(PD.Enabled),
+            RequireConsent = b(PD.RequireConsent),
+            CuffedBypass   = b(PD.CuffedBypass),
+            ShowAmmo       = b(PD.ShowAmmo),
+            MaxDistance    = num(PD.MaxDistance, 2.0),
+            Logging        = { Enabled = b(pdl.Enabled), Webhook = pdl.Webhook or '' },
+        },
     }
 end
 
@@ -345,6 +355,13 @@ local function validate(d)
     if type(ccy.Tell.RollSeconds) ~= 'number' or ccy.Tell.RollSeconds < 5 or ccy.Tell.RollSeconds > 600 then return false end
     if type(ccy.Tell.ChanceGood) ~= 'number' or ccy.Tell.ChanceGood < 0 or ccy.Tell.ChanceGood > 1 then return false end
     if type(ccy.Tell.ChancePoor) ~= 'number' or ccy.Tell.ChancePoor < 0 or ccy.Tell.ChancePoor > 1 then return false end
+    -- Pat-down
+    local pd = d.PatDown
+    if type(pd) ~= 'table' or type(pd.Enabled) ~= 'boolean' or type(pd.RequireConsent) ~= 'boolean'
+        or type(pd.CuffedBypass) ~= 'boolean' or type(pd.ShowAmmo) ~= 'boolean' then return false end
+    if type(pd.MaxDistance) ~= 'number' or pd.MaxDistance < 1 or pd.MaxDistance > 10 then return false end
+    if type(pd.Logging) ~= 'table' or type(pd.Logging.Enabled) ~= 'boolean' then return false end
+    if type(pd.Logging.Webhook) ~= 'string' or #pd.Logging.Webhook > 300 then return false end
     return true
 end
 
@@ -476,6 +493,16 @@ local function applyToMBT(d)
         MBT.ConcealedCarry.Tell.ChanceGood  = d.ConcealedCarry.Tell.ChanceGood
         MBT.ConcealedCarry.Tell.ChancePoor  = d.ConcealedCarry.Tell.ChancePoor
     end
+    if MBT.PatDown then
+        MBT.PatDown.Enabled        = d.PatDown.Enabled
+        MBT.PatDown.RequireConsent = d.PatDown.RequireConsent
+        MBT.PatDown.CuffedBypass   = d.PatDown.CuffedBypass
+        MBT.PatDown.ShowAmmo       = d.PatDown.ShowAmmo
+        MBT.PatDown.MaxDistance    = d.PatDown.MaxDistance
+        MBT.PatDown.Logging = MBT.PatDown.Logging or {}
+        MBT.PatDown.Logging.Enabled = d.PatDown.Logging.Enabled
+        MBT.PatDown.Logging.Webhook = d.PatDown.Logging.Webhook
+    end
 end
 
 --- The editable subset that gets persisted (overview-only flags excluded).
@@ -508,6 +535,7 @@ local function persistable(d)
         Handoff = d.Handoff,
         Serials = d.Serials,
         ConcealedCarry = d.ConcealedCarry,
+        PatDown = d.PatDown,
     }
 end
 

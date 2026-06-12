@@ -140,6 +140,26 @@ RegisterLocale('it', {
     ['concealed_no_weapon_title']= 'Porto Occulto',
     ['concealed_no_weapon_desc'] = 'Nessun\'arma occultabile nella fondina.',
 
+    -- Perquisizione (LEO)
+    ['patdown_wants']           = 'vuole perquisirti',
+    ['patdown_allow']           = 'Acconsenti',
+    ['patdown_refuse']          = 'Rifiuta',
+    ['patdown_result']          = 'PERQUISIZIONE',
+    ['patdown_st_visible']      = 'In vista',
+    ['patdown_st_carried']      = 'Sulla schiena',
+    ['patdown_st_concealed_good']= 'Occultata',
+    ['patdown_st_concealed_poor']= 'Occultata (male)',
+    ['patdown_sent_title']      = 'Perquisizione',
+    ['patdown_sent_desc']       = 'In attesa di consenso…',
+    ['patdown_declined_title']  = 'Perquisizione',
+    ['patdown_declined_desc']   = 'Ha rifiutato la perquisizione.',
+    ['patdown_none_title']      = 'Perquisizione',
+    ['patdown_none_desc']       = 'Nessun\'arma trovata.',
+    ['patdown_no_target_title'] = 'Perquisizione',
+    ['patdown_no_target_desc']  = 'Nessuno abbastanza vicino da perquisire.',
+    ['patdown_searched_title']  = 'Perquisizione',
+    ['patdown_searched_desc']   = 'Sei stato perquisito da un agente.',
+
     -- NUI: holster prompt
     ['holster_title']           = 'RIPONI ARMA',
     ['holster_action']          = 'Riponi',

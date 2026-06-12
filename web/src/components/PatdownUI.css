@@ -1,0 +1,87 @@
+/* PatdownUI — consent pill (target) + result card (officer). Pill reuses the
+   Holster/Handoff recipe; the card reuses the RackPicker/Inspect card language. */
+
+/* ── Consent pill (target) ── */
+.ptd-pill {
+  position: fixed;
+  bottom: 140px;
+  left: 50%;
+  transform: translateX(-50%);
+  --pos-transform: translateX(-50%);
+  z-index: 9999;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: stretch;
+  padding: 9px 12px;
+  border-radius: 12px;
+  background:
+    radial-gradient(120% 180% at 0% 0%, var(--mbt-accent-soft), transparent 55%),
+    linear-gradient(180deg, var(--mbt-surface-2), var(--mbt-surface-1));
+  border: 1px solid rgba(var(--mbt-accent-rgb), 0.18);
+  box-shadow: var(--mbt-shadow-overlay), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  font-family: var(--mbt-font-body);
+  white-space: nowrap;
+  pointer-events: none;
+}
+.ptd-top { display: flex; align-items: center; gap: 9px; padding-bottom: 8px; border-bottom: 1px solid var(--mbt-edge-lo); }
+.ptd-ic {
+  width: 24px; height: 24px; flex: none; display: grid; place-items: center;
+  border-radius: 7px; background: var(--mbt-accent-soft);
+  border: 1px solid rgba(var(--mbt-accent-rgb), 0.25); color: var(--mbt-accent);
+}
+.ptd-ic svg { width: 14px; height: 14px; }
+.ptd-tx { font-family: var(--mbt-font-display); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--mbt-text-mid); }
+.ptd-from { color: var(--mbt-text-hi); font-weight: 700; }
+.ptd-actions { display: flex; align-items: center; justify-content: center; gap: 14px; padding-top: 8px; }
+.ptd-hint { display: inline-flex; align-items: center; gap: 5px; }
+.ptd-lbl { font-size: 9.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--mbt-text-lo); }
+.ptd-lbl--primary { color: var(--mbt-text-hi); }
+
+/* ── Result card (officer) ── */
+.ptd-card-wrap {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  --pos-transform: translateX(-50%);
+  z-index: 9998;
+  pointer-events: none;
+}
+.ptd-card {
+  width: 260px;
+  background: var(--mbt-surface-2);
+  border: 1px solid var(--mbt-edge-hi);
+  border-radius: 12px;
+  box-shadow: var(--mbt-shadow-overlay);
+  overflow: hidden;
+  font-family: var(--mbt-font-body);
+}
+.ptd-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 9px 13px 8px; border-bottom: 1px solid var(--mbt-edge-lo);
+}
+.ptd-label { font-family: var(--mbt-font-mono); font-size: 8.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--mbt-accent); }
+.ptd-count { font-family: var(--mbt-font-mono); font-size: 9px; color: var(--mbt-text-lo); }
+.ptd-list { padding: 6px 6px; display: flex; flex-direction: column; gap: 2px; max-height: 240px; overflow-y: auto; }
+.ptd-row { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 8px; }
+.ptd-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.ptd-name {
+  font-family: var(--mbt-font-display); font-weight: 700; font-size: 12px; color: var(--mbt-text-hi);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ptd-serial { font-family: var(--mbt-font-mono); font-size: 9px; color: var(--mbt-text-faint); letter-spacing: 0.04em; }
+.ptd-status {
+  flex: none; font-family: var(--mbt-font-mono); font-size: 8.5px; letter-spacing: 0.05em;
+  text-transform: uppercase; color: var(--mbt-text-lo);
+  border: 1px solid var(--mbt-edge-lo); border-radius: var(--mbt-r-pill); padding: 1px 7px;
+}
+/* concealed = the interesting find → accent/warn; visible/back = muted */
+.ptd-status--concealed { color: var(--mbt-hacked); border-color: rgba(251, 146, 60, 0.3); }
+.ptd-status--concealed.ptd-status--poor { color: var(--mbt-faulty); border-color: rgba(248, 113, 113, 0.3); }
+
+.ptd-enter { animation: ptd-in var(--mbt-dur-fast) var(--mbt-ease) forwards; }
+.ptd-exit  { animation: ptd-out var(--mbt-dur-fast) var(--mbt-ease-exit) forwards; }
+@keyframes ptd-in  { from { opacity: 0; transform: var(--pos-transform) translateY(12px); } to { opacity: 1; transform: var(--pos-transform) translateY(0); } }
+@keyframes ptd-out { from { opacity: 1; transform: var(--pos-transform) translateY(0); } to { opacity: 0; transform: var(--pos-transform) translateY(8px); } }
+
+@media (prefers-reduced-motion: reduce) { .ptd-enter, .ptd-exit { animation: none; } }

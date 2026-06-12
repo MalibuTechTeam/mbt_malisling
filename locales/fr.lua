@@ -140,6 +140,26 @@ RegisterLocale('fr', {
     ['concealed_no_weapon_title']= 'Port Dissimulé',
     ['concealed_no_weapon_desc'] = 'Aucune arme dissimulable dans l\'étui.',
 
+    -- Fouille (police)
+    ['patdown_wants']           = 'veut vous fouiller',
+    ['patdown_allow']           = 'Accepter',
+    ['patdown_refuse']          = 'Refuser',
+    ['patdown_result']          = 'FOUILLE',
+    ['patdown_st_visible']      = 'À découvert',
+    ['patdown_st_carried']      = 'Dans le dos',
+    ['patdown_st_concealed_good']= 'Dissimulée',
+    ['patdown_st_concealed_poor']= 'Dissimulée (mal)',
+    ['patdown_sent_title']      = 'Fouille',
+    ['patdown_sent_desc']       = 'En attente de consentement…',
+    ['patdown_declined_title']  = 'Fouille',
+    ['patdown_declined_desc']   = 'Il a refusé la fouille.',
+    ['patdown_none_title']      = 'Fouille',
+    ['patdown_none_desc']       = 'Aucune arme trouvée.',
+    ['patdown_no_target_title'] = 'Fouille',
+    ['patdown_no_target_desc']  = 'Personne d\'assez proche à fouiller.',
+    ['patdown_searched_title']  = 'Fouille',
+    ['patdown_searched_desc']   = 'Vous avez été fouillé par un agent.',
+
     -- NUI: holster prompt
     ['holster_title']           = 'RANGER L\'ARME',
     ['holster_action']          = 'Ranger',

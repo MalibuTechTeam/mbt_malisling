@@ -195,6 +195,36 @@ MBT.Labels             = {
         ["type"]     = "inform",
         ["icon"]     = "fa-solid fa-gun",
     },
+    ["patdown_sent"] = {
+        ["titleKey"] = "patdown_sent_title",
+        ["descKey"]  = "patdown_sent_desc",
+        ["type"]     = "inform",
+        ["icon"]     = "fa-solid fa-hands",
+    },
+    ["patdown_declined"] = {
+        ["titleKey"] = "patdown_declined_title",
+        ["descKey"]  = "patdown_declined_desc",
+        ["type"]     = "inform",
+        ["icon"]     = "fa-solid fa-hand",
+    },
+    ["patdown_none"] = {
+        ["titleKey"] = "patdown_none_title",
+        ["descKey"]  = "patdown_none_desc",
+        ["type"]     = "success",
+        ["icon"]     = "fa-solid fa-hands",
+    },
+    ["patdown_no_target"] = {
+        ["titleKey"] = "patdown_no_target_title",
+        ["descKey"]  = "patdown_no_target_desc",
+        ["type"]     = "inform",
+        ["icon"]     = "fa-solid fa-person-circle-question",
+    },
+    ["patdown_searched"] = {
+        ["titleKey"] = "patdown_searched_title",
+        ["descKey"]  = "patdown_searched_desc",
+        ["type"]     = "inform",
+        ["icon"]     = "fa-solid fa-hands",
+    },
     ["has_jammed"] = {
         ["titleKey"] = "jam_jammed_title",
         ["descKey"]  = "jam_jammed_desc",
@@ -863,6 +893,31 @@ MBT.ConcealedCarry     = {
         OverridesMale   = {},
         OverridesFemale = {},
     },
+}
+
+-- ── Pat-down (LEO frisk) ──────────────────────────────────────────────────────
+-- Police physically frisk a nearby person for weapons. NOT an inventory search:
+-- it answers "what weapons are on this body, and were they hidden?" — the truth
+-- only malisling has (open vs concealed). The target consents (or not); the
+-- result lists each weapon with how it was carried (visible / concealed-poor /
+-- concealed-good / back-carried) + serial → feeds forensics. Poor concealment is
+-- found instantly; good concealment needs a short search. Every frisk → webhook.
+MBT.PatDown            = {
+    Enabled       = true,
+    Key           = 'Y',          -- frisk key (hold near a person, allowed job only)
+    Jobs          = { ['police'] = true, ['sheriff'] = true, ['bcso'] = true },
+    MaxDistance   = 2.0,
+    RequireConsent = true,        -- target must accept; false = always allowed (hard RP)
+    CuffedBypass  = true,         -- skip consent if the target is cuffed
+    RequestTimeoutMs = 8000,
+    SearchMsPoor  = 600,          -- frisk time before a poorly-hidden weapon is found
+    SearchMsGood  = 2600,         -- well-hidden weapon takes longer
+    ShowAmmo      = false,        -- include loaded-ammo count in the result (off = weapon + status only)
+    Animation     = {
+        CopDict = 'mp_arresting', CopAnim = 'a_uncuff', CopMs = 2600,   -- officer frisking gesture
+    },
+    -- Audit webhook (officer · suspect · weapons · serials · concealment). Empty = off.
+    Logging       = { Enabled = true, Webhook = '', BotName = 'MBT Pat-Down' },
 }
 
 -- ── Weapon Serials (forensic identity backbone) ────────────────────────────────

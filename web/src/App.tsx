@@ -12,6 +12,7 @@ import RackPickerUI from './components/RackPickerUI'
 import EvidenceUI from './components/EvidenceUI'
 import HandoffUI from './components/HandoffUI'
 import HintUI from './components/HintUI'
+import PatdownUI from './components/PatdownUI'
 import AdminDashboard from './admin/AdminDashboard'
 
 debugData([{
@@ -107,6 +108,7 @@ export default function App() {
       <EvidenceUI />
       <HandoffUI />
       <HintUI />
+      <PatdownUI />
       <AdminDashboard />
     </>
   )

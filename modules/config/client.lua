@@ -191,6 +191,13 @@ local function applyConfig(d)
             MBT.ConcealedCarry.Tell.ChancePoor  = d.ConcealedCarry.Tell.ChancePoor
         end
     end
+    if d.PatDown and MBT.PatDown then
+        MBT.PatDown.Enabled        = d.PatDown.Enabled
+        MBT.PatDown.RequireConsent = d.PatDown.RequireConsent
+        MBT.PatDown.CuffedBypass   = d.PatDown.CuffedBypass
+        MBT.PatDown.ShowAmmo       = d.PatDown.ShowAmmo
+        MBT.PatDown.MaxDistance    = d.PatDown.MaxDistance
+    end
     Utils.mbtDebugger('Admin config applied live')
 end
 

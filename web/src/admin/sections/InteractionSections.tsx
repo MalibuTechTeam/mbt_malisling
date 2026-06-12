@@ -121,6 +121,36 @@ export function ChainOfCustodySection({ config, update }: SectionProps) {
   )
 }
 
+/** Pat-down — police frisk a nearby person for weapons (open vs concealed). */
+export function PatDownSection({ config, update }: SectionProps) {
+  const p = config.PatDown ?? {}
+  const l = p.Logging ?? {}
+  return (
+    <Section icon="search" title="PAT-DOWN" sub="Police frisk a person for weapons — open vs concealed."
+      action={<ToggleRow.Inline checked={!!p.Enabled} onChange={(v) => update('PatDown.Enabled', v)} />}>
+      <ToggleRow title="Require Consent" desc="The target must accept the search (off = always allowed)"
+        checked={p.RequireConsent !== false} onChange={(v) => update('PatDown.RequireConsent', v)} />
+      <ToggleRow title="Cuffed Bypass" desc="Skip consent when the target is cuffed"
+        checked={p.CuffedBypass !== false} onChange={(v) => update('PatDown.CuffedBypass', v)} />
+      <ToggleRow title="Show Ammo" desc="Include loaded-ammo count in the result"
+        checked={!!p.ShowAmmo} onChange={(v) => update('PatDown.ShowAmmo', v)} />
+      <FieldBlock label="Reach (m)" hint="How close the officer must be.">
+        <NumberInput min={1} max={10} step={0.5} value={String(p.MaxDistance ?? 2.0)}
+          onChange={numUpdate(update, 'PatDown.MaxDistance', 2.0)} />
+      </FieldBlock>
+      <ToggleRow title="Audit Log" desc="Log each frisk (officer, suspect, weapons, serials) to a webhook"
+        checked={!!l.Enabled} onChange={(v) => update('PatDown.Logging.Enabled', v)} />
+      <FieldBlock label="Discord Webhook" hint="Required for the audit log." style={{ marginBottom: 0 }}>
+        <input className="mbt-input" value={l.Webhook ?? ''} placeholder="https://discord.com/api/webhooks/..."
+          onChange={(e) => update('PatDown.Logging.Webhook', e.target.value)} />
+      </FieldBlock>
+      <div className="mbt-field__hint" style={{ marginTop: 2 }}>
+        The frisk key and allowed jobs live in <code>config.lua</code> (<code>MBT.PatDown</code>).
+      </div>
+    </Section>
+  )
+}
+
 /** Concealed Carry — hide holstered small weapons if clothing allows it. */
 export function ConcealedCarrySection({ config, update }: SectionProps) {
   const c = config.ConcealedCarry ?? {}

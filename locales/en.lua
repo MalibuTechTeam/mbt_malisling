@@ -140,6 +140,26 @@ RegisterLocale('en', {
     ['concealed_no_weapon_title']= 'Concealed Carry',
     ['concealed_no_weapon_desc'] = 'No concealable weapon holstered.',
 
+    -- Pat-down (LEO frisk)
+    ['patdown_wants']           = 'wants to search you',
+    ['patdown_allow']           = 'Allow',
+    ['patdown_refuse']          = 'Refuse',
+    ['patdown_result']          = 'PAT-DOWN',
+    ['patdown_st_visible']      = 'In the open',
+    ['patdown_st_carried']      = 'On the back',
+    ['patdown_st_concealed_good']= 'Concealed',
+    ['patdown_st_concealed_poor']= 'Concealed (poorly)',
+    ['patdown_sent_title']      = 'Pat-down',
+    ['patdown_sent_desc']       = 'Awaiting consent…',
+    ['patdown_declined_title']  = 'Pat-down',
+    ['patdown_declined_desc']   = 'They refused the search.',
+    ['patdown_none_title']      = 'Pat-down',
+    ['patdown_none_desc']       = 'No weapons found.',
+    ['patdown_no_target_title'] = 'Pat-down',
+    ['patdown_no_target_desc']  = 'No one close enough to search.',
+    ['patdown_searched_title']  = 'Pat-down',
+    ['patdown_searched_desc']   = 'You were searched by an officer.',
+
     -- NUI: holster prompt
     ['holster_title']           = 'HOLSTER WEAPON',
     ['holster_action']          = 'Holster',
