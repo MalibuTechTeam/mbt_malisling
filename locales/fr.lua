@@ -160,6 +160,21 @@ RegisterLocale('fr', {
     ['patdown_searched_title']  = 'Fouille',
     ['patdown_searched_desc']   = 'Vous avez été fouillé par un agent.',
 
+    -- Partage de munitions
+    ['ammo_rounds']             = 'cartouches',
+    ['ammo_sent_title']         = 'Munitions',
+    ['ammo_sent_desc']          = 'Munitions offertes — en attente de réponse.',
+    ['ammo_done_title']         = 'Munitions',
+    ['ammo_done_desc']          = 'Munitions remises.',
+    ['ammo_declined_title']     = 'Munitions',
+    ['ammo_declined_desc']      = 'L\'offre a été refusée.',
+    ['ammo_none_title']         = 'Munitions',
+    ['ammo_none_desc']          = 'Vous n\'avez pas de munitions à partager.',
+    ['ammo_no_target_title']    = 'Munitions',
+    ['ammo_no_target_desc']     = 'Personne d\'assez proche pour partager.',
+    ['ammo_full_title']         = 'Munitions',
+    ['ammo_full_desc']          = 'Le receveur n\'a pas de place dans son inventaire.',
+
     -- NUI: holster prompt
     ['holster_title']           = 'RANGER L\'ARME',
     ['holster_action']          = 'Ranger',

@@ -53,6 +53,7 @@ server_scripts {
     'modules/weapon_handoff/server.lua',
     'modules/concealed_carry/server.lua',
     'modules/pat_down/server.lua',
+    'modules/ammo_sharing/server.lua',
     'modules/config/server.lua',
     'core/server.lua',
 }
@@ -88,6 +89,7 @@ client_scripts {
     'modules/weapon_handoff/client.lua',
     'modules/concealed_carry/client.lua',
     'modules/pat_down/client.lua',
+    'modules/ammo_sharing/client.lua',
     'modules/prop_position_editor/client.lua',
     'modules/no_draw_zones/client.lua',
     'modules/prop_editor/client.lua',

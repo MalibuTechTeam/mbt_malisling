@@ -198,6 +198,11 @@ local function applyConfig(d)
         MBT.PatDown.ShowAmmo       = d.PatDown.ShowAmmo
         MBT.PatDown.MaxDistance    = d.PatDown.MaxDistance
     end
+    if d.AmmoSharing and MBT.AmmoSharing then
+        MBT.AmmoSharing.Enabled     = d.AmmoSharing.Enabled
+        MBT.AmmoSharing.ShareAmount = d.AmmoSharing.ShareAmount
+        MBT.AmmoSharing.MaxDistance = d.AmmoSharing.MaxDistance
+    end
     Utils.mbtDebugger('Admin config applied live')
 end
 

@@ -121,6 +121,30 @@ export function ChainOfCustodySection({ config, update }: SectionProps) {
   )
 }
 
+/** Ammo Sharing — hand a portion of your ammo to a nearby player. */
+export function AmmoSharingSection({ config, update }: SectionProps) {
+  const a = config.AmmoSharing ?? {}
+  return (
+    <Section icon="cursor" title="AMMO SHARING" sub="Hand a portion of your ammo to a nearby player."
+      action={<ToggleRow.Inline checked={!!a.Enabled} onChange={(v) => update('AmmoSharing.Enabled', v)} />}>
+      <Grid2>
+        <FieldBlock label="Share Amount" hint="Rounds offered per share (capped to what you have)." style={{ marginBottom: 0 }}>
+          <NumberInput min={1} max={1000} step={5} value={String(a.ShareAmount ?? 30)}
+            onChange={numUpdate(update, 'AmmoSharing.ShareAmount', 30, true)} />
+        </FieldBlock>
+        <FieldBlock label="Reach (m)" hint="How close the receiver must be." style={{ marginBottom: 0 }}>
+          <NumberInput min={1} max={10} step={0.5} value={String(a.MaxDistance ?? 2.5)}
+            onChange={numUpdate(update, 'AmmoSharing.MaxDistance', 2.5)} />
+        </FieldBlock>
+      </Grid2>
+      <div className="mbt-field__hint" style={{ marginTop: 2 }}>
+        The share key lives in <code>config.lua</code> (<code>MBT.AmmoSharing</code>). Ammo type is
+        taken from the held weapon.
+      </div>
+    </Section>
+  )
+}
+
 /** Pat-down — police frisk a nearby person for weapons (open vs concealed). */
 export function PatDownSection({ config, update }: SectionProps) {
   const p = config.PatDown ?? {}

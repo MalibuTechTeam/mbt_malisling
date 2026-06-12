@@ -51,6 +51,7 @@ local function snapshot()
     local cct = CCY.Tell or {}
     local PD = MBT.PatDown or {}
     local pdl = PD.Logging or {}
+    local AS = MBT.AmmoSharing or {}
     local vat = VTR.AllowedTypes or {}
     local war = WR.AllowedTypes or {}
     local TH, INS = MBT.Throw or {}, IN.Show or {}
@@ -212,6 +213,11 @@ local function snapshot()
             MaxDistance    = num(PD.MaxDistance, 2.0),
             Logging        = { Enabled = b(pdl.Enabled), Webhook = pdl.Webhook or '' },
         },
+        AmmoSharing = {
+            Enabled     = b(AS.Enabled),
+            ShareAmount = num(AS.ShareAmount, 30),
+            MaxDistance = num(AS.MaxDistance, 2.5),
+        },
     }
 end
 
@@ -362,6 +368,11 @@ local function validate(d)
     if type(pd.MaxDistance) ~= 'number' or pd.MaxDistance < 1 or pd.MaxDistance > 10 then return false end
     if type(pd.Logging) ~= 'table' or type(pd.Logging.Enabled) ~= 'boolean' then return false end
     if type(pd.Logging.Webhook) ~= 'string' or #pd.Logging.Webhook > 300 then return false end
+    -- Ammo Sharing
+    local as = d.AmmoSharing
+    if type(as) ~= 'table' or type(as.Enabled) ~= 'boolean' then return false end
+    if type(as.ShareAmount) ~= 'number' or as.ShareAmount < 1 or as.ShareAmount > 1000 then return false end
+    if type(as.MaxDistance) ~= 'number' or as.MaxDistance < 1 or as.MaxDistance > 10 then return false end
     return true
 end
 
@@ -503,6 +514,11 @@ local function applyToMBT(d)
         MBT.PatDown.Logging.Enabled = d.PatDown.Logging.Enabled
         MBT.PatDown.Logging.Webhook = d.PatDown.Logging.Webhook
     end
+    if MBT.AmmoSharing then
+        MBT.AmmoSharing.Enabled     = d.AmmoSharing.Enabled
+        MBT.AmmoSharing.ShareAmount = d.AmmoSharing.ShareAmount
+        MBT.AmmoSharing.MaxDistance = d.AmmoSharing.MaxDistance
+    end
 end
 
 --- The editable subset that gets persisted (overview-only flags excluded).
@@ -536,6 +552,7 @@ local function persistable(d)
         Serials = d.Serials,
         ConcealedCarry = d.ConcealedCarry,
         PatDown = d.PatDown,
+        AmmoSharing = d.AmmoSharing,
     }
 end
 

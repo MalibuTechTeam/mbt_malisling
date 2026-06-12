@@ -225,6 +225,42 @@ MBT.Labels             = {
         ["type"]     = "inform",
         ["icon"]     = "fa-solid fa-hands",
     },
+    ["ammo_sent"] = {
+        ["titleKey"] = "ammo_sent_title",
+        ["descKey"]  = "ammo_sent_desc",
+        ["type"]     = "inform",
+        ["icon"]     = "fa-solid fa-boxes-stacked",
+    },
+    ["ammo_done"] = {
+        ["titleKey"] = "ammo_done_title",
+        ["descKey"]  = "ammo_done_desc",
+        ["type"]     = "success",
+        ["icon"]     = "fa-solid fa-boxes-stacked",
+    },
+    ["ammo_declined"] = {
+        ["titleKey"] = "ammo_declined_title",
+        ["descKey"]  = "ammo_declined_desc",
+        ["type"]     = "inform",
+        ["icon"]     = "fa-solid fa-hand",
+    },
+    ["ammo_none"] = {
+        ["titleKey"] = "ammo_none_title",
+        ["descKey"]  = "ammo_none_desc",
+        ["type"]     = "inform",
+        ["icon"]     = "fa-solid fa-boxes-stacked",
+    },
+    ["ammo_no_target"] = {
+        ["titleKey"] = "ammo_no_target_title",
+        ["descKey"]  = "ammo_no_target_desc",
+        ["type"]     = "inform",
+        ["icon"]     = "fa-solid fa-person-circle-question",
+    },
+    ["ammo_full"] = {
+        ["titleKey"] = "ammo_full_title",
+        ["descKey"]  = "ammo_full_desc",
+        ["type"]     = "error",
+        ["icon"]     = "fa-solid fa-box-archive",
+    },
     ["has_jammed"] = {
         ["titleKey"] = "jam_jammed_title",
         ["descKey"]  = "jam_jammed_desc",
@@ -948,6 +984,22 @@ MBT.Handoff            = {
     MaxDistance      = 2.5,      -- how close the receiver must be
     RequestTimeoutMs = 8000,     -- offer expires if not answered
     EquipOnAccept    = false,    -- receiver takes the weapon straight into hand (ox)
+    Animation        = {
+        GiveDict = 'mp_common', GiveAnim = 'givetake1_a', GiveMs = 900,
+        TakeDict = 'mp_common', TakeAnim = 'givetake2_a', TakeMs = 900,
+    },
+}
+
+-- ── Ammo Sharing ──────────────────────────────────────────────────────────────
+-- Hand a portion of your ammo to a nearby player, same flow as the weapon
+-- handoff (offer → consent → synced give/take). The ammo type is resolved from
+-- the weapon you're holding (its ox ammo item), or your largest ammo stack.
+MBT.AmmoSharing        = {
+    Enabled          = true,
+    Key              = 'H',      -- share key (hold a weapon, face a nearby player)
+    ShareAmount      = 30,       -- rounds offered (capped to what you actually have)
+    MaxDistance      = 2.5,
+    RequestTimeoutMs = 8000,
     Animation        = {
         GiveDict = 'mp_common', GiveAnim = 'givetake1_a', GiveMs = 900,
         TakeDict = 'mp_common', TakeAnim = 'givetake2_a', TakeMs = 900,

@@ -7,7 +7,7 @@ import { CoreSection, InterfaceSection } from './sections/GeneralSection'
 import { HolsterSection } from './sections/HolsterSection'
 import { DropVisualSection, DespawnSection, DropLoggingSection } from './sections/WeaponDropSection'
 import { JammingSection, SuppressorSection, SafetySection, ChargeSection, WeightSection } from './sections/CombatSections'
-import { InspectSection, WeaponNameSection, PosesSection, ThrowSection, ChainOfCustodySection, ShellCasingsSection, HandoffSection, SerialsSection, ConcealedCarrySection, PatDownSection } from './sections/InteractionSections'
+import { InspectSection, WeaponNameSection, PosesSection, ThrowSection, ChainOfCustodySection, ShellCasingsSection, HandoffSection, SerialsSection, ConcealedCarrySection, PatDownSection, AmmoSharingSection } from './sections/InteractionSections'
 import { NoDrawSection, VehicleSection, TrunkRackSection, WeaponRackSection, TrunkPositionsSection } from './sections/WorldSections'
 import { PositionsSection, type Job, type EditTarget } from './sections/PositionsSection'
 import { PropEditorOverlay } from './PropEditorOverlay'
@@ -45,7 +45,7 @@ const CATEGORIES: Category[] = [
   { id: 'interaction', label: 'Interaction', hint: 'Inspect · name · poses', icon: 'cursor',
     // Height-paired for the equal-height grid: the two tall cards (Inspect,
     // Throw) share row 1; the shorter Name + the tiny Poses share row 2.
-    sections: [InspectSection, ThrowSection, WeaponNameSection, PosesSection, ChainOfCustodySection, ShellCasingsSection, HandoffSection, SerialsSection, ConcealedCarrySection, PatDownSection] },
+    sections: [InspectSection, ThrowSection, WeaponNameSection, PosesSection, ChainOfCustodySection, ShellCasingsSection, HandoffSection, SerialsSection, ConcealedCarrySection, PatDownSection, AmmoSharingSection] },
   { id: 'world',       label: 'World',       hint: 'Zones · vehicle',        icon: 'globe',
     sections: [NoDrawSection, VehicleSection, TrunkRackSection, WeaponRackSection] },
 ]
@@ -72,6 +72,7 @@ const FEATURES: { label: string; path: string; cat: string }[] = [
   { label: 'Serial Ensure',  path: 'Serials.EnsureGeneration',    cat: 'Interaction' },
   { label: 'Concealed Carry',path: 'ConcealedCarry.Enabled',      cat: 'Interaction' },
   { label: 'Pat-down',       path: 'PatDown.Enabled',             cat: 'Interaction' },
+  { label: 'Ammo Sharing',   path: 'AmmoSharing.Enabled',         cat: 'Interaction' },
   { label: 'No-Draw Zones',  path: 'NoDrawZones.Enabled',         cat: 'World' },
   { label: 'Vehicle Hiding', path: 'VehicleHiding.Enabled',       cat: 'World' },
   { label: 'Tactical Sling', path: 'TacticalSling.Enabled',       cat: 'World' },

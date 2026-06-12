@@ -160,6 +160,21 @@ RegisterLocale('it', {
     ['patdown_searched_title']  = 'Perquisizione',
     ['patdown_searched_desc']   = 'Sei stato perquisito da un agente.',
 
+    -- Condivisione munizioni
+    ['ammo_rounds']             = 'colpi',
+    ['ammo_sent_title']         = 'Munizioni',
+    ['ammo_sent_desc']          = 'Munizioni offerte — in attesa di risposta.',
+    ['ammo_done_title']         = 'Munizioni',
+    ['ammo_done_desc']          = 'Munizioni consegnate.',
+    ['ammo_declined_title']     = 'Munizioni',
+    ['ammo_declined_desc']      = 'L\'offerta è stata rifiutata.',
+    ['ammo_none_title']         = 'Munizioni',
+    ['ammo_none_desc']          = 'Non hai munizioni da condividere.',
+    ['ammo_no_target_title']    = 'Munizioni',
+    ['ammo_no_target_desc']     = 'Nessuno abbastanza vicino con cui condividere.',
+    ['ammo_full_title']         = 'Munizioni',
+    ['ammo_full_desc']          = 'Chi riceve non ha spazio in inventario.',
+
     -- NUI: holster prompt
     ['holster_title']           = 'RIPONI ARMA',
     ['holster_action']          = 'Riponi',

@@ -160,6 +160,21 @@ RegisterLocale('en', {
     ['patdown_searched_title']  = 'Pat-down',
     ['patdown_searched_desc']   = 'You were searched by an officer.',
 
+    -- Ammo sharing
+    ['ammo_rounds']             = 'rounds',
+    ['ammo_sent_title']         = 'Ammo',
+    ['ammo_sent_desc']          = 'Ammo offered — waiting for an answer.',
+    ['ammo_done_title']         = 'Ammo',
+    ['ammo_done_desc']          = 'Ammo handed over.',
+    ['ammo_declined_title']     = 'Ammo',
+    ['ammo_declined_desc']      = 'The offer was declined.',
+    ['ammo_none_title']         = 'Ammo',
+    ['ammo_none_desc']          = 'You have no ammo to share.',
+    ['ammo_no_target_title']    = 'Ammo',
+    ['ammo_no_target_desc']     = 'No one close enough to share ammo with.',
+    ['ammo_full_title']         = 'Ammo',
+    ['ammo_full_desc']          = 'The receiver has no inventory space.',
+
     -- NUI: holster prompt
     ['holster_title']           = 'HOLSTER WEAPON',
     ['holster_action']          = 'Holster',
