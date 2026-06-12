@@ -167,10 +167,13 @@ if isOx then
             if obj and DoesEntityExist(obj) then
                 PlaceObjectOnGroundProperly(obj)
                 FreezeEntityPosition(obj, true)
-                -- Collision OFF: the interaction is a coords-based ox_target zone, not
-                -- entity raycast, so the prop needs no collision — and it lets the
-                -- player walk onto the drop for the native walk-in pickup.
-                SetEntityCollision(obj, false, true)
+                -- Collision COMPLETELY off (incl. raycast): the interaction is a
+                -- coords-based ox_target sphere, so the props must be transparent to
+                -- the targeting raycast — otherwise a prop intercepts the eye (no
+                -- options) and the sphere behind it can't be selected. Clustered
+                -- props made this reliably break. Also lets the player walk onto
+                -- the drop for the native walk-in pickup.
+                SetEntityCollision(obj, false, false)
                 d.props[#d.props + 1] = obj
             end
         end
