@@ -101,8 +101,38 @@ exports('dropCurrentWeapon', dropCurrentWeapon)
 
 if isOx then
     -- ═══ OX PATH ═══════════════════════════════════════════════════════════════
-    local weaponDrops = {}  -- [dropId] = { prop = entity, coords = vec3 }
+    -- coords    = where the weapon prop + ox_target zone sit (scattered when drops
+    --             cluster, so neither props nor zones overlap).
+    -- bagCoords = the ORIGINAL drop coords where ox spawns its bag prop (un-scattered).
+    local weaponDrops = {}  -- [dropId] = { prop, coords, bagCoords }
     local bagModel = joaat(GetConvar('inventory:dropmodel', 'prop_med_bag_01b'))
+
+    --- Hide EVERY ox bag prop at a drop spot (not just the closest one). Clustered
+    --- drops stack multiple bags at ~the same point; GetClosestObjectOfType only ever
+    --- returns one, so the others stayed visible + collidable and hijacked the native
+    --- walk-in pickup → wrong drop opened. GetGamePool enumerates them all.
+    local function hideBagsNear(coords)
+        if not coords then return end
+        for _, obj in ipairs(GetGamePool('CObject')) do
+            if GetEntityModel(obj) == bagModel and IsEntityVisible(obj)
+                and #(GetEntityCoords(obj) - coords) < 1.5 then
+                SetEntityVisible(obj, false, 0)
+                SetEntityCollision(obj, false, false)
+            end
+        end
+    end
+
+    --- Ring-scatter clustered drops (golden-angle) so props/zones/bags separate.
+    local function clusterOffset(coords)
+        local c, n = vector3(coords.x, coords.y, coords.z), 0
+        for _, d in pairs(weaponDrops) do
+            if d.bagCoords and #(c - d.bagCoords) < 0.6 then n = n + 1 end
+        end
+        if n == 0 then return 0.0, 0.0 end
+        local ang = n * 2.39996323   -- golden angle → even spread
+        local r   = 0.26 + 0.1 * n
+        return math.cos(ang) * r, math.sin(ang) * r
+    end
 
     local function removeWeaponDropProp(dropId)
         local d = weaponDrops[dropId]
@@ -121,12 +151,14 @@ if isOx then
         -- Both features off → leave the drop fully native; malisling does nothing.
         if not cfg.WeaponModelProp and not cfg.OxTargetPickup then return end
 
-        local zoneCoords = vector3(coords.x, coords.y, coords.z)
+        local bagCoords  = vector3(coords.x, coords.y, coords.z)
+        local ox, oy     = clusterOffset(coords)
+        local zoneCoords = vector3(coords.x + ox, coords.y + oy, coords.z)
         local prop
 
         if cfg.WeaponModelProp then
             lib.requestWeaponAsset(weaponHash, 1000, 31, 1)
-            local obj = CreateWeaponObject(weaponHash, 50, coords.x, coords.y, coords.z, true, 1.0, 0)
+            local obj = CreateWeaponObject(weaponHash, 50, zoneCoords.x, zoneCoords.y, zoneCoords.z, true, 1.0, 0)
             if obj and DoesEntityExist(obj) then
                 PlaceObjectOnGroundProperly(obj)
                 FreezeEntityPosition(obj, true)
@@ -139,18 +171,11 @@ if isOx then
             end
         end
 
-        weaponDrops[dropId] = { prop = prop, coords = zoneCoords }
+        weaponDrops[dropId] = { prop = prop, coords = zoneCoords, bagCoords = bagCoords }
 
-        -- Proactively hide ox's bag right now (the bag-hide loop is a safety net
-        -- for re-entry, but the initial swap is what the player actually sees).
-        if prop then
-            local bag = GetClosestObjectOfType(zoneCoords.x, zoneCoords.y, zoneCoords.z,
-                2.0, bagModel, false, false, false)
-            if bag ~= 0 and bag ~= prop and IsEntityVisible(bag) then
-                SetEntityVisible(bag, false, 0)
-                SetEntityCollision(bag, false, false)
-            end
-        end
+        -- Proactively hide ox's bag(s) at the drop spot (the loop is a safety net
+        -- for re-entry; this initial swap is what the player actually sees).
+        if prop then hideBagsNear(bagCoords) end
 
         if cfg.OxTargetPickup then
             Target.AddZone(dropId, zoneCoords, 1.0, {
@@ -203,15 +228,26 @@ if isOx then
             local sleep = 1000
             if next(weaponDrops) then
                 local pcoords = GetEntityCoords(cache.ped)
+                -- Collect the bag spots in range, then run ONE pool scan (GetGamePool
+                -- is heavy — never per-drop-per-frame). Throttled to 300ms.
+                local spots, near = {}, false
                 for _, d in pairs(weaponDrops) do
-                    -- Only hide ox's bag for drops where we spawned a weapon model.
-                    if d.prop and #(pcoords - d.coords) < 30.0 then
-                        sleep = 0
-                        local bag = GetClosestObjectOfType(d.coords.x, d.coords.y, d.coords.z,
-                            2.0, bagModel, false, false, false)
-                        if bag ~= 0 and bag ~= d.prop and IsEntityVisible(bag) then
-                            SetEntityVisible(bag, false, 0)
-                            SetEntityCollision(bag, false, false)
+                    if d.prop and d.bagCoords and #(pcoords - d.coords) < 30.0 then
+                        near = true
+                        spots[#spots + 1] = d.bagCoords
+                    end
+                end
+                if near then
+                    sleep = 300
+                    for _, obj in ipairs(GetGamePool('CObject')) do
+                        if GetEntityModel(obj) == bagModel and IsEntityVisible(obj) then
+                            for i = 1, #spots do
+                                if #(GetEntityCoords(obj) - spots[i]) < 1.5 then
+                                    SetEntityVisible(obj, false, 0)
+                                    SetEntityCollision(obj, false, false)
+                                    break
+                                end
+                            end
                         end
                     end
                 end
