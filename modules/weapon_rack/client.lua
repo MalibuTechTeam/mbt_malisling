@@ -260,12 +260,18 @@ local function doRetrieve(id)
 end
 
 -- ── Spawn / despawn the rack props ───────────────────────────────────────────────
--- Own identifier (for the owner-only pickup option), prefetched once: canInteract
--- runs every frame on hover, so it must NOT await a callback.
+-- Own identifier (for the owner-only pickup option), prefetched: canInteract runs
+-- every frame on hover, so it must NOT await a callback. Retry until the framework
+-- bridge resolves the character (a single early fetch can race a resource restart
+-- and would hide the pickup option forever).
 local myIdentifier = nil
 CreateThread(function()
-    Wait(2000)   -- let the framework bridge resolve the character first
-    myIdentifier = lib.callback.await('mbt_malisling:weaponRack:whoami', false) or false
+    Wait(2000)
+    while not myIdentifier do
+        local id = lib.callback.await('mbt_malisling:weaponRack:whoami', false)
+        if id and id ~= '' then myIdentifier = id break end
+        Wait(5000)
+    end
 end)
 
 local doPickup   -- forward declaration (defined with the placement flow below)
@@ -498,6 +504,21 @@ RegisterNetEvent('mbt_malisling:weaponRack:startPlace', function()
     startCarry()
     showPlaceHints()
     local rotOff = 0.0
+    local heading = GetEntityHeading(cache.ped)
+
+    --- Where the CAMERA aims, raycast against world geometry (build-mode feel:
+    --- the ghost sits under your crosshair, not glued in front of the ped).
+    local function camAimPoint()
+        local cam = GetGameplayCamCoord()
+        local rot = GetGameplayCamRot(2)
+        local rx, rz = math.rad(rot.x), math.rad(rot.z)
+        local dir = vector3(-math.sin(rz) * math.cos(rx), math.cos(rz) * math.cos(rx), math.sin(rx))
+        local dest = cam + dir * 9.0
+        local ray = StartShapeTestRay(cam.x, cam.y, cam.z, dest.x, dest.y, dest.z, 1, cache.ped, 0)
+        local _, hit, coords = GetShapeTestResult(ray)
+        if hit == 1 then return coords end
+        return nil
+    end
 
     CreateThread(function()
         local lastX, lastY, lastZ, lastW = 0.0, 0.0, 0.0, 0.0
@@ -509,11 +530,15 @@ RegisterNetEvent('mbt_malisling:weaponRack:startPlace', function()
             if IsDisabledControlPressed(0, 174) then rotOff = (rotOff - step) % 360.0 end
             if IsDisabledControlPressed(0, 175) then rotOff = (rotOff + step) % 360.0 end
 
-            -- Ghost follows you: 1.7m ahead, snapped to the ground.
-            local p = GetOffsetFromEntityInWorldCoords(cache.ped, 0.0, 1.7, 0.0)
-            local found, gz = GetGroundZFor_3dCoord(p.x, p.y, p.z + 1.0, false)
+            -- Ghost at the camera aim point (clamped to reach), ground-snapped;
+            -- falls back to "1.7m ahead" when aiming at the sky / out of reach.
+            local pc  = GetEntityCoords(cache.ped)
+            local aim = camAimPoint()
+            if aim and #(pc - aim) > 6.0 then aim = nil end
+            local p = aim or GetOffsetFromEntityInWorldCoords(cache.ped, 0.0, 1.7, 0.0)
+            local found, gz = GetGroundZFor_3dCoord(p.x, p.y, p.z + 0.6, false)
             lastX, lastY, lastZ = p.x, p.y, found and gz or p.z
-            lastW = (GetEntityHeading(cache.ped) + rotOff) % 360.0
+            lastW = (heading + rotOff) % 360.0
             SetEntityCoords(ghost, lastX, lastY, lastZ, false, false, false, false)
             SetEntityHeading(ghost, lastW)
 
