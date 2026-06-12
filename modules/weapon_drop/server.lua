@@ -49,19 +49,23 @@ if isOx then
         SetTimeout(10000, function() despawned[dropId] = nil end)
     end)
 
-    --- The client asks, for a freshly created drop, whether it holds a weapon.
-    --- Returns the weapon hash (for CreateWeaponObject) or false.
+    --- The client asks, for a freshly created drop, which weapons it holds.
+    --- ox can merge several items into ONE drop (e.g. dropping a rifle then a
+    --- pistol at the same spot), so this returns the hash of EVERY weapon in the
+    --- drop — the client renders a model for each. Empty list → no weapons.
     lib.callback.register('mbt_malisling:checkWeaponDrop', function(src, dropId)
         local items = exports.ox_inventory:GetInventoryItems(dropId)
-        if type(items) ~= 'table' then return false end
+        if type(items) ~= 'table' then return {} end
+        local hashes = {}
         for _, item in pairs(items) do
             -- Utils.isWeapon is client-only; inline the check here (server-side).
             if type(item) == 'table' and type(item.name) == 'string'
                and item.name:sub(1, 7) == 'WEAPON_' then
-                return joaat(item.name)
+                hashes[#hashes + 1] = joaat(item.name)
+                if #hashes >= 6 then break end   -- sanity cap
             end
         end
-        return false
+        return hashes
     end)
 else
     -- qb fallback: GroundDrop give-back.

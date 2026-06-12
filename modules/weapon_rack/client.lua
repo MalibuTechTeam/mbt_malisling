@@ -262,15 +262,19 @@ end
 -- ── Spawn / despawn the rack props ───────────────────────────────────────────────
 -- Own identifier (for the owner-only pickup option), prefetched: canInteract runs
 -- every frame on hover, so it must NOT await a callback. Retry until the framework
--- bridge resolves the character (a single early fetch can race a resource restart
--- and would hide the pickup option forever).
+-- bridge resolves the CHARACTER identifier. Critical: early after a resource start
+-- the framework player isn't loaded yet, so the bridge returns its fallback (the
+-- server id as a string); caching that forever would never match the real owner
+-- identifier set at placement → the owner could never pick their rack back up.
+-- Reject that fallback and keep retrying until we get the real char identifier.
 local myIdentifier = nil
+local myServerId = tostring(GetPlayerServerId(PlayerId()))
 CreateThread(function()
     Wait(2000)
     while not myIdentifier do
         local id = lib.callback.await('mbt_malisling:weaponRack:whoami', false)
-        if id and id ~= '' then myIdentifier = id break end
-        Wait(5000)
+        if id and id ~= '' and id ~= myServerId then myIdentifier = id break end
+        Wait(3000)
     end
 end)
 
@@ -309,9 +313,11 @@ local function addTarget(id, prop)
             canInteract = function()
                 local sr = spawnedRacks[id]
                 local owner = sr and sr.loc and sr.loc.owner
+                -- Permissive on an unresolved identifier so the owner always sees it
+                -- (the server re-checks owner/ACE on pickup either way).
                 return cfg.Enabled and not cache.vehicle and owner
                     and cfg.Placement and cfg.Placement.Enabled and cfg.Placement.AllowPickup ~= false
-                    and rackCount(id) == 0 and myIdentifier == owner
+                    and rackCount(id) == 0 and (not myIdentifier or myIdentifier == owner)
             end,
             onSelect = function() doPickup(id) end,
         },
