@@ -162,6 +162,10 @@ RegisterLocale('en', {
 
     -- Ammo sharing
     ['ammo_rounds']             = 'rounds',
+    ['ammo_share_title']        = 'SHARE AMMO',
+    ['ammo_adjust']             = 'Adjust',
+    ['ammo_give']               = 'Give',
+    ['ammo_cancel']             = 'Cancel',
     ['ammo_sent_title']         = 'Ammo',
     ['ammo_sent_desc']          = 'Ammo offered — waiting for an answer.',
     ['ammo_done_title']         = 'Ammo',

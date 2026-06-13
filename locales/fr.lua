@@ -162,6 +162,10 @@ RegisterLocale('fr', {
 
     -- Partage de munitions
     ['ammo_rounds']             = 'cartouches',
+    ['ammo_share_title']        = 'PARTAGER MUNITIONS',
+    ['ammo_adjust']             = 'Régler',
+    ['ammo_give']               = 'Donner',
+    ['ammo_cancel']             = 'Annuler',
     ['ammo_sent_title']         = 'Munitions',
     ['ammo_sent_desc']          = 'Munitions offertes — en attente de réponse.',
     ['ammo_done_title']         = 'Munitions',

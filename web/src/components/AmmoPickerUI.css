@@ -1,0 +1,59 @@
+/* AmmoPickerUI — key-driven amount selector for ammo sharing. Same pill recipe
+   as the other prompts; amount + a fill bar + key hints, bottom-centre. */
+
+.amp-pill {
+  position: fixed;
+  bottom: 140px;
+  left: 50%;
+  transform: translateX(-50%);
+  --pos-transform: translateX(-50%);
+  z-index: 9999;
+  width: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 10px 13px;
+  border-radius: 12px;
+  background:
+    radial-gradient(120% 180% at 0% 0%, var(--mbt-accent-soft), transparent 55%),
+    linear-gradient(180deg, var(--mbt-surface-2), var(--mbt-surface-1));
+  border: 1px solid rgba(var(--mbt-accent-rgb), 0.18);
+  box-shadow: var(--mbt-shadow-overlay), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  font-family: var(--mbt-font-body);
+  pointer-events: none;
+}
+
+.amp-enter { animation: amp-in var(--mbt-dur-fast) var(--mbt-ease) forwards; }
+.amp-exit  { animation: amp-out var(--mbt-dur-fast) var(--mbt-ease-exit) forwards; }
+@keyframes amp-in  { from { opacity: 0; transform: var(--pos-transform) translateY(10px); } to { opacity: 1; transform: var(--pos-transform) translateY(0); } }
+@keyframes amp-out { from { opacity: 1; transform: var(--pos-transform) translateY(0); } to { opacity: 0; transform: var(--pos-transform) translateY(8px); } }
+
+.amp-head { display: flex; align-items: baseline; justify-content: space-between; }
+.amp-label {
+  font-family: var(--mbt-font-mono); font-size: 8.5px; letter-spacing: 0.16em;
+  text-transform: uppercase; color: var(--mbt-text-faint);
+}
+.amp-val {
+  font-family: var(--mbt-font-display); font-weight: 700; font-size: 17px;
+  color: var(--mbt-text-hi); font-variant-numeric: tabular-nums;
+}
+.amp-max { font-size: 11px; color: var(--mbt-text-faint); font-weight: 600; }
+
+.amp-bar {
+  height: 4px; border-radius: 2px; overflow: hidden;
+  background: var(--mbt-edge-lo);
+}
+.amp-bar-fill {
+  display: block; height: 100%; background: var(--mbt-accent);
+  transition: width var(--mbt-dur-fast) var(--mbt-ease);
+}
+
+.amp-actions { display: flex; align-items: center; justify-content: center; gap: 14px; }
+.amp-hint { display: inline-flex; align-items: center; gap: 5px; }
+.amp-lbl { font-size: 9px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--mbt-text-lo); }
+.amp-lbl--primary { color: var(--mbt-text-hi); }
+
+@media (prefers-reduced-motion: reduce) {
+  .amp-enter, .amp-exit { animation: none; }
+  .amp-bar-fill { transition: none; }
+}

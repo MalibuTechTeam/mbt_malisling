@@ -1001,7 +1001,8 @@ MBT.Handoff            = {
 MBT.AmmoSharing        = {
     Enabled          = true,
     Key              = 'H',      -- share key (hold a weapon, face a nearby player)
-    ShareAmount      = 30,       -- rounds offered (capped to what you actually have)
+    ShareAmount      = 30,       -- default rounds pre-selected in the amount picker
+    Step             = 5,        -- picker adjust step (←/→; SHIFT = ×3)
     MaxDistance      = 2.5,
     RequestTimeoutMs = 8000,
     Animation        = {

@@ -13,6 +13,7 @@ import EvidenceUI from './components/EvidenceUI'
 import HandoffUI from './components/HandoffUI'
 import HintUI from './components/HintUI'
 import PatdownUI from './components/PatdownUI'
+import AmmoPickerUI from './components/AmmoPickerUI'
 import AdminDashboard from './admin/AdminDashboard'
 
 debugData([{
@@ -109,6 +110,7 @@ export default function App() {
       <HandoffUI />
       <HintUI />
       <PatdownUI />
+      <AmmoPickerUI />
       <AdminDashboard />
     </>
   )

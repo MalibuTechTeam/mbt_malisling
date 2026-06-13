@@ -38,6 +38,14 @@ local function resolveAmmo(src, heldWeapon)
     return nil
 end
 
+--- How much shareable ammo the giver has for their held weapon (drives the picker).
+lib.callback.register('mbt_malisling:ammo:available', function(src, weapon)
+    if not cfg.Enabled then return { ok = false } end
+    local name, have = resolveAmmo(src, weapon)
+    if not name or (have or 0) < 1 then return { ok = false } end
+    return { ok = true, have = have, item = name }
+end)
+
 RegisterNetEvent('mbt_malisling:ammo:offer', function(data)
     local src = source
     if not cfg.Enabled or type(data) ~= 'table' then return end
@@ -56,7 +64,10 @@ RegisterNetEvent('mbt_malisling:ammo:offer', function(data)
 
     local name, have = resolveAmmo(src, data.weapon)
     if not name then TriggerClientEvent('mbt_malisling:ammo:result', src, 'ammo_none'); return end
-    local amount = math.min(cfg.ShareAmount or 30, have)
+    -- Honour the requested amount (from the picker), re-clamped server-side to what
+    -- the giver actually has. Falls back to ShareAmount when none was sent.
+    local want   = tonumber(data.amount) or (cfg.ShareAmount or 30)
+    local amount = math.max(1, math.min(math.floor(want), have))
     if amount < 1 then TriggerClientEvent('mbt_malisling:ammo:result', src, 'ammo_none'); return end
 
     pending[target] = { from = src, item = name, amount = amount, expires = now + (cfg.RequestTimeoutMs or 8000) }

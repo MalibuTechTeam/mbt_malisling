@@ -162,6 +162,10 @@ RegisterLocale('it', {
 
     -- Condivisione munizioni
     ['ammo_rounds']             = 'colpi',
+    ['ammo_share_title']        = 'CONDIVIDI MUNIZIONI',
+    ['ammo_adjust']             = 'Regola',
+    ['ammo_give']               = 'Dai',
+    ['ammo_cancel']             = 'Annulla',
     ['ammo_sent_title']         = 'Munizioni',
     ['ammo_sent_desc']          = 'Munizioni offerte — in attesa di risposta.',
     ['ammo_done_title']         = 'Munizioni',
