@@ -170,7 +170,8 @@ local function logRack(src, action, loc, entry)
     local log = cfg.Logging or {}
     if not log.Enabled or not log.Webhook or log.Webhook == '' then return end
 
-    local pname  = GetPlayerName(src) or 'unknown'
+    -- Character name + framework identifier (not the Steam/FiveM account name).
+    local pname, pid = getPlayerName(src)
     local serial = (entry.metadata and entry.metadata.serial) or 'n/a'
     local label  = (entry.metadata and entry.metadata.label) or entry.name
     local job    = getPlayerJob(src)
@@ -182,7 +183,7 @@ local function logRack(src, action, loc, entry)
             title = stored and 'Weapon Stored' or 'Weapon Taken',
             color = stored and 3066993 or 15105570,   -- green / orange
             fields = {
-                { name = 'Player', value = ('%s (%s)'):format(pname, src), inline = true },
+                { name = 'Player', value = ('%s (%s)'):format(pname or 'unknown', pid or src), inline = true },
                 { name = 'Job',    value = (job and job ~= '') and job or 'n/a', inline = true },
                 { name = 'Rack',   value = loc.label or loc.id, inline = true },
                 { name = 'Weapon', value = label,  inline = true },
