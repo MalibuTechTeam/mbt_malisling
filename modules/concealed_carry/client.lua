@@ -100,6 +100,13 @@ local function toggleConcealed()
         return
     end
 
+    -- Quick tuck/pull gesture (config-driven; non-blocking).
+    local a = cfg.ActionAnim
+    if a and a.Dict and DoesAnimDictExist(a.Dict) then
+        lib.requestAnimDict(a.Dict)
+        TaskPlayAnim(cache.ped, a.Dict, a.Anim, 4.0, -4.0, a.Ms or 700, 48, 0.0, false, false, false)
+    end
+
     if res.concealed then
         myState = myState or {}
         myState[wtype] = res.quality
@@ -133,11 +140,11 @@ end
 -- scripts (applying components one by one) don't trigger false reveals.
 CreateThread(function()
     while true do
-        Wait(2000)
+        Wait(800)
         if myState and cfg.Enabled then
             local _, d = clothingQuality()
             if lastTop ~= nil and d ~= lastTop then
-                Wait(1500)   -- grace: let the outfit settle
+                Wait(600)   -- short grace: let a staged outfit change settle
                 local q, d2 = clothingQuality()
                 lastTop = d2
                 if q == 'none' then

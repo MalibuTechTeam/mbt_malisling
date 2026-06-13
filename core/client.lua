@@ -338,6 +338,7 @@ function Init()
             if Utils.isTableEmpty(equippedWeapon) then return end
 
             local weaponName = equippedWeapon["name"]
+            if not weaponName then return end
             local hasFlashlight = (equippedWeapon["components"] and Utils.containsValue(equippedWeapon["components"], "at_flashlight"))
                 or Utils.weaponHasFlashlight(cache.ped, weaponName, MBT.WeaponsInfo.Components["at_flashlight"]["client"]["component"])
             local currentFlashlightState

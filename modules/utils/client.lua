@@ -101,9 +101,13 @@ end
 ---@param compList any
 ---@return boolean
 function Utils.weaponHasFlashlight(ped, weaponHash, compList)
+    -- Defensive: on some holster/disarm transitions the weapon name is nil before
+    -- the next currentWeapon update — joaat(nil) would hard-error.
+    if not weaponHash or type(compList) ~= 'table' then return false end
+    local hash = (type(weaponHash) == 'number') and weaponHash or joaat(weaponHash)
     local hasFlash = false
     for i=1, #compList do
-        hasFlash = HasPedGotWeaponComponent(ped, joaat(weaponHash), compList[i])
+        hasFlash = HasPedGotWeaponComponent(ped, hash, compList[i])
         if hasFlash then break end
     end
     return hasFlash == 1

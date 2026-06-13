@@ -901,7 +901,10 @@ MBT.ConcealedCarry     = {
     -- NOTE: FiveM caches keybinds per player — if you change this after first
     -- join, rebind it in GTA Settings → Key Bindings → FiveM.
     ConcealableTypes = { ['side'] = true },
-    ToggleCooldownMs = 3000,         -- anti flicker/spam (server-enforced)
+    ToggleCooldownMs = 1200,         -- anti flicker/spam (server-enforced)
+    -- Quick gesture played when concealing/revealing (tuck into / pull from the
+    -- waistband). Config-driven — swap for any clip. Set Dict=false to disable.
+    ActionAnim       = { Dict = 'reaction@intimidation@1h', Anim = 'intro', Ms = 700 },
     -- The waistband-adjust TELL: random cadence, more likely after sprint/jump,
     -- naturally visible only to nearby players (the anim is networked).
     Tell             = {
