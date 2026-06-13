@@ -53,10 +53,19 @@ local function closePrompt(accept)
     SendNUIMessage({ action = 'hideHandoff', data = {} })
     if accept == nil then return end   -- expired/cancelled: no response to send
     local res = lib.callback.await('mbt_malisling:handoff:respond', false, accept)
-    if accept and res and res.ok and not res.declined then
-        if cfg.EquipOnAccept and res.equipSlot
-            and GetResourceState('ox_inventory') == 'started' then
-            exports.ox_inventory:useSlot(res.equipSlot)
+    if accept and res and res.ok and not res.declined and cfg.EquipOnAccept then
+        if GetResourceState('ox_inventory') == 'started' and res.equipSlot then
+            exports.ox_inventory:useSlot(res.equipSlot)                  -- ox
+        elseif GetResourceState('qb-inventory') == 'started' and res.name
+            and PlayerData and PlayerData.items then
+            -- qb: find the just-received weapon by name(+serial) and use it.
+            for _, it in pairs(PlayerData.items) do
+                if it.name and it.name:upper() == res.name
+                    and (not res.serial or (it.info and it.info.serie == res.serial)) then
+                    TriggerServerEvent('qb-inventory:server:useItem', it)
+                    break
+                end
+            end
         end
     end
 end

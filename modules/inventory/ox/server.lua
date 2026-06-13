@@ -19,6 +19,14 @@ function loadInventoryWeaponsData()
     return weaponsChunk()
 end
 
+---Ammo item name for a weapon (ox uses an `ammoname` field on each weapon).
+---@param weaponName string  canonical WEAPON_ name
+---@return string|nil
+function getAmmoItemName(weaponName)
+    local w = MBT.WeaponsInfo and MBT.WeaponsInfo.Weapons and MBT.WeaponsInfo.Weapons[weaponName]
+    return w and (w.ammoname or w.ammoName) or nil
+end
+
 -- ── Flashlight state persistence ───────────────────────────────────────────────
 AddStateBagChangeHandler('WeaponFlashlightState', nil, function(bagName, key, value)
     if not value then return end

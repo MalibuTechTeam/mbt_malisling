@@ -112,7 +112,8 @@ lib.callback.register('mbt_malisling:handoff:respond', function(src, accept)
     TriggerClientEvent('mbt_malisling:handoff:anim', src,   { role = 'take', other = giver })
     TriggerClientEvent('mbt_malisling:handoff:result', giver, 'handoff_done')
 
-    -- Optional equip-on-accept (ox): hand the receiver the exact slot to use.
+    -- Optional equip-on-accept. ox: hand the receiver the exact slot to useSlot.
+    -- qb: return name+serial so the client can find the item and use it.
     local equipSlot
     if cfg.EquipOnAccept and GetResourceState('ox_inventory') == 'started' then
         local ok2, s = pcall(function()
@@ -121,7 +122,7 @@ lib.callback.register('mbt_malisling:handoff:respond', function(src, accept)
         end)
         if ok2 then equipSlot = s end
     end
-    return { ok = true, equipSlot = equipSlot }
+    return { ok = true, equipSlot = equipSlot, name = item.name, serial = meta and meta.serial }
 end)
 
 -- ── Expiry sweep ─────────────────────────────────────────────────────────────────

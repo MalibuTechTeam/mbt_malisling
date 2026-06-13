@@ -18,14 +18,27 @@ local function normalizeItem(item)
     -- qb uses .quality (0-100) for durability and .serie for serial number
     metadata.durability = metadata.durability or info.quality
     metadata.serial     = metadata.serial     or info.serie
+    -- qb weapon item names are LOWERCASE ('weapon_pistol'); MBT + MBT.WeaponsInfo +
+    -- ox are uppercase. Canonicalize the name so all weapon logic/lookup matches,
+    -- and keep the raw qb name for the qb-inventory export calls.
+    local rawName = item.name
+    local name = rawName
+    if type(rawName) == 'string' and rawName:sub(1, 7):upper() == 'WEAPON_' then
+        name = rawName:upper()
+    end
     return {
-        name     = item.name,
+        name     = name,
+        rawName  = rawName,
         count    = item.amount,
         slot     = item.slot,
         metadata = metadata,
         label    = item.label or item.name,
     }
 end
+
+-- qb-inventory item names are always lowercase → safe to lower any name MBT passes
+-- (weapon names arrive canonicalized to uppercase; this maps them back for qb).
+local function qbName(name) return type(name) == 'string' and name:lower() or name end
 
 -- ── Global inventory interface ─────────────────────────────────────────────────
 Inventory = {}
@@ -38,17 +51,19 @@ end
 
 ---Mimics ox_inventory:RemoveItem(source, name, count, metadata, slot)
 function Inventory:RemoveItem(source, name, count, _, slot)
-    return exports['qb-inventory']:RemoveItem(tonumber(source), name, count, slot) ~= false
+    return exports['qb-inventory']:RemoveItem(tonumber(source), qbName(name), count, slot) ~= false
 end
 
----Mimics ox_inventory:GetInventoryItems(source) — returns a table keyed by item name
+---Mimics ox_inventory:GetInventoryItems(source) — returns a table keyed by SLOT
+---(not by item name: two weapons of the same name with distinct serials must NOT
+---collapse into one — needed by pat-down, serial sweep, custody, ammo, multi-weapon).
 function Inventory:GetInventoryItems(source)
     local Player = QBCore.Functions.GetPlayer(tonumber(source))
     if not Player then return {} end
     local result = {}
     for _, item in pairs(Player.PlayerData.items or {}) do
         if item.name and item.amount and item.amount > 0 then
-            result[item.name] = normalizeItem(item)
+            result[item.slot] = normalizeItem(item)
         end
     end
     return result
@@ -78,7 +93,7 @@ function Inventory:AddItem(source, name, count, metadata)
         if metadata.durability then info.quality = metadata.durability end
         if metadata.serial     then info.serie   = metadata.serial     end
     end
-    return exports['qb-inventory']:AddItem(tonumber(source), name, count, false, info) ~= false
+    return exports['qb-inventory']:AddItem(tonumber(source), qbName(name), count, false, info) ~= false
 end
 
 -- ── Flashlight state persistence ───────────────────────────────────────────────
@@ -95,6 +110,29 @@ AddStateBagChangeHandler('WeaponFlashlightState', nil, function(bagName, key, va
         exports['qb-inventory']:SetItemData(playerSource, item.name, 'info', newInfo, tonumber(slot))
     end
 end)
+
+-- ── Ammo item resolution (qb) ──────────────────────────────────────────────────
+-- qb weapons carry an `ammotype` (e.g. AMMO_PISTOL); the loose ammo items are named
+-- `<type>_ammo`. Map ammotype → qb ammo item name. (qb-core/shared/weapons.lua +
+-- shared/items.lua.) Used by Ammo Sharing.
+local QB_AMMO = {
+    ['AMMO_PISTOL']  = 'pistol_ammo',
+    ['AMMO_SMG']     = 'smg_ammo',
+    ['AMMO_RIFLE']   = 'rifle_ammo',
+    ['AMMO_MG']      = 'mg_ammo',
+    ['AMMO_SHOTGUN'] = 'shotgun_ammo',
+    ['AMMO_SNIPER']  = 'snp_ammo',
+}
+
+---Ammo item name for a weapon, from its qb ammotype.
+---@param weaponName string  canonical WEAPON_ name
+---@return string|nil
+function getAmmoItemName(weaponName)
+    local shared = QBCore and QBCore.Shared and QBCore.Shared.Weapons
+    local w = shared and (shared[joaat(weaponName)] or shared[weaponName:lower()])
+    local at = w and w.ammotype
+    return at and QB_AMMO[at] or nil
+end
 
 -- ── Weapon data fallback ───────────────────────────────────────────────────────
 function loadInventoryWeaponsData()

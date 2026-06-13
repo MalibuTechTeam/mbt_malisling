@@ -51,7 +51,9 @@ end
 ---@param s string
 ---@return boolean
 function Utils.isWeapon(s)
-    return string.sub(s, 1, 7) == "WEAPON_"
+    -- Case-insensitive: qb-inventory weapon item names are lowercase
+    -- ('weapon_pistol'); ox + GTA hashes + MBT.WeaponsInfo are uppercase.
+    return type(s) == "string" and string.upper(string.sub(s, 1, 7)) == "WEAPON_"
 end
 
 ---@param t table

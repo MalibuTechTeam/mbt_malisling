@@ -17,8 +17,16 @@ local function normalizeItem(item)
     -- qb uses .quality (0-100) for durability and .serie for serial number
     metadata.durability = metadata.durability or info.quality
     metadata.serial     = metadata.serial     or info.serie
+    -- qb weapon names are lowercase → canonicalize to uppercase to match MBT +
+    -- MBT.WeaponsInfo + ox. Keep the raw qb name for any qb-side comparison.
+    local rawName = item.name
+    local name = rawName
+    if type(rawName) == 'string' and rawName:sub(1, 7):upper() == 'WEAPON_' then
+        name = rawName:upper()
+    end
     return {
-        name     = item.name,
+        name     = name,
+        rawName  = rawName,
         slot     = item.slot,
         count    = item.amount,
         metadata = metadata,

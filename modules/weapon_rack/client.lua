@@ -171,7 +171,9 @@ local function retrieveIndex(id, index)
             elseif GetResourceState('qb-inventory') == 'started' and res.name
                 and PlayerData and PlayerData.items then
                 for _, it in pairs(PlayerData.items) do
-                    if it.name == res.name and (not res.serial or (it.info and it.info.serie == res.serial)) then
+                    -- qb item names are lowercase; res.name is canonical UPPER.
+                    if it.name and it.name:upper() == res.name
+                        and (not res.serial or (it.info and it.info.serie == res.serial)) then
                         TriggerServerEvent('qb-inventory:server:useItem', it)
                         break
                     end

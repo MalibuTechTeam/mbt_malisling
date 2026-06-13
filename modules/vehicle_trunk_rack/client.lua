@@ -205,7 +205,9 @@ local function retrieveIndex(veh, index)
                 and PlayerData and PlayerData.items then
                 -- qb: trigger the normal use-weapon flow (avoids desync vs raw GiveWeaponToPed)
                 for _, it in pairs(PlayerData.items) do
-                    if it.name == res.name and (not res.serial or (it.info and it.info.serie == res.serial)) then
+                    -- qb item names are lowercase; res.name is canonical UPPER.
+                    if it.name and it.name:upper() == res.name
+                        and (not res.serial or (it.info and it.info.serie == res.serial)) then
                         TriggerServerEvent('qb-inventory:server:useItem', it)
                         break
                     end
