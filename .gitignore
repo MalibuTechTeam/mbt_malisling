@@ -17,5 +17,6 @@ roadmap_malisling.md
 # Dev-only design mockups (scratch)
 web/mockup-*.html
 
-# Codex rescue skill scratch file
+# Codex rescue skill scratch files
 .codex_task_prompt.txt
+.codex_*.txt
