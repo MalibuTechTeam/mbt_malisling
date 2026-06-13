@@ -5,14 +5,15 @@ MBT.Debug              = true
 MBT.DropWeaponOnDeath  = true
 MBT.EnableSling        = true
 MBT.EnableFlashlight   = true
-
--- Language for all script + NUI text. Loads from locales/<lang>.lua.
--- Available: 'en', 'fr', 'it'. Add your own by creating locales/<lang>.lua.
 MBT.Language           = 'en'
 
 -- ── Admin ─────────────────────────────────────────────────────────────────────
 MBT.Admin              = {
-    Command    = 'mbtconfig',          -- chat command that opens the admin dashboard
+    Command    = 'mbtsling',          -- chat command that opens the admin dashboard
+    -- Optional keybind to open the dashboard (FiveM keymapping, rebindable by the
+    -- player in Settings → Key Bindings). '' = unbound (command only). Server
+    -- re-checks the ACE before opening, so binding a key grants nothing extra.
+    Key        = '',                  -- e.g. 'F10' · '' = no keybind
     -- ACE permission required. Defaults to 'command.<Command>'. The command is
     -- registered server-side so its ACE auto-registers: a server with the usual
     -- `add_ace group.admin command.* allow` (or a wildcard admin principal) works

@@ -14,8 +14,16 @@ local THROW_GROUPS = {
     STUNGUN = `GROUP_STUNGUN`, SNIPER = `GROUP_SNIPER`, HEAVY = `GROUP_HEAVY`,
 }
 
--- The /mbtconfig command is registered SERVER-side (modules/config/server.lua)
--- so its ACE auto-registers. The server pushes openAdmin straight to us.
+-- The admin command is registered SERVER-side (modules/config/server.lua) so its
+-- ACE auto-registers. The server pushes openAdmin straight to us. The optional
+-- client keybind below fires the same server-validated request path.
+if MBT.Admin and type(MBT.Admin.Key) == 'string' and MBT.Admin.Key ~= '' then
+    RegisterCommand('mbt_malisling:openAdmin', function()
+        TriggerServerEvent('mbt_malisling:requestConfig')   -- server re-checks ACE
+    end, false)
+    RegisterKeyMapping('mbt_malisling:openAdmin', '[MBT] Open admin dashboard', 'keyboard', MBT.Admin.Key)
+end
+
 RegisterNetEvent('mbt_malisling:openAdmin', function(payload)
     -- Companion presence is client-side (the bridge is registered locally), so we
     -- stamp it onto the server's snapshot here for the menu's mbt_shooting panel.
