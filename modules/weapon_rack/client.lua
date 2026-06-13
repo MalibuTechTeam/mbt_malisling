@@ -639,6 +639,28 @@ RegisterCommand('mbt_removerack', function()
     end
 end, false)
 
+-- How many placed racks YOU own (toward the MaxPerPlayer cap) + where they are.
+RegisterCommand('mbt_rackcount', function()
+    local r = lib.callback.await('mbt_malisling:weaponRack:myRacks', false)
+    if type(r) ~= 'table' then return end
+    print(('[mbt_malisling] You own %d/%d placed racks:'):format(r.count, r.max))
+    for _, e in ipairs(r.list or {}) do
+        print(('   %s @ %.1f, %.1f, %.1f  (%s)'):format(e.id, e.x, e.y, e.z, e.label or ''))
+    end
+    lib.notify({ type = 'inform', title = 'Weapon Rack',
+        description = ('You own %d/%d placed racks (full list in F8).'):format(r.count, r.max) })
+end, false)
+
+-- Remove ALL your own EMPTY placed racks anywhere on the map (test/cleanup).
+RegisterCommand('mbt_clearmyracks', function()
+    TriggerServerEvent('mbt_malisling:weaponRack:clearMine')
+end, false)
+
+RegisterNetEvent('mbt_malisling:weaponRack:clearedMine', function(n)
+    lib.notify({ type = 'success', title = 'Weapon Rack',
+        description = ('Removed %d of your placed racks.'):format(tonumber(n) or 0) })
+end)
+
 AddEventHandler('onResourceStop', function(res)
     if res ~= GetCurrentResourceName() then return end
     for id in pairs(spawnedRacks) do despawnRack(id) end

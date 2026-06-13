@@ -438,6 +438,35 @@ lib.callback.register('mbt_malisling:weaponRack:whoami', function(src)
     return identifierOf(src)
 end)
 
+--- Count + list the caller's own item-placed racks (toward the MaxPerPlayer cap).
+lib.callback.register('mbt_malisling:weaponRack:myRacks', function(src)
+    local owner = identifierOf(src)
+    local list = {}
+    if owner then
+        for id, loc in pairs(dynamicLocs) do
+            if loc.owner == owner then
+                local c = loc.coords
+                list[#list + 1] = { id = id, label = loc.label, x = c.x, y = c.y, z = c.z }
+            end
+        end
+    end
+    return { count = #list, max = (cfg.Placement and cfg.Placement.MaxPerPlayer) or 2, list = list }
+end)
+
+--- Remove ALL of the caller's own placed racks (test/cleanup convenience). Only
+--- empty racks are removed (a rack with weapons must be emptied first).
+RegisterNetEvent('mbt_malisling:weaponRack:clearMine', function()
+    local src = source
+    local owner = identifierOf(src)
+    if not owner then return end
+    local ids = {}
+    for id, loc in pairs(dynamicLocs) do
+        if loc.owner == owner and not (racks[id] and #racks[id] > 0) then ids[#ids + 1] = id end
+    end
+    for _, id in ipairs(ids) do removeRuntimeRack(id) end
+    TriggerClientEvent('mbt_malisling:weaponRack:clearedMine', src, #ids)
+end)
+
 --- Late-join / re-init: hand a client the runtime-placed racks so it spawns their props.
 lib.callback.register('mbt_malisling:weaponRack:getDynamic', function()
     local out = {}
