@@ -203,6 +203,7 @@ RegisterLocale('fr', {
     ['inspect_custody']         = 'Chaîne de Possession',
     ['custody_origin']          = 'origine',
     ['custody_now']             = 'actuel',
+    ['custody_more']            = '+%d précédents',
     -- Condition tiers (durability)
     ['cond_pristine']           = 'Impeccable',
     ['cond_good']               = 'Bon',

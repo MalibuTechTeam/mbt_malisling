@@ -93,13 +93,29 @@
   border-top: 1px solid var(--mbt-edge-lo);
 }
 .insp-custody-title {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   font-family: var(--mbt-font-mono);
   font-size: 8.5px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--mbt-text-faint);
   margin-bottom: 6px;
+}
+.insp-custody-count {
+  font-variant-numeric: tabular-nums;
+  color: var(--mbt-text-lo);
+  border: 1px solid var(--mbt-edge-lo);
+  border-radius: var(--mbt-r-pill);
+  padding: 0 6px;
+}
+.insp-custody-gap {
+  font-family: var(--mbt-font-mono);
+  font-size: 9px;
+  color: var(--mbt-text-faint);
+  padding: 2px 0 2px 12px;
+  font-style: italic;
 }
 .insp-custody-list {
   display: flex;

@@ -203,6 +203,7 @@ RegisterLocale('it', {
     ['inspect_custody']         = 'Catena di Custodia',
     ['custody_origin']          = 'origine',
     ['custody_now']             = 'attuale',
+    ['custody_more']            = '+%d precedenti',
     -- Condition tiers (durability)
     ['cond_pristine']           = 'Perfetta',
     ['cond_good']               = 'Buona',

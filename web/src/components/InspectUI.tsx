@@ -79,23 +79,47 @@ export default function InspectUI() {
             <Row label={t('inspect_ammo', 'Ammo')} value={data.ammo != null ? String(data.ammo) : '—'} tone={ammoTone} />
           )}
         </div>
-        {Array.isArray(data.custody) && data.custody.length > 0 && (
-          <div className="insp-custody">
-            <span className="insp-custody-title">{t('inspect_custody', 'Chain of Custody')}</span>
-            <div className="insp-custody-list">
-              {data.custody.map((c, i) => (
-                <div className="insp-custody-entry" key={`${c.id}-${i}`}>
-                  <span className="insp-custody-dot" />
-                  <span className="insp-custody-name">{c.name}</span>
-                  {i === 0 && <span className="insp-custody-tag">{t('custody_origin', 'origin')}</span>}
-                  {i === data.custody!.length - 1 && i !== 0 && (
-                    <span className="insp-custody-tag insp-custody-tag--now">{t('custody_now', 'current')}</span>
-                  )}
-                </div>
-              ))}
+        {Array.isArray(data.custody) && data.custody.length > 0 && (() => {
+          const chain = data.custody!
+          const last = chain.length - 1
+          // Collapse a long chain: origin + "+N earlier" + the most recent 3, so the
+          // card never grows unbounded no matter how many holders a weapon has had.
+          const TAIL = 3
+          const rows: ({ c: CustodyEntry; i: number } | { gap: number })[] = []
+          if (chain.length <= TAIL + 2) {
+            chain.forEach((c, i) => rows.push({ c, i }))
+          } else {
+            rows.push({ c: chain[0], i: 0 })
+            rows.push({ gap: chain.length - 1 - TAIL })
+            for (let i = chain.length - TAIL; i <= last; i++) rows.push({ c: chain[i], i })
+          }
+          return (
+            <div className="insp-custody">
+              <span className="insp-custody-title">
+                {t('inspect_custody', 'Chain of Custody')}
+                <span className="insp-custody-count">{chain.length}</span>
+              </span>
+              <div className="insp-custody-list">
+                {rows.map((r, k) =>
+                  'gap' in r ? (
+                    <div className="insp-custody-gap" key={`gap-${k}`}>
+                      {t('custody_more', '+%d earlier').replace('%d', String(r.gap))}
+                    </div>
+                  ) : (
+                    <div className="insp-custody-entry" key={`${r.c.id}-${r.i}`}>
+                      <span className="insp-custody-dot" />
+                      <span className="insp-custody-name">{r.c.name}</span>
+                      {r.i === 0 && <span className="insp-custody-tag">{t('custody_origin', 'origin')}</span>}
+                      {r.i === last && r.i !== 0 && (
+                        <span className="insp-custody-tag insp-custody-tag--now">{t('custody_now', 'current')}</span>
+                      )}
+                    </div>
+                  )
+                )}
+              </div>
             </div>
-          </div>
-        )}
+          )
+        })()}
       </div>
     </div>
   )

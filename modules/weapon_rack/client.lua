@@ -141,11 +141,13 @@ local function doStow(id)
     local slot  = CurrentWeapon.slot
     local wtype = weaponTypeOf(CurrentWeapon.name)
     local a = cfg.Animation or {}
+    -- Validate with the server BEFORE the place animation: no access (wrong job /
+    -- owner-only) → just a notify, never the "putting it on the rack" gesture.
     faceRack(id)
-    playAnimSequence(a.Place)
     local res = lib.callback.await('mbt_malisling:weaponRack:stow', false, { id = id, slot = slot })
     busy = false
     if res and res.ok then
+        playAnimSequence(a.Place)
         rackSound('place', wtype)   -- the moment the weapon lands on the rack
     elseif res and res.reason then
         MBT.NotifyLabel(res.reason)
@@ -157,10 +159,10 @@ local function retrieveIndex(id, index)
     busy = true
     local a = cfg.Animation or {}
     faceRack(id)
-    playAnimSequence(a.Take)
     local res = lib.callback.await('mbt_malisling:weaponRack:retrieve', false, { id = id, index = index })
     busy = false
     if res and res.ok then
+        playAnimSequence(a.Take)
         local w = MBT.WeaponsInfo and MBT.WeaponsInfo.Weapons and MBT.WeaponsInfo.Weapons[res.name]
         rackSound('take', w and w.type)
         if cfg.EquipOnRetrieve then
