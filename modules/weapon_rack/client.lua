@@ -552,15 +552,18 @@ RegisterNetEvent('mbt_malisling:weaponRack:startPlace', function()
                 placing = false
                 hidePlaceHints()
                 stopCarry()
-                -- Kneeling mounting scenario while the server validates + installs.
-                local scen = cfg.Placement.InstallScenario
-                if scen and scen ~= '' then TaskStartScenarioInPlace(cache.ped, scen, 0, true) end
+                if DoesEntityExist(ghost) then DeleteEntity(ghost) end
+                -- Validate + install FIRST; only play the mounting scenario when the
+                -- server actually accepted (no drill flash on "too close"/"limit").
                 local res = lib.callback.await('mbt_malisling:weaponRack:placeItem', false,
                     { x = lastX, y = lastY, z = lastZ, w = lastW })
-                Wait(res and res.ok and (cfg.Placement.InstallMs or 4000) or 300)
-                ClearPedTasks(cache.ped)
-                if DoesEntityExist(ghost) then DeleteEntity(ghost) end
                 if res and res.ok then
+                    local scen = cfg.Placement.InstallScenario
+                    if scen and scen ~= '' then
+                        TaskStartScenarioInPlace(cache.ped, scen, 0, true)
+                        Wait(cfg.Placement.InstallMs or 4000)
+                        ClearPedTasks(cache.ped)
+                    end
                     MBT.NotifyLabel('rack_placed')
                 elseif res and res.reason then
                     MBT.NotifyLabel(res.reason)

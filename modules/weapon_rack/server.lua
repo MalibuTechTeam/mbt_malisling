@@ -391,8 +391,10 @@ lib.callback.register('mbt_malisling:weaponRack:placeItem', function(src, p)
     for _, loc in pairs(dynamicLocs) do
         if loc.owner == owner then count = count + 1 end
     end
-    if count >= (cfg.Placement.MaxPerPlayer or 2) then return { ok = false, reason = 'rack_limit' } end
+    -- Spacing first: when stacking on an existing rack, "too close" is the
+    -- actionable message (move away), more useful than a generic "limit reached".
     if tooClose(p.x, p.y, p.z) then return { ok = false, reason = 'rack_too_close' } end
+    if count >= (cfg.Placement.MaxPerPlayer or 2) then return { ok = false, reason = 'rack_limit' } end
 
     -- Atomic: the rack only appears if the item actually left the player.
     if not Inventory:RemoveItem(src, cfg.Placement.Item, 1) then return { ok = false } end
