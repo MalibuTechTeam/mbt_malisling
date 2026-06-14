@@ -406,6 +406,12 @@ function Init()
 
                 local playerWeapons = Inventory:Search('slots', knownWeaponNames)
 
+                -- Never re-sling the weapon currently in hand. On qb the equip
+                -- transition can fire itemCount (item leaves the grid) while the
+                -- ped is now armed; without this guard the re-search would spawn a
+                -- slung prop for the held weapon (regression: it stays on the back).
+                local _, heldHash = GetCurrentPedWeapon(cache.ped, 1)
+
                 if playerWeapons then
                     local pWeapons = {}
 
@@ -413,7 +419,7 @@ function Init()
 
                         for _, v in pairs(data) do
 
-                            if v.count and v.count > 0 then
+                            if v.count and v.count > 0 and joaat(v.name) ~= heldHash then
 
                                 if MBT.WeaponsInfo["Weapons"][v.name]?.type == weaponType then
 
@@ -688,6 +694,13 @@ AddEventHandler('mbt_malisling:syncSling', function (data)
             and not (MBT.IsTypeConcealed and MBT.IsTypeConcealed(data.playerSource, weaponType))
             and (playersToTrack[data.playerSource][weaponType] == false or playersToTrack[data.playerSource][weaponType] == nil) then
             Utils.mbtDebugger("syncSling ~ Check passed, creating weapon object!")
+            -- Reserve the slot SYNCHRONOUSLY before the async CreateWeaponObject below.
+            -- Two near-simultaneous syncSling for the same type (e.g. at restart the
+            -- snapshot-poll updateInventory AND the server checkInventory both fire)
+            -- would otherwise both pass the false/nil guard during the ~500ms create
+            -- window, spawn two props, and orphan the first (it stays on the back
+            -- after equip deletes the tracked one). The sentinel makes the loser skip.
+            playersToTrack[data.playerSource][weaponType] = true
             local attachInfo = getAttachInfo({
                 Job = playerJob,
                 Type = weaponType
@@ -705,6 +718,7 @@ AddEventHandler('mbt_malisling:syncSling', function (data)
 
             if not DoesEntityExist(weaponData.weaponObj) then
                 Utils.mbtDebugger("syncSling ~ Weapon object failed to create for ", weaponData.name)
+                playersToTrack[data.playerSource][weaponType] = false   -- release reservation
             else
                 Utils.mbtDebugger("syncSling ~ Weapon object created! ", weaponData.name, playerPed, boneIndex, attachInfo["Pos"][pedSex]["x"], attachInfo["Pos"][pedSex]["y"], attachInfo["Pos"][pedSex]["z"])
                 applyAttachments(weaponData)

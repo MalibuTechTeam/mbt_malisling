@@ -34,25 +34,35 @@ local function normalizeItem(item)
     }
 end
 
+-- Canonicalize a name the same way normalizeItem does (weapon names → UPPER) so
+-- searches match regardless of case. Callers now pass canonical WEAPON_ names
+-- (from MBT.WeaponsInfo / equippedWeapon), but qb's raw item.name is lowercase.
+local function canonName(n)
+    if type(n) == 'string' and n:sub(1, 7):upper() == 'WEAPON_' then return n:upper() end
+    return n
+end
+
 ---Mimics ox_inventory:Search('slots', itemName | {itemNames})
 function Inventory:Search(_, itemName)
     local items  = QBCore.Functions.GetPlayerData().items or {}
     local result = {}
 
     if type(itemName) == 'string' then
+        local want = canonName(itemName)
         for _, item in pairs(items) do
-            if item.name == itemName then
+            if canonName(item.name) == want then
                 result[#result + 1] = normalizeItem(item)
             end
         end
 
     elseif type(itemName) == 'table' then
         local nameSet = {}
-        for _, n in pairs(itemName) do nameSet[n] = true end
+        for _, n in pairs(itemName) do nameSet[canonName(n)] = true end
         for _, item in pairs(items) do
-            if nameSet[item.name] then
-                result[item.name] = result[item.name] or {}
-                result[item.name][#result[item.name] + 1] = normalizeItem(item)
+            local cn = canonName(item.name)
+            if nameSet[cn] then
+                result[cn] = result[cn] or {}
+                result[cn][#result[cn] + 1] = normalizeItem(item)
             end
         end
     end
@@ -101,14 +111,39 @@ local function findWeaponDataByHash(weaponHash)
     return nil
 end
 
+--- 'native' (default) → qb-weapons owns the sidearm draw animation, no malisling
+--- confirm modal on qb. 'malisling' → ox-parity modal + our anim (requires the
+--- sidearms removed from qb-weapons Config.WeapDraw.weapons; see startup warning).
+local function qbSidearmDrawMode()
+    return (MBT.QBWeapons and MBT.QBWeapons.SidearmDrawMode) or 'native'
+end
+
 local function needsHolsterPrompt(weaponData)
     if not weaponData then return false end
-    if GetConvar('malisling:enable_sling', 'false') ~= 'true' then return false end
+    -- Read our own live config, not the replicated convar: SetConvarReplicated
+    -- ('malisling:enable_sling') doesn't reliably reach the client on every qb
+    -- server, which silently disabled the side-weapon holster prompt (pistol drew
+    -- then bounced straight back to the holster). MBT.EnableSling is always set
+    -- here (config.lua default + applyConfig) and honours live dashboard toggles.
+    if not MBT.EnableSling then return false end
     local wInfo = MBT.WeaponsInfo
         and MBT.WeaponsInfo["Weapons"]
         and MBT.WeaponsInfo["Weapons"][weaponData.name]
-    return wInfo and wInfo.type == 'side'
+    if not (wInfo and wInfo.type == 'side') then return false end
+    -- QB default: let qb-weapons own the pistol draw animation (no double-play,
+    -- no re-equip bounce). Only take over when explicitly in ox-parity mode.
+    return qbSidearmDrawMode() == 'malisling'
 end
+
+-- Warn once if ox-parity mode is on while qb-weapons is running: qb-weapons will
+-- otherwise double-play its stock draw animation over ours.
+CreateThread(function()
+    Wait(2000)
+    if qbSidearmDrawMode() == 'malisling' and GetResourceState('qb-weapons') == 'started' then
+        Utils.mbtWarn("QBWeapons.SidearmDrawMode = 'malisling': remove your sidearms from "
+            .. "qb-weapons Config.WeapDraw.weapons, or qb-weapons will double-play the draw animation.")
+    end
+end)
 
 -- ── Inventory snapshot polling ─────────────────────────────────────────────────
 -- Emulates ox_inventory:itemCount and ox_inventory:updateInventory for core/client.lua.
@@ -122,7 +157,10 @@ CreateThread(function()
 
         for _, item in pairs(QBCore.Functions.GetPlayerData().items or {}) do
             if Utils.isWeapon(item.name) then
-                currentSnapshot[item.name] = normalizeItem(item)
+                -- Key by the CANONICAL name (WEAPON_*): the core itemCount/updateInventory
+                -- handlers look weapons up in MBT.WeaponsInfo, which is uppercase-keyed.
+                local nd = normalizeItem(item)
+                currentSnapshot[nd.name] = nd
             end
         end
 

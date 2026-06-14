@@ -22,6 +22,20 @@ MBT.Admin              = {
     Permission = nil,
 }
 
+-- ── QB-weapons interop ─────────────────────────────────────────────────────────
+-- Only relevant on QBCore + qb-weapons. qb-weapons owns its own pistol draw
+-- animation (Config.WeapDraw), played by an independent loop on weapon switch.
+--   'native'    → (default, drop-in) let qb-weapons draw sidearms. No malisling
+--                 confirm modal for 'side' weapons on qb; the slung prop still
+--                 works. No double animation, no extra setup.
+--   'malisling' → ox-parity: malisling runs the confirm modal + our custom draw
+--                 anim for sidearms. REQUIRES removing your sidearms from
+--                 qb-weapons `Config.WeapDraw.weapons`, otherwise qb-weapons will
+--                 double-play the draw animation (a startup warning reminds you).
+MBT.QBWeapons          = {
+    SidearmDrawMode = 'native',   -- 'native' | 'malisling'
+}
+
 -- ── UI ────────────────────────────────────────────────────────────────────────
 MBT.UI                 = {
     Position = "bottom-center" -- "bottom-center" | "top-center" | "bottom-right"
