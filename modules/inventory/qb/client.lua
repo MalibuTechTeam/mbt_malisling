@@ -7,6 +7,35 @@ if GetResourceState('qb-inventory') ~= 'started' or GetResourceState('ox_invento
 ---ox_inventory events are emulated via polling threads below.
 Inventory = {}
 
+-- ── Attachment translation (qb → MBT/ox) ───────────────────────────────────────
+-- qb-weapons stores attachments in info.attachments as { { component = <GTA hash
+-- or name> }, ... }. The slung-prop renderer (core applyAttachments) expects
+-- metadata.components = { '<ox item key>', ... } indexing MBT.WeaponsInfo.Components
+-- (each key's client.component is a list of GTA hashes). Reverse-map qb's GTA
+-- components back to those keys so the slung prop shows scope/flashlight/suppressor
+-- on qb too. ox-only fields are untouched (this file no-ops when ox is running).
+local function qbAttachmentsToComponents(attachments)
+    if type(attachments) ~= 'table' or not next(attachments) then return nil end
+    local comps = MBT.WeaponsInfo and MBT.WeaponsInfo.Components
+    if not comps then return nil end
+    local out = {}
+    for _, att in pairs(attachments) do
+        local c = type(att) == 'table' and att.component or att
+        if c then
+            local hash = type(c) == 'string' and joaat(c) or c
+            for key, def in pairs(comps) do
+                local list = def.client and def.client.component
+                if list then
+                    for _, gh in ipairs(list) do
+                        if gh == hash then out[#out + 1] = key; break end
+                    end
+                end
+            end
+        end
+    end
+    return out[1] and out or nil
+end
+
 -- ── Normalisation helper ───────────────────────────────────────────────────────
 -- Maps qb-inventory item field names to the ox_inventory-compatible field names.
 local function normalizeItem(item)
@@ -17,6 +46,8 @@ local function normalizeItem(item)
     -- qb uses .quality (0-100) for durability and .serie for serial number
     metadata.durability = metadata.durability or info.quality
     metadata.serial     = metadata.serial     or info.serie
+    -- qb attachments → ox-style components list (for slung-prop accessories)
+    metadata.components = metadata.components or qbAttachmentsToComponents(info.attachments)
     -- qb weapon names are lowercase → canonicalize to uppercase to match MBT +
     -- MBT.WeaponsInfo + ox. Keep the raw qb name for any qb-side comparison.
     local rawName = item.name
