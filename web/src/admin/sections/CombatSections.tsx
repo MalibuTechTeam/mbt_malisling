@@ -9,14 +9,14 @@ const numUpdate = (update: SectionProps['update'], path: string, def: number, in
 export function JammingSection({ config, update }: SectionProps) {
   const j = config.Jamming ?? {}
   return (
-    <Section icon="configure" title="WEAPON JAMMING" sub="Worn weapons can jam; clear with a key minigame."
+    <Section icon="configure" title="WEAPON JAMMING" sub="Worn weapons jam; clear with a key minigame."
       action={<ToggleRow.Inline checked={!!j.Enabled} onChange={(v) => update('Jamming.Enabled', v)} />}>
       <Grid2>
-        <FieldBlock label="Jam Cooldown (s)" hint="Minimum time between possible jams." style={{ marginBottom: 0 }}>
+        <FieldBlock label="Jam Cooldown (s)" hint="Minimum time between jams." style={{ marginBottom: 0 }}>
           <NumberInput min={1} max={120} step={1} value={String(j.Cooldown ?? 5)}
             onChange={numUpdate(update, 'Jamming.Cooldown', 5, true)} />
         </FieldBlock>
-        <FieldBlock label="Unjam Presses" hint="Key presses needed to clear a jam." style={{ marginBottom: 0 }}>
+        <FieldBlock label="Unjam Presses" hint="Key presses to clear a jam." style={{ marginBottom: 0 }}>
           <NumberInput min={1} max={20} step={1} value={String(j.UnjamPresses ?? 5)}
             onChange={numUpdate(update, 'Jamming.UnjamPresses', 5, true)} />
         </FieldBlock>
@@ -66,13 +66,13 @@ export function SafetySection({ config, update }: SectionProps) {
   const s = config.Safety ?? {}
   const c = config.ConditionHUD ?? {}
   return (
-    <Section icon="lock" title="WEAPON SAFETY" sub="Block fire on the held firearm (aim still allowed)."
+    <Section icon="lock" title="WEAPON SAFETY" sub="Block fire on the held firearm; aim still allowed."
       action={<ToggleRow.Inline checked={!!s.Enabled} onChange={(v) => update('Safety.Enabled', v)} />}>
-      <ToggleRow title="Default On" desc="A freshly drawn weapon starts safetied"
+      <ToggleRow title="Default On" desc="Newly drawn weapons start safetied"
         checked={!!s.DefaultOn} onChange={(v) => update('Safety.DefaultOn', v)} />
-      <ToggleRow title="Per-Weapon State" desc="Each weapon remembers its own safety (by serial)"
+      <ToggleRow title="Per-Weapon State" desc="Each weapon remembers its own safety, by serial"
         checked={!!s.PerWeapon} onChange={(v) => update('Safety.PerWeapon', v)} />
-      <ToggleRow title="HUD Indicator" desc="Show the SAFE/FIRE pill while a firearm is in hand"
+      <ToggleRow title="HUD Indicator" desc="Show the SAFE/FIRE pill while a firearm is held"
         checked={!!s.HudIndicator} onChange={(v) => update('Safety.HudIndicator', v)} />
       <ToggleRow title="Condition Pips" desc="Show condition (tier 1-5) next to SAFE/FIRE"
         checked={!!c.Enabled} onChange={(v) => update('ConditionHUD.Enabled', v)} />
@@ -91,7 +91,7 @@ export function ChargeSection({ config, update }: SectionProps) {
           <NumberInput min={0} max={10000} step={100} value={String(c.Cooldown ?? 1500)}
             onChange={numUpdate(update, 'ChargeWeapon.Cooldown', 1500, true)} />
         </FieldBlock>
-        <FieldBlock label="Hearing Distance (m)" hint="How far others see/hear it." style={{ marginBottom: 0 }}>
+        <FieldBlock label="Hearing Distance (m)" hint="How far players see and hear it." style={{ marginBottom: 0 }}>
           <NumberInput min={1} max={100} step={1} value={String(c.MaxDistance ?? 20)}
             onChange={numUpdate(update, 'ChargeWeapon.MaxDistance', 20)} />
         </FieldBlock>

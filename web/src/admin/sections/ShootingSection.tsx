@@ -12,11 +12,11 @@ interface ShootFeature { icon: IconName; title: string; desc: string }
 
 const FEATURES: ShootFeature[] = [
   { icon: 'layers',    title: 'Skill Recoil',      desc: 'Per-weapon skill that tames recoil and speeds your draw as you train.' },
-  { icon: 'alert',     title: 'Weapon Condition',  desc: 'Real degradation with jam & recoil consequences — clean and maintain your guns.' },
+  { icon: 'alert',     title: 'Weapon Condition',  desc: 'Real degradation with jam and recoil consequences — clean and maintain your weapons.' },
   { icon: 'alert',     title: 'Malfunctions',      desc: 'Three stoppage types, each with its own tap-rack-bang clearing sequence.' },
   { icon: 'cursor',    title: 'Shooting Range',    desc: 'Game modes, leaderboards and daily challenges to train and compete.' },
-  { icon: 'search',    title: 'Crosshair',         desc: 'Per-player crosshair: thickness, length, centre gap, colour, dot.' },
-  { icon: 'help',      title: 'Licensing & Exam',  desc: 'Practical + theory exams, CCW and permits tied to the range.' },
+  { icon: 'search',    title: 'Crosshair',         desc: 'Per-player crosshair: thickness, length, center gap, color, dot.' },
+  { icon: 'help',      title: 'Licensing & Exam',  desc: 'Practical and theory exams, CCW and permits tied to the range.' },
 ]
 
 export function ShootingSection({ companion }: { companion: boolean }) {
@@ -30,8 +30,8 @@ export function ShootingSection({ companion }: { companion: boolean }) {
         <h3 className="mbt-shoot__title">mbt_shooting</h3>
         <p className="mbt-shoot__sub">
           {companion
-            ? 'Companion detected — these systems are live and driving your weapons through the bridge. Configure them in the mbt_shooting menu.'
-            : 'The paid combat layer for your weapons: skill progression, weapon condition, malfunctions and a full shooting range. malisling stays free and standalone — shooting adds the depth players feel.'}
+            ? 'Companion connected — these systems are live and driving your weapons through the bridge. Configure them in the mbt_shooting menu.'
+            : 'The paid combat layer: skill progression, weapon condition, malfunctions and a full shooting range. malisling stays free and standalone — shooting adds the depth players feel.'}
         </p>
         {!companion && (
           <button type="button" className="mbt-btn-primary" onClick={() => fetchNui('shootingLink')}>

@@ -25,6 +25,13 @@ import AdminDashboard from './admin/AdminDashboard'
 // browser during development).
 const DEV_PREVIEW = 'admin' as 'admin' | 'overlays'
 
+// Which integration state to preview in the admin dashboard (browser dev only):
+//   'healthy'  → nothing shown (status-by-exception)
+//   'critical' → centered role=alert banner (ox patch failed)
+//   'warning'  → discreet amber chip in the overview (e.g. qb-weapons weapdraw)
+//   'both'     → critical banner + warning chip together
+const DEV_SCENARIO = 'healthy' as 'healthy' | 'critical' | 'warning' | 'both'
+
 // Full mock of the server config snapshot (modules/config/server.lua → snapshot()).
 const MOCK_ADMIN_CONFIG = {
   EnableSling: true, EnableFlashlight: true, DropWeaponOnDeath: true, UIPosition: 'bottom-center', Language: 'en',
@@ -57,7 +64,13 @@ const MOCK_ADMIN_CONFIG = {
 if (DEV_PREVIEW === 'admin') {
   debugData([{
     action: 'openAdmin',
-    data: { version: 'v2.0.0', companion: false, oxPatch: 'ok', config: MOCK_ADMIN_CONFIG },
+    data: {
+      version: 'v2.0.0', companion: false, config: MOCK_ADMIN_CONFIG,
+      oxPatch: (DEV_SCENARIO === 'critical' || DEV_SCENARIO === 'both') ? 'ox_inventory weapons-as-items is disabled' : 'ok',
+      warnings: (DEV_SCENARIO === 'warning' || DEV_SCENARIO === 'both')
+        ? [{ code: 'qb_weapdraw', msg: 'qb-weapons detected — disable weapdraw.lua for correct holster/switch animations.' }]
+        : [],
+    },
   }], 300)
 }
 

@@ -35,18 +35,18 @@ interface Category {
 }
 
 const CATEGORIES: Category[] = [
-  { id: 'core',        label: 'Core',        hint: 'Sling · holster · drop', icon: 'layers',
+  { id: 'core',        label: 'Core',        hint: 'Sling, holster, drop', icon: 'layers',
     sections: [CoreSection, HolsterSection, DropVisualSection, DespawnSection, InterfaceSection, DropLoggingSection] },
-  { id: 'handling',    label: 'Handling',    hint: 'Feel & combat RP',       icon: 'target',
+  { id: 'handling',    label: 'Handling',    hint: 'Feel and combat RP',     icon: 'target',
     // Ordered to pair similar heights for the equal-height grid: the two tall
     // cards (Suppressor, Safety) share row 1; the two short 2-input cards
     // (Jamming, Charge) share row 2; Weight closes.
     sections: [SuppressorSection, SafetySection, JammingSection, ChargeSection, WeightSection] },
-  { id: 'interaction', label: 'Interaction', hint: 'Inspect · name · poses', icon: 'cursor',
+  { id: 'interaction', label: 'Interaction', hint: 'Inspect, name, poses', icon: 'cursor',
     // Height-paired for the equal-height grid: the two tall cards (Inspect,
     // Throw) share row 1; the shorter Name + the tiny Poses share row 2.
     sections: [InspectSection, ThrowSection, WeaponNameSection, PosesSection, ChainOfCustodySection, ShellCasingsSection, HandoffSection, SerialsSection, ConcealedCarrySection, PatDownSection, AmmoSharingSection] },
-  { id: 'world',       label: 'World',       hint: 'Zones · vehicle',        icon: 'globe',
+  { id: 'world',       label: 'World',       hint: 'Zones, vehicle, racks',  icon: 'globe',
     sections: [NoDrawSection, VehicleSection, TrunkRackSection, WeaponRackSection] },
 ]
 
@@ -95,7 +95,8 @@ export default function AdminDashboard() {
   const [trunkEditing, setTrunkEditing] = useState<{ model: string; vclass: number; off: any; view?: any } | null>(null)
   const [closing, setClosing] = useState(false)     // playing the exit animation before unmount
   const [companion, setCompanion] = useState(false) // mbt_shooting bridge connected
-  const [oxPatch, setOxPatch] = useState<string | false>(false) // ox auto-patch failure reason
+  const [oxPatch, setOxPatch] = useState<string | false>(false) // ox auto-patch failure reason (CRITICAL → center alert)
+  const [warnings, setWarnings] = useState<{ code: string; msg: string }[]>([]) // non-critical integration warnings → discreet right chips
   const baseline = useRef('')                       // last-saved snapshot
   const closeTimer = useRef<number | null>(null)    // deferred-unmount timer
 
@@ -107,6 +108,7 @@ export default function AdminDashboard() {
     if (data?.version) setVersion(data.version)
     setCompanion(!!data?.companion)
     setOxPatch(typeof data?.oxPatch === 'string' ? data.oxPatch : false)
+    setWarnings(Array.isArray(data?.warnings) ? data.warnings : [])
     setActive('core')
     setEditing(null)
     setTrunkEditing(null)
@@ -183,9 +185,9 @@ export default function AdminDashboard() {
   const isShooting = active === 'shooting'
   const headLabel = isShooting ? 'mbt_shooting' : isPositions ? 'Positions' : activeCat.label
   const headHint = isShooting
-    ? (companion ? 'Companion detected · combat depth is live' : 'Paid add-on · skill, condition, malfunctions, range')
+    ? (companion ? 'Companion connected · combat depth is live' : 'Paid add-on · skill, condition, malfunctions, range')
     : isPositions
-      ? 'Weapon-on-body editor + vehicle-trunk placement · set in-world · saved to oxmysql'
+      ? 'Body and trunk placement · set in-world · saved to oxmysql'
       : `${activeCat.hint} · ${activeCat.sections.length} features · applies live on save`
 
   // Real feature state for the overview — derived from the same config paths the
@@ -202,7 +204,7 @@ export default function AdminDashboard() {
         {/* ── Rail ── */}
         <nav className="mbt-admin__rail">
           <div className="mbt-rail__logo">
-            <span className="ic"><Icon name="logo" size={24} /></span>
+            <span className="ic"><img src={`${import.meta.env.BASE_URL}logo_mbt.svg`} alt="MalibuTech" /></span>
             <div><b>MBT MALISLING</b><span>MALIBUTECH</span></div>
           </div>
 
@@ -232,7 +234,7 @@ export default function AdminDashboard() {
             <span className="ic"><Icon name="configure" size={18} /></span>
             <span className="mbt-rail__tx">
               <span className="mbt-rail__label">Positions</span>
-              <span className="mbt-rail__hint">Body & trunk placement</span>
+              <span className="mbt-rail__hint">Body and trunk placement</span>
             </span>
             <span className="mbt-rail__count">edit</span>
           </button>
@@ -242,7 +244,7 @@ export default function AdminDashboard() {
             <span className="ic"><Icon name="search" size={18} /></span>
             <span className="mbt-rail__tx">
               <span className="mbt-rail__label">Forensics</span>
-              <span className="mbt-rail__hint">Serial · custody · casings</span>
+              <span className="mbt-rail__hint">Serial, custody, casings</span>
             </span>
             <span className="mbt-rail__count">soon</span>
           </div>
@@ -314,7 +316,7 @@ export default function AdminDashboard() {
               <span className="mbt-ov__warn-ic"><Icon name="alert" size={15} /></span>
               <div>
                 <b>ox_inventory patch failed</b>
-                <p>{oxPatch}. Run <code>install_ox_patch.ps1</code> in the server folder, then restart — the weapon-on-back holster flow needs it.</p>
+                <p>{oxPatch}. Run <code>install_ox_patch.ps1</code>, then restart — the weapon-on-back holster flow needs it.</p>
               </div>
             </div>
           ) : null}
@@ -367,11 +369,21 @@ export default function AdminDashboard() {
             ))}
           </div>
           <div className="mbt-ov__spacer" />
+          {/* Non-critical integration warnings — discreet amber chips above the
+              LIVE APPLY note, shown only when present (status-by-exception). The
+              gauge stays the hero up top; critical failures use the centered
+              role="alert" banner instead. */}
+          {warnings.map((w) => (
+            <div key={w.code} className="mbt-ov__warn-chip">
+              <Icon name="alert" size={13} />
+              <span>{w.msg}</span>
+            </div>
+          ))}
           <div className="mbt-ov__tip">
             <span className="ic"><Icon name="help" size={15} /></span>
             <div>
               <b>LIVE APPLY</b>
-              <p>Changes apply to every connected player the moment you hit Save. Keybinds and language stay in config.lua.</p>
+              <p>Saved changes apply live to all players. Keybinds and language stay in config.lua.</p>
             </div>
           </div>
         </aside>

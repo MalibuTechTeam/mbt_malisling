@@ -29,7 +29,7 @@ export function PositionsSection({ jobs, onEdit }: { jobs: Job[]; onEdit: (t: Ed
   const [gender, setGender] = useState('male')
   return (
     <Section icon="configure" title="WEAPON POSITIONS"
-      sub="Where each weapon sits on the body — per type & job."
+      sub="Where each weapon sits on the body, per type and job."
       action={
         <button className="mbt-btn-primary mbt-btn--sm" onClick={() => onEdit({ wtype, job, gender })}>
           <Icon name="cursor" size={13} /> Live Editor
@@ -37,7 +37,7 @@ export function PositionsSection({ jobs, onEdit }: { jobs: Job[]; onEdit: (t: Ed
       }>
       <div className="mbt-notice">
         Pick a <b>type</b>, <b>job</b> and <b>gender</b>, then hit <b>Live Editor</b> — the dashboard hides and you
-        place the weapon in 3D. Saving applies live to every player. Requires <code>oxmysql</code> to persist.
+        place the weapon in 3D. Saving applies live to all players. Requires <code>oxmysql</code> to persist.
       </div>
       <Grid2>
         <FieldBlock label="Weapon Type" hint="Which prop type to position.">

@@ -83,6 +83,9 @@
 }
 .mbt-rail__logo { display: flex; align-items: center; gap: 9px; padding: 0 4px 22px; }
 .mbt-rail__logo .ic { color: var(--mbt-accent); display: grid; place-items: center; }
+/* Logo frame height matched to the two-line text lockup (title + subtitle) so the
+   mark and wordmark read as one unit; vertically centered by the flex row above. */
+.mbt-rail__logo .ic img { height: 34px; width: auto; display: block; }
 .mbt-rail__logo b { font-family: var(--mbt-font-display); font-size: 14px; font-weight: 700; color: var(--mbt-text-hi); letter-spacing: 0.02em; display: block; line-height: 1.1; }
 .mbt-rail__logo span { font-size: 8px; letter-spacing: 0.18em; color: var(--mbt-text-faint); display: block; }
 
@@ -334,6 +337,13 @@
 .mbt-ov__warn b { display: block; margin-bottom: 3px; font-family: var(--mbt-font-display); font-size: 12px; font-weight: 700; color: var(--mbt-faulty); }
 .mbt-ov__warn p { font-size: 11.5px; line-height: 1.45; color: var(--mbt-text-mid); }
 .mbt-ov__warn code { font-family: var(--mbt-font-mono); font-size: 10.5px; color: var(--mbt-text-hi); }
+/* Non-critical integration warning — discreet chip in the overview. Wears the
+   HACKED/amber status hue on the icon + border; message text stays readable
+   (text-mid), never the brand accent. Shown only when a warning is present. */
+.mbt-ov__warn-chip { display: flex; gap: 8px; padding: 9px 10px; margin-bottom: 12px; color: var(--mbt-hacked); background: rgba(var(--mbt-hacked-rgb), 0.08); border: 1px solid rgba(var(--mbt-hacked-rgb), 0.24); border-radius: var(--mbt-r-md); }
+.mbt-ov__warn-chip svg { flex-shrink: 0; margin-top: 1px; }
+.mbt-ov__warn-chip span { font-size: 10.5px; font-weight: 500; line-height: 1.4; color: var(--mbt-text-mid); }
+
 /* LIVE APPLY — a PASSIVE helper note, so it stays NEUTRAL (no accent). The vivid
    accent is reserved for the one primary action (Save), focus, and the active rail. */
 .mbt-ov__tip { display: flex; gap: 10px; padding: 13px; background: var(--mbt-surface-1); border: 1px solid var(--mbt-edge); border-radius: var(--mbt-r-md); }

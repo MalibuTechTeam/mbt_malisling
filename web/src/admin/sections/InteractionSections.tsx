@@ -17,7 +17,7 @@ export function InspectSection({ config, update }: SectionProps) {
     <Section icon="search" title="WEAPON INSPECT" sub="Hold the inspect key to examine the held weapon."
       action={<ToggleRow.Inline checked={!!i.Enabled} onChange={(v) => update('Inspect.Enabled', v)} />}>
       <Grid2>
-        <FieldBlock label="Sync Distance (m)" hint="How far nearby players see the inspect animation." style={{ marginBottom: 0 }}>
+        <FieldBlock label="Sync Distance (m)" hint="How far players see the inspect animation." style={{ marginBottom: 0 }}>
           <NumberInput min={1} max={50} step={1} value={String(i.MaxDistance ?? 20)}
             onChange={numUpdate(update, 'Inspect.MaxDistance', 20)} />
         </FieldBlock>
@@ -57,7 +57,7 @@ export function WeaponNameSection({ config, update }: SectionProps) {
           <Segmented value={w.Permission ?? 'everyone'} options={NAME_PERMS} onChange={(v) => update('WeaponName.Permission', v)} />
         </FieldBlock>
       </Grid2>
-      <ToggleRow title="Once Per Weapon" desc="Block re-naming once a weapon is named"
+      <ToggleRow title="Once Per Weapon" desc="Block renaming once a weapon is named"
         checked={!!w.OncePerWeapon} onChange={(v) => update('WeaponName.OncePerWeapon', v)} />
     </Section>
   )
@@ -69,7 +69,7 @@ export function PosesSection({ config, update }: SectionProps) {
   return (
     <Section icon="pose" title="SHOWCASE POSES" sub="Cycle RP idle poses for screenshots."
       action={<ToggleRow.Inline checked={!!p.Enabled} onChange={(v) => update('ShowcasePoses.Enabled', v)} />}>
-      <ToggleRow title="Sync to Nearby Players" desc="Others see your pose, including late arrivals"
+      <ToggleRow title="Sync to Nearby Players" desc="Others see your pose, including latecomers"
         checked={!!p.Sync} onChange={(v) => update('ShowcasePoses.Sync', v)} />
     </Section>
   )
@@ -138,8 +138,8 @@ export function AmmoSharingSection({ config, update }: SectionProps) {
         </FieldBlock>
       </Grid2>
       <div className="mbt-field__hint" style={{ marginTop: 2 }}>
-        The share key lives in <code>config.lua</code> (<code>MBT.AmmoSharing</code>). Ammo type is
-        taken from the held weapon.
+        The share key lives in <code>config.lua</code> (<code>MBT.AmmoSharing</code>). Ammo type comes
+        from the held weapon.
       </div>
     </Section>
   )
@@ -158,11 +158,11 @@ export function PatDownSection({ config, update }: SectionProps) {
         checked={p.CuffedBypass !== false} onChange={(v) => update('PatDown.CuffedBypass', v)} />
       <ToggleRow title="Show Ammo" desc="Include loaded-ammo count in the result"
         checked={!!p.ShowAmmo} onChange={(v) => update('PatDown.ShowAmmo', v)} />
-      <FieldBlock label="Reach (m)" hint="How close the officer must be.">
+      <FieldBlock label="Reach (m)" hint="How close the officer must stand.">
         <NumberInput min={1} max={10} step={0.5} value={String(p.MaxDistance ?? 2.0)}
           onChange={numUpdate(update, 'PatDown.MaxDistance', 2.0)} />
       </FieldBlock>
-      <ToggleRow title="Audit Log" desc="Log each frisk (officer, suspect, weapons, serials) to a webhook"
+      <ToggleRow title="Audit Log" desc="Log each frisk (officer, suspect, weapons, serials) to Discord"
         checked={!!l.Enabled} onChange={(v) => update('PatDown.Logging.Enabled', v)} />
       <FieldBlock label="Discord Webhook" hint="Required for the audit log." style={{ marginBottom: 0 }}>
         <input className="mbt-input" value={l.Webhook ?? ''} placeholder="https://discord.com/api/webhooks/..."
@@ -182,11 +182,11 @@ export function ConcealedCarrySection({ config, update }: SectionProps) {
   return (
     <Section icon="search" title="CONCEALED CARRY" sub="Hide holstered small weapons — if your clothes can cover them."
       action={<ToggleRow.Inline checked={!!c.Enabled} onChange={(v) => update('ConcealedCarry.Enabled', v)} />}>
-      <FieldBlock label="Toggle Cooldown (ms)" hint="Anti spam/flicker between conceal toggles.">
+      <FieldBlock label="Toggle Cooldown (ms)" hint="Anti-spam between conceal toggles.">
         <NumberInput min={0} max={60000} step={500} value={String(c.ToggleCooldownMs ?? 3000)}
           onChange={numUpdate(update, 'ConcealedCarry.ToggleCooldownMs', 3000, true)} />
       </FieldBlock>
-      <ToggleRow title="Waistband Tell" desc="Concealed carriers occasionally adjust their waistband (observable RP tell)"
+      <ToggleRow title="Waistband Tell" desc="Carriers occasionally adjust their waistband — an observable RP tell"
         checked={t.Enabled !== false} onChange={(v) => update('ConcealedCarry.Tell.Enabled', v)} />
       <Grid2>
         <FieldBlock label="Tell Roll (s)" hint="Seconds between tell chances." style={{ marginBottom: 0 }}>
@@ -204,7 +204,7 @@ export function ConcealedCarrySection({ config, update }: SectionProps) {
       </Grid2>
       <div className="mbt-field__hint" style={{ marginTop: 2 }}>
         Clothing blocklists, key and concealable types live in <code>config.lua</code>
-        (<code>MBT.ConcealedCarry</code>). Use <code>/mbt_concealdebug</code> in-game to tune custom clothing packs.
+        (<code>MBT.ConcealedCarry</code>). Use <code>/mbt_concealdebug</code> to tune custom clothing packs.
       </div>
     </Section>
   )
@@ -224,7 +224,7 @@ export function SerialsSection({ config, update }: SectionProps) {
         <Segmented value={s.Format ?? 'marked'} options={SERIAL_FORMATS}
           onChange={(v) => update('Serials.Format', v)} />
       </FieldBlock>
-      <ToggleRow title="Sweep on Join" desc="Scan a player's weapons shortly after they join and fix missing serials"
+      <ToggleRow title="Sweep on Join" desc="Scan a player's weapons on join and fix missing serials"
         checked={s.SweepOnLoad !== false} onChange={(v) => update('Serials.SweepOnLoad', v)} />
       <div className="mbt-field__hint" style={{ marginTop: 2 }}>
         Serials are written once, on safe inventory transitions only (rack, handoff, drop, sweep) —
@@ -247,7 +247,7 @@ export function HandoffSection({ config, update }: SectionProps) {
       <ToggleRow title="Equip on Accept" desc="The receiver takes the weapon straight into hand (ox)"
         checked={!!h.EquipOnAccept} onChange={(v) => update('Handoff.EquipOnAccept', v)} />
       <div className="mbt-field__hint" style={{ marginTop: 2 }}>
-        The handoff key and the give/take animation clips live in <code>config.lua</code> (<code>MBT.Handoff</code>).
+        The handoff key and give/take animation clips live in <code>config.lua</code> (<code>MBT.Handoff</code>).
         Serial, condition, custom name and Chain of Custody travel with the weapon.
       </div>
     </Section>
@@ -279,7 +279,7 @@ export function ShellCasingsSection({ config, update }: SectionProps) {
         <Segmented value={s.SerialReveal ?? 'partial'} options={SERIAL_REVEALS}
           onChange={(v) => update('ShellCasings.SerialReveal', v)} />
       </FieldBlock>
-      <ToggleRow title="Allow Collect" desc="Casings can be picked up — criminals can clean the scene"
+      <ToggleRow title="Allow Collect" desc="Casings can be picked up, letting criminals clean the scene"
         checked={s.AllowCollect !== false} onChange={(v) => update('ShellCasings.AllowCollect', v)} />
       <FieldBlock label="World Cap" hint="Max casings in the world (oldest removed first)." style={{ marginBottom: 0 }}>
         <NumberInput min={10} max={1000} step={10} value={String(s.MaxCasings ?? 150)}

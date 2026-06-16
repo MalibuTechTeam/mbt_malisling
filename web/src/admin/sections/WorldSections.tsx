@@ -13,11 +13,11 @@ export function NoDrawSection({ config, update }: SectionProps) {
   return (
     <Section icon="alert" title="NO-DRAW ZONES" sub="Block drawing firearms in safe-zone areas."
       action={<ToggleRow.Inline checked={!!n.Enabled} onChange={(v) => update('NoDrawZones.Enabled', v)} />}>
-      <ToggleRow title="Allow Melee" desc="Melee stays usable inside zones (firearms only)"
+      <ToggleRow title="Allow Melee" desc="Keep melee usable inside zones; blocks firearms only"
         checked={!!n.AllowMelee} onChange={(v) => update('NoDrawZones.AllowMelee', v)} />
-      <ToggleRow title="HUD Banner" desc="Show an on-screen banner while inside a no-draw zone"
+      <ToggleRow title="HUD Banner" desc="Show a banner while inside a no-draw zone"
         checked={!!n.HudIndicator} onChange={(v) => update('NoDrawZones.HudIndicator', v)} />
-      <FieldBlock label="Notify Cooldown (ms)" hint="Minimum time between “can't draw here” notifications." style={{ marginBottom: 0 }}>
+      <FieldBlock label="Notify Cooldown (ms)" hint="Minimum time between “can't draw here” notices." style={{ marginBottom: 0 }}>
         <NumberInput min={500} max={30000} step={500} value={String(n.NotifyCooldown ?? 3000)}
           onChange={numUpdate(update, 'NoDrawZones.NotifyCooldown', 3000, true)} />
       </FieldBlock>
@@ -35,10 +35,10 @@ export function VehicleSection({ config, update }: SectionProps) {
     <Section icon="vehicle" title="VEHICLE SMART HIDING" sub="Hidden in enclosed vehicles; configure roofless ones."
       action={<ToggleRow.Inline checked={!!v.Enabled} onChange={(x) => update('VehicleHiding.Enabled', x)} />}>
       <ToggleRow title="Smart Hiding"
-        desc="On: visible on roofless vehicles. Off: hidden in all."
+        desc="On: visible on roofless vehicles. Off: hidden in all"
         checked={!!v.Enabled} onChange={(x) => update('VehicleHiding.Enabled', x)} />
       <ToggleRow title="Roof Check"
-        desc="Keep visible on roofless vehicles too (quads, buggies)"
+        desc="Stay visible on quads and buggies too"
         checked={!!v.UseRoofCheck} onChange={(x) => update('VehicleHiding.UseRoofCheck', x)} />
     </Section>
   )
@@ -51,8 +51,8 @@ export function TacticalSlingSection({ config, update }: SectionProps) {
     <Section icon="layers" title="TACTICAL SLING" sub="Visible strap prop for slung long guns."
       action={<ToggleRow.Inline checked={!!t.Enabled} onChange={(v) => update('TacticalSling.Enabled', v)} />}>
       <div className="mbt-field__hint" style={{ marginTop: 2 }}>
-        Ships disabled until you add a strap prop model to <code>stream/</code> and set
-        its name + position in <code>config.lua</code>. Enabling it without a model has no effect.
+        Add a strap prop model to <code>stream/</code> and set its name and position in
+        <code>config.lua</code>. Enabling it without a model has no effect.
       </div>
     </Section>
   )
@@ -83,7 +83,7 @@ export function TrunkRackSection({ config, update }: SectionProps) {
             onChange={numUpdate(update, 'VehicleTrunkRack.InteractionDistance', 2.5)} />
         </FieldBlock>
       </Grid2>
-      <ToggleRow title="Retrieve to Hand" desc="Take the weapon straight into hand on retrieve (ox + qb)"
+      <ToggleRow title="Retrieve to Hand" desc="Take the weapon straight into hand (ox + qb)"
         checked={!!t.EquipOnRetrieve} onChange={(v) => update('VehicleTrunkRack.EquipOnRetrieve', v)} />
     </Section>
   )
@@ -117,16 +117,16 @@ export function WeaponRackSection({ config, update }: SectionProps) {
             onChange={numUpdate(update, 'WeaponRack.InteractionDistance', 2.0)} />
         </FieldBlock>
       </Grid2>
-      <ToggleRow title="Retrieve to Hand" desc="Take the weapon straight into hand on retrieve (ox + qb)"
+      <ToggleRow title="Retrieve to Hand" desc="Take the weapon straight into hand (ox + qb)"
         checked={!!t.EquipOnRetrieve} onChange={(v) => update('WeaponRack.EquipOnRetrieve', v)} />
-      <ToggleRow title="Armory Log" desc="Log store/take (player, job, weapon, serial) to a Discord webhook"
+      <ToggleRow title="Armory Log" desc="Log store and take (player, job, weapon, serial) to Discord"
         checked={!!t.Logging?.Enabled} onChange={(v) => update('WeaponRack.Logging.Enabled', v)} />
       <FieldBlock label="Discord Webhook" hint="Required — the armory log needs a webhook URL." style={{ marginBottom: 0 }}>
         <input className="mbt-input" value={t.Logging?.Webhook ?? ''} placeholder="https://discord.com/api/webhooks/..."
           onChange={(e) => update('WeaponRack.Logging.Webhook', e.target.value)} />
       </FieldBlock>
-      <FieldBlock label="Item Placement" hint="Players place their own racks with an inventory item (carry, rotate, mount).">
-        <ToggleRow title="Enable Placement" desc="Use the rack item to install a rack in the world (needs oxmysql)"
+      <FieldBlock label="Item Placement" hint="Players place their own racks from an inventory item.">
+        <ToggleRow title="Enable Placement" desc="Install a rack in the world from the rack item (needs oxmysql)"
           checked={!!t.Placement?.Enabled} onChange={(v) => update('WeaponRack.Placement.Enabled', v)} />
         <ToggleRow title="Owner-only Access" desc="Only the player who placed a rack can use it"
           checked={t.Placement?.Access === 'owner'}
@@ -139,8 +139,8 @@ export function WeaponRackSection({ config, update }: SectionProps) {
         </FieldBlock>
       </FieldBlock>
       <div className="mbt-field__hint" style={{ marginTop: 2 }}>
-        Rack locations, props and per-type offsets live in <code>config.lua</code>
-        (<code>MBT.WeaponRack</code>) — along with per-job access &amp; certification gating.
+        Rack locations, props, per-type offsets and per-job access live in <code>config.lua</code>
+        (<code>MBT.WeaponRack</code>).
       </div>
     </Section>
   )
@@ -176,8 +176,8 @@ export function TrunkPositionsSection({ config, update, onEdit }: TrunkPositions
   const REASONS: Record<string, string> = {
     no_vehicle: 'No vehicle nearby — stand behind a car, then open the Live Editor.',
     on_foot: 'Exit the vehicle first, then open the Live Editor.',
-    not_at_trunk: 'Stand right next to the trunk, then open the Live Editor.',
-    trunk_wont_open: "Couldn't open this vehicle's trunk — it may not have one.",
+    not_at_trunk: 'Stand next to the trunk, then open the Live Editor.',
+    trunk_wont_open: "Couldn't open this trunk — the vehicle may not have one.",
     busy: 'The editor is already open.',
   }
   const openEditor = () => {
@@ -209,8 +209,8 @@ export function TrunkPositionsSection({ config, update, onEdit }: TrunkPositions
         </span>
       }>
       <div className="mbt-notice">
-        Stand right <b>next to the trunk</b> and hit <b>Live Editor</b> — it opens the boot for you, then
-        nudge the weapon into place and Save per <b>model</b> (exact) or <b>class</b> (broad). Applies live.
+        Stand <b>next to the trunk</b> and hit <b>Live Editor</b> — it opens the boot, then nudge the weapon
+        into place and Save per <b>model</b> (exact) or <b>class</b> (broad). Applies live.
         <code>/mbt_trunktune</code> is the key-driven tuner.
       </div>
       {note && (
@@ -222,7 +222,7 @@ export function TrunkPositionsSection({ config, update, onEdit }: TrunkPositions
       )}
       {list.length === 0 ? (
         <div className="mbt-field__hint" style={{ marginTop: 2, whiteSpace: 'normal' }}>
-          No saved overrides yet — every vehicle uses the default placement.
+          No overrides yet — every vehicle uses the default placement.
         </div>
       ) : (
         <div className="mbt-trunk-list">

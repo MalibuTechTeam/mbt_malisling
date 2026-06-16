@@ -6,11 +6,11 @@ import { NumberInput } from '../ui/NumberInput'
 export function HolsterSection({ config, update }: SectionProps) {
   const s = config.Sounds ?? {}
   return (
-    <Section icon="speaker" title="HOLSTER SOUNDS" sub="Audio feedback on holster / unholster.">
-      <ToggleRow title="Enable Sounds" desc="Play a sound when holstering or drawing"
+    <Section icon="speaker" title="HOLSTER SOUNDS" sub="Audio on holster and draw.">
+      <ToggleRow title="Enable Sounds" desc="Plays a sound on holster and draw"
         checked={!!s.Enabled} onChange={(v) => update('Sounds.Enabled', v)} />
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginTop: 4 }}>
-        <FieldBlock label="Hearing Distance (m)" hint="How far nearby players hear it." style={{ marginBottom: 0 }}>
+        <FieldBlock label="Hearing Distance (m)" hint="How far players hear it." style={{ marginBottom: 0 }}>
           <NumberInput min={1} max={50} step={1} value={String(s.MaxDistance ?? 8)}
             onChange={(raw) => update('Sounds.MaxDistance', raw === '' ? 8 : parseFloat(raw) || 8)} />
         </FieldBlock>

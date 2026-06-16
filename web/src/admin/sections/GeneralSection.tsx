@@ -10,11 +10,11 @@ import { Section, ToggleRow, type SectionProps } from './parts'
 export function CoreSection({ config, update }: SectionProps) {
   return (
     <Section icon="power" title="CORE" sub="Main sling toggles.">
-      <ToggleRow title="Enable Sling" desc="Weapon shown on the player's body"
+      <ToggleRow title="Enable Sling" desc="Show the weapon on the player's body"
         checked={!!config.EnableSling} onChange={(v) => update('EnableSling', v)} />
       <ToggleRow title="Enable Flashlight" desc="Render attached weapon flashlights"
         checked={!!config.EnableFlashlight} onChange={(v) => update('EnableFlashlight', v)} />
-      <ToggleRow title="Drop Weapon on Death" desc="Weapon falls to the ground on death"
+      <ToggleRow title="Drop Weapon on Death" desc="Weapon drops to the ground on death"
         checked={!!config.DropWeaponOnDeath} onChange={(v) => update('DropWeaponOnDeath', v)} />
     </Section>
   )
@@ -29,7 +29,7 @@ export function InterfaceSection({ config, update }: SectionProps) {
       <PositionPicker value={pos} onChange={(v) => update('UIPosition', v)} />
       {pos === 'custom' && (
         <p className="mbt-field__hint" style={{ marginTop: 8 }}>
-          Custom drag is coming with the overlay reskin — uses a default spot for now.
+          Custom drag ships with the overlay reskin — uses a default spot for now.
         </p>
       )}
     </Section>
