@@ -129,8 +129,11 @@
 .mbt-rail__status { display: flex; align-items: center; gap: 9px; padding: 11px; margin-top: 8px; background: var(--mbt-surface-2); border: 1px solid var(--mbt-edge); border-radius: var(--mbt-r-md); }
 .mbt-rail__status .sdot { width: 7px; height: 7px; border-radius: 50%; background: var(--mbt-operational); box-shadow: 0 0 8px var(--mbt-operational); }
 .mbt-rail__status b { font-size: 11px; font-weight: 600; color: var(--mbt-text-mid); display: block; }
-.mbt-rail__status small { font-size: 10px; color: var(--mbt-text-faint); }
+.mbt-rail__status small { font-size: 10px; color: var(--mbt-text-lo); }
 .mbt-rail__status .ver { margin-left: auto; font-family: var(--mbt-font-mono); font-size: 9px; color: var(--mbt-text-faint); }
+/* Healthy ox_inventory integration — runtime status, so it wears the OPERATIONAL
+   green (#22C55E), NOT the brand accent. Lives in the rail footer under Running. */
+.mbt-rail__integ { display: flex; align-items: center; gap: 7px; margin-top: 6px; padding: 8px 11px; font-size: 10.5px; font-weight: 600; color: var(--mbt-operational); background: rgba(var(--mbt-operational-rgb), 0.08); border: 1px solid rgba(var(--mbt-operational-rgb), 0.22); border-radius: var(--mbt-r-md); }
 
 /* ── Center ────────────────────────────────────────────────────────────── */
 /* scrollbar-gutter:stable reserves the bar's width so the grid never reflows
@@ -334,11 +337,10 @@
 .mbt-ov__warn b { display: block; margin-bottom: 3px; font-family: var(--mbt-font-display); font-size: 12px; font-weight: 700; color: var(--mbt-faulty); }
 .mbt-ov__warn p { font-size: 11.5px; line-height: 1.45; color: var(--mbt-text-mid); }
 .mbt-ov__warn code { font-family: var(--mbt-font-mono); font-size: 10.5px; color: var(--mbt-text-hi); }
-/* Healthy-state counterpart — subtle one-liner, not a full banner. */
-.mbt-ov__ok { display: flex; align-items: center; gap: 7px; padding: 8px 11px; font-size: 11px; font-weight: 600; color: var(--mbt-operational); background: rgba(var(--mbt-operational-rgb), 0.08); border: 1px solid rgba(var(--mbt-operational-rgb), 0.22); border-radius: var(--mbt-r-md); }
-
-.mbt-ov__tip { display: flex; gap: 10px; padding: 13px; background: var(--mbt-accent-soft); border: 1px solid rgba(var(--mbt-accent-rgb), 0.2); border-radius: var(--mbt-r-md); }
-.mbt-ov__tip .ic { color: var(--mbt-accent); flex-shrink: 0; }
+/* LIVE APPLY — a PASSIVE helper note, so it stays NEUTRAL (no accent). The vivid
+   accent is reserved for the one primary action (Save), focus, and the active rail. */
+.mbt-ov__tip { display: flex; gap: 10px; padding: 13px; background: var(--mbt-surface-1); border: 1px solid var(--mbt-edge); border-radius: var(--mbt-r-md); }
+.mbt-ov__tip .ic { color: var(--mbt-text-lo); flex-shrink: 0; }
 .mbt-ov__tip b { font-family: var(--mbt-font-display); font-size: 11px; font-weight: 700; color: var(--mbt-text-hi); letter-spacing: 0.06em; display: block; margin-bottom: 3px; }
 .mbt-ov__tip p { font-size: 11.5px; line-height: 1.5; color: var(--mbt-text-lo); }
 
