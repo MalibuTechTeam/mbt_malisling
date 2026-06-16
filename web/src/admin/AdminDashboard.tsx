@@ -31,7 +31,9 @@ interface Category {
   label: string
   hint: string
   icon: IconName
-  sections: ComponentType<SectionProps>[]
+  // An entry can be a single section or an array of sections rendered stacked
+  // in a single grid cell (see .mbt-admin__section-stack in Admin.css).
+  sections: (ComponentType<SectionProps> | ComponentType<SectionProps>[])[]
 }
 
 const CATEGORIES: Category[] = [
@@ -46,15 +48,17 @@ const CATEGORIES: Category[] = [
     // (Jamming, Charge) share row 2; Weight closes.
     sections: [SuppressorSection, SafetySection, JammingSection, ChargeSection, WeightSection] },
   { id: 'interaction', label: 'Interaction', hint: 'Inspect, throw, carry', icon: 'cursor',
-    // 7 cards (forensics moved out). Height-paired: the two tall cards (Inspect,
-    // Throw) share row 1; Concealed Carry (tall) + Name row 2; Handoff + Ammo
-    // Sharing row 3; Poses (short) closes.
-    sections: [InspectSection, ThrowSection, ConcealedCarrySection, WeaponNameSection, HandoffSection, AmmoSharingSection, PosesSection] },
+    // Height-paired: Inspect + Throw (both tall) row 1; Concealed Carry (tall) +
+    // the [Weapon Name, Showcase Poses] stack (right) row 2 — the two short cards
+    // stacked together fill the tall Concealed Carry card's height; Handoff + Ammo
+    // Sharing (both mid) row 3.
+    sections: [InspectSection, ThrowSection, ConcealedCarrySection, [WeaponNameSection, PosesSection], HandoffSection, AmmoSharingSection] },
   { id: 'forensics',   label: 'Forensics',   hint: 'Serial, custody, casings', icon: 'search',
     // Evidence / investigation systems, grouped by admin intent (not animation) —
-    // Pat-down lives here as a police-discovery tool. Height-paired: the two tall
-    // cards (Shell Casings, Pat-down) share row 1; Serials + Chain of Custody row 2.
-    sections: [ShellCasingsSection, PatDownSection, SerialsSection, ChainOfCustodySection] },
+    // Pat-down lives here as a police-discovery tool. Order: the foundational pair
+    // (Weapon Serials = the backbone, Chain of Custody) leads in row 1; the two tall
+    // application cards (Shell Casings, Pat-down) share row 2.
+    sections: [SerialsSection, ChainOfCustodySection, ShellCasingsSection, PatDownSection] },
   { id: 'world',       label: 'World',       hint: 'Zones, vehicle, racks',  icon: 'globe',
     // Height-paired for the equal-height grid: the two mid cards (No-Draw, Vehicle)
     // share row 1; the two tall cards (Trunk Rack, Weapon Rack) share row 2.
@@ -332,9 +336,15 @@ export default function AdminDashboard() {
                   onEdit={(s) => setTrunkEditing({ model: s.model, vclass: s.class, off: s.off, view: s.view })} />
               </>
             ) : (
-              activeCat.sections.map((Section, i) => (
-                <Section key={`${active}-${i}`} config={cfg} update={update} />
-              ))
+              activeCat.sections.map((item, i) =>
+                Array.isArray(item) ? (
+                  <div key={`${active}-${i}`} className="mbt-admin__section-stack">
+                    {(item as ComponentType<SectionProps>[]).map((Section, j) => (
+                      <Section key={j} config={cfg} update={update} />
+                    ))}
+                  </div>
+                ) : (() => { const Section = item as ComponentType<SectionProps>; return <Section key={`${active}-${i}`} config={cfg} update={update} /> })()
+              )
             )}
           </div>
         </div>

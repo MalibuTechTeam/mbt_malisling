@@ -180,6 +180,14 @@
   align-content: start;
 }
 
+/* A stacked group — two or more sections sharing one grid cell, laid out
+   vertically. Used when two short cards should equal-height a taller neighbour. */
+.mbt-admin__section-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
 /* Stagger the cards on category switch — they cascade in rather than popping
    together. Delays are short (total < 220ms) so it reads as rhythm, not lag. */
 .mbt-admin__sections > .mbt-section:nth-child(1) { animation-delay: 0ms; }
@@ -187,6 +195,7 @@
 .mbt-admin__sections > .mbt-section:nth-child(3) { animation-delay: 90ms; }
 .mbt-admin__sections > .mbt-section:nth-child(4) { animation-delay: 135ms; }
 .mbt-admin__sections > .mbt-section:nth-child(5) { animation-delay: 180ms; }
+.mbt-admin__sections > .mbt-admin__section-stack { animation-delay: 225ms; }
 
 /* Section panel chrome — the kit's .mbt-section is bare (it was wrapped by a
    card in elevator). Give it the card surface + border here. */
@@ -443,6 +452,42 @@
   color: var(--mbt-accent); background: var(--mbt-accent-soft); border-color: rgba(var(--mbt-accent-rgb), 0.25);
 }
 .mbt-shoot__carddesc { font-size: 11.5px; line-height: 1.4; color: var(--mbt-text-lo); }
+
+/* Trust line under the CTA + in the modal — quiet, reassures it's not telemetry. */
+.mbt-shoot__trust { display: flex; align-items: center; gap: 6px; margin-top: 10px; font-size: 11px; color: var(--mbt-text-faint); }
+
+/* Waitlist modal — CEF can't open a browser, so the CTA shows a QR + copyable
+   Tebex link instead. Fixed overlay above the panel. */
+.mbt-shoot__modal-overlay {
+  position: fixed; inset: 0; z-index: 10000; display: grid; place-items: center;
+  background: rgba(3, 5, 8, 0.6); animation: mbt-admin-fade var(--mbt-dur) var(--mbt-ease);
+}
+.mbt-shoot__modal {
+  position: relative; width: 320px; max-width: 86vw; padding: 24px 22px 20px; text-align: center;
+  background: var(--mbt-surface-2); border: 1px solid var(--mbt-edge-hi);
+  border-radius: var(--mbt-r-lg); box-shadow: var(--mbt-shadow-overlay);
+  animation: mbt-admin-panel-in var(--mbt-dur-slow) var(--mbt-ease);
+}
+.mbt-shoot__modal b { font-family: var(--mbt-font-display); font-size: 15px; color: var(--mbt-text-hi); display: block; }
+.mbt-shoot__modal p { font-size: 11.5px; line-height: 1.5; color: var(--mbt-text-lo); margin: 8px 0 16px; }
+.mbt-shoot__qr { width: 168px; height: 168px; background: #fff; padding: 8px; border-radius: var(--mbt-r-md); image-rendering: pixelated; }
+.mbt-shoot__url {
+  font-family: var(--mbt-font-mono); font-size: 11px; color: var(--mbt-text-mid); word-break: break-all;
+  margin: 14px 0 12px; padding: 8px 10px; background: var(--mbt-surface-1);
+  border: 1px solid var(--mbt-edge); border-radius: var(--mbt-r-sm);
+}
+.mbt-shoot__modal .mbt-btn-primary { width: 100%; justify-content: center; }
+.mbt-shoot__discord {
+  display: inline-block; margin-top: 14px; background: none; border: none; cursor: pointer;
+  font-size: 11.5px; color: var(--mbt-text-lo); transition: color var(--mbt-dur) var(--mbt-ease);
+}
+.mbt-shoot__discord:hover { color: var(--mbt-text-mid); }
+.mbt-shoot__modal .mbt-shoot__trust { justify-content: center; margin-top: 14px; }
+.mbt-shoot__modal-x {
+  position: absolute; top: 10px; right: 12px; background: none; border: none; cursor: pointer;
+  font-size: 15px; line-height: 1; color: var(--mbt-text-faint); transition: color var(--mbt-dur) var(--mbt-ease);
+}
+.mbt-shoot__modal-x:hover { color: var(--mbt-text-mid); }
 
 .mbt-pe {
   position: fixed; right: 24px; top: 50%; transform: translateY(-50%);
