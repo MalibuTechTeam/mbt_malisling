@@ -598,10 +598,25 @@ end
 
 --- Send the dashboard to an authorized admin.
 local function openFor(src)
+    -- Non-critical integration warnings → discreet chips in the dashboard overview.
+    -- qb-weapons' weapdraw animates every swap through UNARMED and breaks the sling,
+    -- so flag it (gated by MBT.QBWeapons.WeapdrawWarning — silence once weapdraw.lua
+    -- is disabled). GetResourceState is server-wide, so this only fires on qb setups
+    -- that actually run qb-weapons. Critical failures use the centered alert instead.
+    local warnings = {}
+    if (not MBT.QBWeapons or MBT.QBWeapons.WeapdrawWarning ~= false)
+        and GetResourceState('qb-weapons') == 'started' then
+        warnings[#warnings + 1] = {
+            code = 'qb_weapdraw',
+            msg  = 'qb-weapons detected — disable weapdraw.lua for correct holster/switch animations.',
+        }
+    end
+
     TriggerClientEvent('mbt_malisling:openAdmin', src, {
-        config  = snapshot(),
-        version = GetResourceMetadata(GetCurrentResourceName(), 'version', 0) or 'v2',
-        oxPatch = oxPatchStatus or false,   -- 'ok' | failure reason | false (n/a) → sidebar status
+        config   = snapshot(),
+        version  = GetResourceMetadata(GetCurrentResourceName(), 'version', 0) or 'v2',
+        oxPatch  = oxPatchStatus or false,   -- 'ok' | failure reason | false (n/a) → sidebar status
+        warnings = warnings,                 -- non-critical integration chips
     })
 end
 
