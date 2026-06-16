@@ -346,7 +346,7 @@
 
 /* LIVE APPLY — a PASSIVE helper note, so it stays NEUTRAL (no accent). The vivid
    accent is reserved for the one primary action (Save), focus, and the active rail. */
-.mbt-ov__tip { display: flex; gap: 10px; padding: 13px; background: var(--mbt-surface-1); border: 1px solid var(--mbt-edge); border-radius: var(--mbt-r-md); }
+.mbt-ov__tip { display: flex; gap: 10px; padding: 13px; background: var(--mbt-surface-2); border: 1px solid var(--mbt-edge); border-radius: var(--mbt-r-md); }
 .mbt-ov__tip .ic { color: var(--mbt-text-lo); flex-shrink: 0; }
 .mbt-ov__tip b { font-family: var(--mbt-font-display); font-size: 11px; font-weight: 700; color: var(--mbt-text-hi); letter-spacing: 0.06em; display: block; margin-bottom: 3px; }
 .mbt-ov__tip p { font-size: 11.5px; line-height: 1.5; color: var(--mbt-text-lo); }
