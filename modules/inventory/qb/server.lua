@@ -7,6 +7,34 @@ end
 
 -- QBCore is set up by modules/bridge/qb/server.lua which loads first (bridge/ < inventory/)
 
+-- ── Integration warnings (admin dashboard chips) ───────────────────────────────
+-- qb-weapons' client/weapdraw.lua animates every weapon swap through UNARMED, which
+-- breaks the weapon-on-back sling. Detect at RUNTIME (no user config): read qb-weapons'
+-- fxmanifest and check whether weapdraw is still wired in. If the owner commented it
+-- out, the manifest read shows it's gone → no warning.
+local function qbWeapdrawActive()
+    if GetResourceState('qb-weapons') ~= 'started' then return false end
+    local manifest = LoadResourceFile('qb-weapons', 'fxmanifest.lua')
+    if not manifest then return true end  -- running but manifest unreadable → assume qb default (weapdraw on)
+    for line in manifest:gmatch('[^\r\n]+') do
+        -- strip any trailing `-- comment`, then look for an active weapdraw reference
+        if line:gsub('%-%-.*$', ''):find('weapdraw') then return true end
+    end
+    return false  -- weapdraw not loaded (commented out or removed)
+end
+
+-- Register a warning provider the config module merges into the openAdmin payload.
+-- Lives here (qb bridge) so it only exists on qb-inventory setups; ox never sees it.
+MBT.IntegrationWarnings = MBT.IntegrationWarnings or {}
+MBT.IntegrationWarnings[#MBT.IntegrationWarnings + 1] = function()
+    if qbWeapdrawActive() then
+        return {
+            code = 'qb_weapdraw',
+            msg  = 'qb-weapons weapdraw is active — disable weapdraw.lua for correct holster/switch animations.',
+        }
+    end
+end
+
 -- qb-weapons stores attachments in info.attachments as { { component = <GTA hash
 -- or name> }, ... }. The slung-prop renderer (core applyAttachments) expects
 -- metadata.components = { '<ox item key>', ... } indexing MBT.WeaponsInfo.Components

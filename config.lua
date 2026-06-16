@@ -40,10 +40,6 @@ MBT.QBWeapons          = {
     -- weapon, so it can't break the sling like weapdraw did. Clips/timing are tuned
     -- per weapon type in MBT.PropInfo below.
     DrawAnimation   = true,
-    -- Show a dashboard warning when qb-weapons is running, reminding you to disable
-    -- its draw animation (client/weapdraw.lua) — weapdraw animates swaps through
-    -- UNARMED and breaks the sling. Set false to silence once weapdraw is disabled.
-    WeapdrawWarning = true,
 }
 
 -- ── UI ────────────────────────────────────────────────────────────────────────
