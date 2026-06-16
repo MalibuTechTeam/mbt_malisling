@@ -34,6 +34,12 @@ MBT.Admin              = {
 --                 double-play the draw animation (a startup warning reminds you).
 MBT.QBWeapons          = {
     SidearmDrawMode = 'native',   -- 'native' | 'malisling'
+    -- Play malisling's own holster/draw animation (MBT.PropInfo[type].HolsterAnim)
+    -- on equip/holster. Use this when you've disabled qb-weapons' weapdraw so the
+    -- draw still has a gesture. Cosmetic upper-body clip — never hides/oscillates the
+    -- weapon, so it can't break the sling like weapdraw did. Clips/timing are tuned
+    -- per weapon type in MBT.PropInfo below.
+    DrawAnimation   = true,
 }
 
 -- ── UI ────────────────────────────────────────────────────────────────────────
@@ -409,8 +415,8 @@ MBT.PropInfo           = {
             ["dict"]     = "reaction@intimidation@1h",
             ["animIn"]   = "intro",
             ["animOut"]  = "outro",
-            ["sleep"]    = 1200,
-            ["sleepOut"] = 1200,
+            ["sleep"]    = 2000,
+            ["sleepOut"] = 1600,
         },
     },
     ["back2"] = {
@@ -430,8 +436,8 @@ MBT.PropInfo           = {
             ["dict"]     = "reaction@intimidation@1h",
             ["animIn"]   = "intro",
             ["animOut"]  = "outro",
-            ["sleep"]    = 1200,
-            ["sleepOut"] = 1200,
+            ["sleep"]    = 2000,
+            ["sleepOut"] = 1600,
         },
     },
     ["melee"] = {

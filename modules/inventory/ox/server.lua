@@ -36,12 +36,21 @@ AddStateBagChangeHandler('WeaponFlashlightState', nil, function(bagName, key, va
 
     for slot, payload in pairs(value) do
         local weaponData = Inventory:GetSlot(playerSource, slot)
-        if not weaponData then return end
+        if not weaponData or not weaponData.metadata then return end
+
+        -- Serial guard: the slot may have been refilled with a DIFFERENT weapon by
+        -- the time this state-bag change is consumed. Only write the flashlight state
+        -- back if the item still in the slot is the same gun (matching serial), so we
+        -- never stamp one weapon's torch state onto another.
+        if payload.Serial and weaponData.metadata.serial
+            and weaponData.metadata.serial ~= payload.Serial then
+            goto continue
+        end
 
         Utils.mbtDebugger("Receiving WeaponFlashlightState ", payload.FlashlightState)
         Utils.mbtDebugger(weaponData)
 
-        weaponData.metadata.flashlightState = payload.FlashlightState
+        weaponData.metadata.flashlightState = payload.FlashlightState == true
         Inventory:SetMetadata(playerSource, weaponData.slot, weaponData.metadata)
 
         Utils.mbtDebugger(
@@ -50,6 +59,7 @@ AddStateBagChangeHandler('WeaponFlashlightState', nil, function(bagName, key, va
             " in slot " .. weaponData.slot ..
             " changed to " .. tostring(weaponData.metadata.flashlightState)
         )
+        ::continue::
     end
 end)
 

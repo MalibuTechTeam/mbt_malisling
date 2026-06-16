@@ -135,9 +135,11 @@ local function syncSling(data)
     TriggerServerEvent("mbt_malisling:syncSling", data)
 end
 
----Apply attachments on weapon object
+---Apply attachments on weapon object.
 ---@param data table
+---@return boolean appliedFlashlight  true only if a flashlight component was actually given to the object
 local function applyAttachments(data)
+    local appliedFlashlight = false
     if data and not Utils.isTableEmpty(data) then
         Utils.mbtDebugger(data.metadata)
         local components = data.metadata.components
@@ -159,6 +161,10 @@ local function applyAttachments(data)
                         lib.requestModel(compModel)
                         GiveWeaponComponentToWeaponObject(data.weaponObj, component)
                         SetModelAsNoLongerNeeded(compModel)
+                        -- Track whether this object really accepted a flashlight: the slung
+                        -- prop's light source must only be enabled for weapons that actually
+                        -- have one, otherwise stale flashlightState glows the wrong prop.
+                        if Utils.isComponentAFlashlight(componentName) then appliedFlashlight = true end
                     end
                 end
 
@@ -167,6 +173,7 @@ local function applyAttachments(data)
             end
         end
     end
+    return appliedFlashlight
 end
 
 ---Afaik, seems that there is like a "shadow zone" where the player is detected as in scope by the server handler but on client its not truly existing yet, so, waiting if player enter or left our scope and return the outcome
@@ -328,7 +335,18 @@ function Init()
                 equippedWeapon["serial"] = data.metadata.serial;
             end
 
-            if data.metadata.flashlightState then SetFlashLightEnabled(cache.ped, true); end
+            -- Scope the ped-global flashlight to the weapon now in hand: enable it only
+            -- when THIS weapon actually has a flashlight component AND its saved state was
+            -- on; otherwise explicitly clear it. SetFlashLightEnabled is ped-global, so
+            -- without the else the previous weapon's torch carries over to the next weapon
+            -- (and leaks into the saved state at unequip → wrong prop glows).
+            local eqComponents = data.metadata and data.metadata.components
+            local eqHasFlashlight = (eqComponents and Utils.containsValue(eqComponents, "at_flashlight")) and true or false
+            if MBT.EnableFlashlight and eqHasFlashlight and data.metadata and data.metadata.flashlightState == true then
+                SetFlashLightEnabled(cache.ped, true)
+            else
+                SetFlashLightEnabled(cache.ped, false)
+            end
             -- NOTE: previously here lived a polling thread that ran `while IsPedArmed(ped, 7) do`,
             -- but `IsPedArmed` returns 0/1 (integer) and in Lua 0 is truthy, so the loop never
             -- exited — every equip leaked another thread, and the 250ms polling lag caused stale
@@ -721,14 +739,19 @@ AddEventHandler('mbt_malisling:syncSling', function (data)
                 playersToTrack[data.playerSource][weaponType] = false   -- release reservation
             else
                 Utils.mbtDebugger("syncSling ~ Weapon object created! ", weaponData.name, playerPed, boneIndex, attachInfo["Pos"][pedSex]["x"], attachInfo["Pos"][pedSex]["y"], attachInfo["Pos"][pedSex]["z"])
-                applyAttachments(weaponData)
-                local desiredFlashlight = weaponData.metadata and weaponData.metadata.flashlightState and true or false
+                local hasObjFlashlight = applyAttachments(weaponData)
+                -- Light the slung prop only when it ACTUALLY received a flashlight component
+                -- AND the saved state says it was on. The component check prevents a weapon
+                -- with stale/leaked flashlightState (but no torch) from glowing. NOTE: once a
+                -- flashlight-component prop is lit, GTA couples it to the ped's global
+                -- flashlight emitter, so it also lights when the player toggles the HELD
+                -- weapon's torch — that is an engine limitation we accept (documented).
+                local desiredFlashlight = MBT.EnableFlashlight and hasObjFlashlight
+                    and weaponData.metadata and weaponData.metadata.flashlightState == true or false
                 SetCreateWeaponObjectLightSource(weaponData.weaponObj, desiredFlashlight)
-                -- CRITICAL: do not remove this Wait. The engine needs one tick to commit the
-                -- light-source flag onto the weapon object before AttachEntityToEntity is
-                -- called, otherwise the attachment pass resets the flag and the slung prop
-                -- never renders its flashlight. Regression of fa34b9a (the polling loop that
-                -- replaced the original Wait(50) didn't preserve this side-effect).
+                -- CRITICAL: keep this Wait. The engine needs a tick to commit the light-source
+                -- flag before AttachEntityToEntity, or the attach pass resets it and the slung
+                -- prop never renders its flashlight.
                 Wait(50)
                 AttachEntityToEntity(weaponData.weaponObj, playerPed, boneIndex, attachInfo["Pos"][pedSex]["x"], attachInfo["Pos"][pedSex]["y"], attachInfo["Pos"][pedSex]["z"], attachInfo["Rot"][pedSex]["x"], attachInfo["Rot"][pedSex]["y"], attachInfo["Rot"][pedSex]["z"], true, true, false, attachInfo["isPed"], attachInfo["RotOrder"], attachInfo["FixedRot"])
                 SetEntityCompletelyDisableCollision(weaponData.weaponObj, false, true)

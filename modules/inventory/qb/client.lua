@@ -214,66 +214,174 @@ CreateThread(function()
     end
 end)
 
--- ── currentWeapon polling + holster prompt ─────────────────────────────────────
+-- ── currentWeapon detection ────────────────────────────────────────────────────
 -- Emulates ox_inventory:currentWeapon for core/client.lua, weapon_drop, weapon_throw,
--- and weapon_jamming.
+-- weapon_jamming by polling GetCurrentPedWeapon. On a direct armed→armed switch the
+-- previous weapon is re-slung (the core only re-slings on a clean holster step).
+-- NOTE: requires qb-weapons' weapon-draw animation (client/weapdraw.lua) to be
+-- DISABLED — weapdraw animates every swap over 1–4s, oscillating the ped weapon
+-- through UNARMED, which no real-time weapon-on-back tracker can follow cleanly.
+-- Without qb-weapons (or with weapdraw off) this works instantly. A startup warning
+-- (below) reminds the user when qb-weapons is present.
 -- For side-type weapons the holster confirmation UI is shown post-equip:
---   RMB (confirm) → weapon stays in hand
---   BACKSPACE (cancel) → weapon put back on sling
+--   RMB (confirm) → weapon stays in hand · BACKSPACE (cancel) → weapon put on sling
 local lastWeaponHash = `WEAPON_UNARMED`
+
+--- Weapon type ('side'/'back'/…) from a canonical weapon name.
+local function typeOf(name)
+    return name and MBT.WeaponsInfo and MBT.WeaponsInfo.Weapons and MBT.WeaponsInfo.Weapons[name]
+        and MBT.WeaponsInfo.Weapons[name].type or nil
+end
+
+--- Equip handling shared by all transitions: fires currentWeapon(data), with the
+--- side-weapon holster prompt when enabled (qbSidearmDrawMode == 'malisling').
+local function doEquip(weaponData, weaponHash)
+    if needsHolsterPrompt(weaponData) then
+        SetCurrentPedWeapon(cache.ped, `WEAPON_UNARMED`, true)   -- hide during prompt
+        holsterState = true
+        SendNUIMessage({ action = 'showHolster', data = {
+            weaponLabel = weaponData.name:upper(),
+            position    = MBT.UI and MBT.UI.Position or 'bottom-center',
+            confirm     = { label = MBT.HolsterControls["Confirm"]["Label"], display = 'RMB' },
+            cancel      = { label = MBT.HolsterControls["Cancel"]["Label"],  display = 'BACKSPACE' },
+            locale      = buildNuiLocale(),
+        }})
+        while holsterState == true do Wait(50) end
+        SendNUIMessage({ action = 'hideHolster' })
+        if holsterState == 'confirmed' then
+            SetCurrentPedWeapon(cache.ped, weaponHash, true)
+            TriggerEvent('ox_inventory:currentWeapon', weaponData)
+            playHolsterAnim(typeOf(weaponData.name), 'in')
+        else
+            lastWeaponHash = `WEAPON_UNARMED`   -- cancelled: weapon stays on the sling
+        end
+        holsterState = nil
+    else
+        -- Coordinated draw: hide the weapon, play the draw gesture, then bring it out,
+        -- so the animation reads as a real draw (not a gesture over an already-out gun).
+        -- The poll is blocked here during the Wait, so it never sees the hidden state.
+        local t  = typeOf(weaponData.name)
+        local ha = t and MBT.PropInfo and MBT.PropInfo[t] and MBT.PropInfo[t].HolsterAnim
+        if MBT.QBWeapons and MBT.QBWeapons.DrawAnimation
+            and ha and ha.dict and ha.animIn and ha.animIn ~= '0' and ha.animIn ~= 0 then
+            SetCurrentPedWeapon(cache.ped, `WEAPON_UNARMED`, true)
+            lib.requestAnimDict(ha.dict)
+            -- Softer blend-in (2.5) so the draw eases in instead of snapping. Tune the
+            -- gesture length per weapon type via MBT.PropInfo[type].HolsterAnim.sleep.
+            TaskPlayAnim(cache.ped, ha.dict, ha.animIn, 2.5, -4.0, ha.sleep or 1000, 48, 0.0, false, false, false)
+            Wait(ha.sleep or 1000)
+            SetCurrentPedWeapon(cache.ped, weaponHash, true)
+        end
+        TriggerEvent('ox_inventory:currentWeapon', weaponData)
+    end
+end
+
+--- After a direct armed→armed switch, re-create the PREVIOUS weapon's slung prop
+--- (qb-weapons swaps without a stable UNARMED step, so the core never re-slings it).
+--- Runs only after the new weapon has settled, so it never perturbs the draw.
+local function reslingPrevious(prevHash)
+    if prevHash == `WEAPON_UNARMED` then return end
+    local mine = playersToTrack[cache.serverId]
+    local prevData = findWeaponDataByHash(prevHash)
+    local prevType = prevData and MBT.WeaponsInfo.Weapons[prevData.name]
+        and MBT.WeaponsInfo.Weapons[prevData.name].type
+    if prevType and (not mine or not mine[prevType] or mine[prevType] == false) then
+        prevData.type = prevType
+        TriggerServerEvent('mbt_malisling:syncSling', { playerWeapons = { [prevType] = prevData } })
+    end
+end
+
+--- Direct armed→armed switch: reproduce a real weapdraw-style sequence — HOLSTER the
+--- old weapon (gesture, weapon in hand) THEN DRAW the new one — instead of qb's instant
+--- swap. qb already drew the new weapon, so we hide it, replay the old weapon's put-away
+--- gesture, then draw the new via doEquip. The poll is blocked here for the whole sequence.
+local function doSwitch(prevHash, newData, newHash)
+    local prevData = findWeaponDataByHash(prevHash)
+    local prevType = typeOf(prevData and prevData.name)
+    local pha = prevType and MBT.PropInfo and MBT.PropInfo[prevType]
+        and MBT.PropInfo[prevType].HolsterAnim
+    if MBT.QBWeapons and MBT.QBWeapons.DrawAnimation
+        and pha and pha.dict and pha.animOut and pha.animOut ~= '0' and pha.animOut ~= 0 then
+        SetCurrentPedWeapon(cache.ped, `WEAPON_UNARMED`, true)   -- hide the new weapon qb just drew
+        local ammo = (prevData and prevData.metadata and prevData.metadata.ammo) or 30
+        GiveWeaponToPed(cache.ped, prevHash, ammo, false, true)  -- old weapon back for the holster gesture
+        lib.requestAnimDict(pha.dict)
+        TaskPlayAnim(cache.ped, pha.dict, pha.animOut, 2.5, -4.0, pha.sleepOut or 1000, 48, 0.0, false, false, false)
+        Wait(pha.sleepOut or 1000)
+        SetCurrentPedWeapon(cache.ped, `WEAPON_UNARMED`, true)   -- put the old weapon away
+    end
+    doEquip(newData, newHash)   -- now draw the new weapon (hide → animIn → show)
+end
 
 CreateThread(function()
     while not MBT.WeaponsInfo do Wait(500) end
 
     while true do
-        -- Yield while holster prompt is active to avoid re-entrant detection
         if holsterState ~= nil then
             Wait(100)
         else
-            local _, weaponHash = GetCurrentPedWeapon(cache.ped, 1)
+            local _, h = GetCurrentPedWeapon(cache.ped, 1)
 
-            if weaponHash ~= lastWeaponHash then
-                lastWeaponHash = weaponHash
-
-                if weaponHash ~= `WEAPON_UNARMED` then
-                    local weaponData = findWeaponDataByHash(weaponHash)
-
-                    if needsHolsterPrompt(weaponData) then
-                        -- Disarm immediately so weapon is not visible during prompt
-                        SetCurrentPedWeapon(cache.ped, `WEAPON_UNARMED`, true)
-                        holsterState = true
-
-                        SendNUIMessage({ action = 'showHolster', data = {
-                            weaponLabel = weaponData.name:upper(),
-                            position    = MBT.UI and MBT.UI.Position or 'bottom-center',
-                            confirm     = { label = MBT.HolsterControls["Confirm"]["Label"], display = 'RMB' },
-                            cancel      = { label = MBT.HolsterControls["Cancel"]["Label"],  display = 'BACKSPACE' },
-                            locale      = buildNuiLocale(),
-                        }})
-
-                        while holsterState == true do Wait(50) end
-
-                        SendNUIMessage({ action = 'hideHolster' })
-
-                        if holsterState == 'confirmed' then
-                            -- Re-equip and notify the rest of the system
-                            SetCurrentPedWeapon(cache.ped, weaponHash, true)
-                            TriggerEvent('ox_inventory:currentWeapon', weaponData)
-                        end
-                        -- If 'cancelled': weapon stays disarmed; lastWeaponHash == weaponHash so
-                        -- next poll will see UNARMED and fire currentWeapon(nil) automatically.
-
-                        holsterState = nil
+            if h ~= lastWeaponHash then
+                local prevHash = lastWeaponHash
+                lastWeaponHash = h
+                if h ~= `WEAPON_UNARMED` then
+                    local wd = findWeaponDataByHash(h)
+                    if prevHash ~= `WEAPON_UNARMED` then
+                        -- Armed→armed switch: holster the old weapon, then draw the new.
+                        if wd then doSwitch(prevHash, wd, h) end
                     else
-                        TriggerEvent('ox_inventory:currentWeapon', weaponData)
+                        -- Draw from unarmed.
+                        if wd then doEquip(wd, h) end
                     end
-
+                    -- Re-sling the weapon we just put away (the core only re-slings on a
+                    -- clean holster-to-unarmed step, which a direct switch never produces).
+                    reslingPrevious(prevHash)
                 else
+                    -- Coordinated holster: bring the weapon back into the hand so the
+                    -- put-away gesture actually shows it, play the holster animation, then
+                    -- remove it and re-sling onto the back at the END. The poll is blocked
+                    -- here for the gesture; lastWeaponHash is already UNARMED so it won't
+                    -- re-trigger when we resume.
+                    local prevData = findWeaponDataByHash(prevHash)
+                    local prevType = typeOf(prevData and prevData.name)
+                    local ha = prevType and MBT.PropInfo and MBT.PropInfo[prevType]
+                        and MBT.PropInfo[prevType].HolsterAnim
+                    if MBT.QBWeapons and MBT.QBWeapons.DrawAnimation
+                        and prevHash ~= `WEAPON_UNARMED`
+                        and ha and ha.dict and ha.animOut and ha.animOut ~= '0' and ha.animOut ~= 0 then
+                        -- qb REMOVES the weapon from the ped on holster (not just unselects),
+                        -- so GiveWeaponToPed it back into the hand for the gesture, then
+                        -- only DESELECT it (keep it on the ped) — so qb's next draw still works.
+                        local ammo = (prevData and prevData.metadata and prevData.metadata.ammo) or 30
+                        GiveWeaponToPed(cache.ped, prevHash, ammo, false, true)
+                        lib.requestAnimDict(ha.dict)
+                        TaskPlayAnim(cache.ped, ha.dict, ha.animOut, 2.5, -4.0, ha.sleepOut or 1000, 48, 0.0, false, false, false)
+                        Wait(ha.sleepOut or 1000)
+                        SetCurrentPedWeapon(cache.ped, `WEAPON_UNARMED`, true)   -- put it away (deselect)
+                    end
                     TriggerEvent('ox_inventory:currentWeapon', nil)
                 end
             end
 
-            Wait(250)
+            -- Frame-level so the coordinated draw can hide the weapon within ~1 frame of
+            -- it being equipped (otherwise it visibly flashes before the draw animation).
+            Wait(0)
         end
+    end
+end)
+
+-- ── qb-weapons weapon-draw compatibility notice ────────────────────────────────
+-- qb-weapons' client/weapdraw.lua animates every weapon draw/holster/switch over
+-- 1–4s, oscillating the ped weapon through UNARMED. That breaks any weapon-on-back
+-- system that tracks the held weapon. malisling already provides its own holster
+-- prompt + sling, so weapdraw is redundant here. Warn once if qb-weapons is running
+-- so the server owner can disable weapdraw for correct sling behaviour.
+CreateThread(function()
+    Wait(5000)
+    if GetResourceState('qb-weapons') == 'started' then
+        Utils.mbtWarn("qb-weapons detected: for correct weapon-on-back behaviour, disable its "
+            .. "draw animation — comment `client/weapdraw.lua` in qb-weapons/fxmanifest.lua. "
+            .. "weapdraw animates swaps through UNARMED and conflicts with the sling.")
     end
 end)

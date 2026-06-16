@@ -129,14 +129,25 @@ end
 -- Stores flashlight on/off state into item.info.flashlightState when player holsters.
 AddStateBagChangeHandler('WeaponFlashlightState', nil, function(bagName, key, value)
     if not value then return end
-    local playerSource = tonumber(bagName:gsub('player:', ''))
+    -- gsub returns (string, count); assign first so the count isn't passed to
+    -- tonumber as a (out-of-range) base.
+    local netId        = bagName:gsub('player:', '')
+    local playerSource = tonumber(netId)
+    if not playerSource then return end
 
     for slot, payload in pairs(value) do
         local item = exports['qb-inventory']:GetItemBySlot(playerSource, tonumber(slot))
-        if not item then return end
-        local newInfo = item.info or {}
-        newInfo.flashlightState = payload.FlashlightState
-        exports['qb-inventory']:SetItemData(playerSource, item.name, 'info', newInfo, tonumber(slot))
+        if item then
+            local newInfo = item.info or {}
+            -- Serial guard: only write the flashlight state if the gun in this slot is
+            -- still the same one the state was captured for (slot may have been refilled
+            -- with a different weapon) — otherwise one weapon's torch leaks onto another.
+            local serial = newInfo.serial or newInfo.serie
+            if not (payload.Serial and serial and serial ~= payload.Serial) then
+                newInfo.flashlightState = payload.FlashlightState == true
+                exports['qb-inventory']:SetItemData(playerSource, item.name, 'info', newInfo, tonumber(slot))
+            end
+        end
     end
 end)
 
