@@ -278,13 +278,6 @@ export default function AdminDashboard() {
             <div><b>Running</b><small>Resource status</small></div>
             <span className="ver">{version}</span>
           </div>
-          {/* Healthy ox_inventory integration lives in the always-visible rail
-              footer next to Running — runtime/integration status belongs together.
-              The FAILURE banner stays in the center with role="alert" so it
-              survives the <1400px overview drop and is impossible to miss. */}
-          {oxPatch === 'ok' ? (
-            <div className="mbt-rail__integ"><Icon name="check" size={12} /> ox_inventory active</div>
-          ) : null}
         </nav>
 
         {/* ── Center ── */}
