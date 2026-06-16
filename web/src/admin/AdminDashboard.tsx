@@ -56,6 +56,8 @@ const CATEGORIES: Category[] = [
     // cards (Shell Casings, Pat-down) share row 1; Serials + Chain of Custody row 2.
     sections: [ShellCasingsSection, PatDownSection, SerialsSection, ChainOfCustodySection] },
   { id: 'world',       label: 'World',       hint: 'Zones, vehicle, racks',  icon: 'globe',
+    // Height-paired for the equal-height grid: the two mid cards (No-Draw, Vehicle)
+    // share row 1; the two tall cards (Trunk Rack, Weapon Rack) share row 2.
     sections: [NoDrawSection, VehicleSection, TrunkRackSection, WeaponRackSection] },
 ]
 
@@ -320,7 +322,7 @@ export default function AdminDashboard() {
             </div>
           ) : null}
 
-          <div className={`mbt-admin__sections${active === 'world' ? ' mbt-admin__sections--masonry' : ''}`}>
+          <div className="mbt-admin__sections">
             {isShooting ? (
               <ShootingSection companion={companion} />
             ) : isPositions ? (

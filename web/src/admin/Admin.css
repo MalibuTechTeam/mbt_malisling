@@ -168,30 +168,16 @@
    a card fills the row height cleanly (content at the top). Cards with fillable
    content — e.g. the INTERFACE position grid — grow to use the space. The
    per-category height-pairing order keeps row-mates similar so the fill is even. */
+/* Card layout = equal-height 2-column grid. align-items:stretch makes the two cards
+   in a row the same height — clean, aligned rows (the brand prefers this orderly look
+   over ragged masonry). The per-category card order height-pairs row-mates so the
+   stretch fill is even. ~850px collapses to 1 column. */
 .mbt-admin__sections {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
   gap: 14px;
   align-items: stretch;
-  /* Top-aligned: cards flow down from the header (conventional for a settings
-     page). Light pages (World) leave empty space below — that reads as honest
-     "few features here", and keeps the cards visually anchored to the title. */
   align-content: start;
-}
-
-/* TRIAL (World page only) — masonry packing instead of the equal-height grid.
-   Cards take their natural height and flow into 2 balanced columns, so there is
-   no stretched empty space below a short card. Reading order is column-major. */
-.mbt-admin__sections--masonry {
-  display: block;
-  columns: 2 420px;
-  column-gap: 14px;
-}
-/* Higher specificity than `.mbt-admin__center .mbt-section { margin: 0 }` so the
-   vertical gap between stacked cards actually applies (column-gap is horizontal only). */
-.mbt-admin__center .mbt-admin__sections--masonry > .mbt-section {
-  break-inside: avoid;
-  margin: 0 0 14px;
 }
 
 /* Stagger the cards on category switch — they cascade in rather than popping
