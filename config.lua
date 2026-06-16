@@ -47,6 +47,12 @@ MBT.UI                 = {
     Position = "bottom-center" -- "bottom-center" | "top-center" | "bottom-right"
 }
 
+-- Reduced motion for all NUI (dashboard + overlays). FiveM's CEF often doesn't
+-- expose the OS "reduce motion" setting, so this is a manual switch: true freezes
+-- entrance/exit animations, pulses and the looping jam indicator for motion-
+-- sensitive players. Applied client-side via the `mbt-reduce-motion` root class.
+MBT.ReduceMotion       = false
+
 MBT.Notification       = function(data)
     lib.notify(data)
 end

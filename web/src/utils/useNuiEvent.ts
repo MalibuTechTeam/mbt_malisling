@@ -24,8 +24,10 @@ export const useNuiEvent = <T = any>(action: string, handler: (data: T) => void)
       const { action: eventAction, data } = event.data;
 
       if (savedHandler.current && eventAction === action) {
-        // Fallback to event.data if data is undefined (handling flat structure from Lua)
-        savedHandler.current((data || event.data) as T);
+        // Only fall back to the flat message when `data` is genuinely absent —
+        // `data === undefined`. A plain `data || ...` would discard valid falsy
+        // payloads from Lua (false / 0 / "") and pass the whole message instead.
+        savedHandler.current((data === undefined ? event.data : data) as T);
       }
     };
 

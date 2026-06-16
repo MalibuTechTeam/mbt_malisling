@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useNuiEvent } from '../utils/useNuiEvent'
 import { makeT, type Locale } from '../utils/i18n'
 import './RackPickerUI.css'
@@ -21,8 +21,10 @@ export default function RackPickerUI() {
   const [exiting, setExiting] = useState(false)
   const [data,    setData]    = useState<RackPickerData | null>(null)
   const [index,   setIndex]   = useState(1)
+  const hideTimer = useRef<number | null>(null)
 
   useNuiEvent<RackPickerData>('showRackPicker', (incoming) => {
+    if (hideTimer.current) { clearTimeout(hideTimer.current); hideTimer.current = null }
     setData(incoming)
     setIndex(incoming.index ?? 1)
     setExiting(false)
@@ -33,8 +35,13 @@ export default function RackPickerUI() {
 
   useNuiEvent('hideRackPicker', () => {
     setExiting(true)
-    setTimeout(() => { setVisible(false); setExiting(false) }, 250)
+    if (hideTimer.current) clearTimeout(hideTimer.current)
+    hideTimer.current = window.setTimeout(() => {
+      setVisible(false); setExiting(false); hideTimer.current = null
+    }, 250)
   })
+
+  useEffect(() => () => { if (hideTimer.current) clearTimeout(hideTimer.current) }, [])
 
   if (!visible || !data) return null
 

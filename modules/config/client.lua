@@ -57,6 +57,12 @@ RegisterNUICallback('adminClose', function(_, cb)
     cb({})
 end)
 
+-- The NUI pulls this on mount to apply reduced-motion (CEF often can't read the OS
+-- prefers-reduced-motion setting). config.lua-driven; no focus needed.
+RegisterNUICallback('getReduceMotion', function(_, cb)
+    cb({ on = MBT.ReduceMotion and true or false })
+end)
+
 -- Server-driven localized notification (shared by config + other modules).
 RegisterNetEvent('mbt_malisling:notifyLabel', function(key)
     MBT.NotifyLabel(key)

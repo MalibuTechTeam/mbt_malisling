@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useNuiEvent } from '../utils/useNuiEvent'
 import { makeT, type Locale } from '../utils/i18n'
 import './PatdownUI.css'
@@ -30,15 +30,31 @@ export default function PatdownUI() {
   // Result card (officer)
   const [result, setResult]   = useState<ResultData | null>(null)
   const [rExit,  setRExit]    = useState(false)
+  const pTimer = useRef<number | null>(null)   // prompt hide
+  const rTimer = useRef<number | null>(null)   // result auto-hide
 
-  useNuiEvent<PromptData>('showPatdownPrompt', (d) => { setPrompt(d); setPExit(false) })
+  useNuiEvent<PromptData>('showPatdownPrompt', (d) => {
+    if (pTimer.current) { clearTimeout(pTimer.current); pTimer.current = null }
+    setPrompt(d); setPExit(false)
+  })
   useNuiEvent('hidePatdownPrompt', () => {
-    setPExit(true); setTimeout(() => { setPrompt(null); setPExit(false) }, 220)
+    setPExit(true)
+    if (pTimer.current) clearTimeout(pTimer.current)
+    pTimer.current = window.setTimeout(() => { setPrompt(null); setPExit(false); pTimer.current = null }, 220)
   })
   useNuiEvent<ResultData>('showPatdownResult', (d) => {
+    if (rTimer.current) clearTimeout(rTimer.current)
     setResult(d); setRExit(false)
-    setTimeout(() => { setRExit(true); setTimeout(() => { setResult(null); setRExit(false) }, 300) }, 6500)
+    rTimer.current = window.setTimeout(() => {
+      setRExit(true)
+      rTimer.current = window.setTimeout(() => { setResult(null); setRExit(false); rTimer.current = null }, 300)
+    }, 6500)
   })
+
+  useEffect(() => () => {
+    if (pTimer.current) clearTimeout(pTimer.current)
+    if (rTimer.current) clearTimeout(rTimer.current)
+  }, [])
 
   return (
     <>

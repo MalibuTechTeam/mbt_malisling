@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useNuiEvent } from '../utils/useNuiEvent'
 import { makeT, type Locale } from '../utils/i18n'
 import './HolsterUI.css'
@@ -22,8 +22,11 @@ export default function HolsterUI() {
   const [visible, setVisible] = useState(false)
   const [exiting, setExiting] = useState(false)
   const [data,    setData]    = useState<HolsterData | null>(null)
+  const hideTimer = useRef<number | null>(null)
 
   useNuiEvent<HolsterData>('showHolster', (incoming) => {
+    // Cancel a pending hide so a quick re-show isn't killed by the stale timer.
+    if (hideTimer.current) { clearTimeout(hideTimer.current); hideTimer.current = null }
     setData(incoming)
     setExiting(false)
     setVisible(true)
@@ -31,8 +34,13 @@ export default function HolsterUI() {
 
   useNuiEvent('hideHolster', () => {
     setExiting(true)
-    setTimeout(() => { setVisible(false); setExiting(false) }, 350)
+    if (hideTimer.current) clearTimeout(hideTimer.current)
+    hideTimer.current = window.setTimeout(() => {
+      setVisible(false); setExiting(false); hideTimer.current = null
+    }, 350)
   })
+
+  useEffect(() => () => { if (hideTimer.current) clearTimeout(hideTimer.current) }, [])
 
   if (!visible || !data) return null
 

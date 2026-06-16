@@ -1,7 +1,9 @@
 import './index.css'
 import './components/overlay.css'
+import { useEffect } from 'react'
 import { debugData } from './utils/debugData'
 import { useNuiEvent } from './utils/useNuiEvent'
+import { fetchNui } from './utils/fetchNui'
 import HolsterUI from './components/HolsterUI'
 import JamUI from './components/JamUI'
 import InspectUI from './components/InspectUI'
@@ -21,7 +23,7 @@ import AdminDashboard from './admin/AdminDashboard'
 // 'overlays' → plays the in-game overlay sequence (holster, jam, inspect, …).
 // Flip this while iterating; it has NO effect in-game (debugData only fires in the
 // browser during development).
-const DEV_PREVIEW: 'admin' | 'overlays' = 'admin'
+const DEV_PREVIEW = 'admin' as 'admin' | 'overlays'
 
 // Full mock of the server config snapshot (modules/config/server.lua → snapshot()).
 const MOCK_ADMIN_CONFIG = {
@@ -136,10 +138,23 @@ if (DEV_PREVIEW === 'overlays') {
 }
 
 export default function App() {
+  // Reduced motion (manual — CEF often can't read the OS setting): pull the flag on
+  // mount and toggle the root class; the live event lets a config save update it too.
+  useEffect(() => {
+    fetchNui('getReduceMotion', {}, { on: false }).then((r: any) =>
+      document.documentElement.classList.toggle('mbt-reduce-motion', !!r?.on))
+  }, [])
+  useNuiEvent<{ on: boolean }>('setReduceMotion', ({ on }) =>
+    document.documentElement.classList.toggle('mbt-reduce-motion', !!on))
+
   useNuiEvent<{ file: string; volume: number }>('playHolsterSound', ({ file, volume }) => {
+    // Guard the filename (it builds a path): only a safe token can be played, and
+    // swallow the play() rejection so CEF doesn't log an unhandled promise when the
+    // overlay closes mid-play or autoplay is blocked.
+    if (typeof file !== 'string' || !/^[a-z0-9_]+$/.test(file)) return
     const audio = new Audio(`sounds/${file}.ogg`)
-    audio.volume = Math.min(1, Math.max(0, volume))
-    audio.play()
+    audio.volume = Math.min(1, Math.max(0, Number(volume) || 0))
+    audio.play().catch(() => {})
   })
 
   return (

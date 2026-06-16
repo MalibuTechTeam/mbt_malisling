@@ -94,6 +94,8 @@
   transition: color var(--mbt-dur) var(--mbt-ease), background var(--mbt-dur) var(--mbt-ease);
 }
 .mbt-rail__item:hover { background: var(--mbt-surface-3); color: var(--mbt-text-mid); }
+/* Press feedback — every other control has one; transform is compositor-cheap. */
+.mbt-rail__item:active { transform: scale(0.985); }
 .mbt-rail__item:focus-visible { outline: 2px solid var(--mbt-accent-glow); outline-offset: -2px; }
 .mbt-rail__item.is-active { background: var(--mbt-accent-soft); color: var(--mbt-text-hi); }
 .mbt-rail__item.is-active::before {
@@ -116,8 +118,12 @@
   background: var(--mbt-surface-2); border: 1px solid var(--mbt-edge-lo);
   border-radius: var(--mbt-r-pill); padding: 1px 7px;
 }
-/* Reserved category (e.g. Forensics) — visible but inert until it ships. */
-.mbt-rail__item.is-soon { opacity: 0.4; cursor: default; pointer-events: none; }
+/* Reserved category (e.g. Forensics) — visible but inert until it ships. Muted via
+   color (not a blanket opacity:0.4, which dropped the label below AA contrast). */
+.mbt-rail__item.is-soon { cursor: default; pointer-events: none; }
+.mbt-rail__item.is-soon .mbt-rail__label,
+.mbt-rail__item.is-soon .mbt-rail__hint,
+.mbt-rail__item.is-soon .ic { color: var(--mbt-text-faint); }
 
 .mbt-rail__spacer { flex: 1; }
 .mbt-rail__status { display: flex; align-items: center; gap: 9px; padding: 11px; margin-top: 8px; background: var(--mbt-surface-2); border: 1px solid var(--mbt-edge); border-radius: var(--mbt-r-md); }
@@ -185,12 +191,13 @@
   border: 1px solid var(--mbt-edge);
   border-radius: var(--mbt-r-md);
   margin: 0;
-  transition: border-color var(--mbt-dur) var(--mbt-ease),
-              box-shadow var(--mbt-dur) var(--mbt-ease);
+  transition: border-color var(--mbt-dur) var(--mbt-ease);
 }
 .mbt-admin__center .mbt-section:hover {
+  /* Border + a 1px inset highlight only — the previous 18px blurred drop-shadow
+     repainted over the live game on every pointer move across the card grid (FPS). */
   border-color: var(--mbt-edge-hi);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03), 0 6px 18px rgba(0, 0, 0, 0.22);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 .mbt-admin__center .mbt-section--wide { grid-column: 1 / -1; }
 
@@ -237,6 +244,7 @@
   border-radius: var(--mbt-r-md); font-size: 12.5px; font-weight: 600; cursor: pointer;
   transition: background var(--mbt-dur) var(--mbt-ease),
               border-color var(--mbt-dur) var(--mbt-ease),
+              box-shadow var(--mbt-dur) var(--mbt-ease),
               color var(--mbt-dur) var(--mbt-ease),
               transform var(--mbt-dur-fast) var(--mbt-ease);
 }
@@ -244,7 +252,12 @@
 .mbt-btn-ghost:hover { color: var(--mbt-text-hi); border-color: var(--mbt-edge-hi); }
 .mbt-btn-ghost:active { transform: translateY(1px); }
 .mbt-btn-primary { background: var(--mbt-accent); border: none; color: var(--mbt-surface-base); font-family: var(--mbt-font-display); }
-.mbt-btn-primary:hover { background: var(--mbt-accent-deep); }
+/* Contained accent glow on hover — reads as "primed to save" vs the old flat darken.
+   Single button only (not full-screen), so cheap over the game. */
+.mbt-btn-primary:not(:disabled):hover {
+  background: var(--mbt-accent-deep);
+  box-shadow: 0 0 0 1px rgba(var(--mbt-accent-rgb), 0.35), 0 3px 14px rgba(var(--mbt-accent-rgb), 0.28);
+}
 .mbt-btn-primary:not(:disabled):active { transform: translateY(1px); }
 .mbt-btn-primary:disabled { background: var(--mbt-surface-3); color: var(--mbt-text-faint); cursor: not-allowed; }
 .mbt-btn-ghost:focus-visible, .mbt-btn-primary:focus-visible {
@@ -266,6 +279,11 @@
   font-size: 11.5px; font-weight: 600; color: var(--mbt-hacked);
 }
 .mbt-admin__dirty i { width: 7px; height: 7px; border-radius: 50%; background: var(--mbt-hacked); box-shadow: 0 0 8px rgba(var(--mbt-hacked-rgb), 0.5); }
+/* Slide the dirty indicator + Discard in from the right so Save's reposition reads
+   as a smooth shift instead of a hard pop the instant a value changes. */
+.mbt-admin__dirty,
+.mbt-admin__head .mbt-btn-ghost { animation: mbt-head-in var(--mbt-dur) var(--mbt-ease); }
+@keyframes mbt-head-in { from { opacity: 0; transform: translateX(8px); } to { opacity: 1; transform: translateX(0); } }
 
 /* ── Overview (optional right column) ──────────────────────────────────── */
 .mbt-admin__overview { width: 300px; flex-shrink: 0; border-left: 1px solid var(--mbt-edge); padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 18px; }
@@ -422,7 +440,9 @@
   display: flex; flex-direction: column; gap: 12px; padding: 16px;
   background: var(--mbt-surface-panel-gradient);   /* shared panel treatment */
   border: 1px solid var(--mbt-edge-hi); border-radius: var(--mbt-r-lg);
-  box-shadow: var(--mbt-shadow-panel);
+  /* Flatter than --mbt-shadow-panel (44/96px blur): this card floats over the LIVE
+     game during in-world editing, so a big blurred shadow is an expensive repaint. */
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5);
   font-family: var(--mbt-font-body); color: var(--mbt-text-mid);
   /* Emerges from its home edge (right) rather than fading from nowhere. The
      keyframe carries translateY(-50%) so vertical centering is preserved. */

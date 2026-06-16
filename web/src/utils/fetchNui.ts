@@ -24,8 +24,17 @@ export const fetchNui = async (eventName: string, data?: any, mockData?: any): P
 
   try {
     const resp = await fetch(`https://${resourceName}/${eventName}`, options);
-    const respFormatted = await resp.json();
-    return respFormatted;
+    // FiveM NUI callbacks frequently reply with an empty body (or non-JSON if the
+    // Lua callback errored). Read text first and only parse when there's content,
+    // so a blank/garbage reply degrades to {} instead of throwing on resp.json().
+    const text = await resp.text();
+    if (!text) return {};
+    try {
+      return JSON.parse(text);
+    } catch {
+      console.error(`[fetchNui] ${eventName}: non-JSON reply (status ${resp.status})`);
+      return {};
+    }
   } catch (error) {
     if (error instanceof TypeError && error.message === "Failed to fetch") {
       return {};

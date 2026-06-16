@@ -56,9 +56,9 @@
   height: 6px;
   border-radius: 50%;
   background: var(--mbt-faulty);
-  animation: jam-blink 1s infinite;
+  animation: jam-blink 1.4s ease-in-out infinite;
 }
-@keyframes jam-blink { 50% { opacity: 0.3; } }
+@keyframes jam-blink { 50% { opacity: 0.45; } }
 
 .jam-wn {
   font-size: 11px;

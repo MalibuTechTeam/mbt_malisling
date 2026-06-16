@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useNuiEvent } from '../utils/useNuiEvent'
 import { makeT, type Locale } from '../utils/i18n'
 import './InspectUI.css'
@@ -38,8 +38,10 @@ export default function InspectUI() {
   const [visible, setVisible] = useState(false)
   const [exiting, setExiting] = useState(false)
   const [data, setData] = useState<InspectData | null>(null)
+  const hideTimer = useRef<number | null>(null)
 
   useNuiEvent<InspectData>('showInspect', (incoming) => {
+    if (hideTimer.current) { clearTimeout(hideTimer.current); hideTimer.current = null }
     setData(incoming)
     setExiting(false)
     setVisible(true)
@@ -47,8 +49,13 @@ export default function InspectUI() {
 
   useNuiEvent('hideInspect', () => {
     setExiting(true)
-    setTimeout(() => { setVisible(false); setExiting(false) }, 300)
+    if (hideTimer.current) clearTimeout(hideTimer.current)
+    hideTimer.current = window.setTimeout(() => {
+      setVisible(false); setExiting(false); hideTimer.current = null
+    }, 300)
   })
+
+  useEffect(() => () => { if (hideTimer.current) clearTimeout(hideTimer.current) }, [])
 
   if (!visible || !data) return null
 

@@ -17,5 +17,8 @@ roadmap_malisling.md
 # Dev-only design mockups (scratch)
 web/mockup-*.html
 
-# Codex rescue skill scratch file
-.codex_task_prompt.txt
+# Codex rescue / audit scratch files (prompts + raw reports)
+.codex_*
+
+# Audit outputs — canonical design docs live in the Obsidian vault, not the public repo
+specs/

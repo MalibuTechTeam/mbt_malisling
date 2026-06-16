@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useNuiEvent } from '../utils/useNuiEvent'
 import { makeT, type Locale } from '../utils/i18n'
 import './AmmoPickerUI.css'
@@ -12,18 +12,27 @@ export default function AmmoPickerUI() {
   const [exiting, setExiting] = useState(false)
   const [data,    setData]    = useState<AmmoPickerData | null>(null)
   const [amount,  setAmount]  = useState(0)
+  const hideTimer = useRef<number | null>(null)
 
   useNuiEvent<AmmoPickerData>('showAmmoPicker', (d) => {
+    if (hideTimer.current) { clearTimeout(hideTimer.current); hideTimer.current = null }
     setData(d); setAmount(d.amount); setExiting(false); setVisible(true)
   })
   useNuiEvent<{ amount: number }>('updateAmmoPicker', (d) => setAmount(d.amount))
   useNuiEvent('hideAmmoPicker', () => {
-    setExiting(true); setTimeout(() => { setVisible(false); setExiting(false) }, 200)
+    setExiting(true)
+    if (hideTimer.current) clearTimeout(hideTimer.current)
+    hideTimer.current = window.setTimeout(() => {
+      setVisible(false); setExiting(false); hideTimer.current = null
+    }, 200)
   })
+
+  useEffect(() => () => { if (hideTimer.current) clearTimeout(hideTimer.current) }, [])
 
   if (!visible || !data) return null
   const t = makeT(data.locale)
-  const pct = data.max > 0 ? Math.round((amount / data.max) * 100) : 0
+  // Clamp: out-of-range values from Lua would push the progress bar past 100% / below 0.
+  const pct = data.max > 0 ? Math.min(100, Math.max(0, Math.round((amount / data.max) * 100))) : 0
 
   return (
     <div className={`amp-pill ${exiting ? 'amp-exit' : 'amp-enter'}`}>
