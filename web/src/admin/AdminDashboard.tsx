@@ -36,16 +36,25 @@ interface Category {
 
 const CATEGORIES: Category[] = [
   { id: 'core',        label: 'Core',        hint: 'Sling, holster, drop', icon: 'layers',
-    sections: [CoreSection, HolsterSection, DropVisualSection, DespawnSection, InterfaceSection, DropLoggingSection] },
+    // Height-paired for the equal-height grid: the two tall cards (Core's 3 toggles,
+    // Interface's 2x2 placement picker) share row 1; the three ~equal mid cards fill
+    // rows 2-3 with the shortest (Drop Visual) closing — keeps the columns balanced.
+    sections: [CoreSection, InterfaceSection, HolsterSection, DespawnSection, DropLoggingSection, DropVisualSection] },
   { id: 'handling',    label: 'Handling',    hint: 'Feel and combat RP',     icon: 'target',
     // Ordered to pair similar heights for the equal-height grid: the two tall
     // cards (Suppressor, Safety) share row 1; the two short 2-input cards
     // (Jamming, Charge) share row 2; Weight closes.
     sections: [SuppressorSection, SafetySection, JammingSection, ChargeSection, WeightSection] },
-  { id: 'interaction', label: 'Interaction', hint: 'Inspect, name, poses', icon: 'cursor',
-    // Height-paired for the equal-height grid: the two tall cards (Inspect,
-    // Throw) share row 1; the shorter Name + the tiny Poses share row 2.
-    sections: [InspectSection, ThrowSection, WeaponNameSection, PosesSection, ChainOfCustodySection, ShellCasingsSection, HandoffSection, SerialsSection, ConcealedCarrySection, PatDownSection, AmmoSharingSection] },
+  { id: 'interaction', label: 'Interaction', hint: 'Inspect, throw, carry', icon: 'cursor',
+    // 7 cards (forensics moved out). Height-paired: the two tall cards (Inspect,
+    // Throw) share row 1; Concealed Carry (tall) + Name row 2; Handoff + Ammo
+    // Sharing row 3; Poses (short) closes.
+    sections: [InspectSection, ThrowSection, ConcealedCarrySection, WeaponNameSection, HandoffSection, AmmoSharingSection, PosesSection] },
+  { id: 'forensics',   label: 'Forensics',   hint: 'Serial, custody, casings', icon: 'search',
+    // Evidence / investigation systems, grouped by admin intent (not animation) —
+    // Pat-down lives here as a police-discovery tool. Height-paired: the two tall
+    // cards (Shell Casings, Pat-down) share row 1; Serials + Chain of Custody row 2.
+    sections: [ShellCasingsSection, PatDownSection, SerialsSection, ChainOfCustodySection] },
   { id: 'world',       label: 'World',       hint: 'Zones, vehicle, racks',  icon: 'globe',
     sections: [NoDrawSection, VehicleSection, TrunkRackSection, WeaponRackSection] },
 ]
@@ -66,12 +75,12 @@ const FEATURES: { label: string; path: string; cat: string }[] = [
   { label: 'Weapon Name',    path: 'WeaponName.Enabled',          cat: 'Interaction' },
   { label: 'Showcase Poses', path: 'ShowcasePoses.Enabled',       cat: 'Interaction' },
   { label: 'Weapon Throw',   path: 'Throw.Enabled',               cat: 'Interaction' },
-  { label: 'Chain of Custody',path: 'ChainOfCustody.Enabled',     cat: 'Interaction' },
-  { label: 'Shell Casings',  path: 'ShellCasings.Enabled',        cat: 'Interaction' },
+  { label: 'Chain of Custody',path: 'ChainOfCustody.Enabled',     cat: 'Forensics' },
+  { label: 'Shell Casings',  path: 'ShellCasings.Enabled',        cat: 'Forensics' },
   { label: 'Weapon Handoff', path: 'Handoff.Enabled',             cat: 'Interaction' },
-  { label: 'Serial Ensure',  path: 'Serials.EnsureGeneration',    cat: 'Interaction' },
+  { label: 'Serial Ensure',  path: 'Serials.EnsureGeneration',    cat: 'Forensics' },
   { label: 'Concealed Carry',path: 'ConcealedCarry.Enabled',      cat: 'Interaction' },
-  { label: 'Pat-down',       path: 'PatDown.Enabled',             cat: 'Interaction' },
+  { label: 'Pat-down',       path: 'PatDown.Enabled',             cat: 'Forensics' },
   { label: 'Ammo Sharing',   path: 'AmmoSharing.Enabled',         cat: 'Interaction' },
   { label: 'No-Draw Zones',  path: 'NoDrawZones.Enabled',         cat: 'World' },
   { label: 'Vehicle Hiding', path: 'VehicleHiding.Enabled',       cat: 'World' },
@@ -79,7 +88,7 @@ const FEATURES: { label: string; path: string; cat: string }[] = [
   { label: 'Trunk Rack',     path: 'VehicleTrunkRack.Enabled',    cat: 'World' },
   { label: 'Weapon Rack',    path: 'WeaponRack.Enabled',          cat: 'World' },
 ]
-const OV_CATS = ['Core', 'Handling', 'Interaction', 'World'] as const
+const OV_CATS = ['Core', 'Handling', 'Interaction', 'Forensics', 'World'] as const
 
 const getPath = (obj: any, path: string) => path.split('.').reduce((o, k) => (o == null ? o : o[k]), obj)
 
@@ -239,16 +248,6 @@ export default function AdminDashboard() {
             <span className="mbt-rail__count">edit</span>
           </button>
 
-          {/* Reserved — appears as a real category once it ships. */}
-          <div className="mbt-rail__item is-soon" aria-disabled="true">
-            <span className="ic"><Icon name="search" size={18} /></span>
-            <span className="mbt-rail__tx">
-              <span className="mbt-rail__label">Forensics</span>
-              <span className="mbt-rail__hint">Serial, custody, casings</span>
-            </span>
-            <span className="mbt-rail__count">soon</span>
-          </div>
-
           {/* Paid companion — upsell page (flips to "connected" when the bridge is up). */}
           <button
             className={`mbt-rail__item mbt-rail__promo${isShooting ? ' is-active' : ''}`}
@@ -321,7 +320,7 @@ export default function AdminDashboard() {
             </div>
           ) : null}
 
-          <div className="mbt-admin__sections">
+          <div className={`mbt-admin__sections${active === 'world' ? ' mbt-admin__sections--masonry' : ''}`}>
             {isShooting ? (
               <ShootingSection companion={companion} />
             ) : isPositions ? (

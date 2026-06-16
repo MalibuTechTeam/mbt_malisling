@@ -179,6 +179,21 @@
   align-content: start;
 }
 
+/* TRIAL (World page only) — masonry packing instead of the equal-height grid.
+   Cards take their natural height and flow into 2 balanced columns, so there is
+   no stretched empty space below a short card. Reading order is column-major. */
+.mbt-admin__sections--masonry {
+  display: block;
+  columns: 2 420px;
+  column-gap: 14px;
+}
+/* Higher specificity than `.mbt-admin__center .mbt-section { margin: 0 }` so the
+   vertical gap between stacked cards actually applies (column-gap is horizontal only). */
+.mbt-admin__center .mbt-admin__sections--masonry > .mbt-section {
+  break-inside: avoid;
+  margin: 0 0 14px;
+}
+
 /* Stagger the cards on category switch — they cascade in rather than popping
    together. Delays are short (total < 220ms) so it reads as rhythm, not lag. */
 .mbt-admin__sections > .mbt-section:nth-child(1) { animation-delay: 0ms; }
