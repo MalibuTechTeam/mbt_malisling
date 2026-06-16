@@ -20,8 +20,8 @@ export function CoreSection({ config, update }: SectionProps) {
   )
 }
 
-/** INTERFACE — HUD prompt position (3 presets + Custom; drag lands with the
- *  overlay reskin, default spot for now). */
+/** INTERFACE — HUD prompt position (3 presets). "Custom" (a live drag-to-place
+ *  HUD editor) is reserved for v2.1; the picker shows it disabled with a badge. */
 export function InterfaceSection({ config, update }: SectionProps) {
   const pos = config.UIPosition ?? 'bottom-center'
   return (
@@ -29,7 +29,7 @@ export function InterfaceSection({ config, update }: SectionProps) {
       <PositionPicker value={pos} onChange={(v) => update('UIPosition', v)} />
       {pos === 'custom' && (
         <p className="mbt-field__hint" style={{ marginTop: 8 }}>
-          Custom drag ships with the overlay reskin — uses a default spot for now.
+          Custom placement — a live drag-to-place editor — ships in v2.1; using a default spot for now.
         </p>
       )}
     </Section>

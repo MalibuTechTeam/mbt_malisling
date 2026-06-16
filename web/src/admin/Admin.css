@@ -234,6 +234,17 @@
 .mbt-pospick__btn.is-on {
   background: var(--mbt-accent-soft); border-color: rgba(var(--mbt-accent-rgb), 0.4); color: var(--mbt-text-hi);
 }
+/* Reserved option (Custom → live drag editor, ships v2.1). Inert teaser: muted via
+   text-faint (not opacity, keeps it above AA), no hover/press, "2.1" badge. */
+.mbt-pospick__btn.is-soon { position: relative; cursor: not-allowed; color: var(--mbt-text-faint); }
+.mbt-pospick__btn.is-soon:hover { color: var(--mbt-text-faint); border-color: var(--mbt-edge); }
+.mbt-pospick__btn.is-soon:active { transform: none; }
+.mbt-pospick__soon {
+  position: absolute; top: 6px; right: 7px;
+  font-family: var(--mbt-font-mono); font-size: 8px; font-weight: 700; letter-spacing: 0.04em;
+  color: var(--mbt-text-faint); background: var(--mbt-surface-3);
+  border: 1px solid var(--mbt-edge-lo); border-radius: var(--mbt-r-pill); padding: 1px 5px;
+}
 
 .mbt-admin__center .mbt-section__ic {
   width: 30px; height: 30px; flex-shrink: 0; display: grid; place-items: center;
