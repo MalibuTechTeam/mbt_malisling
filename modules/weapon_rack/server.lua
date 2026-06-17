@@ -74,13 +74,15 @@ local function ensureSchema()
         Utils.mbtWarn('weapon_rack ~ oxmysql not started; rack contents are in-memory only (reset on restart)')
         return
     end
+    -- Chain the CREATEs so each table is guaranteed to exist before any SELECT below
+    -- (oxmysql runs queries on a pool → fire-and-forget CREATEs can race a fresh DB).
     exports.oxmysql:execute([[
         CREATE TABLE IF NOT EXISTS mbt_malisling_racks (
             rack_id VARCHAR(64) NOT NULL PRIMARY KEY,
             data LONGTEXT NOT NULL,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         )
-    ]], {})
+    ]], {}, function()
     exports.oxmysql:execute([[
         CREATE TABLE IF NOT EXISTS mbt_malisling_rack_placements (
             id VARCHAR(64) NOT NULL PRIMARY KEY,
@@ -114,6 +116,7 @@ local function ensureSchema()
                 publishAll()
             end)
         end)
+    end)
     end)
 end
 

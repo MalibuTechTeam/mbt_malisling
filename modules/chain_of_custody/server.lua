@@ -19,7 +19,9 @@ local custody = {}   -- [serial] = { { name, id, at }, ... } (oldest first)
 
 if hasDb then
     CreateThread(function()
-        exports.oxmysql:execute([[
+        -- executeSync (not fire-and-forget execute): the CREATE must COMMIT before
+        -- the SELECT below, or a fresh DB races (table-doesn't-exist on first boot).
+        exports.oxmysql:executeSync([[
             CREATE TABLE IF NOT EXISTS mbt_malisling_custody (
                 serial VARCHAR(64) NOT NULL,
                 chain  LONGTEXT NOT NULL,
