@@ -28,12 +28,12 @@ export function PositionPicker({ value, onChange }: Props) {
           type="button"
           disabled={o.soon}
           aria-disabled={o.soon || undefined}
-          title={o.soon ? 'Live drag-to-place HUD editor — coming in v2.1' : undefined}
+          title={o.soon ? 'Live drag-to-place HUD editor — coming soon' : undefined}
           className={`mbt-pospick__btn${value === o.value && !o.soon ? ' is-on' : ''}${o.soon ? ' is-soon' : ''}`}
           onClick={() => { if (!o.soon) onChange(o.value) }}
         >
           {o.label}
-          {o.soon && <span className="mbt-pospick__soon">2.1</span>}
+          {o.soon && <span className="mbt-pospick__soon">coming soon</span>}
         </button>
       ))}
     </div>
