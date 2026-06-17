@@ -7,7 +7,7 @@
 -- lives in a stash: its {name,count,metadata} is held here and re-minted into the
 -- player's inventory on retrieve via the framework-agnostic Inventory bridge (ox+qb).
 --
--- Persistence is a single self-managed oxmysql table (mbt_weapon_racks), keyed by the
+-- Persistence is a single self-managed oxmysql table (mbt_malisling_racks), keyed by the
 -- location id, so racked weapons survive restarts. oxmysql is SOFT/feature-gated:
 -- without it the racks still work but their contents are in-memory only (reset on
 -- restart) — the rest of the script stays DB-free.
@@ -36,7 +36,7 @@ for _, loc in ipairs(cfg.Locations or {}) do
 end
 
 -- Runtime-placed racks — admin (/mbt_placerack) and player (inventory item). Merged
--- into locById so stow/retrieve accept them, and persisted in mbt_rack_placements
+-- into locById so stow/retrieve accept them, and persisted in mbt_malisling_rack_placements
 -- (oxmysql; without it runtime racks reset on restart).
 local adminCommand = (MBT.Admin and MBT.Admin.Command) or 'mbtconfig'
 local adminPerm    = (MBT.Admin and MBT.Admin.Permission) or ('command.' .. adminCommand)
@@ -75,20 +75,20 @@ local function ensureSchema()
         return
     end
     exports.oxmysql:execute([[
-        CREATE TABLE IF NOT EXISTS mbt_weapon_racks (
+        CREATE TABLE IF NOT EXISTS mbt_malisling_racks (
             rack_id VARCHAR(64) NOT NULL PRIMARY KEY,
             data LONGTEXT NOT NULL,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         )
     ]], {})
     exports.oxmysql:execute([[
-        CREATE TABLE IF NOT EXISTS mbt_rack_placements (
+        CREATE TABLE IF NOT EXISTS mbt_malisling_rack_placements (
             id VARCHAR(64) NOT NULL PRIMARY KEY,
             data LONGTEXT NOT NULL
         )
     ]], {}, function()
         -- Placements FIRST (the contents loader skips ids not in locById), then contents.
-        exports.oxmysql:execute('SELECT id, data FROM mbt_rack_placements', {}, function(prows)
+        exports.oxmysql:execute('SELECT id, data FROM mbt_malisling_rack_placements', {}, function(prows)
             if type(prows) == 'table' then
                 for _, row in ipairs(prows) do
                     local ok, loc = pcall(json.decode, row.data)
@@ -100,7 +100,7 @@ local function ensureSchema()
                 end
                 Utils.mbtDebugger('weapon_rack ~ loaded', #prows, 'placements from DB')
             end
-            exports.oxmysql:execute('SELECT rack_id, data FROM mbt_weapon_racks', {}, function(rows)
+            exports.oxmysql:execute('SELECT rack_id, data FROM mbt_malisling_racks', {}, function(rows)
                 if type(rows) == 'table' then
                     for _, row in ipairs(rows) do
                         -- Skip rows for racks that no longer exist (renamed/removed).
@@ -121,13 +121,13 @@ end
 local function savePlacement(loc)
     if not hasDb() then return end
     exports.oxmysql:execute(
-        'INSERT INTO mbt_rack_placements (id, data) VALUES (?, ?) ON DUPLICATE KEY UPDATE data = VALUES(data)',
+        'INSERT INTO mbt_malisling_rack_placements (id, data) VALUES (?, ?) ON DUPLICATE KEY UPDATE data = VALUES(data)',
         { loc.id, json.encode(loc) })
 end
 
 local function deletePlacement(id)
     if not hasDb() then return end
-    exports.oxmysql:execute('DELETE FROM mbt_rack_placements WHERE id = ?', { id })
+    exports.oxmysql:execute('DELETE FROM mbt_malisling_rack_placements WHERE id = ?', { id })
 end
 
 --- Write-through: UPSERT the rack, or DELETE the row when it empties.
@@ -136,10 +136,10 @@ local function saveRack(rackId)
     local list = racks[rackId]
     if not list or #list == 0 then
         racks[rackId] = nil
-        exports.oxmysql:execute('DELETE FROM mbt_weapon_racks WHERE rack_id = ?', { rackId })
+        exports.oxmysql:execute('DELETE FROM mbt_malisling_racks WHERE rack_id = ?', { rackId })
     else
         exports.oxmysql:execute(
-            'INSERT INTO mbt_weapon_racks (rack_id, data) VALUES (?, ?) ON DUPLICATE KEY UPDATE data = VALUES(data)',
+            'INSERT INTO mbt_malisling_racks (rack_id, data) VALUES (?, ?) ON DUPLICATE KEY UPDATE data = VALUES(data)',
             { rackId, json.encode(list) })
     end
 end

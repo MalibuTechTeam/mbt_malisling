@@ -10,7 +10,6 @@
 -- etc. Phase 1 wires the General section end-to-end; more sections follow.
 -- ─────────────────────────────────────────────────────────────────────────────
 
-local CONFIG_FILE     = 'data/runtime_config.json'
 local VALID_POSITIONS = { ['bottom-center'] = true, ['top-center'] = true, ['bottom-right'] = true, ['custom'] = true }
 -- Throw groups are keyed by weapon-group HASH in config; the menu edits them by a
 -- stable name. This maps menu name → group hash for round-tripping Allowed flags.
@@ -577,23 +576,62 @@ local function mergeKnown(template, saved)
     return out
 end
 
-local function loadRuntimeConfig()
-    local raw = LoadResourceFile(GetCurrentResourceName(), CONFIG_FILE)
-    if not raw then return end
-    local ok, data = pcall(json.decode, raw)
+-- ── Persistence: a single self-managed oxmysql row (mbt_malisling_config / 'dashboard')
+-- holding the dashboard JSON. DB-canonical: oxmysql is guaranteed (both ox_inventory
+-- and qb-inventory depend on it), and a DB row survives resource-folder replacement
+-- on update — unlike a JSON file in the resource folder. No migration / JSON fallback
+-- (malisling ships pre-release, no legacy file). Auto-created on start; pattern mirrors
+-- weapon_rack / mbt_elevator. Self-managed → no .sql to import.
+local DB_ROW = 'dashboard'
+local function hasDb() return GetResourceState('oxmysql') == 'started' end
+
+-- Apply a saved JSON config string over the live snapshot, validate, then apply.
+local function applySaved(raw)
+    local ok, data = pcall(json.decode, raw or '')
     if not ok or type(data) ~= 'table' then
-        Utils.mbtWarn('runtime_config.json unreadable, ignoring')
+        Utils.mbtWarn('config ~ saved row unreadable, keeping config.lua defaults')
         return
     end
-    -- Merge over the current live snapshot (config.lua defaults + any feature
-    -- blocks the file predates), then validate the COMPLETE result.
+    -- Merge over the current live snapshot (config.lua defaults + any feature block
+    -- the saved row predates), then validate the COMPLETE result.
     local merged = mergeKnown(snapshot(), data)
     if not validate(merged) then
-        Utils.mbtWarn('runtime_config.json failed validation after merge, ignoring')
+        Utils.mbtWarn('config ~ saved row failed validation after merge, keeping defaults')
         return
     end
     applyToMBT(merged)
-    Utils.mbtDebugger('Runtime config loaded from', CONFIG_FILE)
+    print('^2[mbt_malisling]^7 config: loaded from database (mbt_malisling_config)')
+end
+
+local function loadRuntimeConfig()
+    CreateThread(function()
+        -- Load-order safety: the inventory pulls oxmysql, but it can start a beat after
+        -- us. Wait up to ~10s, then fall back to config.lua defaults (no persistence).
+        local tries = 0
+        while not hasDb() and tries < 40 do Wait(250); tries = tries + 1 end
+        if not hasDb() then
+            Utils.mbtWarn('config ~ oxmysql not started; using config.lua defaults (config will NOT persist)')
+            return
+        end
+        exports.oxmysql:execute([[
+            CREATE TABLE IF NOT EXISTS mbt_malisling_config (
+                id VARCHAR(64) NOT NULL,
+                value LONGTEXT NOT NULL,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                PRIMARY KEY (id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        ]], {}, function()
+            Utils.mbtDebugger('config ~ mbt_malisling_config table ready (oxmysql)')
+            exports.oxmysql:execute('SELECT value FROM mbt_malisling_config WHERE id = ?', { DB_ROW }, function(rows)
+                local row = rows and rows[1]
+                if row and row.value then
+                    applySaved(row.value)
+                else
+                    print('^2[mbt_malisling]^7 config: no saved row yet — using config.lua defaults')
+                end
+            end)
+        end)
+    end)
 end
 
 --- Send the dashboard to an authorized admin.
@@ -649,8 +687,17 @@ RegisterNetEvent('mbt_malisling:adminSave', function(data)
         return
     end
     applyToMBT(data)
-    SaveResourceFile(GetCurrentResourceName(), CONFIG_FILE, json.encode(persistable(data)), -1)
-    TriggerClientEvent('mbt_malisling:applyConfig', -1, persistable(data))
+    local payload = persistable(data)
+    if hasDb() then
+        -- Single-row upsert. No dual-write (DB is canonical) → no "which is true?" drift.
+        exports.oxmysql:execute(
+            'INSERT INTO mbt_malisling_config (id, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)',
+            { DB_ROW, json.encode(payload) }
+        )
+    else
+        Utils.mbtWarn('config ~ oxmysql not started; save applied live but NOT persisted')
+    end
+    TriggerClientEvent('mbt_malisling:applyConfig', -1, payload)
     Utils.mbtDebugger('Admin config saved by player', src)
 end)
 

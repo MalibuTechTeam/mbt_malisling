@@ -6,7 +6,7 @@
 -- equip path re-fires ox_inventory:updateInventory, which the sling system reacts
 -- to by re-spawning the slung prop while the weapon is in hand (visual bug).
 --
--- Optionally persisted to a self-managed oxmysql table `mbt_weapon_custody`
+-- Optionally persisted to a self-managed oxmysql table `mbt_malisling_custody`
 -- (documented "no DB" exception, feature-gated on oxmysql). Without oxmysql the
 -- ledger is in-memory only (resets on restart). The Inspect overlay reads a
 -- weapon's chain via the `mbt_malisling:getCustody` callback (by serial).
@@ -20,13 +20,13 @@ local custody = {}   -- [serial] = { { name, id, at }, ... } (oldest first)
 if hasDb then
     CreateThread(function()
         exports.oxmysql:execute([[
-            CREATE TABLE IF NOT EXISTS mbt_weapon_custody (
+            CREATE TABLE IF NOT EXISTS mbt_malisling_custody (
                 serial VARCHAR(64) NOT NULL,
                 chain  LONGTEXT NOT NULL,
                 PRIMARY KEY (serial)
             )
         ]], {})
-        local rows = exports.oxmysql:executeSync('SELECT serial, chain FROM mbt_weapon_custody', {})
+        local rows = exports.oxmysql:executeSync('SELECT serial, chain FROM mbt_malisling_custody', {})
         if rows then
             for _, row in ipairs(rows) do
                 local ok, data = pcall(json.decode, row.chain)
@@ -39,7 +39,7 @@ end
 local function persist(serial)
     if not hasDb then return end
     exports.oxmysql:execute(
-        'INSERT INTO mbt_weapon_custody (serial, chain) VALUES (?, ?) ON DUPLICATE KEY UPDATE chain = VALUES(chain)',
+        'INSERT INTO mbt_malisling_custody (serial, chain) VALUES (?, ?) ON DUPLICATE KEY UPDATE chain = VALUES(chain)',
         { serial, json.encode(custody[serial]) })
 end
 

@@ -2,7 +2,7 @@
 -- Weapon-Prop Position Editor — server
 --
 -- Persists per-type (and per-job) weapon-prop attach offsets in a dedicated
--- oxmysql table (mbt_weapon_positions), overriding the config.lua defaults.
+-- oxmysql table (mbt_malisling_positions), overriding the config.lua defaults.
 -- Admin-only (ACE), validated server-side, broadcast live to all clients.
 --
 -- oxmysql is soft/feature-gated: without it the editor can't save and the rest
@@ -79,14 +79,14 @@ local function ensureSchema()
         return
     end
     exports.oxmysql:execute([[
-        CREATE TABLE IF NOT EXISTS mbt_weapon_positions (
+        CREATE TABLE IF NOT EXISTS mbt_malisling_positions (
             scope VARCHAR(48) NOT NULL,
             wtype VARCHAR(16) NOT NULL,
             data  LONGTEXT NOT NULL,
             PRIMARY KEY (scope, wtype)
         )
     ]], {}, function()
-        exports.oxmysql:execute('SELECT scope, wtype, data FROM mbt_weapon_positions', {}, function(rows)
+        exports.oxmysql:execute('SELECT scope, wtype, data FROM mbt_malisling_positions', {}, function(rows)
             if type(rows) ~= 'table' then return end
             for _, row in ipairs(rows) do
                 local ok, data = pcall(json.decode, row.data)
@@ -112,7 +112,7 @@ RegisterNetEvent('mbt_malisling:propPos:save', function(payload)
     applyServer(scope, wtype, data)
     if hasDb() then
         exports.oxmysql:execute(
-            'INSERT INTO mbt_weapon_positions (scope, wtype, data) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE data = VALUES(data)',
+            'INSERT INTO mbt_malisling_positions (scope, wtype, data) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE data = VALUES(data)',
             { scope, wtype, json.encode(data) })
     end
     TriggerClientEvent('mbt_malisling:propPos:apply', -1, { scope = scope, wtype = wtype, data = data })
@@ -127,7 +127,7 @@ RegisterNetEvent('mbt_malisling:propPos:reset', function(payload)
     if type(scope) ~= 'string' or scope == '' or not WTYPES[wtype] then return end
     resetServer(scope, wtype)
     if hasDb() then
-        exports.oxmysql:execute('DELETE FROM mbt_weapon_positions WHERE scope = ? AND wtype = ?', { scope, wtype })
+        exports.oxmysql:execute('DELETE FROM mbt_malisling_positions WHERE scope = ? AND wtype = ?', { scope, wtype })
     end
     -- For default scope send the restored config default; for a job scope send a
     -- remove signal (clients drop the override and fall back to their default).

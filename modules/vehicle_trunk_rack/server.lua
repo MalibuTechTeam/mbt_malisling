@@ -2,7 +2,7 @@
 -- Vehicle Trunk Weapon Rack — server
 --
 -- Stow a long gun into a vehicle's trunk and retrieve it later. Persistence is a
--- single self-managed oxmysql table (mbt_vehicle_trunk), keyed by plate, so a
+-- single self-managed oxmysql table (mbt_malisling_trunk), keyed by plate, so a
 -- racked weapon survives resource/server restarts and vehicle despawn — no item
 -- loss. The weapon never lives in an inventory stash: its data
 -- {name,count,metadata} is held in our table and re-minted into the player's
@@ -28,13 +28,13 @@ local function ensureSchema()
         return
     end
     exports.oxmysql:execute([[
-        CREATE TABLE IF NOT EXISTS mbt_vehicle_trunk (
+        CREATE TABLE IF NOT EXISTS mbt_malisling_trunk (
             plate VARCHAR(12) NOT NULL PRIMARY KEY,
             data LONGTEXT NOT NULL,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         )
     ]], {}, function()
-        exports.oxmysql:execute('SELECT plate, data FROM mbt_vehicle_trunk', {}, function(rows)
+        exports.oxmysql:execute('SELECT plate, data FROM mbt_malisling_trunk', {}, function(rows)
             if type(rows) == 'table' then
                 for _, row in ipairs(rows) do
                     local ok, list = pcall(json.decode, row.data)
@@ -52,10 +52,10 @@ local function saveRack(plate)
     local list = racks[plate]
     if not list or #list == 0 then
         racks[plate] = nil
-        exports.oxmysql:execute('DELETE FROM mbt_vehicle_trunk WHERE plate = ?', { plate })
+        exports.oxmysql:execute('DELETE FROM mbt_malisling_trunk WHERE plate = ?', { plate })
     else
         exports.oxmysql:execute(
-            'INSERT INTO mbt_vehicle_trunk (plate, data) VALUES (?, ?) ON DUPLICATE KEY UPDATE data = VALUES(data)',
+            'INSERT INTO mbt_malisling_trunk (plate, data) VALUES (?, ?) ON DUPLICATE KEY UPDATE data = VALUES(data)',
             { plate, json.encode(list) })
     end
 end
@@ -106,12 +106,12 @@ end
 local function ensureOffsetSchema()
     if not hasDb() then return end
     exports.oxmysql:execute([[
-        CREATE TABLE IF NOT EXISTS mbt_trunk_offsets (
+        CREATE TABLE IF NOT EXISTS mbt_malisling_trunk_offsets (
             scope VARCHAR(48) NOT NULL PRIMARY KEY,
             data LONGTEXT NOT NULL
         )
     ]], {}, function()
-        exports.oxmysql:execute('SELECT scope, data FROM mbt_trunk_offsets', {}, function(rows)
+        exports.oxmysql:execute('SELECT scope, data FROM mbt_malisling_trunk_offsets', {}, function(rows)
             if type(rows) ~= 'table' then return end
             for _, row in ipairs(rows) do
                 local ok, d = pcall(json.decode, row.data)
@@ -136,7 +136,7 @@ RegisterNetEvent('mbt_malisling:trunkOffset:save', function(payload)
     trunkOffsets[payload.scope] = d
     if hasDb() then
         exports.oxmysql:execute(
-            'INSERT INTO mbt_trunk_offsets (scope, data) VALUES (?, ?) ON DUPLICATE KEY UPDATE data = VALUES(data)',
+            'INSERT INTO mbt_malisling_trunk_offsets (scope, data) VALUES (?, ?) ON DUPLICATE KEY UPDATE data = VALUES(data)',
             { payload.scope, json.encode(d) })
     end
     TriggerClientEvent('mbt_malisling:trunkOffset:apply', -1, { scope = payload.scope, data = d })
@@ -148,7 +148,7 @@ RegisterNetEvent('mbt_malisling:trunkOffset:reset', function(payload)
     if type(payload) ~= 'table' or not validScope(payload.scope) then return end
     trunkOffsets[payload.scope] = nil
     if hasDb() then
-        exports.oxmysql:execute('DELETE FROM mbt_trunk_offsets WHERE scope = ?', { payload.scope })
+        exports.oxmysql:execute('DELETE FROM mbt_malisling_trunk_offsets WHERE scope = ?', { payload.scope })
     end
     TriggerClientEvent('mbt_malisling:trunkOffset:apply', -1, { scope = payload.scope, data = false })
 end)
