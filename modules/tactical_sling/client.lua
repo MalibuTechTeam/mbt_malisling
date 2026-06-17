@@ -103,13 +103,13 @@ if MBT.Debug then
         if editing then editing = false return end
         local model = joaat(cfg.Model)
         if not IsModelValid(model) then
-            print('^8[mbt_slingpos] invalid model: '..tostring(cfg.Model)..' (set MBT.TacticalSling.Model)^7'); return
+            Utils.mbtWarn('mbt_slingpos ~ invalid model: '..tostring(cfg.Model)..' (set MBT.TacticalSling.Model)'); return
         end
         lib.requestModel(model, 2000)
         local ped  = cache.ped
         local prop = CreateObject(model, 0.0, 0.0, 0.0, false, false, false)
         SetModelAsNoLongerNeeded(model)
-        if not prop or prop == 0 then print('^8[mbt_slingpos] failed to create object^7') return end
+        if not prop or prop == 0 then Utils.mbtWarn('mbt_slingpos ~ failed to create object') return end
 
         editing = true
         local bone = GetPedBoneIndex(ped, cfg.Position.Bone)
@@ -120,7 +120,7 @@ if MBT.Debug then
             AttachEntityToEntity(prop, ped, bone, v.posX, v.posY, v.posZ, v.rotX, v.rotY, v.rotZ, true, true, false, false, 2, true)
         end
         reattach()
-        print('^2[mbt_slingpos] editor open — arrows adjust, Enter dumps, Backspace exits^7')
+        Utils.mbtDebugger('mbt_slingpos editor open — arrows adjust, Enter dumps, Backspace exits')
 
         CreateThread(function()
             while editing do
@@ -149,7 +149,7 @@ if MBT.Debug then
                 Wait(0)
             end
             if DoesEntityExist(prop) then DeleteEntity(prop) end
-            print('^2[mbt_slingpos] closed^7')
+            Utils.mbtDebugger('mbt_slingpos editor closed')
         end)
     end, false)
 end

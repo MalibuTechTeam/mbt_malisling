@@ -211,7 +211,7 @@ RegisterCommand('mbt_concealdebug', function()
     if myState then
         for wtype, qq in pairs(myState) do st = ('%s=%s'):format(wtype, qq) break end
     end
-    print(('[mbt_malisling] conceal debug ~ model=%s sex=%s | top(comp 11) drawable=%d texture=%d | evaluated quality=%s | active state=%s')
+    Utils.mbtDebugger(('conceal debug ~ model=%s sex=%s | top(comp 11) drawable=%d texture=%d | evaluated quality=%s | active state=%s')
         :format(GetEntityModel(cache.ped), sex, d,
             GetPedTextureVariation(cache.ped, 11), q, st))
     lib.notify({ type = 'inform', title = 'Conceal debug',

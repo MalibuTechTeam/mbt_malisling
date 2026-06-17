@@ -510,7 +510,7 @@ MBT.PropInfo           = {
         },
     },
     -- Bulky canister tools strapped vertically across the upper back (fire
-    -- extinguisher etc.) — values from in-game tuning with /mbt_propedit.
+    -- extinguisher etc.) — values tuned in-game via the Positions editor (/mbtsling).
     ["extinguisher"] = {
         ["Bone"]        = MBT.Bones["Back"],
         ["isPed"]       = false,
@@ -725,7 +725,7 @@ MBT.VehicleHiding      = {
 -- ── Vehicle Trunk Weapon Rack ───────────────────────────────────────────────────
 -- Stow a long gun in a vehicle's trunk (boot opens, anim, weapon prop racked in
 -- the trunk, synced to nearby players) and retrieve it later. Persisted in a
--- dedicated oxmysql table (mbt_vehicle_trunk) keyed by plate, so racked weapons
+-- dedicated oxmysql table (mbt_malisling_trunk) keyed by plate, so racked weapons
 -- survive restarts/despawn. NOTE: this is the ONE documented exception to the
 -- "no database" rule — oxmysql is soft/feature-gated (off if oxmysql isn't started).
 MBT.VehicleTrunkRack   = {
@@ -778,7 +778,7 @@ MBT.VehicleTrunkRack   = {
 -- stash — its {name,count,metadata} is held server-side and re-minted into the
 -- inventory on retrieve via the ox/qb Inventory bridge, exactly like the Trunk Rack.
 --
--- Stored weapons are persisted in a self-managed oxmysql table (mbt_weapon_racks),
+-- Stored weapons are persisted in a self-managed oxmysql table (mbt_malisling_racks),
 -- keyed by rack id, so they survive restarts. oxmysql is SOFT/feature-gated: without
 -- it the racks still work but their contents reset on restart (in-memory only) — the
 -- rest of the script stays DB-free. Weapon props are rendered LOCALLY by every client
@@ -1116,7 +1116,7 @@ MBT.NoDrawZones        = {
 -- (hands free, gun across the chest). Purely a different attach position for the
 -- already-spawned sling prop — no held weapon, no core sling-flow changes. The
 -- chest position is tuned per weapon type; values are placeholders to refine with
--- /mbt_propedit-style in-game tuning. Which types are eligible is config-driven
+-- in-game position tuning. Which types are eligible is config-driven
 -- (will be player-selectable from the future admin menu).
 MBT.LowReady           = {
     Enabled  = true,
@@ -1156,8 +1156,8 @@ MBT.LowReady           = {
         Enabled    = true,
         HandBone   = 57005,  -- SKEL_R_Hand
         -- Grip alignment of the weapon prop while "in hand". A CreateWeaponObject
-        -- does NOT auto-align to the grip on the hand bone — tune these with
-        --   /mbt_propedit WEAPON_CARBINERIFLE rhand
+        -- does NOT auto-align to the grip on the hand bone — the values below are
+        -- pre-tuned for the hand bone.
         HandOffset = {
             Pos = { x = 0.076, y = 0.136, z = 0.084 },
             Rot = { x = -43.0, y = 0.0, z = 0.0 },

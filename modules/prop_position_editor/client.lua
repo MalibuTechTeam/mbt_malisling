@@ -155,7 +155,7 @@ local function applyPreview(data, gender)
     -- instead of leaving the entity poisoned.
     local f = GetEntityForwardVector(previewObj)
     if not vecFinite(f) then
-        print(('^8[mbt_pe]^7 rejected NaN attach | bone=%s ro=%s rot=%s,%s,%s'):format(
+        Utils.mbtWarn(('rejected NaN attach | bone=%s ro=%s rot=%s,%s,%s'):format(
             tostring(bone), tostring(rotOrder), tostring(rot.x), tostring(rot.y), tostring(rot.z)))
         if lastGoodPreview and not applyingFallback then
             applyingFallback = true

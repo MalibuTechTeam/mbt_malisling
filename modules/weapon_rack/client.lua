@@ -455,8 +455,8 @@ RegisterCommand('mbt_rackcoords', function()
     -- Default prop name printed for convenience; swap it for your rack/locker model.
     local line = ("{ id = 'rack_%d', coords = vec4(%.2f, %.2f, %.2f, %.1f), prop = `xm_prop_xm_gunlocker_01a`, job = false, label = 'Armory' },")
         :format(rackCoordSeq, c.x, c.y, c.z, h)
-    print('[mbt_malisling] Weapon Rack location -> paste into MBT.WeaponRack.Locations:')
-    print(line)
+    -- Console echo is Debug-gated; the clipboard copy + notify below always deliver it.
+    Utils.mbtDebugger('Weapon Rack location -> paste into MBT.WeaponRack.Locations:\n' .. line)
     if lib.setClipboard then lib.setClipboard(line) end
     lib.notify({
         type = 'success', title = 'Weapon Rack',
@@ -647,9 +647,9 @@ end, false)
 RegisterCommand('mbt_rackcount', function()
     local r = lib.callback.await('mbt_malisling:weaponRack:myRacks', false)
     if type(r) ~= 'table' then return end
-    print(('[mbt_malisling] You own %d/%d placed racks:'):format(r.count, r.max))
+    Utils.mbtDebugger(('You own %d/%d placed racks:'):format(r.count, r.max))
     for _, e in ipairs(r.list or {}) do
-        print(('   %s @ %.1f, %.1f, %.1f  (%s)'):format(e.id, e.x, e.y, e.z, e.label or ''))
+        Utils.mbtDebugger(('   %s @ %.1f, %.1f, %.1f  (%s)'):format(e.id, e.x, e.y, e.z, e.label or ''))
     end
     lib.notify({ type = 'inform', title = 'Weapon Rack',
         description = ('You own %d/%d placed racks (full list in F8).'):format(r.count, r.max) })

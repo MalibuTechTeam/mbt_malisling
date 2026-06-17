@@ -92,7 +92,6 @@ client_scripts {
     'modules/ammo_sharing/client.lua',
     'modules/prop_position_editor/client.lua',
     'modules/no_draw_zones/client.lua',
-    'modules/prop_editor/client.lua',
 }
 
 files {
@@ -110,6 +109,6 @@ files {
 --   qb-inventory  (any modern version)
 --
 -- oxmysql: soft dependency, used ONLY by the Vehicle Trunk Weapon Rack for
--- persistence (table mbt_vehicle_trunk). Detected at runtime — if oxmysql isn't
+-- persistence (table mbt_malisling_trunk). Detected at runtime — if oxmysql isn't
 -- started that feature disables itself and the rest of the script stays DB-free.
 -- This is the one documented exception to the "no database" rule.
