@@ -28,6 +28,22 @@ local function coerceInts(d)
     if type(d) ~= 'table' then return d end
     if d.Bone     ~= nil then d.Bone     = math.floor(tonumber(d.Bone) or 0) end
     if d.RotOrder ~= nil then d.RotOrder = math.floor(tonumber(d.RotOrder) or 2) end
+    -- Force Pos/Rot to FLOATS. The NUI's React rotation sliders send INTEGERS, which survive
+    -- JSON -> DB -> decode as Lua integers; an integer rotation arg makes AttachEntityToEntity
+    -- IGNORE the rotation (prop stuck at the default pose). Floats at the source fix it.
+    for _, k in ipairs({ 'Pos', 'Rot' }) do
+        local g = d[k]
+        if type(g) == 'table' then
+            for _, sex in ipairs({ 'male', 'female' }) do
+                local v = g[sex]
+                if type(v) == 'table' then
+                    v.x = (tonumber(v.x) or 0.0) + 0.0
+                    v.y = (tonumber(v.y) or 0.0) + 0.0
+                    v.z = (tonumber(v.z) or 0.0) + 0.0
+                end
+            end
+        end
+    end
     return d
 end
 
@@ -46,8 +62,10 @@ local function reattachLocal(wtype)
         true, true, false, info.isPed, math.floor(tonumber(info.RotOrder) or 2), info.FixedRot)
 end
 
-RegisterNetEvent('mbt_malisling:propPos:apply', function(p)
-    if type(p) ~= 'table' or type(p.wtype) ~= 'string' then return end
+-- Apply ONE override's data to MBT.PropInfo / MBT.CustomPropPosition. No re-attach here —
+-- callers rebuild propInfoTable + re-attach afterwards.
+local function applyPropPosData(p)
+    if type(p) ~= 'table' or type(p.wtype) ~= 'string' then return false end
     if p.scope == 'default' then
         if type(p.data) == 'table' then MBT.PropInfo[p.wtype] = coerceInts(p.data) end
     else
@@ -58,12 +76,26 @@ RegisterNetEvent('mbt_malisling:propPos:apply', function(p)
             MBT.CustomPropPosition[p.scope][p.wtype] = nil
         end
     end
+    return true
+end
+
+RegisterNetEvent('mbt_malisling:propPos:apply', function(p)
+    if not applyPropPosData(p) then return end
     -- Rebuild propInfoTable for the local player, then re-attach the live prop.
     if sendAnimations then
         sendAnimations(PlayerData and PlayerData.job and PlayerData.job.name or {})
     end
     reattachLocal(p.wtype)
 end)
+
+-- Pull the DB-persisted overrides at init (called from core Init() BEFORE its first
+-- sendAnimations) so saved positions survive a resource restart — the broadcast above
+-- only reaches clients already connected when the save happened.
+function MBT.SyncSavedPropPositions()
+    local rows = lib.callback.await('mbt_malisling:getPropPositions', false)
+    if type(rows) ~= 'table' then return end
+    for i = 1, #rows do applyPropPosData(rows[i]) end
+end
 
 -- ── Edit mode (admin) ────────────────────────────────────────────────────────
 local editing   = false
@@ -120,6 +152,35 @@ local function destroyPreview()
     if previewObj and DoesEntityExist(previewObj) then DeleteEntity(previewObj) end
     previewObj = nil
     lastGoodPreview = nil
+end
+
+-- While editing, hide the player's REAL slung weapon(s) so the editor preview prop doesn't
+-- overlap/duplicate them (e.g. editing 'back' while a real rifle is already slung). We hide
+-- (not delete) to avoid a respawn round-trip; restored on stop.
+local hiddenSlung = {}
+local function hideRealSlung()
+    hiddenSlung = {}
+    local mine = playersToTrack and playersToTrack[cache.serverId]
+    if type(mine) ~= 'table' then return end
+    for wtype, prop in pairs(mine) do
+        if type(prop) == 'number' and DoesEntityExist(prop) then
+            -- SetEntityVisible doesn't reliably hide attached weapon objects, so DELETE them
+            -- (the core does the same for vehicle hiding). The `true` sentinel keeps the slot
+            -- reserved so syncSling won't respawn it while editing.
+            DeleteEntity(prop)
+            mine[wtype] = true
+            hiddenSlung[#hiddenSlung + 1] = wtype
+        end
+    end
+end
+local function restoreRealSlung()
+    if #hiddenSlung == 0 then return end
+    local mine = playersToTrack and playersToTrack[cache.serverId]
+    if type(mine) == 'table' then
+        for i = 1, #hiddenSlung do mine[hiddenSlung[i]] = false end   -- release the slots
+    end
+    hiddenSlung = {}
+    TriggerServerEvent('mbt_malisling:checkInventory')   -- respawn the real props fresh on exit
 end
 
 local function updateCam()
@@ -183,6 +244,8 @@ RegisterNUICallback('propEdit:start', function(d, cb)
     if not PREVIEW[wtype] then cb({ ok = false }); return end
     editing = true
     editWtype = wtype
+    -- Hide the player's real slung weapon(s) so the preview prop doesn't overlap/duplicate them.
+    hideRealSlung()
 
     local ped = cache.ped
     -- IMPORTANT: do NOT FreezeEntityPosition the ped and do NOT SetEntityCollision
@@ -285,6 +348,7 @@ local function stopEditing()
         cam = nil
     end
     destroyPreview()
+    restoreRealSlung()
     FreezeEntityPosition(cache.ped, false)
 end
 

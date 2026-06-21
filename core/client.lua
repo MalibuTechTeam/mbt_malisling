@@ -277,6 +277,10 @@ function Init()
     MBT.WeaponsInfo = lib.callback.await('mbt_malisling:getWeapoConf', false)
     Utils.mbtDebugger("Init ~ has been fired!!!")
 
+    -- Load DB-persisted prop-position overrides into MBT.PropInfo/CustomPropPosition BEFORE
+    -- the first sendAnimations rebuild, so saved editor positions survive a resource restart.
+    if MBT.SyncSavedPropPositions then MBT.SyncSavedPropPositions() end
+
     local tempPlayers = GetActivePlayers()
     local activePlayers = {}
 
@@ -753,7 +757,13 @@ AddEventHandler('mbt_malisling:syncSling', function (data)
                 -- flag before AttachEntityToEntity, or the attach pass resets it and the slung
                 -- prop never renders its flashlight.
                 Wait(50)
-                AttachEntityToEntity(weaponData.weaponObj, playerPed, boneIndex, attachInfo["Pos"][pedSex]["x"], attachInfo["Pos"][pedSex]["y"], attachInfo["Pos"][pedSex]["z"], attachInfo["Rot"][pedSex]["x"], attachInfo["Rot"][pedSex]["y"], attachInfo["Rot"][pedSex]["z"], true, true, false, attachInfo["isPed"], attachInfo["RotOrder"], attachInfo["FixedRot"])
+                -- Force Pos/Rot to FLOATS: an integer rotation argument makes AttachEntityToEntity
+                -- IGNORE the rotation (the NUI's React sliders send integers that reach here as
+                -- Lua ints, leaving the prop stuck at its default pose). +0.0 guarantees a float.
+                local P, R = attachInfo["Pos"][pedSex], attachInfo["Rot"][pedSex]
+                AttachEntityToEntity(weaponData.weaponObj, playerPed, boneIndex,
+                    P.x + 0.0, P.y + 0.0, P.z + 0.0, R.x + 0.0, R.y + 0.0, R.z + 0.0,
+                    true, true, false, attachInfo["isPed"], attachInfo["RotOrder"], attachInfo["FixedRot"])
                 SetEntityCompletelyDisableCollision(weaponData.weaponObj, false, true)
                 SetFlashLightKeepOnWhileMoving(true)
                 Utils.mbtDebugger("syncSling ~ Apply attachments to weapon obj!")

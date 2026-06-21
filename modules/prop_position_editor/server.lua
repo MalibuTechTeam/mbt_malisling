@@ -21,6 +21,20 @@ local CONFIG_DEFAULTS = json.decode(json.encode(MBT.PropInfo or {}))
 
 local function hasDb() return GetResourceState('oxmysql') == 'started' end
 
+-- DB-persisted overrides mirrored in memory, so a client that joins AFTER load can
+-- fetch them on init. The live propPos:apply broadcast only reaches already-connected
+-- clients → without this, saved positions revert to config defaults on every restart.
+local saved = {}   -- [scope.."\0"..wtype] = { scope = ..., wtype = ..., data = ... }
+local function savedKey(scope, wtype) return scope .. '\0' .. wtype end
+local function rememberSaved(scope, wtype, data)
+    saved[savedKey(scope, wtype)] = { scope = scope, wtype = wtype, data = data }
+end
+lib.callback.register('mbt_malisling:getPropPositions', function()
+    local out = {}
+    for _, row in pairs(saved) do out[#out + 1] = row end
+    return out
+end)
+
 -- ── Validation ───────────────────────────────────────────────────────────────
 local function isVec(v, lo, hi)
     return type(v) == 'table' and type(v.x) == 'number' and v.x >= lo and v.x <= hi
@@ -91,7 +105,9 @@ local function ensureSchema()
             for _, row in ipairs(rows) do
                 local ok, data = pcall(json.decode, row.data)
                 if ok and WTYPES[row.wtype] and validData(data) then
-                    applyServer(row.scope, row.wtype, sanitize(data))
+                    local clean = sanitize(data)
+                    applyServer(row.scope, row.wtype, clean)
+                    rememberSaved(row.scope, row.wtype, clean)
                 end
             end
             Utils.mbtDebugger('prop_position_editor ~ loaded', #rows, 'position rows from DB')
@@ -102,14 +118,15 @@ end
 -- ── NUI/admin events (ACE-checked) ───────────────────────────────────────────
 RegisterNetEvent('mbt_malisling:propPos:save', function(payload)
     local src = source
-    if not IsPlayerAceAllowed(src, adminPerm) then return end
-    if type(payload) ~= 'table' then return end
+    if not IsPlayerAceAllowed(src, adminPerm) then Utils.mbtWarn('propPos:save ~ ACE denied for', src); return end
+    if type(payload) ~= 'table' then Utils.mbtWarn('propPos:save ~ payload not a table'); return end
     local scope, wtype, data = payload.scope, payload.wtype, payload.data
-    if type(scope) ~= 'string' or scope == '' or not WTYPES[wtype] or not validData(data) then
-        Utils.mbtWarn('propPos:save ~ invalid payload from', src); return
-    end
+    if type(scope) ~= 'string' or scope == '' then Utils.mbtWarn('propPos:save ~ bad scope:', tostring(scope)); return end
+    if not WTYPES[wtype] then Utils.mbtWarn('propPos:save ~ bad wtype:', tostring(wtype)); return end
+    if not validData(data) then Utils.mbtWarn('propPos:save ~ validData FAILED; data=', json.encode(data)); return end
     data = sanitize(data)
     applyServer(scope, wtype, data)
+    rememberSaved(scope, wtype, data)
     if hasDb() then
         exports.oxmysql:execute(
             'INSERT INTO mbt_malisling_positions (scope, wtype, data) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE data = VALUES(data)',
@@ -126,6 +143,7 @@ RegisterNetEvent('mbt_malisling:propPos:reset', function(payload)
     local scope, wtype = payload.scope, payload.wtype
     if type(scope) ~= 'string' or scope == '' or not WTYPES[wtype] then return end
     resetServer(scope, wtype)
+    saved[savedKey(scope, wtype)] = nil
     if hasDb() then
         exports.oxmysql:execute('DELETE FROM mbt_malisling_positions WHERE scope = ? AND wtype = ?', { scope, wtype })
     end
