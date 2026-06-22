@@ -17,7 +17,8 @@ local tr  = cfg.Transition or { Enabled = false }
 
 -- [propType] = true while that type is in low-ready (chest) for the LOCAL player.
 local lowReady = {}
-local busy     = false  -- a transition sequence is running
+local busy       = false  -- a transition sequence is running
+local lastToggle = 0      -- client toggle debounce (>= server rate-limit, avoids remote desync)
 
 local function pedSexKey(ped)
     return IsPedMale(ped) and 'male' or 'female'
@@ -26,7 +27,7 @@ end
 local function attachAt(prop, ped, bone, pos, rot, isPed, rotOrder, fixedRot)
     local boneIndex = GetPedBoneIndex(ped, bone)
     AttachEntityToEntity(prop, ped, boneIndex,
-        pos.x, pos.y, pos.z, rot.x, rot.y, rot.z,
+        pos.x + 0.0, pos.y + 0.0, pos.z + 0.0, rot.x + 0.0, rot.y + 0.0, rot.z + 0.0,
         true, true, false, isPed and true or false, rotOrder or 2,
         fixedRot ~= false)
 end
@@ -104,6 +105,9 @@ end
 --- Local toggle. Finds the first eligible slung long gun and swaps it.
 local function toggle()
     if busy or not cfg.Enabled then return end   -- Enabled is live-toggled from the dashboard
+    local now = GetGameTimer()
+    if now - lastToggle < 200 then return end     -- debounce: with transitions off there's no busy lock,
+    lastToggle = now                              -- and the server drops events <150ms apart → desync
 
     local targetType, prop
     for propType in pairs(cfg.Types) do
@@ -136,7 +140,9 @@ RegisterKeyMapping(cfg.Command, '[MBT] Toggle low ready (chest carry)', 'keyboar
 
 -- Nearby players: plain final placement (no choreography) on the prop we hold.
 RegisterNetEvent('mbt_malisling:remoteLowReady', function(srcPlayer, propType, chest)
-    local ped = GetPlayerPed(GetPlayerFromServerId(srcPlayer))
+    local pid = GetPlayerFromServerId(srcPlayer)
+    if pid == -1 then return end   -- unstreamed source: GetPlayerPed(-1) would resolve to OUR ped
+    local ped = GetPlayerPed(pid)
     if not ped or ped == 0 or not DoesEntityExist(ped) then return end
     local prop = playersToTrack[srcPlayer] and playersToTrack[srcPlayer][propType]
     if type(prop) ~= 'number' or not DoesEntityExist(prop) then return end
@@ -161,5 +167,12 @@ CreateThread(function()
             wasPresent[propType] = present
         end
     end
+end)
+
+-- Ped/skin change (respawn, model swap): the new body re-slings on the back by default,
+-- so drop any stale chest flag instead of snapping the fresh prop to the chest.
+lib.onCache('ped', function()
+    lowReady   = {}
+    wasPresent = {}
 end)
 

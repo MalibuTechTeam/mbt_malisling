@@ -14,7 +14,7 @@ local adminPerm    = (MBT.Admin and MBT.Admin.Permission) or ('command.' .. admi
 
 local WTYPES = { side = true, back = true, back2 = true, melee = true, melee2 = true, melee3 = true, extinguisher = true, sling = true }
 -- Valid wtypes = the base set + per-variant sling virtual types 'sling:<id>'.
-local function validWtype(w) return WTYPES[w] == true or (type(w) == 'string' and w:match('^sling:[%w_]+$') ~= nil) end
+local function validWtype(w) return WTYPES[w] == true or (type(w) == 'string' and w:match('^sling:[%w%-_]+$') ~= nil) end
 local BONES  = { [24816] = true, [24818] = true, [57005] = true, [36029] = true,
                  [58271] = true, [51826] = true, [11816] = true, [23553] = true }
 
