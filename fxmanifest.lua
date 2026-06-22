@@ -104,9 +104,9 @@ files {
     'web/dist/sounds/*.ogg',
 }
 
--- Tactical Sling strap props (mbt_belt_prop_a / _b) ship in stream/ and are declared
+-- Tactical Sling strap props (mbt_belt_prop_a / _b) ship in stream/belt/ and are declared
 -- in mbt_m4_prop.ytyp; register the archetypes so CreateObject can spawn them.
-data_file 'DLC_ITYP_REQUEST' 'stream/mbt_m4_prop.ytyp'
+data_file 'DLC_ITYP_REQUEST' 'stream/belt/mbt_m4_prop.ytyp'
 
 -- Supported inventories (soft dependencies — detected at runtime):
 --   ox_inventory  >= 2.30.0
