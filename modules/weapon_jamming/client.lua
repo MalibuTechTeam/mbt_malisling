@@ -84,7 +84,7 @@ local function jammedAnim()
 end
 
 AddStateBagChangeHandler('JammedState', nil, function(bagName, key, value)
-    if value == nil or not type(value) == "boolean" then return end
+    if type(value) ~= "boolean" then return end
     isJammed = value
     Utils.mbtDebugger("isJammed has been set to ", isJammed)
     if isJammed then MBT.NotifyLabel("has_jammed") end

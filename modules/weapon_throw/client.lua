@@ -12,8 +12,9 @@ AddEventHandler('ox_inventory:currentWeapon', function(data)
 end)
 
 local function isAllowedToThrow(weaponGroup)
-    Utils.mbtDebugger("Is allowed to throw? ", MBT.Throw["Groups"][weaponGroup]["Allowed"])
-    return MBT.Throw["Groups"][weaponGroup]["Allowed"]
+    local g = MBT.Throw["Groups"][weaponGroup]   -- nil for an unconfigured/unknown weapon group
+    Utils.mbtDebugger("Is allowed to throw? ", g and g["Allowed"])
+    return g and g["Allowed"] or false
 end
 
 local function throwWeapon(data)

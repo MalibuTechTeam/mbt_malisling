@@ -349,7 +349,7 @@ end)
 RegisterNUICallback('propEdit:cam', function(d, cb)
     if editing and type(d) == 'table' then
         -- Absolute values from the NUI sliders (clamped).
-        if d.yaw   ~= nil then orbit.yaw   = tonumber(d.yaw) % 360 end
+        if d.yaw   ~= nil then orbit.yaw   = (tonumber(d.yaw) or orbit.yaw) % 360 end
         if d.pitch ~= nil then orbit.pitch = math.max(-80.0, math.min(80.0, tonumber(d.pitch) or orbit.pitch)) end
         if d.dist  ~= nil then orbit.dist  = math.max(1.0, math.min(5.0, tonumber(d.dist) or orbit.dist)) end
         updateCam()

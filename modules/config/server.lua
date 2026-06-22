@@ -591,6 +591,19 @@ local function persistable(d)
     }
 end
 
+--- Strip server-only secrets (Discord webhook URLs) before config goes to CLIENTS.
+--- The admin-open snapshot keeps them (ACE-gated, the admin edits them) and the DB
+--- stores the real value; the broadcast + getRuntimeConfig reach EVERY client, which
+--- never needs a webhook (logging fires server-side). Without this any player could
+--- read the webhook URLs and spam the server's Discord.
+local function stripWebhooks(d)
+    local out = json.decode(json.encode(d))
+    if out.WeaponDrop and out.WeaponDrop.Logging then out.WeaponDrop.Logging.Webhook = '' end
+    if out.WeaponRack and out.WeaponRack.Logging then out.WeaponRack.Logging.Webhook = '' end
+    if out.PatDown   and out.PatDown.Logging   then out.PatDown.Logging.Webhook   = '' end
+    return out
+end
+
 --- Deep-merge SAVED values onto the live template: only keys present in the
 --- template are read from the file (type-checked); anything missing — e.g. a
 --- feature block added after the file was saved — keeps its config.lua default.
@@ -733,7 +746,7 @@ RegisterNetEvent('mbt_malisling:adminSave', function(data)
     else
         Utils.mbtWarn('config ~ oxmysql not started; save applied live but NOT persisted')
     end
-    TriggerClientEvent('mbt_malisling:applyConfig', -1, payload)
+    TriggerClientEvent('mbt_malisling:applyConfig', -1, stripWebhooks(payload))
     Utils.mbtDebugger('Admin config saved by player', src)
 end)
 
@@ -741,7 +754,7 @@ end)
 -- restart or a fresh join picks up runtime_config without needing a save. Returns
 -- the editable snapshot the client's applyConfig handler consumes.
 lib.callback.register('mbt_malisling:getRuntimeConfig', function()
-    return persistable(snapshot())
+    return stripWebhooks(persistable(snapshot()))
 end)
 
 AddEventHandler('onServerResourceStart', function(resource)

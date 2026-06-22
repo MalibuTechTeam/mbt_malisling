@@ -559,7 +559,7 @@ RegisterNUICallback('trunkEdit:cam', function(d, cb)
     if tedit and tedit.cam and type(d) == 'table' then
         local orb = tedit.orbit
         -- Absolute values from the NUI sliders (clamped).
-        if d.yaw   ~= nil then orb.yaw   = tonumber(d.yaw) % 360 end
+        if d.yaw   ~= nil then orb.yaw   = (tonumber(d.yaw) or orb.yaw) % 360 end
         if d.pitch ~= nil then orb.pitch = math.max(-80.0, math.min(80.0, tonumber(d.pitch) or orb.pitch)) end
         if d.dist  ~= nil then orb.dist  = math.max(1.0, math.min(6.0, tonumber(d.dist) or orb.dist)) end
         teditUpdateCam()
