@@ -185,7 +185,15 @@ local function applyConfig(d)
         end
     end
     if d.TacticalSling and MBT.TacticalSling then
+        local oldVariant = MBT.TacticalSling.Variant
         MBT.TacticalSling.Enabled = d.TacticalSling.Enabled
+        if d.TacticalSling.Variant then MBT.TacticalSling.Variant = d.TacticalSling.Variant end
+        if d.TacticalSling.Types then
+            MBT.TacticalSling.Types = { ['back'] = d.TacticalSling.Types.back and true or false, ['back2'] = d.TacticalSling.Types.back2 and true or false }
+        end
+        -- Enabled/Types are handled live by the strap loop; a Variant change needs a respawn
+        -- to swap the model (only when it actually changed → no flicker on unrelated saves).
+        if oldVariant ~= MBT.TacticalSling.Variant and MBT.RefreshSling then MBT.RefreshSling() end
     end
     if d.ShellCasings and MBT.ShellCasings then
         MBT.ShellCasings.Enabled      = d.ShellCasings.Enabled

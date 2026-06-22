@@ -61,6 +61,7 @@ export function PositionsSection({ jobs, onEdit }: { jobs: Job[]; onEdit: (t: Ed
 /** Tactical Sling — on/off toggle + per-gender live position editor (same editor as weapons). */
 export function SlingPositionsSection({ config, update, onEdit }: SectionProps & { onEdit: (gender: string) => void }) {
   const t = config?.TacticalSling ?? {}
+  const ty = t.Types ?? {}
   const [gender, setGender] = useState('male')
   return (
     <Section icon="layers" title="TACTICAL SLING" sub="Visible strap on the back while a long gun is slung."
@@ -74,11 +75,26 @@ export function SlingPositionsSection({ config, update, onEdit }: SectionProps &
         </span>
       }>
       <div className="mbt-notice">
-        Toggle on, then <b>Live Editor</b> to place the strap per gender — same editor as the weapons. Saving
-        applies live. Colour variant is set in <code>config.lua</code> (<code>MBT.TacticalSling.Variant</code>).
+        Toggle on, pick the <b>variant</b> and which weapons show it, then <b>Live Editor</b> to place the strap
+        per gender — same editor as the weapons. Saving applies live.
       </div>
-      <FieldBlock label="Gender" hint="Which offset to edit." style={{ marginBottom: 0 }}>
-        <Segmented value={gender} options={GENDERS} onChange={setGender} />
+      <Grid2>
+        <FieldBlock label="Variant" hint="Strap prop colour.">
+          <Select value={t.Variant ?? 'normal'} aria-label="Sling variant"
+            onChange={(v) => update('TacticalSling.Variant', v)}
+            options={[{ value: 'normal', label: 'Normal' }, { value: 'camo', label: 'Camo' }]} />
+        </FieldBlock>
+        <FieldBlock label="Gender" hint="Which offset to edit.">
+          <Segmented value={gender} options={GENDERS} onChange={setGender} />
+        </FieldBlock>
+      </Grid2>
+      <FieldBlock label="Show On" hint="Which slung weapons display the strap." style={{ marginBottom: 0 }}>
+        <Grid2>
+          <ToggleRow title="Rifles / Long guns" checked={!!ty.back}
+            onChange={(v) => update('TacticalSling.Types.back', v)} />
+          <ToggleRow title="Heavy / Launchers" checked={!!ty.back2}
+            onChange={(v) => update('TacticalSling.Types.back2', v)} />
+        </Grid2>
       </FieldBlock>
     </Section>
   )

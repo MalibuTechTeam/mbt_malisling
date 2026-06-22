@@ -251,7 +251,7 @@ export default function AdminDashboard() {
               <span className="mbt-rail__label">Positions</span>
               <span className="mbt-rail__hint">Body and trunk placement</span>
             </span>
-            <span className="mbt-rail__count">edit</span>
+            <span className="mbt-rail__count">3</span>
           </button>
 
           {/* Paid companion — upsell page (flips to "connected" when the bridge is up). */}

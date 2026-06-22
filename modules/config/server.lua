@@ -174,7 +174,11 @@ local function snapshot()
                 Access       = (WR.Placement and WR.Placement.Access) == 'owner' and 'owner' or 'everyone',
             },
         },
-        TacticalSling = { Enabled = b(TS.Enabled) },
+        TacticalSling = {
+            Enabled = b(TS.Enabled),
+            Variant = TS.Variant or 'normal',
+            Types   = { back = b(TS.Types and TS.Types.back), back2 = b(TS.Types and TS.Types.back2) },
+        },
         ShellCasings = {
             Enabled       = b(SC.Enabled),
             Chance        = num(SC.Chance, 0.5),
@@ -337,6 +341,8 @@ local function validate(d)
     -- Tactical Sling
     local ts = d.TacticalSling
     if type(ts) ~= 'table' or type(ts.Enabled) ~= 'boolean' then return false end
+    if ts.Variant ~= nil and type(ts.Variant) ~= 'string' then return false end
+    if ts.Types ~= nil and type(ts.Types) ~= 'table' then return false end
     -- Shell Casings
     local sc = d.ShellCasings
     if type(sc) ~= 'table' or type(sc.Enabled) ~= 'boolean' or type(sc.AllowCollect) ~= 'boolean' then return false end
@@ -476,6 +482,10 @@ local function applyToMBT(d)
         MBT.WeaponRack.Placement.Access       = d.WeaponRack.Placement.Access
     end
     MBT.TacticalSling.Enabled = d.TacticalSling.Enabled
+    if d.TacticalSling.Variant then MBT.TacticalSling.Variant = d.TacticalSling.Variant end
+    if d.TacticalSling.Types then
+        MBT.TacticalSling.Types = { ['back'] = d.TacticalSling.Types.back and true or false, ['back2'] = d.TacticalSling.Types.back2 and true or false }
+    end
     if MBT.ShellCasings then
         MBT.ShellCasings.Enabled       = d.ShellCasings.Enabled
         MBT.ShellCasings.Chance        = d.ShellCasings.Chance
