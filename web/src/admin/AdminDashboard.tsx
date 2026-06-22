@@ -6,7 +6,7 @@ import type { SectionProps } from './sections/parts'
 import { CoreSection, InterfaceSection } from './sections/GeneralSection'
 import { HolsterSection } from './sections/HolsterSection'
 import { DropVisualSection, DespawnSection, DropLoggingSection } from './sections/WeaponDropSection'
-import { JammingSection, SuppressorSection, SafetySection, ChargeSection, WeightSection } from './sections/CombatSections'
+import { JammingSection, SuppressorSection, SafetySection, ChargeSection, WeightSection, LowReadySection } from './sections/CombatSections'
 import { InspectSection, WeaponNameSection, PosesSection, ThrowSection, ChainOfCustodySection, ShellCasingsSection, HandoffSection, SerialsSection, ConcealedCarrySection, PatDownSection, AmmoSharingSection } from './sections/InteractionSections'
 import { NoDrawSection, VehicleSection, TrunkRackSection, WeaponRackSection, TrunkPositionsSection } from './sections/WorldSections'
 import { PositionsSection, SlingPositionsSection, type Job, type EditTarget } from './sections/PositionsSection'
@@ -46,7 +46,7 @@ const CATEGORIES: Category[] = [
     // Ordered to pair similar heights for the equal-height grid: the two tall
     // cards (Suppressor, Safety) share row 1; the two short 2-input cards
     // (Jamming, Charge) share row 2; Weight closes.
-    sections: [SuppressorSection, SafetySection, JammingSection, ChargeSection, WeightSection] },
+    sections: [SuppressorSection, SafetySection, JammingSection, ChargeSection, WeightSection, LowReadySection] },
   { id: 'interaction', label: 'Interaction', hint: 'Inspect, throw, carry', icon: 'cursor',
     // Height-paired: Inspect + Throw (both tall) row 1; Concealed Carry (tall) +
     // the [Weapon Name, Showcase Poses] stack (right) row 2 — the two short cards
@@ -77,6 +77,7 @@ const FEATURES: { label: string; path: string; cat: string }[] = [
   { label: 'Weapon Jamming', path: 'Jamming.Enabled',             cat: 'Handling' },
   { label: 'Charge Weapon',  path: 'ChargeWeapon.Enabled',        cat: 'Handling' },
   { label: 'Weapon Weight',  path: 'WeaponWeight.Enabled',        cat: 'Handling' },
+  { label: 'Low Ready',      path: 'LowReady.Enabled',            cat: 'Handling' },
   { label: 'Weapon Inspect', path: 'Inspect.Enabled',             cat: 'Interaction' },
   { label: 'Weapon Name',    path: 'WeaponName.Enabled',          cat: 'Interaction' },
   { label: 'Showcase Poses', path: 'ShowcasePoses.Enabled',       cat: 'Interaction' },

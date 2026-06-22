@@ -113,6 +113,13 @@ local function applyConfig(d)
     if d.WeaponWeight and MBT.WeaponWeight then
         for k, v in pairs(d.WeaponWeight) do MBT.WeaponWeight[k] = v end
     end
+    if d.LowReady and MBT.LowReady then
+        MBT.LowReady.Enabled = d.LowReady.Enabled
+        if d.LowReady.Types then
+            MBT.LowReady.Types = { ['back'] = d.LowReady.Types.back and true or false,
+                                   ['back2'] = d.LowReady.Types.back2 and true or false }
+        end
+    end
     -- Interaction
     if d.Inspect and MBT.Inspect then
         MBT.Inspect.Enabled     = d.Inspect.Enabled

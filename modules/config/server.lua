@@ -38,6 +38,8 @@ local function snapshot()
     local DD, DL = D.Despawn or {}, D.Logging or {}
     local J, SH = MBT.Jamming or {}, MBT.SuppressorHeat or {}
     local SF, CH, WW = MBT.Safety or {}, MBT.ChargeWeapon or {}, MBT.WeaponWeight or {}
+    local LR  = MBT.LowReady or {}
+    local lrt = LR.Types or {}
     local IN, WN = MBT.Inspect or {}, MBT.WeaponName or {}
     local SP, ND, VH, TS = MBT.ShowcasePoses or {}, MBT.NoDrawZones or {}, MBT.VehicleHiding or {}, MBT.TacticalSling or {}
     local VTR = MBT.VehicleTrunkRack or {}
@@ -114,6 +116,10 @@ local function snapshot()
             Threshold  = num(WW.Threshold, 2),
             PerWeapon  = num(WW.PerWeapon, 0.03),
             MaxPenalty = num(WW.MaxPenalty, 0.18),
+        },
+        LowReady = {
+            Enabled = b(LR.Enabled),
+            Types   = { back = b(lrt.back), back2 = b(lrt.back2) },
         },
         -- Interaction
         Inspect = {
@@ -285,6 +291,10 @@ local function validate(d)
     if type(ww.Threshold) ~= 'number' or ww.Threshold < 0 or ww.Threshold > 20 then return false end
     if type(ww.PerWeapon) ~= 'number' or ww.PerWeapon < 0 or ww.PerWeapon > 1 then return false end
     if type(ww.MaxPenalty) ~= 'number' or ww.MaxPenalty < 0 or ww.MaxPenalty > 0.9 then return false end
+    -- Low Ready
+    local lr = d.LowReady
+    if type(lr) ~= 'table' or type(lr.Enabled) ~= 'boolean' then return false end
+    if type(lr.Types) ~= 'table' then return false end
     -- Inspect
     local ins = d.Inspect
     if type(ins) ~= 'table' or type(ins.Enabled) ~= 'boolean' then return false end
@@ -426,6 +436,8 @@ local function applyToMBT(d)
     MBT.WeaponWeight.Threshold  = d.WeaponWeight.Threshold
     MBT.WeaponWeight.PerWeapon  = d.WeaponWeight.PerWeapon
     MBT.WeaponWeight.MaxPenalty = d.WeaponWeight.MaxPenalty
+    MBT.LowReady.Enabled = d.LowReady.Enabled
+    MBT.LowReady.Types   = { ['back'] = d.LowReady.Types.back and true or false, ['back2'] = d.LowReady.Types.back2 and true or false }
     -- Interaction
     MBT.Inspect.Enabled        = d.Inspect.Enabled
     MBT.Inspect.MaxDistance    = d.Inspect.MaxDistance
@@ -559,6 +571,7 @@ local function persistable(d)
         ConditionHUD = d.ConditionHUD,
         ChargeWeapon = d.ChargeWeapon,
         WeaponWeight = d.WeaponWeight,
+        LowReady = d.LowReady,
         Inspect = d.Inspect,
         WeaponName = d.WeaponName,
         ShowcasePoses = d.ShowcasePoses,

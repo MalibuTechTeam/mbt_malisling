@@ -137,3 +137,21 @@ export function WeightSection({ config, update }: SectionProps) {
     </Section>
   )
 }
+
+/** Low Ready — drop a slung long gun to a chest-carry stance (keybind, default HOME). */
+export function LowReadySection({ config, update }: SectionProps) {
+  const l = config.LowReady ?? {}
+  const ty = l.Types ?? {}
+  return (
+    <Section icon="target" title="LOW READY" sub="Carry a slung long gun across the chest, hands free (key HOME)."
+      action={<ToggleRow.Inline checked={!!l.Enabled} onChange={(v) => update('LowReady.Enabled', v)} />}>
+      <FieldBlock label="Eligible Weapons" hint="Which slung long guns can drop to the chest stance."
+        style={{ marginBottom: 0 }}>
+        <Grid2>
+          <ToggleRow title="Rifles" checked={!!ty.back} onChange={(v) => update('LowReady.Types.back', v)} />
+          <ToggleRow title="Heavy" checked={!!ty.back2} onChange={(v) => update('LowReady.Types.back2', v)} />
+        </Grid2>
+      </FieldBlock>
+    </Section>
+  )
+}

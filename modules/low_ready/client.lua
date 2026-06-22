@@ -10,7 +10,7 @@
 -- frame-synced choreography) to avoid desync.
 -- ─────────────────────────────────────────────────────────────────────────────
 
-if not MBT.LowReady or not MBT.LowReady.Enabled then return end
+if not MBT.LowReady then return end   -- always register the keybind; Enabled is live-checked in toggle()
 
 local cfg = MBT.LowReady
 local tr  = cfg.Transition or { Enabled = false }
@@ -91,7 +91,7 @@ end
 
 --- Local toggle. Finds the first eligible slung long gun and swaps it.
 local function toggle()
-    if busy then return end
+    if busy or not cfg.Enabled then return end   -- Enabled is live-toggled from the dashboard
 
     local targetType, prop
     for propType in pairs(cfg.Types) do
@@ -131,14 +131,22 @@ RegisterNetEvent('mbt_malisling:remoteLowReady', function(srcPlayer, propType, c
     placeAt(prop, ped, propType, chest and 'chest' or 'back')
 end)
 
--- Clear a stale low-ready flag if the prop is gone (weapon drawn / re-slung).
+-- Persist the chest stance across a draw. While a type is flagged low-ready, watch its
+-- slung prop: when it reappears (weapon re-slung after being drawn) the core re-attaches it
+-- on the BACK → snap it back to the chest and re-sync nearby players. The flag clears only on
+-- an explicit toggle (HOME), so drawing/holstering no longer loses the stance.
+local wasPresent = {}
 CreateThread(function()
     while true do
-        Wait(1000)
+        Wait(next(lowReady) and 200 or 1000)   -- poll fast only while a chest stance is held
         for propType in pairs(lowReady) do
-            if not GetLocalSlungProp(propType) then
-                lowReady[propType] = nil
+            local prop = GetLocalSlungProp(propType)
+            local present = (prop and DoesEntityExist(prop)) and true or false
+            if present and wasPresent[propType] == false and not busy then
+                placeChest(prop, cache.ped, propType)                            -- restore chest carry
+                TriggerServerEvent('mbt_malisling:syncLowReady', propType, true)  -- keep nearby players in sync
             end
+            wasPresent[propType] = present
         end
     end
 end)
