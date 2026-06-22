@@ -17,14 +17,23 @@ local PREVIEW = {
     extinguisher = 'WEAPON_FIREEXTINGUISHER',
 }
 
--- Non-weapon preview types: plain object props spawned with CreateObject (not
--- CreateWeaponObject). The sling strap is one — its model comes from MBT.TacticalSling.
-local PREVIEW_OBJECTS = { sling = true }
+-- Non-weapon preview types: plain object props (CreateObject, not CreateWeaponObject). The
+-- tactical sling uses per-variant virtual types 'sling:<id>' (bare 'sling' = default variant).
+local function slingVariantId(wtype)
+    if wtype == 'sling' then return (MBT.TacticalSling and MBT.TacticalSling.DefaultVariant) or 'normal' end
+    if type(wtype) == 'string' and wtype:sub(1, 6) == 'sling:' then return wtype:sub(7) end
+    return nil
+end
+local function isObjectType(wtype) return slingVariantId(wtype) ~= nil end
 local function previewObjectModel(wtype)
-    if wtype == 'sling' then
-        local s = MBT.TacticalSling
-        return s and ((s.Models and s.Models[s.Variant]) or s.Model)
+    local vid = slingVariantId(wtype)
+    if not vid then return nil end
+    local s = MBT.TacticalSling
+    for _, v in ipairs((s and s.Variants) or {}) do
+        if v.id == vid then return v.model end
     end
+    if s and s.Variants and s.Variants[1] then return s.Variants[1].model end
+    return s and ((s.Models and s.Models[vid]) or s.Model)
 end
 
 -- Factory defaults captured at load — BEFORE any DB override is applied to
@@ -95,7 +104,7 @@ RegisterNetEvent('mbt_malisling:propPos:apply', function(p)
     if sendAnimations then
         sendAnimations(PlayerData and PlayerData.job and PlayerData.job.name or {})
     end
-    if p.wtype == 'sling' then
+    if isObjectType(p.wtype) then
         if MBT.RefreshSling then MBT.RefreshSling() end   -- strap respawns at the new offset
     else
         reattachLocal(p.wtype)
@@ -255,10 +264,10 @@ end
 
 RegisterNUICallback('propEdit:start', function(d, cb)
     local wtype = d and d.wtype
-    if not PREVIEW[wtype] and not PREVIEW_OBJECTS[wtype] then cb({ ok = false }); return end
+    if not PREVIEW[wtype] and not isObjectType(wtype) then cb({ ok = false }); return end
     editing = true
     editWtype = wtype
-    if wtype == 'sling' then
+    if isObjectType(wtype) then
         -- Hide only the real strap (keep weapons visible as an alignment reference).
         if MBT.SetSlingEditing then MBT.SetSlingEditing(true) end
     else
@@ -281,7 +290,7 @@ RegisterNUICallback('propEdit:start', function(d, cb)
     -- Create the prop AT the ped (like /mbt_propedit). Creating it at world origin
     -- (0,0,0) made soft-pinning try to drag it across the map on attach → fling/vanish.
     local pc = GetEntityCoords(ped)
-    if PREVIEW_OBJECTS[wtype] then
+    if isObjectType(wtype) then
         -- Plain object prop (e.g. sling strap): CreateObject, not CreateWeaponObject.
         local model = joaat(previewObjectModel(wtype) or '')
         if not IsModelValid(model) then editing = false; cb({ ok = false }); return end

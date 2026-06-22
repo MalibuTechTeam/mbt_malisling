@@ -26,9 +26,25 @@ local function isFreemode(ped)
     return m == `mp_m_freemode_01` or m == `mp_f_freemode_01`
 end
 
---- Active strap model name for the configured colour variant (fallback to legacy Model).
-local function slingModelName()
-    return (cfg.Models and cfg.Models[cfg.Variant]) or cfg.Model
+--- The local player's job (best-effort, for the per-job variant override).
+local function localJob()
+    return (PlayerData and PlayerData.job and PlayerData.job.name) or nil
+end
+
+--- Active variant id for the local player: per-job override else the configured default.
+local function activeVariant()
+    local job = localJob()
+    if job and cfg.JobVariants and cfg.JobVariants[job] then return cfg.JobVariants[job] end
+    return cfg.DefaultVariant or (cfg.Variants and cfg.Variants[1] and cfg.Variants[1].id)
+end
+
+--- Strap model name for a variant id (fallback to first variant / legacy fields).
+local function modelForVariant(variantId)
+    for _, v in ipairs(cfg.Variants or {}) do
+        if v.id == variantId then return v.model end
+    end
+    if cfg.Variants and cfg.Variants[1] then return cfg.Variants[1].model end
+    return (cfg.Models and cfg.Models[variantId]) or cfg.Model
 end
 
 --- Any eligible long gun currently slung on the local player?
@@ -48,8 +64,9 @@ end
 
 local function spawnStrap(ped)
     if strapObj and DoesEntityExist(strapObj) then return end
-    local modelName = slingModelName()
-    local model = joaat(modelName)
+    local variant   = activeVariant()
+    local modelName = modelForVariant(variant)
+    local model = joaat(modelName or '')
     if not IsModelValid(model) then
         Utils.mbtWarn('tactical_sling ~ invalid model: ' .. tostring(modelName))
         return
@@ -61,10 +78,10 @@ local function spawnStrap(ped)
     SetModelAsNoLongerNeeded(model)
     if not obj or obj == 0 or not DoesEntityExist(obj) then return end
 
-    -- Attach offset from MBT.PropInfo.sling (NUI-editable + DB-persisted), per gender.
-    -- Force FLOATS: an integer rotation arg makes AttachEntityToEntity ignore the
-    -- rotation (the NUI sliders send integers).
-    local info = MBT.PropInfo and MBT.PropInfo.sling
+    -- Per-variant attach offset (NUI-editable + DB-persisted), fallback to the shared default.
+    -- Force FLOATS: an integer rotation arg makes AttachEntityToEntity ignore the rotation
+    -- (the NUI sliders send integers).
+    local info = MBT.PropInfo and (MBT.PropInfo['sling:' .. tostring(variant)] or MBT.PropInfo.sling)
     local sex  = IsPedMale(ped) and 'male' or 'female'
     local pos  = info and info.Pos and info.Pos[sex]
     local rot  = info and info.Rot and info.Rot[sex]

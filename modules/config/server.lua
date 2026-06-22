@@ -59,6 +59,9 @@ local function snapshot()
     for name, hash in pairs(THROW_GROUPS) do
         throwGroups[name] = b(thg[hash] and thg[hash].Allowed)
     end
+    -- Strap variant options (id + label only — model names stay Lua-side) for the NUI dropdown.
+    local slingVariants = {}
+    for _, v in ipairs(TS.Variants or {}) do slingVariants[#slingVariants + 1] = { id = v.id, label = v.label or v.id } end
     return {
         -- General (editable). Debug is intentionally NOT exposed (dev flag → config.lua).
         EnableSling       = b(MBT.EnableSling),
@@ -175,9 +178,11 @@ local function snapshot()
             },
         },
         TacticalSling = {
-            Enabled = b(TS.Enabled),
-            Variant = TS.Variant or 'normal',
-            Types   = { back = b(TS.Types and TS.Types.back), back2 = b(TS.Types and TS.Types.back2) },
+            Enabled        = b(TS.Enabled),
+            DefaultVariant = TS.DefaultVariant or 'normal',
+            Variants       = slingVariants,
+            JobVariants    = TS.JobVariants or {},
+            Types          = { back = b(TS.Types and TS.Types.back), back2 = b(TS.Types and TS.Types.back2) },
         },
         ShellCasings = {
             Enabled       = b(SC.Enabled),
@@ -341,7 +346,8 @@ local function validate(d)
     -- Tactical Sling
     local ts = d.TacticalSling
     if type(ts) ~= 'table' or type(ts.Enabled) ~= 'boolean' then return false end
-    if ts.Variant ~= nil and type(ts.Variant) ~= 'string' then return false end
+    if ts.DefaultVariant ~= nil and type(ts.DefaultVariant) ~= 'string' then return false end
+    if ts.JobVariants ~= nil and type(ts.JobVariants) ~= 'table' then return false end
     if ts.Types ~= nil and type(ts.Types) ~= 'table' then return false end
     -- Shell Casings
     local sc = d.ShellCasings
@@ -482,7 +488,14 @@ local function applyToMBT(d)
         MBT.WeaponRack.Placement.Access       = d.WeaponRack.Placement.Access
     end
     MBT.TacticalSling.Enabled = d.TacticalSling.Enabled
-    if d.TacticalSling.Variant then MBT.TacticalSling.Variant = d.TacticalSling.Variant end
+    if d.TacticalSling.DefaultVariant then MBT.TacticalSling.DefaultVariant = d.TacticalSling.DefaultVariant end
+    if d.TacticalSling.JobVariants then
+        local jv = {}
+        for job, vid in pairs(d.TacticalSling.JobVariants) do
+            if type(job) == 'string' and type(vid) == 'string' and vid ~= '' then jv[job] = vid end
+        end
+        MBT.TacticalSling.JobVariants = jv
+    end
     if d.TacticalSling.Types then
         MBT.TacticalSling.Types = { ['back'] = d.TacticalSling.Types.back and true or false, ['back2'] = d.TacticalSling.Types.back2 and true or false }
     end

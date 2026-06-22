@@ -13,6 +13,8 @@ local adminCommand = (MBT.Admin and MBT.Admin.Command) or 'mbtconfig'
 local adminPerm    = (MBT.Admin and MBT.Admin.Permission) or ('command.' .. adminCommand)
 
 local WTYPES = { side = true, back = true, back2 = true, melee = true, melee2 = true, melee3 = true, extinguisher = true, sling = true }
+-- Valid wtypes = the base set + per-variant sling virtual types 'sling:<id>'.
+local function validWtype(w) return WTYPES[w] == true or (type(w) == 'string' and w:match('^sling:[%w_]+$') ~= nil) end
 local BONES  = { [24816] = true, [24818] = true, [57005] = true, [36029] = true,
                  [58271] = true, [51826] = true, [11816] = true, [23553] = true }
 
@@ -95,16 +97,19 @@ local function ensureSchema()
     exports.oxmysql:execute([[
         CREATE TABLE IF NOT EXISTS mbt_malisling_positions (
             scope VARCHAR(48) NOT NULL,
-            wtype VARCHAR(16) NOT NULL,
+            wtype VARCHAR(48) NOT NULL,
             data  LONGTEXT NOT NULL,
             PRIMARY KEY (scope, wtype)
         )
     ]], {}, function()
+        -- Widen wtype for any table created before per-variant sling wtypes ('sling:<id>')
+        -- existed (was VARCHAR(16) → long variant ids would silently truncate). Idempotent.
+        exports.oxmysql:execute('ALTER TABLE mbt_malisling_positions MODIFY COLUMN wtype VARCHAR(48) NOT NULL', {})
         exports.oxmysql:execute('SELECT scope, wtype, data FROM mbt_malisling_positions', {}, function(rows)
             if type(rows) ~= 'table' then return end
             for _, row in ipairs(rows) do
                 local ok, data = pcall(json.decode, row.data)
-                if ok and WTYPES[row.wtype] and validData(data) then
+                if ok and validWtype(row.wtype) and validData(data) then
                     local clean = sanitize(data)
                     applyServer(row.scope, row.wtype, clean)
                     rememberSaved(row.scope, row.wtype, clean)
@@ -122,7 +127,7 @@ RegisterNetEvent('mbt_malisling:propPos:save', function(payload)
     if type(payload) ~= 'table' then Utils.mbtWarn('propPos:save ~ payload not a table'); return end
     local scope, wtype, data = payload.scope, payload.wtype, payload.data
     if type(scope) ~= 'string' or scope == '' then Utils.mbtWarn('propPos:save ~ bad scope:', tostring(scope)); return end
-    if not WTYPES[wtype] then Utils.mbtWarn('propPos:save ~ bad wtype:', tostring(wtype)); return end
+    if not validWtype(wtype) then Utils.mbtWarn('propPos:save ~ bad wtype:', tostring(wtype)); return end
     if not validData(data) then Utils.mbtWarn('propPos:save ~ validData FAILED; data=', json.encode(data)); return end
     data = sanitize(data)
     applyServer(scope, wtype, data)
@@ -141,7 +146,7 @@ RegisterNetEvent('mbt_malisling:propPos:reset', function(payload)
     if not IsPlayerAceAllowed(src, adminPerm) then return end
     if type(payload) ~= 'table' then return end
     local scope, wtype = payload.scope, payload.wtype
-    if type(scope) ~= 'string' or scope == '' or not WTYPES[wtype] then return end
+    if type(scope) ~= 'string' or scope == '' or not validWtype(wtype) then return end
     resetServer(scope, wtype)
     saved[savedKey(scope, wtype)] = nil
     if hasDb() then

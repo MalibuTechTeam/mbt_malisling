@@ -334,8 +334,8 @@ export default function AdminDashboard() {
                 <PositionsSection jobs={jobs} onEdit={(t) => setEditing(t)} />
                 <TrunkPositionsSection config={cfg} update={update}
                   onEdit={(s) => setTrunkEditing({ model: s.model, vclass: s.class, off: s.off, view: s.view })} />
-                <SlingPositionsSection config={cfg} update={update}
-                  onEdit={(g) => setEditing({ wtype: 'sling', job: 'default', gender: g })} />
+                <SlingPositionsSection config={cfg} update={update} jobs={jobs}
+                  onEdit={(variant, g) => setEditing({ wtype: 'sling:' + variant, job: 'default', gender: g })} />
               </>
             ) : (
               activeCat.sections.map((item, i) =>

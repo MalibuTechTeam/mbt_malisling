@@ -58,16 +58,41 @@ export function PositionsSection({ jobs, onEdit }: { jobs: Job[]; onEdit: (t: Ed
   )
 }
 
-/** Tactical Sling — on/off toggle + per-gender live position editor (same editor as weapons). */
-export function SlingPositionsSection({ config, update, onEdit }: SectionProps & { onEdit: (gender: string) => void }) {
+/** Tactical Sling — on/off + variant selection (default + per-job) + per-variant live editor. */
+export function SlingPositionsSection(
+  { config, update, onEdit, jobs }: SectionProps & { onEdit: (variant: string, gender: string) => void; jobs: Job[] }
+) {
   const t = config?.TacticalSling ?? {}
   const ty = t.Types ?? {}
+  const variants: { id: string; label: string }[] = t.Variants?.length ? t.Variants : [{ id: 'normal', label: 'Normal' }]
+  const variantOpts = variants.map((v) => ({ value: v.id, label: v.label }))
+  const variantLabel = (id: string) => variants.find((v) => v.id === id)?.label ?? id
+  const jobLabel = (name: string) => jobs.find((j) => j.name === name)?.label ?? name
+  // A Lua empty table serialises to a JSON array; coerce so we always work with an object
+  // (writing a string key onto an array breaks JSON.stringify dirty-detection + persistence).
+  const jobVariants: Record<string, string> =
+    t.JobVariants && !Array.isArray(t.JobVariants) ? t.JobVariants : {}
+  const setJobVariant = (job: string, vid: string) => {
+    const next: Record<string, string> = { ...jobVariants }
+    if (vid) next[job] = vid
+    else delete next[job]
+    update('TacticalSling.JobVariants', next)   // write the whole object, never a per-key path
+  }
+  const overrides = Object.entries(jobVariants).filter(([, vid]) => vid)
+  const used = new Set(overrides.map(([j]) => j))
+  const freeJobs = jobs.filter((j) => !used.has(j.name))
+
   const [gender, setGender] = useState('male')
+  const [editVariant, setEditVariant] = useState(variants[0]?.id ?? 'normal')
+  const [newJob, setNewJob] = useState('')
+  const [newVariant, setNewVariant] = useState(variants[0]?.id ?? 'normal')
+  const addJob = newJob || freeJobs[0]?.name
+
   return (
     <Section icon="layers" title="TACTICAL SLING" sub="Visible strap on the back while a long gun is slung."
       action={
         <span className="mbt-section__action-row">
-          <button type="button" className="mbt-btn-primary mbt-btn--sm" onClick={() => onEdit(gender)}
+          <button type="button" className="mbt-btn-primary mbt-btn--sm" onClick={() => onEdit(editVariant, gender)}
             disabled={!t.Enabled} title={t.Enabled ? '' : 'Enable the sling first'}>
             <Icon name="configure" size={13} /> Live Editor
           </button>
@@ -75,26 +100,55 @@ export function SlingPositionsSection({ config, update, onEdit }: SectionProps &
         </span>
       }>
       <div className="mbt-notice">
-        Toggle on, pick the <b>variant</b> and which weapons show it, then <b>Live Editor</b> to place the strap
-        per gender — same editor as the weapons. Saving applies live.
+        Each variant is a separate prop with its own position. Pick a <b>variant + gender</b> and hit <b>Live Editor</b>
+        to place it; set the default and per-job variants below. Saving applies live.
       </div>
       <Grid2>
-        <FieldBlock label="Variant" hint="Strap prop colour.">
-          <Select value={t.Variant ?? 'normal'} aria-label="Sling variant"
-            onChange={(v) => update('TacticalSling.Variant', v)}
-            options={[{ value: 'normal', label: 'Normal' }, { value: 'camo', label: 'Camo' }]} />
+        <FieldBlock label="Edit Variant" hint="Which variant the Live Editor positions.">
+          <Select value={editVariant} aria-label="Edit variant" onChange={setEditVariant} options={variantOpts} />
         </FieldBlock>
         <FieldBlock label="Gender" hint="Which offset to edit.">
           <Segmented value={gender} options={GENDERS} onChange={setGender} />
         </FieldBlock>
       </Grid2>
-      <FieldBlock label="Show On" hint="Which slung weapons display the strap." style={{ marginBottom: 0 }}>
-        <Grid2>
-          <ToggleRow title="Rifles / Long guns" checked={!!ty.back}
-            onChange={(v) => update('TacticalSling.Types.back', v)} />
-          <ToggleRow title="Heavy / Launchers" checked={!!ty.back2}
-            onChange={(v) => update('TacticalSling.Types.back2', v)} />
-        </Grid2>
+      <Grid2>
+        <FieldBlock label="Default Variant" hint="Worn by jobs without an override below.">
+          <Select value={t.DefaultVariant ?? variants[0]?.id} aria-label="Default variant"
+            onChange={(v) => update('TacticalSling.DefaultVariant', v)} options={variantOpts} />
+        </FieldBlock>
+        <FieldBlock label="Show On" hint="Which slung weapons display the strap.">
+          <Grid2>
+            <ToggleRow title="Rifles" checked={!!ty.back} onChange={(v) => update('TacticalSling.Types.back', v)} />
+            <ToggleRow title="Heavy" checked={!!ty.back2} onChange={(v) => update('TacticalSling.Types.back2', v)} />
+          </Grid2>
+        </FieldBlock>
+      </Grid2>
+      <FieldBlock label="Per-Job Variant" hint="Override the variant for specific jobs." style={{ marginBottom: 0 }}>
+        {overrides.length > 0 && (
+          <div className="mbt-trunk-list">
+            {overrides.map(([job, vid]) => (
+              <div key={job} className="mbt-trunk-row">
+                <span className="mbt-trunk-row__info">
+                  <span className="mbt-trunk-row__nm">{jobLabel(job)}</span>
+                  <span className="mbt-trunk-row__coords">→ {variantLabel(vid)}</span>
+                </span>
+                <button type="button" className="mbt-btn-ghost"
+                  onClick={() => setJobVariant(job, '')}>Remove</button>
+              </div>
+            ))}
+          </div>
+        )}
+        {freeJobs.length > 0 && (
+          <Grid2>
+            <Select value={addJob} aria-label="Job" onChange={setNewJob}
+              options={freeJobs.map((j) => ({ value: j.name, label: j.label }))} />
+            <span className="mbt-section__action-row">
+              <Select value={newVariant} aria-label="Variant for job" onChange={setNewVariant} options={variantOpts} />
+              <button type="button" className="mbt-btn-ghost"
+                onClick={() => addJob && setJobVariant(addJob, newVariant)}>Add</button>
+            </span>
+          </Grid2>
+        )}
       </FieldBlock>
     </Section>
   )

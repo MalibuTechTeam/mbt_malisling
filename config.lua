@@ -879,13 +879,18 @@ MBT.LowReady           = {
 --      then flip Enabled = true.
 MBT.TacticalSling      = {
     Enabled  = false,   -- toggle live from the admin dashboard (NUI), no restart needed
-    -- Two colour variants of the same strap prop, shipped in stream/ and declared in
-    -- mbt_m4_prop.ytyp. Pick the active one with Variant.
-    Variant  = 'normal',                 -- 'normal' | 'camo'
-    Models   = {
-        normal = 'mbt_belt_prop_a',
-        camo   = 'mbt_belt_prop_b',
+    -- Strap prop variants, shipped in stream/ and declared in mbt_m4_prop.ytyp. Add as many
+    -- as you like — each one appears in the NUI's Variant dropdown automatically.
+    --   id    = stored/selected value   model = prop model name   label = NUI text
+    DefaultVariant = 'normal',   -- variant id used when a job has no override below
+    Variants = {
+        { id = 'normal', model = 'mbt_belt_prop_a', label = 'Belt — Normal' },
+        { id = 'camo',   model = 'mbt_belt_prop_b', label = 'Belt — Camo' },
+        { id = 'm4',     model = 'mbt_m4_prop',     label = 'M4 Rig' },
     },
+    -- Per-job variant override (editable from the dashboard). e.g. ['police'] = 'camo'.
+    -- A job not listed here uses DefaultVariant. Each variant has its own attach position.
+    JobVariants = {},
     -- Only show the strap when one of these slung prop types is present.
     Types    = { ['back'] = true, ['back2'] = true },
     -- NOTE: the attach offset lives in MBT.PropInfo.sling (below) so it can be tuned
@@ -908,6 +913,21 @@ MBT.PropInfo.sling = {
         ["female"] = { ["x"] = 0.0, ["y"] = 0.0, ["z"] = -25.0 },
     },
 }
+
+-- Seed a per-variant attach offset for every sling variant (key 'sling:<id>'), copied from the
+-- shared default above, so the NUI editor can tune each prop separately. The runtime falls back
+-- to MBT.PropInfo.sling if a variant has no specific position yet.
+do
+    local s = MBT.PropInfo.sling
+    local function cv(v) return { x = v.x, y = v.y, z = v.z } end
+    for _, variant in ipairs(MBT.TacticalSling.Variants) do
+        MBT.PropInfo['sling:' .. variant.id] = {
+            Bone = s.Bone, isPed = s.isPed, RotOrder = s.RotOrder, FixedRot = s.FixedRot,
+            Pos = { male = cv(s.Pos.male), female = cv(s.Pos.female) },
+            Rot = { male = cv(s.Rot.male), female = cv(s.Rot.female) },
+        }
+    end
+end
 
 -- ── Weapon Safety Toggle ──────────────────────────────────────────────────────
 -- Toggle the safety on the held firearm: with safety ON the weapon can't fire and

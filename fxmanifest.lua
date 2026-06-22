@@ -98,6 +98,8 @@ files {
     'data/*.lua',
     'web/dist/index.html',
     'web/dist/assets/**',
+    'web/dist/*.svg',           -- logo_mbt.svg (root of dist, not under assets/)
+    'web/dist/*.png',           -- logo-192.png and any other root icons
     'web/dist/sounds/*.ogg',
 }
 

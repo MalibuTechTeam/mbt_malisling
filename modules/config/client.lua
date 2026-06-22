@@ -185,15 +185,27 @@ local function applyConfig(d)
         end
     end
     if d.TacticalSling and MBT.TacticalSling then
-        local oldVariant = MBT.TacticalSling.Variant
+        local oldVariant = MBT.TacticalSling.DefaultVariant
+        local oldJV = json.encode(MBT.TacticalSling.JobVariants or {})
         MBT.TacticalSling.Enabled = d.TacticalSling.Enabled
-        if d.TacticalSling.Variant then MBT.TacticalSling.Variant = d.TacticalSling.Variant end
+        if d.TacticalSling.DefaultVariant then MBT.TacticalSling.DefaultVariant = d.TacticalSling.DefaultVariant end
+        if d.TacticalSling.JobVariants then
+            local jv = {}
+            for job, vid in pairs(d.TacticalSling.JobVariants) do
+                if type(job) == 'string' and type(vid) == 'string' and vid ~= '' then jv[job] = vid end
+            end
+            MBT.TacticalSling.JobVariants = jv
+        end
         if d.TacticalSling.Types then
             MBT.TacticalSling.Types = { ['back'] = d.TacticalSling.Types.back and true or false, ['back2'] = d.TacticalSling.Types.back2 and true or false }
         end
-        -- Enabled/Types are handled live by the strap loop; a Variant change needs a respawn
-        -- to swap the model (only when it actually changed → no flicker on unrelated saves).
-        if oldVariant ~= MBT.TacticalSling.Variant and MBT.RefreshSling then MBT.RefreshSling() end
+        -- Enabled/Types are handled live by the strap loop; a Variant change (default or per-job)
+        -- needs a respawn to swap the model — only when it actually changed (no flicker on
+        -- unrelated config saves).
+        if (oldVariant ~= MBT.TacticalSling.DefaultVariant
+            or oldJV ~= json.encode(MBT.TacticalSling.JobVariants or {})) and MBT.RefreshSling then
+            MBT.RefreshSling()
+        end
     end
     if d.ShellCasings and MBT.ShellCasings then
         MBT.ShellCasings.Enabled      = d.ShellCasings.Enabled
