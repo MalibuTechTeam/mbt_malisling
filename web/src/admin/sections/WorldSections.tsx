@@ -44,20 +44,6 @@ export function VehicleSection({ config, update }: SectionProps) {
   )
 }
 
-/** Tactical Sling — visible strap prop on the torso while a long gun is slung. */
-export function TacticalSlingSection({ config, update }: SectionProps) {
-  const t = config.TacticalSling ?? {}
-  return (
-    <Section icon="layers" title="TACTICAL SLING" sub="Visible strap prop for slung long guns."
-      action={<ToggleRow.Inline checked={!!t.Enabled} onChange={(v) => update('TacticalSling.Enabled', v)} />}>
-      <div className="mbt-field__hint" style={{ marginTop: 2 }}>
-        Add a strap prop model to <code>stream/</code> and set its name and position in
-        <code>config.lua</code>. Enabling it without a model has no effect.
-      </div>
-    </Section>
-  )
-}
-
 /** Trunk Weapon Rack — stow long guns in a vehicle trunk (oxmysql-persisted). */
 export function TrunkRackSection({ config, update }: SectionProps) {
   const t = config.VehicleTrunkRack ?? {}

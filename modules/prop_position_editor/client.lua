@@ -17,6 +17,16 @@ local PREVIEW = {
     extinguisher = 'WEAPON_FIREEXTINGUISHER',
 }
 
+-- Non-weapon preview types: plain object props spawned with CreateObject (not
+-- CreateWeaponObject). The sling strap is one — its model comes from MBT.TacticalSling.
+local PREVIEW_OBJECTS = { sling = true }
+local function previewObjectModel(wtype)
+    if wtype == 'sling' then
+        local s = MBT.TacticalSling
+        return s and ((s.Models and s.Models[s.Variant]) or s.Model)
+    end
+end
+
 -- Factory defaults captured at load — BEFORE any DB override is applied to
 -- MBT.PropInfo — so Reset restores the original config.lua position/bone even
 -- after an override has been saved.
@@ -85,7 +95,11 @@ RegisterNetEvent('mbt_malisling:propPos:apply', function(p)
     if sendAnimations then
         sendAnimations(PlayerData and PlayerData.job and PlayerData.job.name or {})
     end
-    reattachLocal(p.wtype)
+    if p.wtype == 'sling' then
+        if MBT.RefreshSling then MBT.RefreshSling() end   -- strap respawns at the new offset
+    else
+        reattachLocal(p.wtype)
+    end
 end)
 
 -- Pull the DB-persisted overrides at init (called from core Init() BEFORE its first
@@ -241,11 +255,19 @@ end
 
 RegisterNUICallback('propEdit:start', function(d, cb)
     local wtype = d and d.wtype
-    if not PREVIEW[wtype] then cb({ ok = false }); return end
+    if not PREVIEW[wtype] and not PREVIEW_OBJECTS[wtype] then cb({ ok = false }); return end
     editing = true
     editWtype = wtype
-    -- Hide the player's real slung weapon(s) so the preview prop doesn't overlap/duplicate them.
-    hideRealSlung()
+    if wtype == 'sling' then
+        -- Hide only the real strap (keep weapons visible as an alignment reference).
+        if MBT.SetSlingEditing then MBT.SetSlingEditing(true) end
+    else
+        -- Hide the player's real slung weapon(s) so the preview prop doesn't overlap them.
+        hideRealSlung()
+        -- Show the tactical sling strap (if enabled + this weapon type is eligible) as a
+        -- placement reference while positioning the weapon.
+        if MBT.SetSlingWeaponPreview then MBT.SetSlingWeaponPreview(wtype) end
+    end
 
     local ped = cache.ped
     -- IMPORTANT: do NOT FreezeEntityPosition the ped and do NOT SetEntityCollision
@@ -255,13 +277,22 @@ RegisterNUICallback('propEdit:start', function(d, cb)
     -- which is exactly why rotation works there. NUI focus already blocks movement.
     SetCurrentPedWeapon(ped, `WEAPON_UNARMED`, true)
 
-    local hash = joaat(PREVIEW[wtype])
-    lib.requestWeaponAsset(hash, 1000, 31, 1)
     destroyPreview()
     -- Create the prop AT the ped (like /mbt_propedit). Creating it at world origin
     -- (0,0,0) made soft-pinning try to drag it across the map on attach → fling/vanish.
     local pc = GetEntityCoords(ped)
-    previewObj = CreateWeaponObject(hash, 50, pc.x, pc.y, pc.z, true, 1.0, 0)
+    if PREVIEW_OBJECTS[wtype] then
+        -- Plain object prop (e.g. sling strap): CreateObject, not CreateWeaponObject.
+        local model = joaat(previewObjectModel(wtype) or '')
+        if not IsModelValid(model) then editing = false; cb({ ok = false }); return end
+        lib.requestModel(model, 2000)
+        previewObj = CreateObject(model, pc.x, pc.y, pc.z, false, false, false)
+        SetModelAsNoLongerNeeded(model)
+    else
+        local hash = joaat(PREVIEW[wtype])
+        lib.requestWeaponAsset(hash, 1000, 31, 1)
+        previewObj = CreateWeaponObject(hash, 50, pc.x, pc.y, pc.z, true, 1.0, 0)
+    end
 
     local data = currentData(wtype, d.job)
     normalizeEditorData(data)
@@ -349,6 +380,8 @@ local function stopEditing()
     end
     destroyPreview()
     restoreRealSlung()
+    if MBT.SetSlingEditing then MBT.SetSlingEditing(false) end   -- strap respawns at the saved offset
+    if MBT.SetSlingWeaponPreview then MBT.SetSlingWeaponPreview(nil) end
     FreezeEntityPosition(cache.ped, false)
 end
 

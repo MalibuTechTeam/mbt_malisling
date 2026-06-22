@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Section, FieldBlock, Grid2 } from './parts'
+import { Section, FieldBlock, Grid2, ToggleRow, type SectionProps } from './parts'
 import { Segmented } from '../ui/Segmented'
 import { Select } from '../ui/Select'
 import { Icon } from '../ui/Icon'
@@ -17,6 +17,7 @@ const WTYPES = [
   { v: 'melee2', l: 'Knife' },
   { v: 'melee3', l: 'Hatchet / Alt melee' },
   { v: 'extinguisher', l: 'Fire extinguisher' },
+  { v: 'sling', l: 'Tactical Sling (strap)' },
 ]
 const GENDERS = [
   { value: 'male', label: 'Male' },
@@ -51,6 +52,32 @@ export function PositionsSection({ jobs, onEdit }: { jobs: Job[]; onEdit: (t: Ed
         </FieldBlock>
       </Grid2>
       <FieldBlock label="Gender" hint="Edit the male or female offset (you can copy one to the other).">
+        <Segmented value={gender} options={GENDERS} onChange={setGender} />
+      </FieldBlock>
+    </Section>
+  )
+}
+
+/** Tactical Sling — on/off toggle + per-gender live position editor (same editor as weapons). */
+export function SlingPositionsSection({ config, update, onEdit }: SectionProps & { onEdit: (gender: string) => void }) {
+  const t = config?.TacticalSling ?? {}
+  const [gender, setGender] = useState('male')
+  return (
+    <Section icon="layers" title="TACTICAL SLING" sub="Visible strap on the back while a long gun is slung."
+      action={
+        <span className="mbt-section__action-row">
+          <button type="button" className="mbt-btn-primary mbt-btn--sm" onClick={() => onEdit(gender)}
+            disabled={!t.Enabled} title={t.Enabled ? '' : 'Enable the sling first'}>
+            <Icon name="configure" size={13} /> Live Editor
+          </button>
+          <ToggleRow.Inline label="Sling" checked={!!t.Enabled} onChange={(v) => update('TacticalSling.Enabled', v)} />
+        </span>
+      }>
+      <div className="mbt-notice">
+        Toggle on, then <b>Live Editor</b> to place the strap per gender — same editor as the weapons. Saving
+        applies live. Colour variant is set in <code>config.lua</code> (<code>MBT.TacticalSling.Variant</code>).
+      </div>
+      <FieldBlock label="Gender" hint="Which offset to edit." style={{ marginBottom: 0 }}>
         <Segmented value={gender} options={GENDERS} onChange={setGender} />
       </FieldBlock>
     </Section>

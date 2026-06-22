@@ -4,11 +4,9 @@ lua54 'yes'
 
 name 'mbt_malisling'
 author 'Malibù Tech Team'
-version      '1.1.4'
+version      '2.0.0'
 repository 'https://github.com/MalibuTechTeam/mbt_malisling'
 description 'Weapon on back with various features'
-
-ui_page 'web/dist/index.html'
 
 dependencies {
     '/onesync',
@@ -94,6 +92,8 @@ client_scripts {
     'modules/no_draw_zones/client.lua',
 }
 
+ui_page 'web/dist/index.html'
+
 files {
     'data/*.lua',
     'web/dist/index.html',
@@ -101,8 +101,9 @@ files {
     'web/dist/sounds/*.ogg',
 }
 
--- Tactical Sling clothing asset lives in the dedicated mbt_sling_clothing
--- resource (mixing clothing stream + script/ui_page here is unreliable).
+-- Tactical Sling strap props (mbt_belt_prop_a / _b) ship in stream/ and are declared
+-- in mbt_m4_prop.ytyp; register the archetypes so CreateObject can spawn them.
+data_file 'DLC_ITYP_REQUEST' 'stream/mbt_m4_prop.ytyp'
 
 -- Supported inventories (soft dependencies — detected at runtime):
 --   ox_inventory  >= 2.30.0

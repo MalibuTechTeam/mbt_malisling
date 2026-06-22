@@ -12,7 +12,7 @@
 local adminCommand = (MBT.Admin and MBT.Admin.Command) or 'mbtconfig'
 local adminPerm    = (MBT.Admin and MBT.Admin.Permission) or ('command.' .. adminCommand)
 
-local WTYPES = { side = true, back = true, back2 = true, melee = true, melee2 = true, melee3 = true, extinguisher = true }
+local WTYPES = { side = true, back = true, back2 = true, melee = true, melee2 = true, melee3 = true, extinguisher = true, sling = true }
 local BONES  = { [24816] = true, [24818] = true, [57005] = true, [36029] = true,
                  [58271] = true, [51826] = true, [11816] = true, [23553] = true }
 

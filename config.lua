@@ -878,17 +878,35 @@ MBT.LowReady           = {
 --   3. Set Model below to the prop's name, tune Position with /mbt_slingpos,
 --      then flip Enabled = true.
 MBT.TacticalSling      = {
-    Enabled  = false,
-    Model    = 'mbt_sling_strap',   -- prop model name shipped in stream/
-    -- Attach point on the torso. Bone 24818 = SKEL_Spine3 (upper chest).
-    -- Tune live with /mbt_slingpos (Debug).
-    Position = {
-        Bone = 24818,
-        Pos  = { x = 0.0, y = 0.08, z = 0.0 },
-        Rot  = { x = 0.0, y = 0.0, z = 0.0 },
+    Enabled  = false,   -- toggle live from the admin dashboard (NUI), no restart needed
+    -- Two colour variants of the same strap prop, shipped in stream/ and declared in
+    -- mbt_m4_prop.ytyp. Pick the active one with Variant.
+    Variant  = 'normal',                 -- 'normal' | 'camo'
+    Models   = {
+        normal = 'mbt_belt_prop_a',
+        camo   = 'mbt_belt_prop_b',
     },
     -- Only show the strap when one of these slung prop types is present.
     Types    = { ['back'] = true, ['back2'] = true },
+    -- NOTE: the attach offset lives in MBT.PropInfo.sling (below) so it can be tuned
+    -- live from the NUI Positions editor (type 'sling'), per gender, like a weapon.
+}
+
+-- Tactical sling attach offset — editable from the NUI Positions editor (type 'sling')
+-- and persisted in mbt_malisling_positions. Per-gender (default male = female).
+MBT.PropInfo.sling = {
+    ["Bone"]     = 24816,   -- Upper back
+    ["isPed"]    = false,
+    ["RotOrder"] = 2,
+    ["FixedRot"] = true,
+    ["Pos"] = {
+        ["male"]   = { ["x"] = 0.252, ["y"] = -0.028, ["z"] = -0.420 },
+        ["female"] = { ["x"] = 0.252, ["y"] = -0.028, ["z"] = -0.420 },
+    },
+    ["Rot"] = {
+        ["male"]   = { ["x"] = 0.0, ["y"] = 0.0, ["z"] = -25.0 },
+        ["female"] = { ["x"] = 0.0, ["y"] = 0.0, ["z"] = -25.0 },
+    },
 }
 
 -- ── Weapon Safety Toggle ──────────────────────────────────────────────────────

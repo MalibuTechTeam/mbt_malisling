@@ -9,7 +9,7 @@ import { DropVisualSection, DespawnSection, DropLoggingSection } from './section
 import { JammingSection, SuppressorSection, SafetySection, ChargeSection, WeightSection } from './sections/CombatSections'
 import { InspectSection, WeaponNameSection, PosesSection, ThrowSection, ChainOfCustodySection, ShellCasingsSection, HandoffSection, SerialsSection, ConcealedCarrySection, PatDownSection, AmmoSharingSection } from './sections/InteractionSections'
 import { NoDrawSection, VehicleSection, TrunkRackSection, WeaponRackSection, TrunkPositionsSection } from './sections/WorldSections'
-import { PositionsSection, type Job, type EditTarget } from './sections/PositionsSection'
+import { PositionsSection, SlingPositionsSection, type Job, type EditTarget } from './sections/PositionsSection'
 import { PropEditorOverlay } from './PropEditorOverlay'
 import { TrunkEditorOverlay } from './TrunkEditorOverlay'
 import { ShootingSection } from './sections/ShootingSection'
@@ -334,6 +334,8 @@ export default function AdminDashboard() {
                 <PositionsSection jobs={jobs} onEdit={(t) => setEditing(t)} />
                 <TrunkPositionsSection config={cfg} update={update}
                   onEdit={(s) => setTrunkEditing({ model: s.model, vclass: s.class, off: s.off, view: s.view })} />
+                <SlingPositionsSection config={cfg} update={update}
+                  onEdit={(g) => setEditing({ wtype: 'sling', job: 'default', gender: g })} />
               </>
             ) : (
               activeCat.sections.map((item, i) =>

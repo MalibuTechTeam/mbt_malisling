@@ -2,26 +2,33 @@
 -- Tactical Sling Prop (visible strap)
 --
 -- Shows a visible sling/strap on the torso while a long gun is slung. Implemented
--- as a PROP attached to a bone (CreateObject + AttachEntityToEntity), NOT as a
--- clothing component — clothing would require a per-server drawable index and
--- conflict with the server's own addons, which makes it non-distributable. A prop
--- is fully portable: it depends only on the model shipped in this resource's
--- stream/ folder, exactly like the weapon-on-back props.
+-- as a PROP attached to a bone (CreateObject + AttachEntityToEntity), NOT clothing
+-- (clothing needs a per-server drawable index and conflicts with server addons).
+-- The strap models (mbt_belt_prop_a / _b, declared in mbt_m4_prop.ytyp) ship in
+-- this resource's stream/, so the feature is fully portable.
 --
--- Local player only (other clients attach their own). Follows the slung-prop
--- state: any eligible long gun slung → strap shown. DISABLED by default until a
--- strap model is shipped and configured (MBT.TacticalSling.Model / Enabled).
+-- Local player only (other clients attach their own). On/off is live-toggleable
+-- from the admin dashboard (MBT.TacticalSling.Enabled, applied by the config
+-- module). The attach offset is editable from the NUI Positions editor (type
+-- 'sling') and read from MBT.PropInfo.sling, per gender.
 -- ─────────────────────────────────────────────────────────────────────────────
 
 if not MBT.TacticalSling then return end
 
 local cfg = MBT.TacticalSling
 
-local strapObj = nil   -- the spawned strap prop entity (local player)
+local strapObj     = nil    -- the spawned strap prop entity (local player)
+local slingEditing = false  -- true while the NUI Positions editor is tuning 'sling'
+local weaponPreviewType = nil  -- weapon type previewed in the editor → show the strap as a reference
 
 local function isFreemode(ped)
     local m = GetEntityModel(ped)
     return m == `mp_m_freemode_01` or m == `mp_f_freemode_01`
+end
+
+--- Active strap model name for the configured colour variant (fallback to legacy Model).
+local function slingModelName()
+    return (cfg.Models and cfg.Models[cfg.Variant]) or cfg.Model
 end
 
 --- Any eligible long gun currently slung on the local player?
@@ -41,42 +48,54 @@ end
 
 local function spawnStrap(ped)
     if strapObj and DoesEntityExist(strapObj) then return end
-    local model = joaat(cfg.Model)
+    local modelName = slingModelName()
+    local model = joaat(modelName)
     if not IsModelValid(model) then
-        Utils.mbtWarn('tactical_sling ~ invalid model: ' .. tostring(cfg.Model))
+        Utils.mbtWarn('tactical_sling ~ invalid model: ' .. tostring(modelName))
         return
     end
     lib.requestModel(model, 2000)
     if not HasModelLoaded(model) then return end
 
-    local p = cfg.Position
     local obj = CreateObject(model, 0.0, 0.0, 0.0, false, false, false)
     SetModelAsNoLongerNeeded(model)
     if not obj or obj == 0 or not DoesEntityExist(obj) then return end
 
-    local boneIndex = GetPedBoneIndex(ped, p.Bone)
-    AttachEntityToEntity(obj, ped, boneIndex,
-        p.Pos.x, p.Pos.y, p.Pos.z, p.Rot.x, p.Rot.y, p.Rot.z,
-        true, true, false, false, 2, true)
+    -- Attach offset from MBT.PropInfo.sling (NUI-editable + DB-persisted), per gender.
+    -- Force FLOATS: an integer rotation arg makes AttachEntityToEntity ignore the
+    -- rotation (the NUI sliders send integers).
+    local info = MBT.PropInfo and MBT.PropInfo.sling
+    local sex  = IsPedMale(ped) and 'male' or 'female'
+    local pos  = info and info.Pos and info.Pos[sex]
+    local rot  = info and info.Rot and info.Rot[sex]
+    if not pos or not rot then removeStrap(); return end
+    local bone = GetPedBoneIndex(ped, math.floor(tonumber(info.Bone) or 24816))
+    AttachEntityToEntity(obj, ped, bone,
+        pos.x + 0.0, pos.y + 0.0, pos.z + 0.0, rot.x + 0.0, rot.y + 0.0, rot.z + 0.0,
+        true, true, false, info.isPed == true, math.floor(tonumber(info.RotOrder) or 2), info.FixedRot ~= false)
     strapObj = obj
 end
 
-if cfg.Enabled then
-    CreateThread(function()
-        while true do
-            Wait(750)
-            local ped = cache.ped
-            if ped and ped ~= 0 and isFreemode(ped) then
-                local want = hasEligibleSlung()
-                if want and not (strapObj and DoesEntityExist(strapObj)) then
-                    spawnStrap(ped)
-                elseif not want and strapObj then
-                    removeStrap()
-                end
+-- Single always-on loop so the dashboard on/off toggle (cfg.Enabled) and the editor
+-- 'sling' hide both take effect LIVE, without a restart.
+CreateThread(function()
+    while true do
+        Wait(750)
+        local ped = cache.ped
+        if cfg.Enabled and not slingEditing and ped and ped ~= 0 and isFreemode(ped) then
+            -- Also show the strap while the weapon-position editor previews an eligible type,
+            -- so the admin can align the weapon to the strap.
+            local want = hasEligibleSlung() or (weaponPreviewType ~= nil and cfg.Types[weaponPreviewType] == true)
+            if want and not (strapObj and DoesEntityExist(strapObj)) then
+                spawnStrap(ped)
+            elseif not want and strapObj then
+                removeStrap()
             end
+        elseif (not cfg.Enabled or slingEditing) and strapObj then
+            removeStrap()   -- toggled off / editing → drop the strap immediately
         end
-    end)
-end
+    end
+end)
 
 -- Re-spawn cleanly after ped/skin change.
 lib.onCache('ped', removeStrap)
@@ -85,71 +104,19 @@ AddEventHandler('onResourceStop', function(res)
     if res == GetCurrentResourceName() then removeStrap() end
 end)
 
--- ── Strap position finder (Debug) ────────────────────────────────────────────
--- /mbt_slingpos  → spawns the strap model on the bone and lets you nudge its
--- position/rotation with arrow keys, then dumps a config-ready snippet. Same UX
--- as /mbt_propedit. Works even when the feature is disabled, so you can tune the
--- model before enabling it.
-if MBT.Debug then
-    local FIELDS  = { 'posX', 'posY', 'posZ', 'rotX', 'rotY', 'rotZ' }
-    local editing = false
+-- ── Editor hooks (NUI Positions editor, type 'sling') ────────────────────────
+-- While editing, hide the real strap so it doesn't overlap the editor's preview prop;
+-- on a saved/broadcast position change, drop it so the loop respawns at the new offset.
+function MBT.SetSlingEditing(v)
+    slingEditing = v and true or false
+    if slingEditing then removeStrap() end
+end
+function MBT.RefreshSling()
+    removeStrap()   -- the loop respawns it next tick with the current MBT.PropInfo.sling
+end
 
-    local function drawT(x, y, scale, text, r, g, b)
-        SetTextFont(4); SetTextScale(scale, scale); SetTextColour(r, g, b, 255)
-        SetTextOutline(); SetTextEntry("STRING"); AddTextComponentSubstringPlayerName(text); DrawText(x, y)
-    end
-
-    RegisterCommand('mbt_slingpos', function()
-        if editing then editing = false return end
-        local model = joaat(cfg.Model)
-        if not IsModelValid(model) then
-            Utils.mbtWarn('mbt_slingpos ~ invalid model: '..tostring(cfg.Model)..' (set MBT.TacticalSling.Model)'); return
-        end
-        lib.requestModel(model, 2000)
-        local ped  = cache.ped
-        local prop = CreateObject(model, 0.0, 0.0, 0.0, false, false, false)
-        SetModelAsNoLongerNeeded(model)
-        if not prop or prop == 0 then Utils.mbtWarn('mbt_slingpos ~ failed to create object') return end
-
-        editing = true
-        local bone = GetPedBoneIndex(ped, cfg.Position.Bone)
-        local v = { posX = cfg.Position.Pos.x, posY = cfg.Position.Pos.y, posZ = cfg.Position.Pos.z,
-                    rotX = cfg.Position.Rot.x, rotY = cfg.Position.Rot.y, rotZ = cfg.Position.Rot.z }
-        local sel = 1
-        local function reattach()
-            AttachEntityToEntity(prop, ped, bone, v.posX, v.posY, v.posZ, v.rotX, v.rotY, v.rotZ, true, true, false, false, 2, true)
-        end
-        reattach()
-        Utils.mbtDebugger('mbt_slingpos editor open — arrows adjust, Enter dumps, Backspace exits')
-
-        CreateThread(function()
-            while editing do
-                DisableControlAction(0, 172, true); DisableControlAction(0, 173, true)
-                DisableControlAction(0, 174, true); DisableControlAction(0, 175, true)
-                DisableControlAction(0, 191, true); DisableControlAction(0, 177, true)
-                if IsDisabledControlJustPressed(0, 172) then sel = sel - 1; if sel < 1 then sel = #FIELDS end
-                elseif IsDisabledControlJustPressed(0, 173) then sel = sel + 1; if sel > #FIELDS then sel = 1 end end
-                local field = FIELDS[sel]
-                local step = field:sub(1,3) == 'rot' and 1.0 or 0.004
-                if IsDisabledControlPressed(0, 174) then v[field] = v[field] - step; reattach()
-                elseif IsDisabledControlPressed(0, 175) then v[field] = v[field] + step; reattach() end
-                if IsDisabledControlJustPressed(0, 191) then
-                    print('^2[mbt_slingpos] Position = {^7')
-                    print(('    Bone = %d, Pos = { x = %.3f, y = %.3f, z = %.3f }, Rot = { x = %.1f, y = %.1f, z = %.1f },')
-                        :format(cfg.Position.Bone, v.posX, v.posY, v.posZ, v.rotX, v.rotY, v.rotZ))
-                    print('^2}^7')
-                end
-                if IsDisabledControlJustPressed(0, 177) then editing = false end
-                drawT(0.35, 0.32, 0.5, 'MBT Sling Position', 255, 220, 0)
-                for i = 1, #FIELDS do
-                    local f = FIELDS[i]
-                    drawT(0.35, 0.345 + i*0.026, 0.42, ('%s %s : %.3f'):format(i==sel and '>' or '  ', f, v[f]),
-                        i==sel and 255 or 230, 220, i==sel and 0 or 230)
-                end
-                Wait(0)
-            end
-            if DoesEntityExist(prop) then DeleteEntity(prop) end
-            Utils.mbtDebugger('mbt_slingpos editor closed')
-        end)
-    end, false)
+-- Set while a WEAPON position editor is open (pass the weapon type, or nil to clear): the
+-- loop then shows the strap if that type is eligible, as a placement reference.
+function MBT.SetSlingWeaponPreview(wtype)
+    weaponPreviewType = wtype
 end
