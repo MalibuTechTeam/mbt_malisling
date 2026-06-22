@@ -727,6 +727,12 @@ AddEventHandler('mbt_malisling:syncSling', function (data)
                 Job = playerJob,
                 Type = weaponType
             })
+            -- Low Ready guard (opaque hook, no-op without the module): if the LOCAL player has
+            -- this type in chest carry, spawn it on the chest directly so a re-sling after a
+            -- draw doesn't snap back→chest. Gated to the local player (the stance is local state).
+            if targetPlayerId == PlayerId() and MBT.GetLowReadyOverride then
+                attachInfo = MBT.GetLowReadyOverride(weaponType) or attachInfo
+            end
             local boneIndex = GetPedBoneIndex(playerPed, attachInfo["Bone"])
             weaponData.weaponHash = joaat(weaponData.name)
             lib.requestWeaponAsset(weaponData.weaponHash, 1000, 31, 1)

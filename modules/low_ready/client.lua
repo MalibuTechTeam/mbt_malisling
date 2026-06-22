@@ -36,6 +36,18 @@ local function placeChest(prop, ped, propType)
     if p then attachAt(prop, ped, p.Bone, p.Pos, p.Rot, p.isPed, p.RotOrder, p.FixedRot) end
 end
 
+--- Per-sex attach info for the chest stance of `propType`, or nil if not currently low-ready.
+--- The core spawn path reads this (opaque) so a re-slung weapon spawns at the chest directly,
+--- with no back→chest snap. Shaped like getAttachInfo's return (Pos/Rot keyed by sex; the
+--- chest Position is gender-shared, so both sexes map to the same offset).
+function MBT.GetLowReadyOverride(propType)
+    if not cfg.Enabled or not lowReady[propType] then return nil end
+    local p = cfg.Position and cfg.Position[propType]
+    if not p then return nil end
+    return { Bone = p.Bone, isPed = p.isPed, RotOrder = p.RotOrder, FixedRot = p.FixedRot,
+             Pos = { male = p.Pos, female = p.Pos }, Rot = { male = p.Rot, female = p.Rot } }
+end
+
 local function placeBack(prop, ped, propType)
     local info = GetResolvedPropInfo(propType)
     if not info then return end
