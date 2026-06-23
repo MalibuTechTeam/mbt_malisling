@@ -8,9 +8,10 @@
 -- collapse into one entry; we return the real count so a stack still weighs right.
 -- ─────────────────────────────────────────────────────────────────────────────
 
-if not MBT.WeaponWeight or not MBT.WeaponWeight.Enabled then return end
+if not MBT.WeaponWeight then return end   -- always register; Enabled is live-checked in the callback
 
 lib.callback.register('mbt_malisling:getCarriedWeapons', function(src)
+    if not MBT.WeaponWeight.Enabled then return {} end   -- disabled → no weapons → no penalty
     local items = Inventory:GetInventoryItems(src)
     if type(items) ~= 'table' then return {} end
 

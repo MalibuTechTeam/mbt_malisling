@@ -12,7 +12,7 @@
 -- weapon's chain via the `mbt_malisling:getCustody` callback (by serial).
 -- ─────────────────────────────────────────────────────────────────────────────
 
-if not MBT.ChainOfCustody or not MBT.ChainOfCustody.Enabled then return end
+if not MBT.ChainOfCustody then return end   -- always register; Enabled is live-checked in the handlers
 
 local hasDb   = GetResourceState('oxmysql') == 'started'
 local custody = {}   -- [serial] = { { name, id, at }, ... } (oldest first)
@@ -75,6 +75,7 @@ end
 ---@param source number
 ---@param playerWeapons table
 function MBT.ChainOfCustody.RecordHolders(source, playerWeapons)
+    if not MBT.ChainOfCustody.Enabled then return end   -- live on/off from the dashboard
     if type(playerWeapons) ~= 'table' then return end
     local missing = nil
     for _, v in pairs(playerWeapons) do
@@ -102,7 +103,7 @@ end
 
 --- Inspect overlay → fetch a weapon's chain by serial.
 lib.callback.register('mbt_malisling:getCustody', function(_, serial)
-    if not MBT.ChainOfCustody.ShowInInspect then return {} end
+    if not MBT.ChainOfCustody.Enabled or not MBT.ChainOfCustody.ShowInInspect then return {} end
     if type(serial) ~= 'string' then return {} end
     return custody[serial] or {}
 end)

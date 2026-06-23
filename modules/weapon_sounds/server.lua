@@ -1,9 +1,10 @@
-if not MBT.Sounds or not MBT.Sounds.Enabled then return end
+if not MBT.Sounds then return end   -- always register; Enabled is live-checked in the handler
 
 local maxDist = (MBT.Sounds.MaxDistance or 8.0) + 5.0
 
 RegisterNetEvent('mbt_malisling:syncHolsterSound')
 AddEventHandler('mbt_malisling:syncHolsterSound', function(weaponType, action)
+    if not MBT.Sounds.Enabled then return end   -- live on/off from the dashboard
     local src    = source
     local srcPed = GetPlayerPed(src)
     if not srcPed or srcPed == 0 then return end
