@@ -649,7 +649,7 @@ local function applySaved(raw)
         return
     end
     applyToMBT(merged)
-    print('^2[mbt_malisling]^7 config: loaded from database (mbt_malisling_config)')
+    Utils.Info('config: loaded from database (mbt_malisling_config)')
 end
 
 local function loadRuntimeConfig()
@@ -676,7 +676,7 @@ local function loadRuntimeConfig()
                 if row and row.value then
                     applySaved(row.value)
                 else
-                    print('^2[mbt_malisling]^7 config: no saved row yet — using config.lua defaults')
+                    Utils.Info('config: no saved row yet — using default.lua defaults')
                 end
             end)
         end)

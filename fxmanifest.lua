@@ -16,8 +16,9 @@ dependencies {
 
 shared_scripts {
     '@ox_lib/init.lua',
-    'default.lua',   -- factory feature defaults (loaded first)
-    'config.lua',    -- server settings + optional overrides (loaded after)
+    'default.lua',                -- factory feature defaults (loaded first)
+    'config.lua',                 -- server settings + optional overrides (loaded after)
+    'modules/utils/logger.lua',   -- canonical MBTLog (aliased onto Utils in utils/{server,client}.lua)
     'modules/locales.lua',
     'locales/*.lua',
 }
