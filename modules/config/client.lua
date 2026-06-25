@@ -148,6 +148,11 @@ local function applyConfig(d)
                 end
             end
         end
+        if d.Throw.Aim then
+            MBT.Throw.Aim = MBT.Throw.Aim or {}
+            MBT.Throw.Aim.Enabled     = d.Throw.Aim.Enabled
+            MBT.Throw.Aim.MaxDistance = d.Throw.Aim.MaxDistance
+        end
     end
     -- World
     if d.NoDrawZones and MBT.NoDrawZones then

@@ -279,6 +279,17 @@ MBT.Throw              = {
         [`GROUP_SNIPER`]  = { ["Allowed"] = false, ["Multipliers"] = { ["X"] = 20.0, ["Y"] = 20.0, ["Z"] = 10.0 } },
         [`GROUP_HEAVY`]   = { ["Allowed"] = false, ["Multipliers"] = { ["X"] = 20.0, ["Y"] = 20.0, ["Z"] = 10.0 } },
     },
+    -- Aim-arc throw: hold the key → windup pose, aim a trajectory arc at the ground,
+    -- release (LMB) to throw the weapon to the marked spot. Enabled=false → instant
+    -- forward throw (the legacy behaviour, using the per-group Multipliers above).
+    ["Aim"] = {
+        Enabled         = true,
+        MaxDistance     = 18.0,    -- furthest you can throw (m); the aim point is clamped to this
+        HorizontalSpeed = 13.0,    -- flight time = distance / speed (clamped to Min..Max below)
+        MinFlightTime   = 0.45,
+        MaxFlightTime   = 1.25,
+        Marker          = { r = 80, g = 180, b = 255, a = 180 },
+    },
 }
 
 -- ── Suppressor Heat Glow ──────────────────────────────────────────────────────

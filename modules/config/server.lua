@@ -144,6 +144,8 @@ local function snapshot()
         Throw = {
             Enabled = b(TH.Enabled),
             Groups  = throwGroups,
+            Aim     = { Enabled     = b(TH.Aim and TH.Aim.Enabled),
+                        MaxDistance = num(TH.Aim and TH.Aim.MaxDistance, 18.0) },
         },
         ChainOfCustody = {
             Enabled       = b(CC.Enabled),
@@ -318,6 +320,8 @@ local function validate(d)
     for name in pairs(THROW_GROUPS) do
         if type(th.Groups[name]) ~= 'boolean' then return false end
     end
+    if type(th.Aim) ~= 'table' or type(th.Aim.Enabled) ~= 'boolean' then return false end
+    if type(th.Aim.MaxDistance) ~= 'number' or th.Aim.MaxDistance < 3 or th.Aim.MaxDistance > 60 then return false end
     -- Chain of Custody
     local cc = d.ChainOfCustody
     if type(cc) ~= 'table' or type(cc.Enabled) ~= 'boolean' or type(cc.ShowInInspect) ~= 'boolean' then return false end
@@ -457,6 +461,11 @@ local function applyToMBT(d)
         if MBT.Throw.Groups[hash] then
             MBT.Throw.Groups[hash].Allowed = d.Throw.Groups[name]
         end
+    end
+    if d.Throw.Aim then
+        MBT.Throw.Aim = MBT.Throw.Aim or {}
+        MBT.Throw.Aim.Enabled     = d.Throw.Aim.Enabled
+        MBT.Throw.Aim.MaxDistance = d.Throw.Aim.MaxDistance
     end
     if MBT.ChainOfCustody then
         MBT.ChainOfCustody.Enabled       = d.ChainOfCustody.Enabled
