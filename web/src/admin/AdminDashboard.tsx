@@ -68,30 +68,35 @@ const CATEGORIES: Category[] = [
 // Feature overview — every on/off toggle, keyed to the exact config path its
 // section writes (keep in sync when adding a feature). Drives the gauge + list.
 const FEATURES: { label: string; path: string; cat: string }[] = [
+  // Core — sling, holster, drop (in page-card order).
   { label: 'Holster Sounds', path: 'Sounds.Enabled',              cat: 'Core' },
   { label: 'Drop Despawn',   path: 'WeaponDrop.Despawn.Enabled',  cat: 'Core' },
   { label: 'Drop Logging',   path: 'WeaponDrop.Logging.Enabled',  cat: 'Core' },
+  { label: 'Tactical Sling', path: 'TacticalSling.Enabled',       cat: 'Core' },
+  // Handling — feel and combat RP.
   { label: 'Suppressor Heat',path: 'SuppressorHeat.Enabled',      cat: 'Handling' },
   { label: 'Weapon Safety',  path: 'Safety.Enabled',              cat: 'Handling' },
-  { label: 'Condition HUD',  path: 'ConditionHUD.Enabled',        cat: 'Handling' },
+  { label: 'Condition Pips', path: 'ConditionHUD.Enabled',        cat: 'Handling' },
   { label: 'Weapon Jamming', path: 'Jamming.Enabled',             cat: 'Handling' },
   { label: 'Charge Weapon',  path: 'ChargeWeapon.Enabled',        cat: 'Handling' },
   { label: 'Weapon Weight',  path: 'WeaponWeight.Enabled',        cat: 'Handling' },
   { label: 'Low Ready',      path: 'LowReady.Enabled',            cat: 'Handling' },
+  // Interaction — inspect, throw, carry (in page-card order).
   { label: 'Weapon Inspect', path: 'Inspect.Enabled',             cat: 'Interaction' },
+  { label: 'Weapon Throw',   path: 'Throw.Enabled',               cat: 'Interaction' },
+  { label: 'Concealed Carry',path: 'ConcealedCarry.Enabled',      cat: 'Interaction' },
   { label: 'Weapon Name',    path: 'WeaponName.Enabled',          cat: 'Interaction' },
   { label: 'Showcase Poses', path: 'ShowcasePoses.Enabled',       cat: 'Interaction' },
-  { label: 'Weapon Throw',   path: 'Throw.Enabled',               cat: 'Interaction' },
+  { label: 'Weapon Handoff', path: 'Handoff.Enabled',             cat: 'Interaction' },
+  { label: 'Ammo Sharing',   path: 'AmmoSharing.Enabled',         cat: 'Interaction' },
+  // Forensics — serial, custody, casings (in page-card order: Serials backbone first).
+  { label: 'Serial Ensure',  path: 'Serials.EnsureGeneration',    cat: 'Forensics' },
   { label: 'Chain of Custody',path: 'ChainOfCustody.Enabled',     cat: 'Forensics' },
   { label: 'Shell Casings',  path: 'ShellCasings.Enabled',        cat: 'Forensics' },
-  { label: 'Weapon Handoff', path: 'Handoff.Enabled',             cat: 'Interaction' },
-  { label: 'Serial Ensure',  path: 'Serials.EnsureGeneration',    cat: 'Forensics' },
-  { label: 'Concealed Carry',path: 'ConcealedCarry.Enabled',      cat: 'Interaction' },
   { label: 'Pat-down',       path: 'PatDown.Enabled',             cat: 'Forensics' },
-  { label: 'Ammo Sharing',   path: 'AmmoSharing.Enabled',         cat: 'Interaction' },
+  // World — zones, vehicle, racks (in page-card order).
   { label: 'No-Draw Zones',  path: 'NoDrawZones.Enabled',         cat: 'World' },
   { label: 'Vehicle Hiding', path: 'VehicleHiding.Enabled',       cat: 'World' },
-  { label: 'Tactical Sling', path: 'TacticalSling.Enabled',       cat: 'World' },
   { label: 'Trunk Rack',     path: 'VehicleTrunkRack.Enabled',    cat: 'World' },
   { label: 'Weapon Rack',    path: 'WeaponRack.Enabled',          cat: 'World' },
 ]
@@ -221,7 +226,7 @@ export default function AdminDashboard() {
         <nav className="mbt-admin__rail">
           <div className="mbt-rail__logo">
             <span className="ic"><img src={`${import.meta.env.BASE_URL}logo_mbt.svg`} alt="MalibuTech" /></span>
-            <div><b>MBT MALISLING</b><span>MALIBUTECH</span></div>
+            <div><b>MBT MALISLING</b></div>
           </div>
 
           <div className="mbt-rail__group">Categories</div>

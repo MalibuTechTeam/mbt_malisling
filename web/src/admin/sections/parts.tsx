@@ -29,17 +29,18 @@ export function Section({ icon, title, sub, action, children, wide }: { icon: Ic
   )
 }
 
-/** A title + description row with a toggle on the right (card style). */
-export function ToggleRow({ title, desc, checked, onChange }: { title: string; desc?: string; checked: boolean; onChange: (v: boolean) => void }) {
+/** A title + description row with a toggle on the right (card style). `disabled` dims the row and
+ *  blocks interaction (used when the row depends on a parent toggle being on). */
+export function ToggleRow({ title, desc, checked, onChange, disabled }: { title: string; desc?: string; checked: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
   return (
-    <div className="mbt-setting">
+    <div className={`mbt-setting${disabled ? ' is-disabled' : ''}`} aria-disabled={disabled || undefined}>
       <div className="mbt-setting__head">
         <div className="mbt-setting__info">
           <span className="mbt-setting__title">{title}</span>
           {desc && <span className="mbt-setting__desc">{desc}</span>}
         </div>
         {/* The visible title isn't tied to the checkbox, so name it for AT. */}
-        <Toggle checked={checked} onChange={onChange} aria-label={title} />
+        <Toggle checked={checked} onChange={onChange} disabled={disabled} aria-label={title} />
       </div>
     </div>
   )
@@ -52,10 +53,10 @@ ToggleRow.Inline = function ToggleRowInline({ checked, onChange, label }: { chec
   return <Toggle checked={checked} onChange={onChange} aria-label={label || 'Feature toggle'} />
 }
 
-/** A labelled field wrapper (label + optional hint + control). */
-export function FieldBlock({ label, hint, children, style }: { label: string; hint?: string; children: ReactNode; style?: React.CSSProperties }) {
+/** A labelled field wrapper (label + optional hint + control). `disabled` dims it + blocks input. */
+export function FieldBlock({ label, hint, children, style, disabled }: { label: string; hint?: string; children: ReactNode; style?: React.CSSProperties; disabled?: boolean }) {
   return (
-    <div className="mbt-field" style={style}>
+    <div className={`mbt-field${disabled ? ' is-disabled' : ''}`} style={style} aria-disabled={disabled || undefined}>
       <span className="mbt-field__label">{label}</span>
       {children}
       {hint && <p className="mbt-field__hint">{hint}</p>}

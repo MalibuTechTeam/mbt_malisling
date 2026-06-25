@@ -1,6 +1,7 @@
 import { Section, ToggleRow, FieldBlock, Grid2, type SectionProps } from './parts'
 import { NumberInput } from '../ui/NumberInput'
 import { Segmented } from '../ui/Segmented'
+import { Icon } from '../ui/Icon'
 
 const numUpdate = (update: SectionProps['update'], path: string, def: number, int = false) =>
   (raw: string) => update(path, raw === '' ? def : (int ? parseInt(raw, 10) : parseFloat(raw)) || def)
@@ -32,6 +33,25 @@ export function InspectSection({ config, update }: SectionProps) {
           <ToggleRow title="Name" checked={!!show.Name} onChange={(v) => update('Inspect.Show.Name', v)} />
           <ToggleRow title="Ammo" checked={!!show.Ammo} onChange={(v) => update('Inspect.Show.Ammo', v)} />
         </Grid2>
+      </FieldBlock>
+      <FieldBlock label="Overlay Preview" hint="A live sample of what players see — reflects the fields above." style={{ marginBottom: 0, flex: 1 }}>
+        <div className="mbt-prev">
+          <div className="mbt-prev__hero">
+            <span className="mbt-prev__ic"><Icon name="search" size={20} /></span>
+            <span className="mbt-prev__title">{show.Name ? 'Carbine Rifle' : 'Held Weapon'}</span>
+            <span className="mbt-prev__tag">INSPECT</span>
+          </div>
+          <div className="mbt-prev__div" />
+          <div className="mbt-prev__rows">
+            {show.Serial && <div className="mbt-prev__row"><span>Serial</span><b>A7F-3K9Q</b></div>}
+            {show.Condition && <div className="mbt-prev__row"><span>Condition</span><b className="is-warn">Worn</b></div>}
+            {show.Ammo && <div className="mbt-prev__row"><span>Ammo</span><b>{i.AmmoMode === 'vague' ? 'Half' : '18 rounds'}</b></div>}
+            {!show.Serial && !show.Condition && !show.Ammo &&
+              <div className="mbt-prev__empty">
+                {show.Name ? 'Only the weapon name is shown.' : 'No fields enabled — the overlay stays hidden.'}
+              </div>}
+          </div>
+        </div>
       </FieldBlock>
     </Section>
   )
@@ -90,6 +110,8 @@ const THROW_GROUPS: { key: string; label: string }[] = [
 export function ThrowSection({ config, update }: SectionProps) {
   const t = config.Throw ?? {}
   const groups = t.Groups ?? {}
+  const c = t.Charge ?? {}
+  const chargeOn = !!c.Enabled
   return (
     <Section icon="teleport" title="WEAPON THROW" sub="Toss the held weapon by weapon group."
       action={<ToggleRow.Inline checked={!!t.Enabled} onChange={(v) => update('Throw.Enabled', v)} />}>
@@ -101,13 +123,22 @@ export function ThrowSection({ config, update }: SectionProps) {
           ))}
         </Grid2>
       </FieldBlock>
-      <ToggleRow title="Aim Throw (arc)"
-        desc="Hold the key to aim a trajectory arc and pick the landing spot; off = instant forward throw"
-        checked={!!(t.Aim && t.Aim.Enabled)} onChange={(v) => update('Throw.Aim.Enabled', v)} />
-      <FieldBlock label="Max Throw Distance (m)" hint="Furthest a light weapon reaches; heavier weapons (rifles) throw shorter." style={{ marginBottom: 0 }}>
-        <NumberInput min={3} max={60} step={1} value={String((t.Aim && t.Aim.MaxDistance) ?? 18)}
-          onChange={numUpdate(update, 'Throw.Aim.MaxDistance', 18)} />
-      </FieldBlock>
+      <ToggleRow title="Charge Power Throw"
+        desc="Hold the throw key to charge power, release to throw farther; a tap is the normal throw (experimental)"
+        checked={chargeOn} onChange={(v) => update('Throw.Charge.Enabled', v)} />
+      <ToggleRow title="Show Charge Meter" disabled={!chargeOn}
+        desc="Radial power meter around the reticle while charging"
+        checked={!!c.ShowUI} onChange={(v) => update('Throw.Charge.ShowUI', v)} />
+      <Grid2>
+        <FieldBlock label="Charge Time (ms)" hint="Hold time to reach full power." style={{ marginBottom: 0 }} disabled={!chargeOn}>
+          <NumberInput min={200} max={3000} step={50} disabled={!chargeOn} value={String(c.ChargeMs ?? 900)}
+            onChange={numUpdate(update, 'Throw.Charge.ChargeMs', 900)} />
+        </FieldBlock>
+        <FieldBlock label="Max Power (×)" hint="Throw strength at full charge (× the normal throw)." style={{ marginBottom: 0 }} disabled={!chargeOn}>
+          <NumberInput min={1} max={3} step={0.05} disabled={!chargeOn} value={String(c.MaxMultiplier ?? 1.25)}
+            onChange={numUpdate(update, 'Throw.Charge.MaxMultiplier', 1.25)} />
+        </FieldBlock>
+      </Grid2>
     </Section>
   )
 }
@@ -269,6 +300,8 @@ const SERIAL_REVEALS = [
 ]
 export function ShellCasingsSection({ config, update }: SectionProps) {
   const s = config.ShellCasings ?? {}
+  const reveal = s.SerialReveal ?? 'partial'
+  const casingSerial = reveal === 'none' ? 'Not recoverable' : reveal === 'full' ? 'A7F-3K9Q' : 'A7••••9Q'
   return (
     <Section icon="search" title="SHELL CASINGS" sub="Gunfire leaves serial-linked casings on the ground (Forensics)."
       action={<ToggleRow.Inline checked={!!s.Enabled} onChange={(v) => update('ShellCasings.Enabled', v)} />}>
@@ -291,6 +324,20 @@ export function ShellCasingsSection({ config, update }: SectionProps) {
       <FieldBlock label="World Cap" hint="Max casings in the world (oldest removed first)." style={{ marginBottom: 0 }}>
         <NumberInput min={10} max={1000} step={10} value={String(s.MaxCasings ?? 150)}
           onChange={numUpdate(update, 'ShellCasings.MaxCasings', 150, true)} />
+      </FieldBlock>
+      <FieldBlock label="Casing Evidence" hint="What an investigator recovers from a casing — reflects Serial Reveal." style={{ marginBottom: 0, flex: 1 }}>
+        <div className="mbt-prev">
+          <div className="mbt-prev__hero">
+            <span className="mbt-prev__ic"><Icon name="search" size={20} /></span>
+            <span className="mbt-prev__title">9mm Casing</span>
+            <span className="mbt-prev__tag">EVIDENCE</span>
+          </div>
+          <div className="mbt-prev__div" />
+          <div className="mbt-prev__rows">
+            <div className="mbt-prev__row"><span>Serial</span><b className={reveal === 'none' ? 'is-warn' : ''}>{casingSerial}</b></div>
+            <div className="mbt-prev__row"><span>Recovered</span><b>just now</b></div>
+          </div>
+        </div>
       </FieldBlock>
     </Section>
   )
