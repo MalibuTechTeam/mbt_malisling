@@ -144,8 +144,10 @@ local function snapshot()
         Throw = {
             Enabled = b(TH.Enabled),
             Groups  = throwGroups,
-            Aim     = { Enabled     = b(TH.Aim and TH.Aim.Enabled),
-                        MaxDistance = num(TH.Aim and TH.Aim.MaxDistance, 18.0) },
+            Charge  = { Enabled       = b(TH.Charge and TH.Charge.Enabled),
+                        ChargeMs      = num(TH.Charge and TH.Charge.ChargeMs, 900),
+                        MaxMultiplier = num(TH.Charge and TH.Charge.MaxMultiplier, 1.25),
+                        ShowUI        = b(TH.Charge and TH.Charge.ShowUI) },
         },
         ChainOfCustody = {
             Enabled       = b(CC.Enabled),
@@ -320,8 +322,9 @@ local function validate(d)
     for name in pairs(THROW_GROUPS) do
         if type(th.Groups[name]) ~= 'boolean' then return false end
     end
-    if type(th.Aim) ~= 'table' or type(th.Aim.Enabled) ~= 'boolean' then return false end
-    if type(th.Aim.MaxDistance) ~= 'number' or th.Aim.MaxDistance < 3 or th.Aim.MaxDistance > 60 then return false end
+    if type(th.Charge) ~= 'table' or type(th.Charge.Enabled) ~= 'boolean' or type(th.Charge.ShowUI) ~= 'boolean' then return false end
+    if type(th.Charge.ChargeMs) ~= 'number' or th.Charge.ChargeMs < 200 or th.Charge.ChargeMs > 3000 then return false end
+    if type(th.Charge.MaxMultiplier) ~= 'number' or th.Charge.MaxMultiplier < 1.0 or th.Charge.MaxMultiplier > 3.0 then return false end
     -- Chain of Custody
     local cc = d.ChainOfCustody
     if type(cc) ~= 'table' or type(cc.Enabled) ~= 'boolean' or type(cc.ShowInInspect) ~= 'boolean' then return false end
@@ -462,10 +465,12 @@ local function applyToMBT(d)
             MBT.Throw.Groups[hash].Allowed = d.Throw.Groups[name]
         end
     end
-    if d.Throw.Aim then
-        MBT.Throw.Aim = MBT.Throw.Aim or {}
-        MBT.Throw.Aim.Enabled     = d.Throw.Aim.Enabled
-        MBT.Throw.Aim.MaxDistance = d.Throw.Aim.MaxDistance
+    if d.Throw.Charge then
+        MBT.Throw.Charge = MBT.Throw.Charge or {}
+        MBT.Throw.Charge.Enabled       = d.Throw.Charge.Enabled
+        MBT.Throw.Charge.ChargeMs      = d.Throw.Charge.ChargeMs
+        MBT.Throw.Charge.MaxMultiplier = d.Throw.Charge.MaxMultiplier
+        MBT.Throw.Charge.ShowUI        = d.Throw.Charge.ShowUI
     end
     if MBT.ChainOfCustody then
         MBT.ChainOfCustody.Enabled       = d.ChainOfCustody.Enabled

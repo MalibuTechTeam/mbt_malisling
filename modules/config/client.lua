@@ -148,10 +148,12 @@ local function applyConfig(d)
                 end
             end
         end
-        if d.Throw.Aim then
-            MBT.Throw.Aim = MBT.Throw.Aim or {}
-            MBT.Throw.Aim.Enabled     = d.Throw.Aim.Enabled
-            MBT.Throw.Aim.MaxDistance = d.Throw.Aim.MaxDistance
+        if d.Throw.Charge then
+            MBT.Throw.Charge = MBT.Throw.Charge or {}
+            MBT.Throw.Charge.Enabled       = d.Throw.Charge.Enabled
+            MBT.Throw.Charge.ChargeMs      = d.Throw.Charge.ChargeMs
+            MBT.Throw.Charge.MaxMultiplier = d.Throw.Charge.MaxMultiplier
+            MBT.Throw.Charge.ShowUI        = d.Throw.Charge.ShowUI
         end
     end
     -- World

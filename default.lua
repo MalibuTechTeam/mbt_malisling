@@ -279,21 +279,17 @@ MBT.Throw              = {
         [`GROUP_SNIPER`]  = { ["Allowed"] = false, ["Multipliers"] = { ["X"] = 20.0, ["Y"] = 20.0, ["Z"] = 10.0 } },
         [`GROUP_HEAVY`]   = { ["Allowed"] = false, ["Multipliers"] = { ["X"] = 20.0, ["Y"] = 20.0, ["Z"] = 10.0 } },
     },
-    -- Aim-arc throw: hold the key → windup pose, aim a trajectory arc at the ground,
-    -- release (LMB) to throw the weapon to the marked spot. Enabled=false → instant
-    -- forward throw (the legacy behaviour, using the per-group Multipliers above).
-    ["Aim"] = {
-        Enabled         = true,
-        MaxDistance     = 18.0,    -- furthest a LIGHT weapon (melee) can be thrown (m)
-        -- Weight: heavier weapons throw shorter — reuses the per-group Multipliers.X above
-        -- (the legacy throw's weight tuning). reach = MaxDistance * clamp(mulX/ReachReference,
-        -- MinReachFactor, 1). With ReachReference=40 (melee): pistol(20)=½, rifle(10)=¼.
-        ReachReference  = 40.0,
-        MinReachFactor  = 0.25,    -- floor so even the heaviest throwable reaches ~25% of max
-        HorizontalSpeed = 13.0,    -- flight time = distance / speed (clamped to Min..Max below)
-        MinFlightTime   = 0.45,
-        MaxFlightTime   = 1.25,
-        Marker          = { r = 80, g = 180, b = 255, a = 180 },
+    -- EXPERIMENTAL, default OFF. Charge-power throw: HOLD the throw key to charge power, RELEASE to
+    -- throw forward (where the player faces). A tap (< TapThresholdMs) is the exact legacy throw at
+    -- 1.0×; holding ramps the per-group impulse 1.0× → MaxMultiplier over ChargeMs. No raycast, no
+    -- aim jitter. With Enabled=false the key throws immediately on press (the original behaviour).
+    ["Charge"] = {
+        Enabled        = false,
+        ChargeMs       = 900,      -- time held (after the tap threshold) to reach full power
+        MinMultiplier  = 1.0,      -- a hold is never weaker than a tap; tap is always exactly 1.0
+        MaxMultiplier  = 1.25,     -- impulse at full charge (× the per-group Multipliers above)
+        TapThresholdMs = 150,      -- release under this = a tap = the legacy 1.0× throw
+        ShowUI         = true,     -- show the radial charge meter around the reticle while charging
     },
 }
 
