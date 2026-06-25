@@ -1,0 +1,90 @@
+/* Charge-power throw meter — radial arc around the screen-centre reticle. */
+.mbt-charge {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  width: 120px;
+  height: 120px;
+  transform: translate(-50%, -50%);
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  z-index: 40;
+  animation: mbt-charge-in 120ms ease-out both;
+}
+
+.mbt-charge__ring {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  display: grid;
+  place-items: center;
+}
+
+.mbt-charge__ring svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);          /* start the sweep at 12 o'clock */
+  transform-origin: center;
+}
+
+.mbt-charge__track {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.14);
+  stroke-width: 5;
+}
+
+.mbt-charge__fill {
+  fill: none;
+  stroke: var(--mbt-accent, #00e676);
+  stroke-width: 5;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 5px rgba(var(--mbt-accent-rgb, 0, 230, 118), 0.7));
+  transition: stroke-dashoffset 60ms linear;   /* smooth between 50ms NUI updates */
+}
+
+.mbt-charge__dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.55);
+}
+
+.mbt-charge__label {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-top: 6px;
+  transform: translateX(-50%);
+  font: 600 10px/1 var(--mbt-font-display, system-ui, sans-serif);
+  letter-spacing: 0.18em;
+  color: var(--mbt-accent, #00e676);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+}
+
+/* Full charge — brighter ring + dot, gentle pulse. */
+.mbt-charge__ring.is-full .mbt-charge__fill {
+  filter: drop-shadow(0 0 9px rgba(var(--mbt-accent-rgb, 0, 230, 118), 0.95));
+  animation: mbt-charge-pulse 0.7s ease-in-out infinite;
+}
+.mbt-charge__ring.is-full .mbt-charge__dot {
+  background: var(--mbt-accent, #00e676);
+  box-shadow: 0 0 8px rgba(var(--mbt-accent-rgb, 0, 230, 118), 0.9);
+}
+
+@keyframes mbt-charge-in {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+  to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+@keyframes mbt-charge-pulse {
+  0%, 100% { opacity: 0.72; }
+  50%      { opacity: 1; }
+}
+
+/* Reduced motion: no entrance scale, no fill tween, no pulse. */
+.mbt-reduce-motion .mbt-charge { animation: none; }
+.mbt-reduce-motion .mbt-charge__fill { transition: none; }
+.mbt-reduce-motion .mbt-charge__ring.is-full .mbt-charge__fill { animation: none; }

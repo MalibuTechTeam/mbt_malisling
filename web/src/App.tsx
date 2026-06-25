@@ -16,6 +16,7 @@ import HandoffUI from './components/HandoffUI'
 import HintUI from './components/HintUI'
 import PatdownUI from './components/PatdownUI'
 import AmmoPickerUI from './components/AmmoPickerUI'
+import ChargeMeter from './components/ChargeMeter'
 import AdminDashboard from './admin/AdminDashboard'
 
 // ── Browser dev preview (npm run dev) ────────────────────────────────────────
@@ -46,7 +47,7 @@ const MOCK_ADMIN_CONFIG = {
   Inspect: { Enabled: true, MaxDistance: 20.0, AmmoMode: 'exact', Show: { Serial: true, Condition: true, Name: true, Ammo: true } },
   WeaponName: { Enabled: true, MaxLength: 24, Permission: 'everyone', OncePerWeapon: false },
   ShowcasePoses: { Enabled: true, Sync: true },
-  Throw: { Enabled: true, Groups: { MELEE: true, PISTOL: true, RIFLE: true, MG: false, SMG: true, SHOTGUN: false, STUNGUN: false, SNIPER: false, HEAVY: false } },
+  Throw: { Enabled: true, Groups: { MELEE: true, PISTOL: true, RIFLE: true, MG: false, SMG: true, SHOTGUN: false, STUNGUN: false, SNIPER: false, HEAVY: false }, Charge: { Enabled: false, ChargeMs: 900, MinMultiplier: 1.0, MaxMultiplier: 1.25, TapThresholdMs: 150, ShowUI: true } },
   ChainOfCustody: { Enabled: true, MaxEntries: 10, ShowInInspect: true },
   NoDrawZones: { Enabled: true, AllowMelee: true, HudIndicator: true, NotifyCooldown: 3000 },
   VehicleHiding: { Enabled: true, UseRoofCheck: true },
@@ -148,6 +149,13 @@ if (DEV_PREVIEW === 'overlays') {
     data: { fromName: 'John Doe', weapon: 'WEAPON_CARBINERIFLE', label: 'Punisher', serial: 'A7F-3K9Q' },
   }], 32000)
   debugData([{ action: 'hideHandoff', data: {} }], 35500)
+
+  // Charge-power throw meter sweeping to full, then release.
+  debugData([{ action: 'charge:start', data: {} }], 36000)
+  debugData([{ action: 'charge:update', data: { pct: 0.3 } }], 36300)
+  debugData([{ action: 'charge:update', data: { pct: 0.6 } }], 36600)
+  debugData([{ action: 'charge:update', data: { pct: 1.0 } }], 36900)
+  debugData([{ action: 'charge:end', data: {} }], 38200)
 }
 
 export default function App() {
@@ -184,6 +192,7 @@ export default function App() {
       <HintUI />
       <PatdownUI />
       <AmmoPickerUI />
+      <ChargeMeter />
       <AdminDashboard />
     </>
   )
