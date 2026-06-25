@@ -126,11 +126,22 @@ local function throwInstant(data, model)
     return coords
 end
 
+--- Per-group max throw distance: heavier weapons reach less. Reuses the legacy
+--- per-group Multipliers.X (Gianmarco's weight tuning), since SetEntityVelocity ignores
+--- model mass — so the weight feel comes from clamping the arc shorter instead.
+local function groupReach(group)
+    local aim  = MBT.Throw.Aim or {}
+    local g    = MBT.Throw["Groups"][group]
+    local mulX = (g and g.Multipliers and g.Multipliers.X) or 20.0
+    local factor = math.max(aim.MinReachFactor or 0.25, math.min(1.0, mulX / (aim.ReachReference or 40.0)))
+    return (aim.MaxDistance or 18.0) * factor
+end
+
 -- ── Aim-arc throw (Aim.Enabled = true) ─────────────────────────────────────────
 local function throwAimed(data, model)
     local aim = MBT.Throw.Aim
     local m   = aim.Marker or { r = 80, g = 180, b = 255, a = 180 }
-    local maxD = aim.MaxDistance or 18.0
+    local maxD = groupReach(data.Group)
 
     -- Weapon in hand for the windup; freeze the anim there while the player aims.
     local pos = GetWorldPositionOfEntityBone(cache.ped, HAND_BONE)

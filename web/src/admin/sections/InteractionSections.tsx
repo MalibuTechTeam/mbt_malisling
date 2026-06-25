@@ -104,7 +104,7 @@ export function ThrowSection({ config, update }: SectionProps) {
       <ToggleRow title="Aim Throw (arc)"
         desc="Hold the key to aim a trajectory arc and pick the landing spot; off = instant forward throw"
         checked={!!(t.Aim && t.Aim.Enabled)} onChange={(v) => update('Throw.Aim.Enabled', v)} />
-      <FieldBlock label="Max Throw Distance (m)" hint="Furthest the aim arc reaches." style={{ marginBottom: 0 }}>
+      <FieldBlock label="Max Throw Distance (m)" hint="Furthest a light weapon reaches; heavier weapons (rifles) throw shorter." style={{ marginBottom: 0 }}>
         <NumberInput min={3} max={60} step={1} value={String((t.Aim && t.Aim.MaxDistance) ?? 18)}
           onChange={numUpdate(update, 'Throw.Aim.MaxDistance', 18)} />
       </FieldBlock>

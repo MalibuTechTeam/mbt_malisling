@@ -284,7 +284,12 @@ MBT.Throw              = {
     -- forward throw (the legacy behaviour, using the per-group Multipliers above).
     ["Aim"] = {
         Enabled         = true,
-        MaxDistance     = 18.0,    -- furthest you can throw (m); the aim point is clamped to this
+        MaxDistance     = 18.0,    -- furthest a LIGHT weapon (melee) can be thrown (m)
+        -- Weight: heavier weapons throw shorter — reuses the per-group Multipliers.X above
+        -- (the legacy throw's weight tuning). reach = MaxDistance * clamp(mulX/ReachReference,
+        -- MinReachFactor, 1). With ReachReference=40 (melee): pistol(20)=½, rifle(10)=¼.
+        ReachReference  = 40.0,
+        MinReachFactor  = 0.25,    -- floor so even the heaviest throwable reaches ~25% of max
         HorizontalSpeed = 13.0,    -- flight time = distance / speed (clamped to Min..Max below)
         MinFlightTime   = 0.45,
         MaxFlightTime   = 1.25,
