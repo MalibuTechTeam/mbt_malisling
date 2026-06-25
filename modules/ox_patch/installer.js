@@ -30,11 +30,12 @@
 
   const RESOURCE = GetCurrentResourceName();
 
-  // Console logging — matches the MBT Utils format (green tag, ^8 [WARN],
-  // yellow meta, ^0 reset) so it reads like the rest of the MBT scripts.
+  // Console logging — mirrors the canonical MBT logger (modules/utils/logger.lua):
+  // [SLING] badge + level + timestamp, so these JS boot lines read like the rest of
+  // the script. The JS runtime can't call the Lua MBTLog, so the format is replicated.
   const ts = () => new Date().toTimeString().slice(0, 8);
-  const line = (m) => console.log(`^2[${RESOURCE}]^7 ^3${ts()}^7 >> ${m}^0`);
-  const warn = (m) => console.log(`^2[${RESOURCE}] ^8[WARN]^7 ^3${ts()}^7 >> ${m}^0`);
+  const line = (m) => console.log(`^4[SLING]^7 ^2[INFO  ${ts()}]^7 ${m}^0`);
+  const warn = (m) => console.log(`^4[SLING]^7 ^3[WARN  ${ts()}]^7 ${m}^0`);
 
   // Tell the Lua side the outcome so it can notify ACE admins in-game on failure
   // (a console line is easy to miss). Server-local event — clients can't spoof it.
