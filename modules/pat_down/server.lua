@@ -110,12 +110,18 @@ RegisterNetEvent('mbt_malisling:patdown:request', function(targetServerId)
         return
     end
 
-    -- Cuffed targets can be frisked without consent (config); otherwise ask.
-    -- IsPedCuffed may be client-only on some builds → pcall-guard, default false.
+    -- Cuffed targets can be frisked without consent (config); otherwise ask. IsPedCuffed reads the
+    -- TARGET's ped state — unreliable/client-influenced server-side — so prefer a trusted restraint
+    -- check the server owner wires (cfg.IsRestrained(targetSrc) -> bool, e.g. their cuff resource);
+    -- fall back to the native only when it isn't provided.
     local cuffed = false
     if cfg.CuffedBypass then
-        local ok, c = pcall(IsPedCuffed, pedB)
-        cuffed = ok and c == true
+        if type(cfg.IsRestrained) == 'function' then
+            cuffed = cfg.IsRestrained(target) == true
+        else
+            local ok, c = pcall(IsPedCuffed, pedB)
+            cuffed = ok and c == true
+        end
     end
     if cfg.RequireConsent and not cuffed then
         pending[target] = { officer = officer, expires = now + (cfg.RequestTimeoutMs or 8000) }
