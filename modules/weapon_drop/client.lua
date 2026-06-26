@@ -81,7 +81,8 @@ function dropCurrentWeapon()
     local weaponObj = CreateObject(weaponModel, bonePos.x, bonePos.y, bonePos.z, true, true, true)
     ActivatePhysics(weaponObj)
     TriggerEvent("ox_inventory:disarm", true)
-    while IsEntityInAir(weaponObj) do Wait(100) end
+    local airDeadline = GetGameTimer() + 3000   -- never block forever (dropped over water/off-map)
+    while IsEntityInAir(weaponObj) and GetGameTimer() < airDeadline do Wait(100) end
     local deadline = GetGameTimer() + 800
     repeat
         Wait(50)
@@ -113,6 +114,9 @@ if isOx then
     --- walk-in pickup → wrong drop opened. GetGamePool enumerates them all.
     local function hideBagsNear(coords)
         if not coords then return end
+        -- The pool scan is only worth it when the player is close enough to see the bag; skip it
+        -- entirely for far drops (this runs on build/refresh, which can fire for distant drops).
+        if #(GetEntityCoords(cache.ped) - coords) > 30.0 then return end
         for _, obj in ipairs(GetGamePool('CObject')) do
             if GetEntityModel(obj) == bagModel and IsEntityVisible(obj)
                 and #(GetEntityCoords(obj) - coords) < 1.5 then
@@ -164,6 +168,7 @@ if isOx then
             end
             lib.requestWeaponAsset(weaponHash, 1000, 31, 1)
             local obj = CreateWeaponObject(weaponHash, 50, d.coords.x + sx, d.coords.y + sy, d.coords.z, true, 1.0, 0)
+            RemoveWeaponAsset(weaponHash)   -- object keeps its model; release the asset
             if obj and DoesEntityExist(obj) then
                 PlaceObjectOnGroundProperly(obj)
                 FreezeEntityPosition(obj, true)
@@ -300,6 +305,7 @@ else
 
         lib.requestWeaponAsset(weaponHash, 1000, 31, 1)
         local obj = CreateWeaponObject(weaponHash, 50, coords.x, coords.y, coords.z, true, 1.0, 0)
+        RemoveWeaponAsset(weaponHash)   -- object keeps its model; release the asset
         if not obj or not DoesEntityExist(obj) then return end
 
         PlaceObjectOnGroundProperly(obj)

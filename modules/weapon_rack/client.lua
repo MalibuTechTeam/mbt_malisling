@@ -106,6 +106,7 @@ local function renderRack(id)
         if hash and hash ~= 0 then
             lib.requestWeaponAsset(hash, 1000, 31, 1)
             local obj = CreateWeaponObject(hash, 50, 0.0, 0.0, 0.0, true, 1.0, 0)
+            RemoveWeaponAsset(hash)   -- the object keeps its model; don't leave the asset resident
             if obj and DoesEntityExist(obj) then
                 SetEntityCollision(obj, false, false)
                 local px, py, pz, rot = slotOffset(e.wtype, i)
@@ -119,13 +120,30 @@ local function renderRack(id)
     rackedProps[id] = { props = props, count = #list }
 end
 
---- Pull the latest contents for all spawned racks from GlobalState and re-render.
+--- Cheap content signature for a rack's list (weapon names + order/count) so refreshAll can skip
+--- racks that didn't change. The whole map lives in ONE GlobalState bag, so every stow/retrieve
+--- anywhere fires this handler for ALL clients — without the diff each one re-rendered EVERY rack.
+local rackSig = {}   -- [id] = last rendered signature
+local function listSig(list)
+    if not list then return '' end
+    local parts = {}
+    for i = 1, #list do parts[i] = list[i].weapon or '?' end
+    return table.concat(parts, '|')
+end
+
+--- Pull the latest contents for all spawned racks from GlobalState and re-render ONLY the ones
+--- whose contents actually changed.
 local function refreshAll(value)
     local map = (type(value) == 'table') and value or (GlobalState.mbt_weaponRacks or {})
     for id in pairs(spawnedRacks) do
         local list = map[id]
-        rackData[id] = (type(list) == 'table' and #list > 0) and list or nil
-        renderRack(id)
+        list = (type(list) == 'table' and #list > 0) and list or nil
+        local sig = listSig(list)
+        if sig ~= rackSig[id] then
+            rackData[id] = list
+            rackSig[id]  = sig
+            renderRack(id)
+        end
     end
 end
 

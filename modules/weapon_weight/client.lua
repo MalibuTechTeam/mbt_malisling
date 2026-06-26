@@ -70,7 +70,11 @@ CreateThread(function()
     end
 end)
 
+local refreshQueued = false
 AddEventHandler('ox_inventory:updateInventory', function()
-    -- A weapon may have been added/removed — recheck soon (debounced by the loop).
-    CreateThread(refresh)
+    -- Coalesce a burst of inventory mutations into ONE refresh — each refresh is a server
+    -- round-trip, so looting/sorting otherwise fires one callback per mutated slot.
+    if refreshQueued then return end
+    refreshQueued = true
+    SetTimeout(300, function() refreshQueued = false; refresh() end)
 end)

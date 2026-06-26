@@ -75,9 +75,7 @@ local function jammedAnim()
     lib.requestAnimDict(jamAnim["Dict"])
     while isJammed do
         TaskPlayAnim(cache.ped, jamAnim["Dict"], jamAnim["Anim"], 2.0, 2.0, 750, 48, 0.0, false, false, false)
-        DisablePlayerFiring(cache.playerId, true)
-        DisableControlAction(0, 25, true)
-        Wait(800)
+        Wait(800)   -- the fire-block is enforced every frame by disableFiring(); no need to repeat it here
     end
     ClearPedTasks(cache.ped)
     RemoveAnimDict(jamAnim["Dict"])

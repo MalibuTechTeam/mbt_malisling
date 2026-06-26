@@ -304,6 +304,7 @@ local function renderRack(veh)
         if hash and hash ~= 0 then
             lib.requestWeaponAsset(hash, 1000, 31, 1)
             local obj = CreateWeaponObject(hash, 50, 0.0, 0.0, 0.0, true, 1.0, 0)
+            RemoveWeaponAsset(hash)   -- the object keeps its model; don't leave the asset resident
             if obj and DoesEntityExist(obj) then
                 SetEntityCollision(obj, false, false)
                 AttachEntityToEntity(obj, veh, bone,
@@ -336,15 +337,21 @@ end)
 CreateThread(function()
     while true do
         Wait(300)
-        for veh, list in pairs(rackedData) do
-            if not DoesEntityExist(veh) then
-                clearProps(veh); rackedData[veh] = nil
-            else
-                local r = rackedProps[veh]
-                if bootIsOpen(veh) then
-                    if not r or r.count ~= #list then renderRack(veh) end
-                elseif r then
-                    clearProps(veh)
+        if next(rackedData) then
+            local pc = GetEntityCoords(cache.ped)
+            for veh, list in pairs(rackedData) do
+                if not DoesEntityExist(veh) then
+                    clearProps(veh); rackedData[veh] = nil
+                elseif #(pc - GetEntityCoords(veh)) > 20.0 then
+                    -- Far trunk: skip the door-angle math entirely (just ensure props are cleared).
+                    if rackedProps[veh] then clearProps(veh) end
+                else
+                    local r = rackedProps[veh]
+                    if bootIsOpen(veh) then
+                        if not r or r.count ~= #list then renderRack(veh) end
+                    elseif r then
+                        clearProps(veh)
+                    end
                 end
             end
         end
