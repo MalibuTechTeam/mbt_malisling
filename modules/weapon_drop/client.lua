@@ -264,38 +264,29 @@ if isOx then
         removeWeaponDropProp(dropId)
     end)
 
-    -- Hide ox's own bag prop for weapon drops so only the weapon model shows.
-    -- ox spawns the bag when the player nears the drop; this loop finds it and
-    -- makes it invisible + non-collidable (so ox_target's raycast hits the
-    -- weapon prop, not the invisible bag).
+    -- Hide ox's own bag prop for weapon drops so only the weapon model shows. ox spawns the bag
+    -- when the player nears the drop; we make it invisible + non-collidable (so ox_target's raycast
+    -- hits the weapon prop, not the bag). A TARGETED GetClosestObjectOfType at each bag spot is far
+    -- cheaper than scanning the whole CObject pool, so we can poll fast (50ms) and catch the bag the
+    -- instant it spawns — killing the brief "stock bag" flash. Re-hides on re-spawn (no sticky flag).
     CreateThread(function()
         while true do
             local sleep = 1000
             if next(weaponDrops) then
                 local pcoords = GetEntityCoords(cache.ped)
-                -- Collect the bag spots in range, then run ONE pool scan (GetGamePool
-                -- is heavy — never per-drop-per-frame). Throttled to 300ms.
-                local spots, near = {}, false
+                local near = false
                 for _, d in pairs(weaponDrops) do
                     if d.props and #d.props > 0 and d.bagCoords and #(pcoords - d.coords) < 30.0 then
                         near = true
-                        spots[#spots + 1] = d.bagCoords
-                    end
-                end
-                if near then
-                    sleep = 300
-                    for _, obj in ipairs(GetGamePool('CObject')) do
-                        if GetEntityModel(obj) == bagModel and IsEntityVisible(obj) then
-                            for i = 1, #spots do
-                                if #(GetEntityCoords(obj) - spots[i]) < 1.5 then
-                                    SetEntityVisible(obj, false, 0)
-                                    SetEntityCollision(obj, false, false)
-                                    break
-                                end
-                            end
+                        local s = d.bagCoords
+                        local bag = GetClosestObjectOfType(s.x, s.y, s.z, 1.5, bagModel, false, false, false)
+                        if bag ~= 0 and IsEntityVisible(bag) then
+                            SetEntityVisible(bag, false, 0)
+                            SetEntityCollision(bag, false, false)
                         end
                     end
                 end
+                if near then sleep = 50 end
             end
             Wait(sleep)
         end
