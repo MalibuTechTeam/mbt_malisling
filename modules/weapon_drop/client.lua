@@ -213,7 +213,7 @@ if isOx then
 
         -- (buildProps already started the despawn timer, gen-guarded.)
         if cfg.OxTargetPickup then
-            Target.AddZone(dropId, weaponDrops[dropId].coords, 1.0, {
+            Target.AddZone(dropId, weaponDrops[dropId].coords, 1.5, {
                 name     = 'mbt_wdrop_' .. dropId,
                 icon     = 'fa-solid fa-hand',
                 label    = Translate('pickup_weapon'),
@@ -317,7 +317,7 @@ else
         local propCoords = GetEntityCoords(obj)
         groundProps[dropId] = obj
 
-        Target.AddZone(dropId, propCoords, 1.0, {
+        Target.AddZone(dropId, propCoords, 1.5, {
             name     = 'mbt_wdrop_' .. dropId,
             icon     = 'fa-solid fa-hand',
             label    = Translate('pickup_weapon'),
