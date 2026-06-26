@@ -587,18 +587,21 @@ AddEventHandler("mbt_malisling:syncDeletion", function(data)
 
             if type(playerToTrack[wType]) == "number" then
                 DeleteObject(playerToTrack[wType])
-                local containsObj, index = Utils.containsValue(playersToTrack, playerToTrack[wType])
-
-                if containsObj then table.remove(playersToTrack, index) end
+                -- Remove the handle from the SPAWN registry (not playersToTrack — that map isn't an
+                -- array, so containsValue's #-scan never found it and the registry leaked). Matches
+                -- the correct paths in deleteAllWeapons and syncScope.
+                local containsObj, index = Utils.containsValue(weaponObjectiveSpawned, playerToTrack[wType])
+                if containsObj then table.remove(weaponObjectiveSpawned, index) end
             end
             playerToTrack[wType] = false
         end
     else
         if type(playerToTrack[weaponType]) == "number" then
             DeleteObject(playerToTrack[weaponType])
-            local containsObj, index = Utils.containsValue(playersToTrack, playerToTrack[weaponType])
+            -- Same fix as the "all" path: clean the spawn registry, not playersToTrack.
+            local containsObj, index = Utils.containsValue(weaponObjectiveSpawned, playerToTrack[weaponType])
             if containsObj then
-                table.remove(playersToTrack, index)
+                table.remove(weaponObjectiveSpawned, index)
             end
         end
         playerToTrack[weaponType] = false
@@ -738,6 +741,7 @@ AddEventHandler('mbt_malisling:syncSling', function (data)
             lib.requestWeaponAsset(weaponData.weaponHash, 1000, 31, 1)
             weaponData.weaponObj = CreateWeaponObject(weaponData.weaponHash, 50, playerCoords.x, playerCoords.y, playerCoords.z, true, 1.0, 0)
             RequestWeaponHighDetailModel(weaponData.weaponObj)
+            RemoveWeaponAsset(weaponData.weaponHash)   -- object keeps its model; the asset was never freed (streaming-memory leak)
 
             local deadline = GetGameTimer() + 500
             while not DoesEntityExist(weaponData.weaponObj) and GetGameTimer() < deadline do
@@ -808,6 +812,7 @@ end)
 CreateThread(function()
     while true do
         Wait(500)
+        local mc = GetEntityCoords(cache.ped)
         for serverId, props in pairs(playersToTrack) do
             local ped
             if serverId == cache.serverId then
@@ -816,7 +821,10 @@ CreateThread(function()
                 local plyr = GetPlayerFromServerId(serverId)
                 ped = (plyr and plyr ~= -1) and GetPlayerPed(plyr) or nil
             end
-            if ped and ped ~= 0 and DoesEntityExist(ped) then
+            -- Distance-cull: a far ped's slung props aren't visible to us anyway, so skip the
+            -- visibility sync (work scales with NEARBY peds, not every tracked one). Local always runs.
+            if ped and ped ~= 0 and DoesEntityExist(ped)
+               and (serverId == cache.serverId or #(mc - GetEntityCoords(ped)) < 80.0) then
                 local pedVisible = IsEntityVisible(ped)
                 for _, v in pairs(props) do
                     if type(v) == "number" and DoesEntityExist(v)
