@@ -18,10 +18,13 @@ local lastUse = {}   -- [src] = GetGameTimer() (rate limit)
 local function maxDist() return (cfg.MaxDistance or 2.5) + 2.0 end
 
 --- The item in the giver's slot, only if it's still the weapon they offered.
-local function slotWeapon(src, slot, name)
+local function slotWeapon(src, slot, name, serial)
     local item = Inventory:GetSlot(src, slot)
     if not item or item.name ~= name then return nil end
     if type(item.name) ~= 'string' or item.name:sub(1, 7) ~= 'WEAPON_' then return nil end
+    -- Anti bait-and-switch: if the offer carried a serial, the slot must STILL hold that exact
+    -- weapon (a giver could otherwise swap a same-name gun with a different serial after offering).
+    if serial ~= nil and (not item.metadata or item.metadata.serial ~= serial) then return nil end
     return item
 end
 
@@ -51,6 +54,7 @@ RegisterNetEvent('mbt_malisling:handoff:offer', function(data)
 
     pending[target] = {
         from = src, slot = slot, name = item.name, count = item.count,
+        serial = item.metadata and item.metadata.serial,
         expires = now + (cfg.RequestTimeoutMs or 8000),
     }
     local md = item.metadata or {}
@@ -85,7 +89,7 @@ lib.callback.register('mbt_malisling:handoff:respond', function(src, accept)
         TriggerClientEvent('mbt_malisling:handoff:result', giver, 'handoff_failed')
         return { ok = false }
     end
-    local item = slotWeapon(giver, offer.slot, offer.name)
+    local item = slotWeapon(giver, offer.slot, offer.name, offer.serial)
     if not item then
         TriggerClientEvent('mbt_malisling:handoff:result', giver, 'handoff_failed')
         return { ok = false }

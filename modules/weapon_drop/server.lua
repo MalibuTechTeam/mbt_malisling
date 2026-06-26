@@ -84,6 +84,9 @@ else
 
         if MBT.LogWeaponDrop then MBT.LogWeaponDrop(src, item, coords) end
 
+        -- Never trust the client's weaponHash (visual/forensic spoof: the drop could look like a
+        -- knife but loot a rifle). Derive it from the item that actually left the inventory.
+        weaponHash = joaat(item.name)
         local dropId = ('mbtweapon_%d_%d'):format(os.time(), math.random(100000, 999999))
         drops[dropId] = {
             coords     = coords,
@@ -110,7 +113,11 @@ else
     end)
 
     lib.callback.register('mbt_malisling:getGroundDrops', function()
-        return drops
+        -- Late-join sync only needs coords + hash to render the prop. Don't return the item
+        -- metadata (serial) or let a client enumerate every grounded weapon's contents.
+        local out = {}
+        for id, d in pairs(drops) do out[id] = { coords = d.coords, weaponHash = d.weaponHash } end
+        return out
     end)
 
     -- Despawn: clients run the timer and request it on expiry. The whole drop is

@@ -48,14 +48,27 @@ AddEventHandler('onServerResourceStart', function(resource)
     loadWeaponsInfo()
 end)
 
+-- Per-source net-event throttle — the house anti-spam pattern the feature modules already use.
+local _lastNet = {}   -- [src] = { [key] = lastMs }
+local function netThrottle(src, key, ms)
+    local t = _lastNet[src]
+    if not t then t = {}; _lastNet[src] = t end
+    local now = GetGameTimer()
+    if t[key] and (now - t[key]) < ms then return false end
+    t[key] = now
+    return true
+end
+
 AddEventHandler("playerDropped", function()
     if not source then return end
+    _lastNet[source] = nil
     dropPlayer(source)
 end)
 
 RegisterNetEvent("mbt_malisling:getPlayersInPlayerScope")
 AddEventHandler("mbt_malisling:getPlayersInPlayerScope", function(data)
     if type(data) ~= "table" then return end
+    if not netThrottle(source, 'scope', 100) then return end
     if not scopes[tostring(source)] then scopes[tostring(source)] = {} end
     local limit = math.min(#data, 2048)
     for i = 1, limit do
@@ -68,6 +81,7 @@ end)
 
 RegisterNetEvent("mbt_malisling:checkInventory")
 AddEventHandler("mbt_malisling:checkInventory", function()
+    if not netThrottle(source, 'checkInv', 250) then return end
     Utils.mbtDebugger("checkInventory ~ Checking inventory for source ", source)
     local items = Inventory:GetInventoryItems(source)
     if type(items) ~= "table" then items = {} end
@@ -84,6 +98,7 @@ RegisterNetEvent("mbt_malisling:syncSling")
 AddEventHandler("mbt_malisling:syncSling", function(data)
     local _source = source
     if type(data) ~= "table" or type(data.playerWeapons) ~= "table" then return end
+    if not netThrottle(_source, 'syncSling', 100) then return end
     if not playersToTrack[_source] then playersToTrack[_source] = {} end
     for k, v in pairs(data.playerWeapons) do
         if _validWeaponTypes[k] and (type(v) == "table" or v == false) then
@@ -117,6 +132,8 @@ end)
 RegisterNetEvent("mbt_malisling:syncDeletion")
 AddEventHandler("mbt_malisling:syncDeletion", function(weaponType)
     local _source = source
+    if not _validWeaponTypes[weaponType] then return end   -- validate the key, like syncSling
+    if not netThrottle(_source, 'syncDel', 100) then return end
     if playersToTrack[_source] == nil then return end
     playersToTrack[_source][weaponType] = false
 

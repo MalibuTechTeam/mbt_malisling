@@ -40,19 +40,6 @@ local function makeRoom()
     end
 end
 
---- Serial of the shooter's current weapon, resolved server-side when the
---- inventory allows it (ox); falls back to the client-reported value.
-local function resolveSerial(src, clientSerial)
-    if GetResourceState('ox_inventory') == 'started' then
-        local ok, w = pcall(function() return exports.ox_inventory:GetCurrentWeapon(src) end)
-        if ok and type(w) == 'table' and w.metadata and w.metadata.serial then
-            return w.metadata.serial
-        end
-    end
-    if type(clientSerial) == 'string' and #clientSerial <= 24 then return clientSerial end
-    return nil
-end
-
 RegisterNetEvent('mbt_malisling:casing:shot', function(p)
     local src = source
     if not cfg.Enabled or type(p) ~= 'table' then return end
@@ -67,8 +54,20 @@ RegisterNetEvent('mbt_malisling:casing:shot', function(p)
     if not ped or ped == 0 then return end
     if #(GetEntityCoords(ped) - vec3(p.x, p.y, p.z)) > 10.0 then return end
 
-    if type(p.weapon) ~= 'string' or p.weapon:sub(1, 7) ~= 'WEAPON_' then return end
-    local wtype = weaponType(p.weapon)
+    -- Resolve the shooter's ACTUAL held weapon server-side (ox) so a scripted client can't forge
+    -- evidence (wrong weapon family / someone else's serial). qb has no server-side resolver, so
+    -- there it falls back to the client-reported value (best effort, documented limitation).
+    local weapon, serial = p.weapon, nil
+    if GetResourceState('ox_inventory') == 'started' then
+        local ok, w = pcall(function() return exports.ox_inventory:GetCurrentWeapon(src) end)
+        if ok and type(w) == 'table' and type(w.name) == 'string' then
+            weapon, serial = w.name, (w.metadata and w.metadata.serial)
+        end
+    end
+    if not serial and type(p.serial) == 'string' and #p.serial <= 24 then serial = p.serial end
+
+    if type(weapon) ~= 'string' or weapon:sub(1, 7) ~= 'WEAPON_' then return end
+    local wtype = weaponType(weapon)
     if not wtype or (cfg.ExcludeTypes and cfg.ExcludeTypes[wtype]) then return end
 
     -- Server-side roll: the client only reports the shot.
@@ -79,8 +78,7 @@ RegisterNetEvent('mbt_malisling:casing:shot', function(p)
     local id = ('c%d_%d'):format(os.time(), seq)
     casings[id] = {
         id = id, x = p.x, y = p.y, z = p.z,
-        weapon = p.weapon, wtype = wtype,
-        serial = resolveSerial(src, p.serial),
+        weapon = weapon, wtype = wtype, serial = serial,
         at = os.time(),
     }
     order[#order + 1] = id
