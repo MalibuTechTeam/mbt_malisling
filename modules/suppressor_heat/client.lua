@@ -3,7 +3,7 @@
 --
 -- The suppressor heats up during sustained fire and visibly glows orange -> red,
 -- then cools down over a few seconds. Purely visual, no combat impact (combat
--- mechanics belong to mbt_shooting).
+-- mechanics belong to a companion combat resource).
 --
 -- Heat only accumulates while the weapon is in hand (that is when you fire it),
 -- but the glow keeps rendering — and cooling — on the matching slung prop after

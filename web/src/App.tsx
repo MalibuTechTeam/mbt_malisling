@@ -66,7 +66,7 @@ if (DEV_PREVIEW === 'admin') {
   debugData([{
     action: 'openAdmin',
     data: {
-      version: 'v2.0.0', companion: false, config: MOCK_ADMIN_CONFIG,
+      version: 'v2.0.0', config: MOCK_ADMIN_CONFIG,
       oxPatch: (DEV_SCENARIO === 'critical' || DEV_SCENARIO === 'both') ? 'ox_inventory weapons-as-items is disabled' : 'ok',
       warnings: (DEV_SCENARIO === 'warning' || DEV_SCENARIO === 'both')
         ? [{ code: 'qb_weapdraw', msg: 'qb-weapons detected — disable weapdraw.lua for correct holster/switch animations.' }]

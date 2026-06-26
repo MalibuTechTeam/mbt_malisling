@@ -76,8 +76,8 @@ MBT.ShootingBridge = {
         callBridge('OnUnholster', weaponType)
     end,
 
-    --- True when a companion combat resource has registered and is running. Used
-    --- by the admin menu to flip its "mbt_shooting" panel from upsell to connected.
+    --- True when a companion combat resource has registered and is running. Lets
+    --- other resources detect the companion without learning anything about it.
     --- (Reveals only that a companion exists — never any of its logic.)
     ---@return boolean
     IsConnected = function()

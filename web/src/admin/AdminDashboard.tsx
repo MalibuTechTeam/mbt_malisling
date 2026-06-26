@@ -12,7 +12,6 @@ import { NoDrawSection, VehicleSection, TrunkRackSection, WeaponRackSection, Tru
 import { PositionsSection, SlingPositionsSection, type Job, type EditTarget } from './sections/PositionsSection'
 import { PropEditorOverlay } from './PropEditorOverlay'
 import { TrunkEditorOverlay } from './TrunkEditorOverlay'
-import { ShootingSection } from './sections/ShootingSection'
 import './Admin.css'
 
 /**
@@ -22,8 +21,7 @@ import './Admin.css'
  *
  * The rail navigates by CATEGORY (not per-feature) — malisling has many small
  * features, so each category page stacks several feature cards (fills the page;
- * no "2-toggle ghost pages"). Forensics is reserved (coming soon) until it ships;
- * Tactical Sling stays out of the menu until its stream asset exists.
+ * no "2-toggle ghost pages").
  */
 
 interface Category {
@@ -115,7 +113,6 @@ export default function AdminDashboard() {
   const [editing, setEditing] = useState<EditTarget | null>(null) // live position editor
   const [trunkEditing, setTrunkEditing] = useState<{ model: string; vclass: number; off: any; view?: any } | null>(null)
   const [closing, setClosing] = useState(false)     // playing the exit animation before unmount
-  const [companion, setCompanion] = useState(false) // mbt_shooting bridge connected
   const [oxPatch, setOxPatch] = useState<string | false>(false) // ox auto-patch failure reason (CRITICAL → center alert)
   const [warnings, setWarnings] = useState<{ code: string; msg: string }[]>([]) // non-critical integration warnings → discreet right chips
   const baseline = useRef('')                       // last-saved snapshot
@@ -127,7 +124,6 @@ export default function AdminDashboard() {
     baseline.current = JSON.stringify(c)
     setDirty(false)
     if (data?.version) setVersion(data.version)
-    setCompanion(!!data?.companion)
     setOxPatch(typeof data?.oxPatch === 'string' ? data.oxPatch : false)
     setWarnings(Array.isArray(data?.warnings) ? data.warnings : [])
     setActive('core')
@@ -203,13 +199,10 @@ export default function AdminDashboard() {
 
   const activeCat = CATEGORIES.find((c) => c.id === active) ?? CATEGORIES[0]
   const isPositions = active === 'positions'
-  const isShooting = active === 'shooting'
-  const headLabel = isShooting ? 'mbt_shooting' : isPositions ? 'Positions' : activeCat.label
-  const headHint = isShooting
-    ? (companion ? 'Companion connected · combat depth is live' : 'Paid add-on · skill, condition, malfunctions, range')
-    : isPositions
-      ? 'Body and trunk placement · set in-world · saved to oxmysql'
-      : `${activeCat.hint} · ${activeCat.sections.length} features · applies live on save`
+  const headLabel = isPositions ? 'Positions' : activeCat.label
+  const headHint = isPositions
+    ? 'Body and trunk placement · set in-world · saved to oxmysql'
+    : `${activeCat.hint} · ${activeCat.sections.length} features · applies live on save`
 
   // Real feature state for the overview — derived from the same config paths the
   // section toggles write (single source of truth, always accurate). Grouped by
@@ -258,20 +251,6 @@ export default function AdminDashboard() {
               <span className="mbt-rail__hint">Body and trunk placement</span>
             </span>
             <span className="mbt-rail__count">3</span>
-          </button>
-
-          {/* Paid companion — upsell page (flips to "connected" when the bridge is up). */}
-          <button
-            className={`mbt-rail__item mbt-rail__promo${isShooting ? ' is-active' : ''}`}
-            aria-current={isShooting ? 'page' : undefined}
-            onClick={() => setActive('shooting')}
-          >
-            <span className="ic"><Icon name="layers" size={18} /></span>
-            <span className="mbt-rail__tx">
-              <span className="mbt-rail__label">mbt_shooting</span>
-              <span className="mbt-rail__hint">Combat depth add-on</span>
-            </span>
-            <span className={`mbt-rail__count${companion ? ' is-on' : ' is-get'}`}>{companion ? 'on' : 'get'}</span>
           </button>
 
           <div className="mbt-rail__spacer" />
@@ -333,9 +312,7 @@ export default function AdminDashboard() {
           ) : null}
 
           <div className="mbt-admin__sections">
-            {isShooting ? (
-              <ShootingSection companion={companion} />
-            ) : isPositions ? (
+            {isPositions ? (
               <>
                 <PositionsSection jobs={jobs} onEdit={(t) => setEditing(t)} />
                 <TrunkPositionsSection config={cfg} update={update}

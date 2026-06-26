@@ -4,8 +4,8 @@
 -- Toggle the safety on the held firearm. With safety ON the weapon cannot fire
 -- (DisablePlayerFiring every frame) and a SAFE/FIRE indicator shows the state; a
 -- metallic click plays on toggle. State is tracked per weapon (by serial) so each
--- gun remembers its own safety. Purely RP — combat logic lives in mbt_shooting,
--- which reads the state via the 'mbt_weaponSafety' statebag or IsWeaponSafetyOn().
+-- gun remembers its own safety. Purely RP — combat logic lives in a companion combat
+-- resource, which reads the state via the 'mbt_weaponSafety' statebag or IsWeaponSafetyOn().
 -- ─────────────────────────────────────────────────────────────────────────────
 
 -- Load if the feature block exists; Enabled is checked at use time so the admin
@@ -58,7 +58,7 @@ local function setSafety(on)
     else
         globalSafety = on
     end
-    -- Expose to mbt_shooting / other resources.
+    -- Expose to a companion combat resource / other resources.
     LocalPlayer.state:set('mbt_weaponSafety', on, true)
 end
 

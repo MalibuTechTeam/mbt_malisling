@@ -531,9 +531,9 @@ MBT.WeaponRack         = {
         -- Pickup: a quick lift-off gesture (same handling dict as stow / retrieve).
         PickupAnim      = { Dict = 'mp_common', Anim = 'givetake1_a', Ms = 1200, Flag = 49 },
     },
-    -- ── Conversion seam (no-op without mbt_shooting) ──────────────────────────────
-    -- When true AND mbt_shooting is installed, retrieving a weapon class requires the
-    -- matching academy certification (enforced by shooting). Without shooting this
+    -- ── Conversion seam (no-op without a combat companion) ────────────────────────
+    -- When true AND a companion combat resource is installed, retrieving a weapon class
+    -- requires the matching certification (enforced by the companion). Without it this
     -- NEVER blocks — the rack UI just surfaces the requirement as info. Free build = seam only.
     RequireCert         = false,
     -- Static rack locations (always work, no DB). v1.1 adds in-world item placement.
@@ -910,8 +910,8 @@ end
 -- ── Weapon Safety Toggle ──────────────────────────────────────────────────────
 -- Toggle the safety on the held firearm: with safety ON the weapon can't fire and
 -- a metallic click plays; an on-screen SAFE/FIRE indicator shows the state. Purely
--- RP — combat mechanics belong to mbt_shooting, which can read the state via the
--- 'mbt_weaponSafety' statebag / exports.IsWeaponSafetyOn().
+-- RP — combat mechanics belong to a companion combat resource, which can read the state
+-- via the 'mbt_weaponSafety' statebag / exports.IsWeaponSafetyOn().
 MBT.Safety             = {
     Enabled    = true,
     Key        = 'END',        -- rebindable from FiveM Settings > Key Bindings
