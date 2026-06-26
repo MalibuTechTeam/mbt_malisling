@@ -290,10 +290,11 @@ CreateThread(function()
             end
 
             if heat <= 0 then suppHash = 0 end
-            -- Per-frame only while the weapon is in hand or genuinely hot (where the glow throb
-            -- reads best); when it's just cooling on the slung back-prop, 60fps is overkill. Decay
-            -- stays correct (it's GetFrameTime-based, so the larger dt compensates).
-            if heldSupp or heat >= (cfg.HotThreshold or 75) then Wait(0) else Wait(20) end
+            -- Stay per-frame whenever the glow is actually being DRAWN (heat >= WarmThreshold) or a
+            -- weapon is in hand — a DrawMarker glow flickers if it isn't redrawn every frame. Only
+            -- throttle the invisible cooling tail (below WarmThreshold nothing is drawn). Decay is
+            -- GetFrameTime-based so the larger dt compensates.
+            if heldSupp or heat >= (cfg.WarmThreshold or 35) then Wait(0) else Wait(20) end
         end
         ::continue::
     end
