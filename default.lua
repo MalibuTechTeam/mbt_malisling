@@ -498,8 +498,8 @@ MBT.WeaponRack         = {
     },
     -- ── Player placement (inventory item) ──────────────────────────────────────────
     -- Use the rack ITEM → the ped physically carries the locker (box-carry anim, you
-    -- walk around with it), rotate it with ←/→, confirm with E → a kneeling mounting
-    -- scenario plays and the rack is installed + persisted (oxmysql). The owner can
+    -- walk around with it), rotate it with ←/→, confirm with E → the install gesture
+    -- plays and the rack is installed + persisted (oxmysql). The owner can
     -- pick an EMPTY rack back up and get the item returned. Needs oxmysql; without it
     -- item placement is disabled (config/admin racks keep working).
     --

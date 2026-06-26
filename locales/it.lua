@@ -220,22 +220,4 @@ RegisterLocale('it', {
     ['ammo_low']                = 'Quasi vuoto',
     ['ammo_empty']              = 'Vuoto',
     ['ammo_unknown']            = '—',
-
-    -- NUI: admin config panel
-    ['cfg_title']               = 'Configurazione MBT',
-    ['cfg_general']             = 'Generale',
-    ['cfg_debug']               = 'Modalità debug',
-    ['cfg_drop_death']          = 'Lascia arma alla morte',
-    ['cfg_enable_sling']        = 'Abilita arma a tracolla',
-    ['cfg_enable_flashlight']   = 'Abilita torcia',
-    ['cfg_interface']           = 'Interfaccia',
-    ['cfg_holster_position']    = 'Posizione interfaccia',
-    ['cfg_jamming']             = 'Inceppamento arma',
-    ['cfg_enabled']             = 'Abilitato',
-    ['cfg_cooldown']            = 'Cooldown (secondi)',
-    ['cfg_unjam_presses']       = 'Pressioni per disinceppare',
-    ['cfg_throw']               = 'Lancio arma',
-    ['cfg_throw_key']           = 'Tasto di lancio',
-    ['cfg_cancel']              = 'Annulla',
-    ['cfg_save']                = 'Salva e applica',
 })

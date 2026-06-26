@@ -45,39 +45,29 @@ end)
 -- Keys exposed to the NUI. buildNuiLocale() (core/client.lua) iterates this list
 -- and ships the translated strings to the React app inside each show/open message.
 NUI_LOCALE_KEYS = {
-    'holster_title',
-    'holster_action',
-    'holster_confirm',
-    'holster_cancel',
-    'jam_title',
-    'jam_status',
-    'jam_clear',
+    -- Holster prompt
+    'holster_title', 'holster_action', 'holster_confirm', 'holster_cancel',
+    -- Jamming
+    'jam_title', 'jam_status', 'jam_clear',
+    -- Condition pip / carry pose
     'cond_label',
-    'pose_title',
-    'pose_cycle',
-    'pose_exit',
-    'inspect_title',
-    'inspect_serial',
-    'inspect_condition',
-    'inspect_ammo',
-    'safety_on',
-    'safety_off',
-    'cfg_title',
-    'cfg_general',
-    'cfg_debug',
-    'cfg_drop_death',
-    'cfg_enable_sling',
-    'cfg_enable_flashlight',
-    'cfg_interface',
-    'cfg_holster_position',
-    'cfg_jamming',
-    'cfg_enabled',
-    'cfg_cooldown',
-    'cfg_unjam_presses',
-    'cfg_throw',
-    'cfg_throw_key',
-    'cfg_cancel',
-    'cfg_save',
+    'pose_title', 'pose_cycle', 'pose_exit',
+    -- Inspect overlay (+ chain-of-custody rows)
+    'inspect_title', 'inspect_serial', 'inspect_condition', 'inspect_ammo',
+    'inspect_custody', 'custody_origin', 'custody_now', 'custody_more',
+    -- Safety toggle
+    'safety_on', 'safety_off',
+    -- Ammo sharing picker
+    'ammo_share_title', 'ammo_adjust', 'ammo_give', 'ammo_cancel',
+    -- Shell-casing evidence
+    'casing_title', 'casing_serial', 'casing_fired', 'casing_ago', 'casing_ago_now',
+    -- Weapon handoff
+    'handoff_offers', 'handoff_accept', 'handoff_decline',
+    -- Pat-down
+    'patdown_st_concealed_poor', 'patdown_st_concealed_good', 'patdown_st_carried',
+    'patdown_st_visible', 'patdown_wants', 'patdown_allow', 'patdown_refuse', 'patdown_result',
+    -- Weapon-rack picker
+    'rack_picker_title', 'rack_picker_select', 'rack_picker_take', 'rack_picker_cancel',
 }
 
 --- Build the flat locale table sent to the NUI.

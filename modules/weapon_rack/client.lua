@@ -464,8 +464,8 @@ if GetResourceState('ox_target') ~= 'started' then
 end
 
 -- ── Setup helper: /mbt_rackcoords ────────────────────────────────────────────────
--- v1 has no in-world placement yet (that lands in v1.1 with an item + preview). To
--- add a rack now: stand exactly where you want it, facing the way it should face,
+-- This places a FIXED, config-defined rack (the item-based in-world placement is a
+-- separate flow, below). To add a fixed rack: stand exactly where you want it, facing it,
 -- and run /mbt_rackcoords. It prints + copies a ready-to-paste config line for
 -- MBT.WeaponRack.Locations. Tweak the heading (last number) and the prop if needed.
 local rackCoordSeq = 0
@@ -488,7 +488,7 @@ end, false)
 -- ── Player placement (inventory item): carry ghost → rotate → mount ───────────────
 -- Use the rack item → the ped CARRIES the locker (box-carry loop, you can walk
 -- around with it) while a ghost preview floats in front; ←/→ rotates it, E confirms
--- (kneeling mounting scenario, then the rack solidifies), BACKSPACE cancels.
+-- (plays the install gesture, then the rack solidifies), BACKSPACE cancels.
 local placing = false
 
 local function showPlaceHints()
@@ -578,8 +578,8 @@ RegisterNetEvent('mbt_malisling:weaponRack:startPlace', function()
                 hidePlaceHints()
                 stopCarry()
                 if DoesEntityExist(ghost) then DeleteEntity(ghost) end
-                -- Validate + install FIRST; only play the mounting scenario when the
-                -- server actually accepted (no drill flash on "too close"/"limit").
+                -- Validate + install FIRST; only play the install gesture when the
+                -- server actually accepted (nothing plays on "too close"/"limit").
                 local res = lib.callback.await('mbt_malisling:weaponRack:placeItem', false,
                     { x = lastX, y = lastY, z = lastZ, w = lastW })
                 if res and res.ok then

@@ -220,22 +220,4 @@ RegisterLocale('fr', {
     ['ammo_low']                = 'Presque vide',
     ['ammo_empty']              = 'Vide',
     ['ammo_unknown']            = '—',
-
-    -- NUI: admin config panel
-    ['cfg_title']               = 'Configuration MBT',
-    ['cfg_general']             = 'Général',
-    ['cfg_debug']               = 'Mode débogage',
-    ['cfg_drop_death']          = 'Lâcher l\'arme à la mort',
-    ['cfg_enable_sling']        = 'Activer le port à l\'épaule',
-    ['cfg_enable_flashlight']   = 'Activer la lampe torche',
-    ['cfg_interface']           = 'Interface',
-    ['cfg_holster_position']    = 'Position de l\'interface',
-    ['cfg_jamming']             = 'Enrayement d\'arme',
-    ['cfg_enabled']             = 'Activé',
-    ['cfg_cooldown']            = 'Délai (secondes)',
-    ['cfg_unjam_presses']       = 'Appuis pour désenrayer',
-    ['cfg_throw']               = 'Lancer d\'arme',
-    ['cfg_throw_key']           = 'Touche de lancer',
-    ['cfg_cancel']              = 'Annuler',
-    ['cfg_save']                = 'Enregistrer et appliquer',
 })

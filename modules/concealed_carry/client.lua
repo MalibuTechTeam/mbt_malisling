@@ -203,20 +203,22 @@ CreateThread(function()
     end
 end)
 
--- ── Debug: why is my outfit evaluated this way? ───────────────────────────────────
-RegisterCommand('mbt_concealdebug', function()
-    local q, d = clothingQuality()
-    local sex = pedSex()
-    local st  = 'none'
-    if myState then
-        for wtype, qq in pairs(myState) do st = ('%s=%s'):format(wtype, qq) break end
-    end
-    Utils.mbtDebugger(('conceal debug ~ model=%s sex=%s | top(comp 11) drawable=%d texture=%d | evaluated quality=%s | active state=%s')
-        :format(GetEntityModel(cache.ped), sex, d,
-            GetPedTextureVariation(cache.ped, 11), q, st))
-    lib.notify({ type = 'inform', title = 'Conceal debug',
-        description = ('top %d → %s (state: %s) — full line in F8'):format(d, q, st) })
-end, false)
+-- ── Debug: why is my outfit evaluated this way? (Debug builds only) ───────────────
+if MBT.Debug then
+    RegisterCommand('mbt_concealdebug', function()
+        local q, d = clothingQuality()
+        local sex = pedSex()
+        local st  = 'none'
+        if myState then
+            for wtype, qq in pairs(myState) do st = ('%s=%s'):format(wtype, qq) break end
+        end
+        Utils.mbtDebugger(('conceal debug ~ model=%s sex=%s | top(comp 11) drawable=%d texture=%d | evaluated quality=%s | active state=%s')
+            :format(GetEntityModel(cache.ped), sex, d,
+                GetPedTextureVariation(cache.ped, 11), q, st))
+        lib.notify({ type = 'inform', title = 'Conceal debug',
+            description = ('top %d → %s (state: %s) — full line in F8'):format(d, q, st) })
+    end, false)
+end
 
 AddEventHandler('onResourceStop', function(res)
     if res == GetCurrentResourceName() and myState then
