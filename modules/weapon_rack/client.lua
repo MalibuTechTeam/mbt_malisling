@@ -52,13 +52,16 @@ local function slotOffset(wtype, i)
     return px, py, pz, (o.Rot or { x = 0.0, y = 0.0, z = 0.0 })
 end
 
---- Play one anim step ({Dict, Anim, Ms}); missing/bad dicts degrade to a plain wait.
+--- Play one anim step ({Dict, Anim, Ms, Flag?}); missing/bad dicts degrade to a plain wait.
+--- Flag defaults to 49 (upper-body loop — fits the give/take handling gestures); pass Flag = 2
+--- for a full-body hold-last-frame clip (e.g. the kneel-and-place rack install).
 local function playAnimStep(step)
+    if type(step) ~= 'table' then return end
     local ms = step.Ms or 800
     if not step.Dict or step.Dict == '' or not step.Anim or step.Anim == ''
         or not DoesAnimDictExist(step.Dict) then Wait(ms); return end
     lib.requestAnimDict(step.Dict)
-    TaskPlayAnim(cache.ped, step.Dict, step.Anim, 4.0, -4.0, ms, 49, 0.0, false, false, false)
+    TaskPlayAnim(cache.ped, step.Dict, step.Anim, 4.0, -4.0, ms, step.Flag or 49, 0.0, false, false, false)
     Wait(ms)
     ClearPedTasks(cache.ped)
 end
@@ -580,12 +583,7 @@ RegisterNetEvent('mbt_malisling:weaponRack:startPlace', function()
                 local res = lib.callback.await('mbt_malisling:weaponRack:placeItem', false,
                     { x = lastX, y = lastY, z = lastZ, w = lastW })
                 if res and res.ok then
-                    local scen = cfg.Placement.InstallScenario
-                    if scen and scen ~= '' then
-                        TaskStartScenarioInPlace(cache.ped, scen, 0, true)
-                        Wait(cfg.Placement.InstallMs or 4000)
-                        ClearPedTasks(cache.ped)
-                    end
+                    playAnimStep(cfg.Placement.InstallAnim)   -- mount gesture (raw clip, degrades safely)
                     MBT.NotifyLabel('rack_placed')
                 elseif res and res.reason then
                     MBT.NotifyLabel(res.reason)
@@ -602,14 +600,11 @@ RegisterNetEvent('mbt_malisling:weaponRack:startPlace', function()
     end)
 end)
 
---- Owner pickup: short dismount scenario → item back, rack gone (server-validated).
+--- Owner pickup: short dismount gesture → item back, rack gone (server-validated).
 function doPickup(id)
     if busy or placing then return end
     busy = true
-    local scen = cfg.Placement and cfg.Placement.InstallScenario
-    if scen and scen ~= '' then TaskStartScenarioInPlace(cache.ped, scen, 0, true) end
-    Wait(1800)
-    ClearPedTasks(cache.ped)
+    playAnimStep(cfg.Placement and cfg.Placement.PickupAnim)   -- dismount gesture (raw clip)
     local res = lib.callback.await('mbt_malisling:weaponRack:pickup', false, id)
     busy = false
     if res and res.ok then

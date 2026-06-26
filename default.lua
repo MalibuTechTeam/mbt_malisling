@@ -521,11 +521,15 @@ MBT.WeaponRack         = {
         Label           = 'Gun Rack',
         Prop            = nil,          -- nil = DefaultProp
         MinSpacing      = 1.5,          -- min distance from any other rack (m)
-        InstallMs       = 4000,         -- mounting scenario duration
-        -- Premium placement feel (works out of the box; swap clips freely).
+        -- Placement gestures — raw anim clips (more controlled than ambient scenarios: no tool
+        -- props, no odd posture, mount/pickup split cleanly). Tune Dict/Anim/Ms/Flag live to taste.
+        --   Flag: 49 = upper-body loop (fits the give/take handling gestures); 2 = full-body
+        --   hold-last-frame (fits the kneel-and-place install). Swap clips freely.
         CarryAnim       = { Dict = 'anim@heists@box_carry@', Anim = 'idle', Flag = 50 },
-        -- Standing drill (fits mounting a standing locker; HAMMERING = kneeling alt).
-        InstallScenario = 'WORLD_HUMAN_CONST_DRILL',
+        -- Mount: plant / fix the rack on the wall (full-body kneel-and-place).
+        InstallAnim     = { Dict = 'anim@heists@ornate_bank@thermal_charge', Anim = 'thermal_charge', Ms = 3500, Flag = 2 },
+        -- Pickup: a quick lift-off gesture (same handling dict as stow / retrieve).
+        PickupAnim      = { Dict = 'mp_common', Anim = 'givetake1_a', Ms = 1200, Flag = 49 },
     },
     -- ── Conversion seam (no-op without mbt_shooting) ──────────────────────────────
     -- When true AND mbt_shooting is installed, retrieving a weapon class requires the
