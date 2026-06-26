@@ -100,6 +100,9 @@ local function getChance(d)
         end
     end
 
+    -- A weapon with unknown durability (e.g. a qb-inventory item with no info.quality) gives
+    -- d = nil — guard before the comparisons below, which would otherwise error on `nil > key`.
+    if type(d) ~= 'number' then return 0 end
     for key in orderedPairs(MBT.Jamming["Chance"], function(a, b) return a > b end) do
         if prevKey and d > key and d < prevKey then
             return MBT.Jamming["Chance"][prevKey]
