@@ -463,9 +463,9 @@ MBT.WeaponRack         = {
     -- up = +z). Each successive slot is shifted by SlotSpacing along SlotAxis so weapons
     -- don't overlap. Rot is a local Euler applied on top of the rack's heading.
     Offsets             = {
-        ['back']  = { Pos = { x = -0.30, y = 0.10, z = 1.05 }, Rot = { x = 0.0, y = 0.0, z = 90.0 } },
-        ['back2'] = { Pos = { x = -0.30, y = 0.10, z = 1.05 }, Rot = { x = 0.0, y = 0.0, z = 90.0 } },
-        ['side']  = { Pos = { x = -0.30, y = 0.10, z = 0.95 }, Rot = { x = 270.0, y = 0.0, z = 0.0 } },
+        ['back']  = { Pos = { x = -0.400, y = 0.025, z = 0.905 }, Rot = { x = 0.0, y = 93.0, z = 88.0 } },
+        ['back2'] = { Pos = { x = -0.400, y = 0.025, z = 0.905 }, Rot = { x = 0.0, y = 93.0, z = 88.0 } },
+        ['side']  = { Pos = { x = -0.235, y = 0.075, z = 1.070 }, Rot = { x = 0.0, y = 78.0, z = 90.0 } },
     },
     SlotAxis            = 'x',       -- spread slots along this LOCAL axis of the rack
     SlotSpacing         = 0.22,      -- metres between adjacent slots
@@ -505,16 +505,16 @@ MBT.WeaponRack         = {
     --
     -- ox_inventory item definition (add to ox_inventory/data/items.lua — the export
     -- name must match the item name):
-    --   ['mbt_gunrack'] = {
+    --   ['gunrack'] = {
     --       label = 'Gun Rack', weight = 8000, stack = false,
-    --       server = { export = 'mbt_malisling.mbt_gunrack' },
+    --       server = { export = 'mbt_malisling.gunrack' },
     --   },
-    -- qb-core (shared/items.lua): ['mbt_gunrack'] = { name = 'mbt_gunrack', label = 'Gun Rack',
+    -- qb-core (shared/items.lua): ['gunrack'] = { name = 'gunrack', label = 'Gun Rack',
     --   weight = 8000, type = 'item', image = 'gunrack.png', unique = true, useable = true,
     --   shouldClose = true, description = 'Wall-mountable weapon rack' },
     Placement           = {
         Enabled         = true,
-        Item            = 'mbt_gunrack',
+        Item            = 'gunrack',
         MaxPerPlayer    = 2,            -- max item-placed racks per player (identifier)
         AllowPickup     = true,         -- owner can pick an EMPTY rack back up (item returned)
         Access          = 'everyone',   -- who can use item-placed racks: 'everyone' | 'owner'
