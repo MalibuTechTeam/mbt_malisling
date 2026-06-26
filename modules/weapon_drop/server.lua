@@ -96,6 +96,11 @@ else
     lib.callback.register('mbt_malisling:lootGroundDrop', function(src, dropId)
         local drop = drops[dropId]
         if not drop then return false end
+        -- Server-authoritative proximity: a client knows every drop id (getGroundDrops),
+        -- so without this it could loot any drop on the map. Must be next to it.
+        local ped = GetPlayerPed(src)
+        if not ped or ped == 0 then return false end
+        if not drop.coords or #(GetEntityCoords(ped) - drop.coords) > 3.0 then return false end
         if not Inventory:AddItem(src, drop.item.name, drop.item.count, drop.item.metadata) then
             return false  -- inventory full etc. — leave the drop in place
         end

@@ -266,11 +266,14 @@ lib.callback.register('mbt_malisling:weaponRack:retrieve', function(src, data)
         end
     end
 
-    -- Only remove from the rack after the item is back in the inventory.
+    -- Claim the entry BEFORE the AddItem yield: ox AddItem yields, so two players at the
+    -- same world rack would otherwise both read this entry and both receive the weapon
+    -- (item dupe). Remove first; give it back if AddItem fails.
+    table.remove(racks[loc.id], index)
     if not Inventory:AddItem(src, entry.name, entry.count, entry.metadata) then
+        table.insert(racks[loc.id], index, entry)
         return { ok = false, reason = 'rack_inv_full' }
     end
-    table.remove(racks[loc.id], index)
     saveRack(loc.id)
     publishAll()
     logRack(src, 'take', loc, entry)

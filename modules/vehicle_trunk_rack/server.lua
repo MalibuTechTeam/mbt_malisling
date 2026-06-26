@@ -168,17 +168,20 @@ local function weaponType(name)
     return w and w.type
 end
 
---- Access control: occupants always allowed (reliable server-side). Non-occupants
---- respect the lock. GetVehicleDoorLockStatus may be client-only on some builds; if
---- it can't read a status server-side it returns 0 and we allow (the client also
---- pre-checks). 2/3/4 = locked.
-local function isAccessible(ped, veh)
+--- Access control for the trunk rack (the interaction happens at the REAR, so the player is
+--- normally standing outside behind the boot). Outside access uses the vehicle LOCK status —
+--- but GetVehicleDoorLockStatus isn't reliable on every FXServer build, so unlike the old code
+--- we DENY on a read failure (no fail-open that let a nearby thief drain a locked trunk). Only
+--- the locked statuses block access; 0 (none) / 1 (unlocked) allow it. A server owner can override
+--- with a trusted keys/ownership check via cfg.CanAccessOutside(src, veh, plate) -> bool.
+local function isAccessible(src, ped, veh, plate)
     if GetVehiclePedIsIn(ped, false) == veh then return true end
-    -- pcall: GetVehicleDoorLockStatus is client-side on some builds; if it isn't
-    -- callable server-side we allow (the client also pre-gates). 2/3/4 = locked.
+    if type(cfg.CanAccessOutside) == 'function' then
+        return cfg.CanAccessOutside(src, veh, plate) == true
+    end
     local ok, lock = pcall(GetVehicleDoorLockStatus, veh)
-    if ok and (lock == 2 or lock == 3 or lock == 4) then return false end
-    return true
+    if not ok or type(lock) ~= 'number' then return false end   -- can't verify → deny (no fail-open)
+    return not (lock == 2 or lock == 3 or lock == 4 or lock == 7 or lock == 8 or lock == 10)
 end
 
 --- Publish the render-only rack (weapon + type, no metadata) to the vehicle bag.
@@ -203,9 +206,9 @@ local function guard(src, data)
     local ped = GetPlayerPed(src)
     if not ped or ped == 0 then return end
     if #(GetEntityCoords(ped) - GetEntityCoords(veh)) > (cfg.InteractionDistance or 2.5) + 2.5 then return end
-    if not isAccessible(ped, veh) then return veh, ped, nil, 'trunk_locked' end
     local plate = vehPlate(veh)
     if not plate then return veh, ped, nil, 'trunk_no_plate' end
+    if not isAccessible(src, ped, veh, plate) then return veh, ped, nil, 'trunk_locked' end
     return veh, ped, plate
 end
 
@@ -245,11 +248,14 @@ lib.callback.register('mbt_malisling:trunkRack:retrieve', function(src, data)
     local entry = index and racks[plate][index]
     if not entry then return { ok = false } end
 
-    -- Only remove from the rack after the item is back in the inventory.
+    -- Claim the entry BEFORE the AddItem yield. ox AddItem yields, so two players
+    -- retrieving from the same trunk at once would otherwise both read this entry and
+    -- both receive the weapon (item dupe). Remove first; give it back if AddItem fails.
+    table.remove(racks[plate], index)
     if not Inventory:AddItem(src, entry.name, entry.count, entry.metadata) then
+        table.insert(racks[plate], index, entry)
         return { ok = false, reason = 'trunk_inv_full' }
     end
-    table.remove(racks[plate], index)
     saveRack(plate)
     publish(veh, plate)
 
