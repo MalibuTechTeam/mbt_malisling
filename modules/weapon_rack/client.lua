@@ -26,10 +26,7 @@ local rackData      = {}  -- [id] = { { weapon, wtype }, ... }  (mirror of Globa
 AddEventHandler('ox_inventory:currentWeapon', function(w) CurrentWeapon = w or {} end)
 
 -- ── Helpers ────────────────────────────────────────────────────────────────────
-local function weaponTypeOf(name)
-    local w = name and MBT.WeaponsInfo and MBT.WeaponsInfo.Weapons and MBT.WeaponsInfo.Weapons[name]
-    return w and w.type
-end
+local weaponTypeOf = Utils.weaponType
 
 local function holdingAllowed()
     local t = weaponTypeOf(CurrentWeapon and CurrentWeapon.name)

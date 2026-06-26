@@ -27,7 +27,6 @@ local weaponObjectiveSpawned = {}
 local isReady = false
 local hasRegistered = false
 local propInfoTable = Utils.tableDeepCopy(MBT.PropInfo)
-local playerSex
 
 -- Last polled value of IsFlashLightOn(ped). We can't trust a synchronous read in the
 -- ox_inventory:currentWeapon(nil) unequip handler because GTA's holster transition clears

@@ -23,6 +23,22 @@ function Utils.containsValue(array, value)
     return false, -1
 end
 
+---Weapon type ('side'/'back'/'back2'/'melee'…) for a canonical WEAPON_ name, or nil.
+---@param name string?
+---@return string?
+function Utils.weaponType(name)
+    local w = name and MBT.WeaponsInfo and MBT.WeaponsInfo.Weapons and MBT.WeaponsInfo.Weapons[name]
+    return w and w.type
+end
+
+---True if n is a real number within sane world-coordinate bounds (rejects NaN/inf and
+---absurd magnitudes) — the guard for coords arriving over net events.
+---@param n any
+---@return boolean
+function Utils.finite(n)
+    return type(n) == 'number' and n == n and n > -1e6 and n < 1e6
+end
+
 ---@param t table
 ---@return table
 function Utils.tableDeepCopy(t)

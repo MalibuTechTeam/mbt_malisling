@@ -41,7 +41,7 @@ end
 -- (each key's client.component is a list of GTA hashes). Reverse-map so the slung
 -- prop shows accessories on qb too (mirrors the client bridge helper).
 local function qbAttachmentsToComponents(attachments)
-    if type(attachments) ~= 'table' then return nil end
+    if type(attachments) ~= 'table' or not next(attachments) then return nil end
     local comps = MBT.WeaponsInfo and MBT.WeaponsInfo.Components
     if not comps then return nil end
     local out = {}

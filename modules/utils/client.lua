@@ -18,6 +18,14 @@ function Utils.isWeapon(s)
     return type(s) == "string" and string.upper(string.sub(s, 1, 7)) == "WEAPON_"
 end
 
+---Weapon type ('side'/'back'/'back2'/'melee'…) for a canonical WEAPON_ name, or nil.
+---@param name string?
+---@return string?
+function Utils.weaponType(name)
+    local w = name and MBT.WeaponsInfo and MBT.WeaponsInfo.Weapons and MBT.WeaponsInfo.Weapons[name]
+    return w and w.type
+end
+
 ---@param t table
 ---@return integer
 function Utils.getTableLength(t)

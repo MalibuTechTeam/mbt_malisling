@@ -17,12 +17,8 @@ local order    = {}    -- insertion order (FIFO cap)
 local seq      = 0
 local lastShot = {}    -- [src] = GetGameTimer() (throttle)
 
-local function finite(n) return type(n) == 'number' and n == n and n > -1e6 and n < 1e6 end
-
-local function weaponType(name)
-    local w = MBT.WeaponsInfo and MBT.WeaponsInfo.Weapons and MBT.WeaponsInfo.Weapons[name]
-    return w and w.type
-end
+local finite     = Utils.finite
+local weaponType = Utils.weaponType
 
 local function removeCasing(id)
     casings[id] = nil   -- order is cleaned lazily

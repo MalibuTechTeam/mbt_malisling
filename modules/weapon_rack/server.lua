@@ -148,10 +148,7 @@ local function saveRack(rackId)
 end
 
 -- ── Helpers ──────────────────────────────────────────────────────────────────────
-local function weaponType(name)
-    local w = MBT.WeaponsInfo and MBT.WeaponsInfo.Weapons and MBT.WeaponsInfo.Weapons[name]
-    return w and w.type
-end
+local weaponType = Utils.weaponType
 
 --- Per-location access gate: job-locked racks check the player's job; item-placed
 --- racks (loc.owner) optionally lock to their owner (Placement.Access = 'owner').
@@ -292,7 +289,7 @@ lib.callback.register('mbt_malisling:weaponRack:retrieve', function(src, data)
 end)
 
 -- ── Runtime placement (admin command + player item) ───────────────────────────────
-local function finite(n) return type(n) == 'number' and n == n and n > -1e6 and n < 1e6 end
+local finite = Utils.finite
 
 --- Min spacing from every existing rack (placement collision check).
 local function tooClose(x, y, z)

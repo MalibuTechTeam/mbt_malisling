@@ -163,10 +163,7 @@ local function vehPlate(veh)
     return p
 end
 
-local function weaponType(name)
-    local w = MBT.WeaponsInfo and MBT.WeaponsInfo.Weapons and MBT.WeaponsInfo.Weapons[name]
-    return w and w.type
-end
+local weaponType = Utils.weaponType
 
 --- Access control for the trunk rack (the interaction happens at the REAR, so the player is
 --- normally standing outside behind the boot). Outside access uses the vehicle LOCK status —
