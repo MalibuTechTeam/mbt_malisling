@@ -183,6 +183,9 @@ end)
 -- qb weapons carry an `ammotype` (e.g. AMMO_PISTOL); the loose ammo items are named
 -- `<type>_ammo`. Map ammotype → qb ammo item name. (qb-core/shared/weapons.lua +
 -- shared/items.lua.) Used by Ammo Sharing.
+-- NB (qb only): Ammo Sharing matches the giver's ammo by these item names. If your server
+-- RENAMED its ammo items (not the qb-core defaults below), EXTEND this map with your names,
+-- otherwise the share can't find the right stack. (Documented in the README qb section.)
 local QB_AMMO = {
     ['AMMO_PISTOL']  = 'pistol_ammo',
     ['AMMO_SMG']     = 'smg_ammo',

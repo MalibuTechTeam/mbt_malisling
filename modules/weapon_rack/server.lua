@@ -444,6 +444,13 @@ lib.callback.register('mbt_malisling:weaponRack:whoami', function(src)
     return identifierOf(src)
 end)
 
+-- Gate for the /mbt_racktune dev offset tuner. Its effect is purely client-local (it
+-- re-positions the caller's OWN rack props and prints a config line — no server write), so
+-- this gate is for tidiness, not security: only debug builds or admins get the tuner.
+lib.callback.register('mbt_malisling:weaponRack:canTune', function(src)
+    return (MBT.Debug == true) or IsPlayerAceAllowed(src, adminPerm)
+end)
+
 --- Count + list the caller's own item-placed racks (toward the MaxPerPlayer cap).
 lib.callback.register('mbt_malisling:weaponRack:myRacks', function(src)
     local owner = identifierOf(src)

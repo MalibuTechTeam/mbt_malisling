@@ -683,6 +683,99 @@ RegisterNetEvent('mbt_malisling:weaponRack:clearedMine', function(n)
         description = ('Removed %d of your placed racks.'):format(tonumber(n) or 0) })
 end)
 
+-- ── Dev tuner: /mbt_racktune — dial the per-TYPE rack offset live, copy the config line ──
+-- Stand near a rack holding at least one weapon and run the command. It tunes the offset for
+-- the TYPE of the FIRST stored weapon (MBT.WeaponRack.Offsets[wtype]); to tune a different
+-- type, store a weapon of that type. TAB toggles POS/ROT, arrows + Q/E move the three axes,
+-- SHIFT = bigger step, ENTER copies + prints the config line (paste under MBT.WeaponRack.Offsets
+-- in default.lua), BACKSPACE exits. Admin/Debug only (gated server-side). The effect is local —
+-- it re-positions THIS client's rack props until restart; persist the result via the printed line.
+local rackTuning = nil
+
+local function nearestRackWithWeapon()
+    local pc = GetEntityCoords(cache.ped)
+    local bestId, bestD, bestType = nil, 4.0, nil
+    for id, sr in pairs(spawnedRacks) do
+        local list = rackData[id]
+        if sr and sr.prop and DoesEntityExist(sr.prop) and list and #list > 0 then
+            local d = #(pc - GetEntityCoords(sr.prop))
+            if d < bestD then bestId, bestD, bestType = id, d, list[1].wtype end
+        end
+    end
+    return bestId, bestType
+end
+
+RegisterCommand('mbt_racktune', function()
+    if rackTuning then return end
+    if not lib.callback.await('mbt_malisling:weaponRack:canTune', false) then
+        lib.notify({ type = 'error', title = 'Weapon Rack', description = '/mbt_racktune is admin/debug only.' })
+        return
+    end
+    local id, wtype = nearestRackWithWeapon()
+    if not id then
+        lib.notify({ type = 'inform', title = 'Weapon Rack',
+            description = 'Stand near a rack holding a weapon, then run /mbt_racktune.' })
+        return
+    end
+    cfg.Offsets = cfg.Offsets or {}
+    local b = cfg.Offsets[wtype] or { Pos = { x = 0.0, y = 0.0, z = 1.0 }, Rot = { x = 0.0, y = 0.0, z = 0.0 } }
+    -- Own copy so live edits never depend on the original table's exact shape.
+    cfg.Offsets[wtype] = {
+        Pos = { x = (b.Pos and b.Pos.x) or 0.0, y = (b.Pos and b.Pos.y) or 0.0, z = (b.Pos and b.Pos.z) or 0.0 },
+        Rot = { x = (b.Rot and b.Rot.x) or 0.0, y = (b.Rot and b.Rot.y) or 0.0, z = (b.Rot and b.Rot.z) or 0.0 },
+    }
+    rackTuning = { id = id, wtype = wtype }
+    renderRack(id)
+
+    local mode = 'pos'   -- 'pos' | 'rot'
+    CreateThread(function()
+        while rackTuning do
+            Wait(0)
+            local o = cfg.Offsets[rackTuning.wtype]
+            for _, c in ipairs({ 172, 173, 174, 175, 21, 44, 38, 37, 191, 177 }) do DisableControlAction(0, c, true) end
+            if IsDisabledControlJustPressed(0, 37) then mode = (mode == 'pos') and 'rot' or 'pos' end  -- TAB toggle
+            local fast = IsDisabledControlPressed(0, 21)
+            local step = (mode == 'pos') and (fast and 0.05 or 0.005) or (fast and 5.0 or 1.0)
+            local moved = true
+            if mode == 'pos' then
+                if     IsDisabledControlPressed(0, 172) then o.Pos.z = o.Pos.z + step   -- ↑ up
+                elseif IsDisabledControlPressed(0, 173) then o.Pos.z = o.Pos.z - step   -- ↓ down
+                elseif IsDisabledControlPressed(0, 174) then o.Pos.x = o.Pos.x - step   -- ← left
+                elseif IsDisabledControlPressed(0, 175) then o.Pos.x = o.Pos.x + step   -- → right
+                elseif IsDisabledControlPressed(0, 44)  then o.Pos.y = o.Pos.y - step   -- Q in (toward rack)
+                elseif IsDisabledControlPressed(0, 38)  then o.Pos.y = o.Pos.y + step   -- E out
+                else moved = false end
+            else
+                if     IsDisabledControlPressed(0, 172) then o.Rot.x = (o.Rot.x + step) % 360   -- ↑ pitch+
+                elseif IsDisabledControlPressed(0, 173) then o.Rot.x = (o.Rot.x - step) % 360   -- ↓ pitch-
+                elseif IsDisabledControlPressed(0, 174) then o.Rot.z = (o.Rot.z - step) % 360   -- ← yaw-
+                elseif IsDisabledControlPressed(0, 175) then o.Rot.z = (o.Rot.z + step) % 360   -- → yaw+
+                elseif IsDisabledControlPressed(0, 44)  then o.Rot.y = (o.Rot.y - step) % 360   -- Q roll-
+                elseif IsDisabledControlPressed(0, 38)  then o.Rot.y = (o.Rot.y + step) % 360   -- E roll+
+                else moved = false end
+            end
+            if moved then renderRack(rackTuning.id) end
+
+            SetTextFont(4); SetTextScale(0.42, 0.42); SetTextColour(255, 255, 255, 255); SetTextCentre(true)
+            SetTextEntry('STRING')
+            AddTextComponentString(('RACK TUNE  ~y~%s~s~  [%s]   pos %.3f / %.3f / %.3f   rot %.0f / %.0f / %.0f    arrows+Q/E=move · TAB=pos/rot · SHIFT=fast · ENTER=copy · BKSP=exit')
+                :format(rackTuning.wtype, mode:upper(), o.Pos.x, o.Pos.y, o.Pos.z, o.Rot.x, o.Rot.y, o.Rot.z))
+            DrawText(0.5, 0.86)
+
+            if IsDisabledControlJustPressed(0, 191) then   -- ENTER → copy + print the config line
+                local line = ("['%s'] = { Pos = { x = %.3f, y = %.3f, z = %.3f }, Rot = { x = %.1f, y = %.1f, z = %.1f } },")
+                    :format(rackTuning.wtype, o.Pos.x, o.Pos.y, o.Pos.z, o.Rot.x, o.Rot.y, o.Rot.z)
+                Utils.mbtDebugger('Weapon Rack offset -> paste into MBT.WeaponRack.Offsets:\n' .. line)
+                if lib.setClipboard then lib.setClipboard(line) end
+                lib.notify({ type = 'success', title = 'Weapon Rack',
+                    description = ('Offset for "%s" copied to clipboard + printed to F8.'):format(rackTuning.wtype) })
+            elseif IsDisabledControlJustPressed(0, 177) then   -- BACKSPACE → exit (keeps the tuned look locally)
+                rackTuning = nil
+            end
+        end
+    end)
+end, false)
+
 AddEventHandler('onResourceStop', function(res)
     if res ~= GetCurrentResourceName() then return end
     for id in pairs(spawnedRacks) do despawnRack(id) end
