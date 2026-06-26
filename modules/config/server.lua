@@ -364,8 +364,22 @@ local function validate(d)
     local ts = d.TacticalSling
     if type(ts) ~= 'table' or type(ts.Enabled) ~= 'boolean' then return false end
     if ts.DefaultVariant ~= nil and type(ts.DefaultVariant) ~= 'string' then return false end
-    if ts.JobVariants ~= nil and type(ts.JobVariants) ~= 'table' then return false end
-    if ts.Types ~= nil and type(ts.Types) ~= 'table' then return false end
+    if ts.JobVariants ~= nil then
+        if type(ts.JobVariants) ~= 'table' then return false end
+        local n = 0
+        for k, v in pairs(ts.JobVariants) do
+            n = n + 1
+            if n > 64 or type(k) ~= 'string' or #k > 48 or type(v) ~= 'string' or #v > 48 then return false end
+        end
+    end
+    if ts.Types ~= nil then
+        if type(ts.Types) ~= 'table' then return false end
+        local n = 0
+        for k, v in pairs(ts.Types) do
+            n = n + 1
+            if n > 32 or type(k) ~= 'string' or #k > 32 or type(v) ~= 'boolean' then return false end
+        end
+    end
     -- Shell Casings
     local sc = d.ShellCasings
     if type(sc) ~= 'table' or type(sc.Enabled) ~= 'boolean' or type(sc.AllowCollect) ~= 'boolean' then return false end

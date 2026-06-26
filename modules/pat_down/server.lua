@@ -177,4 +177,11 @@ AddEventHandler('playerDropped', function()
     if not s then return end
     lastUse[s] = nil
     pending[s] = nil
+    -- The officer may have dropped while their request is still pending under the TARGET's key.
+    for target, offer in pairs(pending) do
+        if offer.officer == s then
+            pending[target] = nil
+            TriggerClientEvent('mbt_malisling:patdown:expired', target)
+        end
+    end
 end)

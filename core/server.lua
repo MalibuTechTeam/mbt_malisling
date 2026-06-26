@@ -217,7 +217,7 @@ end
 ---@return promise
 local function triggerCl(data)
     local event = data.event
-    if not data.event then Utils.mbtWarn("No event has passed in triggerCl function") return end
+    if not event or type(event) ~= "string" then Utils.mbtWarn("No event has passed in triggerCl function") return end
     local target = data.target
     if not data.target then Utils.mbtWarn("No target has passed in triggerCl function") return end
     local payload = data.payload

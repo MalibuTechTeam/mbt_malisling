@@ -126,7 +126,7 @@ RegisterNetEvent('mbt_malisling:propPos:save', function(payload)
     if not IsPlayerAceAllowed(src, adminPerm) then Utils.mbtWarn('propPos:save ~ ACE denied for', src); return end
     if type(payload) ~= 'table' then Utils.mbtWarn('propPos:save ~ payload not a table'); return end
     local scope, wtype, data = payload.scope, payload.wtype, payload.data
-    if type(scope) ~= 'string' or scope == '' then Utils.mbtWarn('propPos:save ~ bad scope:', tostring(scope)); return end
+    if type(scope) ~= 'string' or not scope:match('^[%w_%-]+$') or #scope > 48 then Utils.mbtWarn('propPos:save ~ bad scope:', tostring(scope)); return end
     if not validWtype(wtype) then Utils.mbtWarn('propPos:save ~ bad wtype:', tostring(wtype)); return end
     if not validData(data) then Utils.mbtWarn('propPos:save ~ validData FAILED; data=', json.encode(data)); return end
     data = sanitize(data)
@@ -146,7 +146,7 @@ RegisterNetEvent('mbt_malisling:propPos:reset', function(payload)
     if not IsPlayerAceAllowed(src, adminPerm) then return end
     if type(payload) ~= 'table' then return end
     local scope, wtype = payload.scope, payload.wtype
-    if type(scope) ~= 'string' or scope == '' or not validWtype(wtype) then return end
+    if type(scope) ~= 'string' or not scope:match('^[%w_%-]+$') or #scope > 48 or not validWtype(wtype) then return end
     resetServer(scope, wtype)
     saved[savedKey(scope, wtype)] = nil
     if hasDb() then
