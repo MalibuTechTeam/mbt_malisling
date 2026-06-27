@@ -440,7 +440,7 @@ local TEDIT_WEAPON = 'WEAPON_CARBINERIFLE'
 local function teditAttach()
     if not tedit or not tedit.veh or not DoesEntityExist(tedit.veh) then return end
 
-    -- THE REAL FIX (Codex): a reused CreateWeaponObject does NOT reliably take a new
+    -- A reused CreateWeaponObject does NOT reliably take a new
     -- attach rotation — re-attaching the same prop leaves the rotation stuck. The working
     -- /mbt_trunktune path (renderRack) DELETES + RECREATES the weapon object on every
     -- change, which is why its rotation works. So we do the same here: rebuild the

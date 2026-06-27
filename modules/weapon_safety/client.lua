@@ -146,7 +146,7 @@ CreateThread(function()
                 DisablePlayerFiring(cache.playerId, true)
                 DisableControlAction(0, 24, true)   -- INPUT_ATTACK
                 DisableControlAction(0, 257, true)  -- INPUT_ATTACK2
-                -- Attentional-blindness cue (Gemini): pulse the indicator the moment
+                -- Attentional-blindness cue: pulse the indicator the moment
                 -- the player tries to fire on safe, so they don't have to be staring
                 -- at the top-centre pill to notice.
                 if IsDisabledControlJustPressed(0, 24) then
