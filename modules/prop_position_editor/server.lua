@@ -1,12 +1,8 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Weapon-Prop Position Editor — server
---
--- Persists per-type (and per-job) weapon-prop attach offsets in a dedicated
--- oxmysql table (mbt_malisling_positions), overriding the config.lua defaults.
--- Admin-only (ACE), validated server-side, broadcast live to all clients.
---
--- oxmysql is soft/feature-gated: without it the editor can't save and the rest
--- of the script stays DB-free. This is the 2nd documented exception to "no DB".
+-- Persists per-type (+ per-job) prop attach offsets in oxmysql (mbt_malisling_positions),
+-- overriding config.lua defaults. Admin-only (ACE), validated server-side, broadcast live.
+-- oxmysql is soft/feature-gated: without it the editor can't save; rest stays DB-free.
 -- ─────────────────────────────────────────────────────────────────────────────
 
 local adminCommand = (MBT.Admin and MBT.Admin.Command) or 'mbtsling'
@@ -23,9 +19,9 @@ local CONFIG_DEFAULTS = json.decode(json.encode(MBT.PropInfo or {}))
 
 local function hasDb() return GetResourceState('oxmysql') == 'started' end
 
--- DB-persisted overrides mirrored in memory, so a client that joins AFTER load can
--- fetch them on init. The live propPos:apply broadcast only reaches already-connected
--- clients → without this, saved positions revert to config defaults on every restart.
+-- DB overrides mirrored in memory so a client joining AFTER load can fetch them on init.
+-- The propPos:apply broadcast only reaches connected clients → without this, saved
+-- positions revert to config defaults on every restart.
 local saved = {}   -- [scope.."\0"..wtype] = { scope = ..., wtype = ..., data = ... }
 local function savedKey(scope, wtype) return scope .. '\0' .. wtype end
 local function rememberSaved(scope, wtype, data)
@@ -102,8 +98,8 @@ local function ensureSchema()
             PRIMARY KEY (scope, wtype)
         )
     ]], {}, function()
-        -- Widen wtype for any table created before per-variant sling wtypes ('sling:<id>')
-        -- existed (was VARCHAR(16) → long variant ids would silently truncate). Idempotent.
+        -- Widen wtype for tables created before per-variant sling wtypes (was VARCHAR(16)
+        -- → long variant ids truncated). Idempotent.
         exports.oxmysql:execute('ALTER TABLE mbt_malisling_positions MODIFY COLUMN wtype VARCHAR(48) NOT NULL', {})
         exports.oxmysql:execute('SELECT scope, wtype, data FROM mbt_malisling_positions', {}, function(rows)
             if type(rows) ~= 'table' then return end
@@ -152,8 +148,8 @@ RegisterNetEvent('mbt_malisling:propPos:reset', function(payload)
     if hasDb() then
         exports.oxmysql:execute('DELETE FROM mbt_malisling_positions WHERE scope = ? AND wtype = ?', { scope, wtype })
     end
-    -- For default scope send the restored config default; for a job scope send a
-    -- remove signal (clients drop the override and fall back to their default).
+    -- default scope → send the restored config default; job scope → send a remove
+    -- signal (clients drop the override and fall back to default).
     local out = (scope == 'default') and MBT.PropInfo[wtype] or false
     TriggerClientEvent('mbt_malisling:propPos:apply', -1, { scope = scope, wtype = wtype, data = out })
     Utils.mbtDebugger('propPos reset by', src, scope, wtype)

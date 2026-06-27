@@ -1,13 +1,10 @@
 -- ─────────────────────────────────────────────────────────────────────────────
--- Custom Weapon Name
---
--- Engrave a custom name on the held firearm. The name is stored server-side in
--- the weapon's metadata.label, which Weapon Inspect already displays. The client
--- only collects the name (lib.inputDialog) and the current weapon slot; the
--- server validates permission + sanitizes + writes the metadata.
+-- Custom Weapon Name — engrave a name on the held firearm, stored server-side in
+-- metadata.label (which Weapon Inspect displays). Client only collects name + slot;
+-- server validates/sanitizes/writes.
 -- ─────────────────────────────────────────────────────────────────────────────
 
--- Load if the block exists; Enabled checked at use time (live-apply via menu).
+-- Enabled checked at use time (live-apply via menu).
 if not MBT.WeaponName then return end
 
 local cfg = MBT.WeaponName

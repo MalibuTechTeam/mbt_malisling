@@ -1,8 +1,7 @@
 Utils = {}
 
--- Logging — the canonical leveled logger lives in modules/utils/logger.lua
--- (shared_script, loaded before this). Alias it onto Utils so the existing call
--- sites keep working; new code can use Utils.Debug/Info/Warn/Error directly.
+-- Logging — canonical logger lives in modules/utils/logger.lua (shared_script,
+-- loaded first). Aliased onto Utils so existing call sites keep working.
 Utils.Debug = MBTLog.Debug
 Utils.Info  = MBTLog.Info
 Utils.Warn  = MBTLog.Warn
@@ -10,8 +9,8 @@ Utils.Error = MBTLog.Error
 Utils.mbtDebugger = MBTLog.Debug   -- back-compat alias (lowercase, malisling call sites)
 Utils.mbtWarn     = MBTLog.Warn    -- back-compat alias
 
----Refuse to run under a renamed folder (the usual clone-and-rebrand). Prints a console
----error and returns false when the resource isn't named expectedName.
+---Refuse to run under a renamed folder (clone-and-rebrand guard): prints an error
+---and returns false when the resource isn't named expectedName.
 ---@param expectedName string
 ---@return boolean ok
 function Utils.MbtResourceNameCheck(expectedName)
@@ -22,10 +21,6 @@ function Utils.MbtResourceNameCheck(expectedName)
     return false
 end
 
----@param array table
----@param value any
----@return boolean
----@return integer
 function Utils.containsValue(array, value)
     for i=1, #array do
         if array[i] == value then
@@ -43,16 +38,13 @@ function Utils.weaponType(name)
     return w and w.type
 end
 
----True if n is a real number within sane world-coordinate bounds (rejects NaN/inf and
----absurd magnitudes) — the guard for coords arriving over net events.
+---True if n is a real number within world-coordinate bounds (rejects NaN/inf/absurd
+---magnitudes) — the guard for coords arriving over net events.
 ---@param n any
----@return boolean
 function Utils.finite(n)
     return type(n) == 'number' and n == n and n > -1e6 and n < 1e6
 end
 
----@param t table
----@return table
 function Utils.tableDeepCopy(t)
     local copy = {}
 
@@ -89,13 +81,10 @@ function Utils.data(name)
     return func()
 end
 
----@param t1 table
----@param t2 table
----@return table
 function Utils.getDifferences(t1, t2)
     local diffs = {}
 
-    -- Build unified key set in O(n+m) using hash dedup
+    -- Unified key set, O(n+m) via hash dedup
     local allKeys = {}
     for key in pairs(t1) do allKeys[key] = true end
     for key in pairs(t2) do allKeys[key] = true end
@@ -104,7 +93,6 @@ function Utils.getDifferences(t1, t2)
         local a = t1[key] or {}
         local b = t2[key] or {}
 
-        -- Build lookup tables for a single comparison pass
         local inB = {}
         for i = 1, #b do inB[b[i]] = true end
         local inA = {}

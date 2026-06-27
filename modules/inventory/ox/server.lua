@@ -20,8 +20,6 @@ function loadInventoryWeaponsData()
 end
 
 ---Ammo item name for a weapon (ox uses an `ammoname` field on each weapon).
----@param weaponName string  canonical WEAPON_ name
----@return string|nil
 function getAmmoItemName(weaponName)
     local w = MBT.WeaponsInfo and MBT.WeaponsInfo.Weapons and MBT.WeaponsInfo.Weapons[weaponName]
     return w and (w.ammoname or w.ammoName) or nil
@@ -38,10 +36,9 @@ AddStateBagChangeHandler('WeaponFlashlightState', nil, function(bagName, key, va
         local weaponData = Inventory:GetSlot(playerSource, slot)
         if not weaponData or not weaponData.metadata then return end
 
-        -- Serial guard: the slot may have been refilled with a DIFFERENT weapon by
-        -- the time this state-bag change is consumed. Only write the flashlight state
-        -- back if the item still in the slot is the same gun (matching serial), so we
-        -- never stamp one weapon's torch state onto another.
+        -- Serial guard: the slot may have been refilled with a DIFFERENT weapon by now.
+        -- Only write back if the slot's gun still matches (serial), else one weapon's torch
+        -- state stamps onto another.
         if payload.Serial and weaponData.metadata.serial
             and weaponData.metadata.serial ~= payload.Serial then
             goto continue
@@ -63,24 +60,15 @@ AddStateBagChangeHandler('WeaponFlashlightState', nil, function(bagName, key, va
     end
 end)
 
--- ── appendMalisling ─────────────────────────────────────────────────────────────
--- Patches ox_inventory's Weapon.Equip with a minimal hook that delegates the
--- holster prompt to mbt_malisling via TriggerEvent + LocalPlayer.state.
---
--- Why not SendNUIMessage: it sends to the *calling resource's* NUI context, so
--- code injected into ox_inventory's script would show the prompt in ox_inventory's
--- NUI, not in mbt_malisling's React app.
---
--- The hook inserts ~10 lines before `sleep = anim and anim[3] or 1200` (inside the
--- weaponanims block, where `anim` and `data` are both in scope). Weapon.Equip blocks
--- until mbt_malisling writes the result to LocalPlayer.state.malisling_holster_result,
--- then either proceeds with the equip or returns early (cancel = stay on sling).
--- Verify the ox_inventory patch is present. It is applied automatically by
--- modules/ox_patch/installer.js (server JS: fs write + `ensure ox_inventory` so
--- fxv2_oal recompiles the patched source). The Lua sandbox can't do this itself
--- (SaveResourceFile is blocked cross-resource, io.open(write) is denied), hence
--- the JS path. install_ox_patch.ps1 stays as a manual fallback for write-blocked
--- hosts. This check just reports the current state.
+-- ── appendMalisling ──
+-- Patches ox_inventory's Weapon.Equip to delegate the holster prompt to mbt_malisling via
+-- TriggerEvent + LocalPlayer.state. Not SendNUIMessage: that targets the *calling resource's*
+-- NUI, so injected code would show the prompt in ox_inventory's NUI, not malisling's React app.
+-- Hook inserts before `sleep = anim and anim[3] or 1200`; Weapon.Equip blocks until malisling
+-- writes malisling_holster_result, then equips or returns early (cancel = stay on sling).
+-- The patch is applied automatically by modules/ox_patch/installer.js (the Lua sandbox can't:
+-- SaveResourceFile is cross-resource blocked, io.open(write) denied); install_ox_patch.ps1 is
+-- the manual fallback. This function just reports whether the patch is present.
 local function appendMalisling()
     local resourcePath = GetResourcePath('ox_inventory')
     if not resourcePath then return end
@@ -99,10 +87,7 @@ local function appendMalisling()
         return
     end
 
-    -- The cross-platform auto-patcher (modules/ox_patch/installer.js) applies this
-    -- at startup and reloads ox_inventory. This check runs before that on first
-    -- boot, so keep it calm — it self-resolves. install_ox_patch.ps1 stays as a
-    -- manual fallback for read-only/locked-down hosts.
+    -- This check runs before the auto-patcher on first boot, so keep it calm — it self-resolves.
     Utils.mbtDebugger(
         "appendMalisling ~ patch not present yet (hook=" .. tostring(hasHook ~= nil) ..
         " sendAnim=" .. tostring(hasAppend ~= nil) .. "). The auto-patcher will apply it at startup."

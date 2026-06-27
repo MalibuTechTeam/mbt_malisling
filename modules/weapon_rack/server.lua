@@ -1,21 +1,17 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Weapon Rack / Gun Locker — server
 --
--- Place a weapon onto a fixed WORLD rack (defined in MBT.WeaponRack.Locations) and
--- retrieve it later. Same model as the Trunk Rack but anchored to a static config
--- location instead of a vehicle, so the rack itself needs no DB. The weapon never
--- lives in a stash: its {name,count,metadata} is held here and re-minted into the
--- player's inventory on retrieve via the framework-agnostic Inventory bridge (ox+qb).
+-- Stow a weapon onto a fixed WORLD rack (MBT.WeaponRack.Locations) and retrieve it.
+-- The weapon never enters a stash: its {name,count,metadata} is held here and
+-- re-minted on retrieve via the framework-agnostic Inventory bridge (ox+qb).
 --
--- Persistence is a single self-managed oxmysql table (mbt_malisling_racks), keyed by the
--- location id, so racked weapons survive restarts. oxmysql is SOFT/feature-gated:
--- without it the racks still work but their contents are in-memory only (reset on
--- restart) — the rest of the script stays DB-free.
+-- Persistence: one self-managed oxmysql table (mbt_malisling_racks), keyed by location
+-- id. oxmysql is feature-gated — without it racks work but contents are in-memory only
+-- (reset on restart); the rest of the script stays DB-free.
 --
--- Sync: the rack PROP is spawned locally and identically on every client (it's
--- config-defined), so only the CONTENTS are replicated — via GlobalState
--- (mbt_weaponRacks = { [id] = { {weapon,wtype}, ... } }). No networked weapon objects,
--- hence none of the weapon-object sync jitter that plagues other rack scripts.
+-- Sync: the config-defined prop spawns locally + identically per client, so only the
+-- CONTENTS replicate, via GlobalState (mbt_weaponRacks). No networked weapon objects,
+-- hence none of the sync jitter that plagues other rack scripts.
 -- ─────────────────────────────────────────────────────────────────────────────
 
 if not MBT.WeaponRack then return end
@@ -26,8 +22,8 @@ local lastUse = {}    -- [src]    = GetGameTimer()  (rate limit)
 
 local function hasDb() return GetResourceState('oxmysql') == 'started' end
 
--- Server is the source of truth for a rack's coords + job; the client only ever
--- sends an id. Anything not in this table is refused.
+-- Server is the source of truth for a rack's coords + job; the client only sends an
+-- id. Anything not in this table is refused.
 local locById = {}
 for _, loc in ipairs(cfg.Locations or {}) do
     if type(loc) == 'table' and type(loc.id) == 'string' and loc.coords then
@@ -36,8 +32,8 @@ for _, loc in ipairs(cfg.Locations or {}) do
 end
 
 -- Runtime-placed racks — admin (/mbt_placerack) and player (inventory item). Merged
--- into locById so stow/retrieve accept them, and persisted in mbt_malisling_rack_placements
--- (oxmysql; without it runtime racks reset on restart).
+-- into locById so stow/retrieve accept them; persisted in mbt_malisling_rack_placements
+-- (without oxmysql they reset on restart).
 local adminCommand = (MBT.Admin and MBT.Admin.Command) or 'mbtsling'
 local adminPerm    = (MBT.Admin and MBT.Admin.Permission) or ('command.' .. adminCommand)
 local dynamicLocs  = {}   -- [id] = loc
@@ -49,15 +45,14 @@ local function identifierOf(src)
     return id
 end
 
--- ── Sync (GlobalState; render-only, no metadata leaves the server) ───────────────
+-- ── Sync (GlobalState; render-only, no metadata leaves the server) ──
 local function publishAll()
     local render = {}
     for id, list in pairs(racks) do
         local r = {}
         for i = 1, #list do
             local md = list[i].metadata or {}
-            -- Display-only fields for the rack picker UI (custom name, serial,
-            -- durability for the condition tier) — never the full metadata.
+            -- Display-only fields for the picker UI — never the full metadata.
             r[i] = {
                 weapon = list[i].name, wtype = list[i].wtype,
                 label = md.label, serial = md.serial, dur = md.durability,
@@ -68,14 +63,14 @@ local function publishAll()
     GlobalState.mbt_weaponRacks = render
 end
 
--- ── Persistence (oxmysql) ────────────────────────────────────────────────────────
+-- ── Persistence (oxmysql) ──
 local function ensureSchema()
     if not hasDb() then
         Utils.mbtWarn('weapon_rack ~ oxmysql not started; rack contents are in-memory only (reset on restart)')
         return
     end
-    -- Chain the CREATEs so each table is guaranteed to exist before any SELECT below
-    -- (oxmysql runs queries on a pool → fire-and-forget CREATEs can race a fresh DB).
+    -- Chain the CREATEs so each table exists before any SELECT below (oxmysql runs on
+    -- a pool → fire-and-forget CREATEs can race a fresh DB).
     exports.oxmysql:execute([[
         CREATE TABLE IF NOT EXISTS mbt_malisling_racks (
             rack_id VARCHAR(64) NOT NULL PRIMARY KEY,
@@ -105,7 +100,7 @@ local function ensureSchema()
             exports.oxmysql:execute('SELECT rack_id, data FROM mbt_malisling_racks', {}, function(rows)
                 if type(rows) == 'table' then
                     for _, row in ipairs(rows) do
-                        -- Skip rows for racks that no longer exist (renamed/removed).
+                        -- Skip rows for racks that no longer exist.
                         if locById[row.rack_id] then
                             local ok, list = pcall(json.decode, row.data)
                             if ok and type(list) == 'table' and #list > 0 then racks[row.rack_id] = list end
@@ -150,8 +145,8 @@ end
 -- ── Helpers ──────────────────────────────────────────────────────────────────────
 local weaponType = Utils.weaponType
 
---- Per-location access gate: job-locked racks check the player's job; item-placed
---- racks (loc.owner) optionally lock to their owner (Placement.Access = 'owner').
+--- Access gate: job-locked racks check the player's job; item-placed racks optionally
+--- lock to their owner (Placement.Access = 'owner').
 local function canUse(src, loc)
     if loc.owner and (cfg.Placement and cfg.Placement.Access) == 'owner' then
         if identifierOf(src) ~= loc.owner then return false end
@@ -160,9 +155,8 @@ local function canUse(src, loc)
     return getPlayerJob(src) == loc.job
 end
 
---- Armory audit log → Discord webhook (fire-and-forget). Reads cfg.Logging fresh
---- each call so the admin menu's live-apply takes effect without a restart.
----@param src number
+--- Armory audit log → Discord webhook (fire-and-forget). Reads cfg.Logging fresh each
+--- call so the admin menu's live-apply takes effect without a restart.
 ---@param action 'store'|'take'
 ---@param loc table        rack location (id/label)
 ---@param entry table      { name, metadata }
@@ -170,7 +164,7 @@ local function logRack(src, action, loc, entry)
     local log = cfg.Logging or {}
     if not log.Enabled or not log.Webhook or log.Webhook == '' then return end
 
-    -- Character name + framework identifier (not the Steam/FiveM account name).
+    -- Character name + framework identifier (not the Steam/FiveM account).
     local pname, pid = getPlayerName(src)
     local serial = (entry.metadata and entry.metadata.serial) or 'n/a'
     local label  = (entry.metadata and entry.metadata.label) or entry.name
@@ -196,8 +190,8 @@ local function logRack(src, action, loc, entry)
         json.encode(payload), { ['Content-Type'] = 'application/json' })
 end
 
---- Shared guard for stow/retrieve: resolves the rack from its id, then runs
---- rate / proximity / job checks. Returns (loc, ped) or (loc, ped, reason).
+--- Shared stow/retrieve guard: resolves the rack id, runs rate / proximity / job
+--- checks. Returns (loc, ped) or (loc, ped, reason).
 local function guard(src, data)
     if not cfg.Enabled or type(data) ~= 'table' then return end
     local now = GetGameTimer()
@@ -231,8 +225,8 @@ lib.callback.register('mbt_malisling:weaponRack:stow', function(src, data)
     racks[id] = racks[id] or {}
     if #racks[id] >= (cfg.Capacity or 4) then return { ok = false, reason = 'rack_full' } end
 
-    -- Forensic backbone: a weapon entering an armory always gets a serial (safe
-    -- transition — the item is about to be removed/re-added anyway).
+    -- Forensic backbone: a weapon entering an armory always gets a serial (safe here —
+    -- the item is about to be removed/re-added anyway).
     if MBT.EnsureSerial then MBT.EnsureSerial(src, item) end
 
     -- Atomic: only commit to the rack if the item actually left the player.
@@ -256,16 +250,16 @@ lib.callback.register('mbt_malisling:weaponRack:retrieve', function(src, data)
     local entry = index and racks[loc.id][index]
     if not entry then return { ok = false } end
 
-    -- Optional gate via the injected bridge (no-op when absent). Free build = nil → never blocks.
+    -- Optional gate via the injected bridge (no-op when absent → free build never blocks).
     if cfg.RequireCert and MBT.ShootingBridge and MBT.ShootingBridge.CanRetrieve then
         if not MBT.ShootingBridge.CanRetrieve(src, entry.name, entry.metadata) then
             return { ok = false, reason = 'rack_no_cert' }
         end
     end
 
-    -- Claim the entry BEFORE the AddItem yield: ox AddItem yields, so two players at the
-    -- same world rack would otherwise both read this entry and both receive the weapon
-    -- (item dupe). Remove first; give it back if AddItem fails.
+    -- Claim BEFORE the AddItem yield: ox AddItem yields, so two players at the same rack
+    -- would both read this entry and both receive the weapon (dupe). Remove first; give
+    -- it back if AddItem fails.
     table.remove(racks[loc.id], index)
     if not Inventory:AddItem(src, entry.name, entry.count, entry.metadata) then
         table.insert(racks[loc.id], index, entry)
@@ -275,8 +269,8 @@ lib.callback.register('mbt_malisling:weaponRack:retrieve', function(src, data)
     publishAll()
     logRack(src, 'take', loc, entry)
 
-    -- Optional equip-on-retrieve: ox uses the returned slot (useSlot); qb finds the
-    -- weapon client-side and triggers its normal use-weapon flow.
+    -- Optional equip-on-retrieve: ox uses the returned slot (useSlot); qb finds it
+    -- client-side and triggers its normal use-weapon flow.
     local serial = entry.metadata and entry.metadata.serial
     local equipSlot
     if GetResourceState('ox_inventory') == 'started' then
@@ -288,7 +282,7 @@ lib.callback.register('mbt_malisling:weaponRack:retrieve', function(src, data)
     return { ok = true, equipSlot = equipSlot, name = entry.name, serial = serial }
 end)
 
--- ── Runtime placement (admin command + player item) ───────────────────────────────
+-- ── Runtime placement (admin command + player item) ──
 local finite = Utils.finite
 
 --- Min spacing from every existing rack (placement collision check).
@@ -347,7 +341,7 @@ RegisterNetEvent('mbt_malisling:weaponRack:remove', function(id)
     removeRuntimeRack(id)
 end)
 
--- ── Player placement (inventory item) ─────────────────────────────────────────────
+-- ── Player placement (inventory item) ──
 local function placementOn()
     return cfg.Enabled and cfg.Placement and cfg.Placement.Enabled
         and type(cfg.Placement.Item) == 'string' and cfg.Placement.Item ~= ''
@@ -364,8 +358,8 @@ local function onUseRackItem(src)
     TriggerClientEvent('mbt_malisling:weaponRack:startPlace', src)
 end
 
--- ox_inventory path: the item's `server.export = 'mbt_malisling.<item>'` calls this
--- export on use. Returning false cancels ox's own consume (we consume on confirm).
+-- ox_inventory path: the item's `server.export` calls this on use. Returning false
+-- cancels ox's own consume (we consume on confirm).
 exports((MBT.WeaponRack.Placement and MBT.WeaponRack.Placement.Item) or 'mbt_gunrack',
     function(event, _, inventory)
         if event == 'usingItem' and inventory and inventory.id then
@@ -394,8 +388,7 @@ lib.callback.register('mbt_malisling:weaponRack:placeItem', function(src, p)
     for _, loc in pairs(dynamicLocs) do
         if loc.owner == owner then count = count + 1 end
     end
-    -- Spacing first: when stacking on an existing rack, "too close" is the
-    -- actionable message (move away), more useful than a generic "limit reached".
+    -- Spacing first: "too close" (move away) is more actionable than "limit reached".
     if tooClose(p.x, p.y, p.z) then return { ok = false, reason = 'rack_too_close' } end
     if count >= (cfg.Placement.MaxPerPlayer or 2) then return { ok = false, reason = 'rack_limit' } end
 
@@ -441,9 +434,8 @@ lib.callback.register('mbt_malisling:weaponRack:whoami', function(src)
     return identifierOf(src)
 end)
 
--- Gate for the /mbt_racktune dev offset tuner. Its effect is purely client-local (it
--- re-positions the caller's OWN rack props and prints a config line — no server write), so
--- this gate is for tidiness, not security: only debug builds or admins get the tuner.
+-- Gate for the /mbt_racktune dev tuner. Effect is purely client-local (no server
+-- write), so this gate is tidiness not security: only debug builds or admins get it.
 lib.callback.register('mbt_malisling:weaponRack:canTune', function(src)
     return (MBT.Debug == true) or IsPlayerAceAllowed(src, adminPerm)
 end)
@@ -463,8 +455,8 @@ lib.callback.register('mbt_malisling:weaponRack:myRacks', function(src)
     return { count = #list, max = (cfg.Placement and cfg.Placement.MaxPerPlayer) or 2, list = list }
 end)
 
---- Remove ALL of the caller's own placed racks (test/cleanup convenience). Only
---- empty racks are removed (a rack with weapons must be emptied first).
+--- Remove ALL the caller's own EMPTY placed racks (test/cleanup; racks with weapons
+--- must be emptied first).
 RegisterNetEvent('mbt_malisling:weaponRack:clearMine', function()
     local src = source
     local owner = identifierOf(src)
@@ -490,6 +482,6 @@ end)
 
 AddEventHandler('onServerResourceStart', function(resource)
     if resource ~= GetCurrentResourceName() then return end
-    GlobalState.mbt_weaponRacks = {}   -- baseline before the async DB load resolves
+    GlobalState.mbt_weaponRacks = {}   -- baseline before the async DB load
     ensureSchema()
 end)

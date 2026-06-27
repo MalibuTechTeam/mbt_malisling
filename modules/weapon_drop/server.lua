@@ -1,17 +1,8 @@
--- ─────────────────────────────────────────────────────────────────────────────
--- Weapon drop — server
---
--- ox_inventory path: weapons leave the player as real ox drops (CustomDrop).
---   The client listens to ox_inventory:createDrop, asks checkWeaponDrop whether
---   the drop holds a weapon, and renders the weapon model + ox_target itself
---   (ox can't render weapon models). This covers native drag-drop, death drop
---   and throw with one path, and keeps native walk-in pickup working.
---
--- qb-inventory path (fallback tier): a lighter GroundDrop system — the item is
---   held server-side and handed straight back on loot. No native-drop coverage.
---
+-- ── Weapon drop — server ──
+-- ox path: weapons leave the player as real ox drops (CustomDrop); the client renders the
+--   weapon model + ox_target itself (ox can't). Covers drag-drop, death and throw in one path.
+-- qb path (fallback): lighter GroundDrop — item held server-side, handed back on loot.
 -- WeaponDropServer is global so weapon_throw/server.lua can reuse Create().
--- ─────────────────────────────────────────────────────────────────────────────
 
 local isOx = GetResourceState('ox_inventory') == 'started'
 
@@ -19,13 +10,10 @@ WeaponDropServer = {}
 
 if isOx then
     --- Pull a weapon from a player's inventory and create a real ox drop for it.
-    ---@param src number
-    ---@param slot number
-    ---@param coords vector3
     function WeaponDropServer.Create(src, slot, coords)
         local item = Inventory:GetSlot(src, slot)
         if not item then return end
-        -- Forensic backbone: a dropped weapon keeps a serial (safe transition).
+        -- Forensic backbone: a dropped weapon keeps a serial.
         if MBT.EnsureSerial then MBT.EnsureSerial(src, item) end
         if not Inventory:RemoveItem(src, item.name, item.count, nil, item.slot) then return end
 
@@ -36,23 +24,19 @@ if isOx then
         }, coords)
     end
 
-    -- Despawn: clients run the timer and request the despawn on expiry. Clearing
-    -- the drop's inventory makes ox remove the now-empty drop and broadcast
-    -- ox_inventory:removeDrop to everyone. Deduped so redundant client requests
-    -- (one per client running the timer) are no-ops.
+    -- Despawn: clients run the timer and request despawn on expiry. Clearing the drop's
+    -- inventory makes ox remove the empty drop + broadcast removeDrop. Deduped so redundant
+    -- requests (one per client running the timer) are no-ops.
     local despawned = {}  -- [dropId] = true
     RegisterNetEvent('mbt_malisling:despawnWeaponDrop', function(dropId)
         if not dropId or despawned[dropId] then return end
         despawned[dropId] = true
         exports.ox_inventory:ClearInventory(dropId)
-        -- Forget the id after a moment so the table can't grow unbounded.
-        SetTimeout(10000, function() despawned[dropId] = nil end)
+        SetTimeout(10000, function() despawned[dropId] = nil end)   -- forget so the table can't grow unbounded
     end)
 
-    --- The client asks, for a freshly created drop, which weapons it holds.
-    --- ox can merge several items into ONE drop (e.g. dropping a rifle then a
-    --- pistol at the same spot), so this returns the hash of EVERY weapon in the
-    --- drop — the client renders a model for each. Empty list → no weapons.
+    --- Which weapons a freshly created drop holds. ox can merge several items into ONE drop,
+    --- so return EVERY weapon's hash — client renders a model for each. Empty list → no weapons.
     lib.callback.register('mbt_malisling:checkWeaponDrop', function(src, dropId)
         local items = exports.ox_inventory:GetInventoryItems(dropId)
         if type(items) ~= 'table' then return {} end
@@ -71,14 +55,10 @@ else
     -- qb fallback: GroundDrop give-back.
     local drops = {}  -- [dropId] = { coords, weaponHash, item }
 
-    ---@param src number
-    ---@param slot number
-    ---@param coords vector3
-    ---@param weaponHash number
     function WeaponDropServer.Create(src, slot, coords, weaponHash)
         local item = Inventory:GetSlot(src, slot)
         if not item then return end
-        -- Forensic backbone: a dropped weapon keeps a serial (safe transition).
+        -- Forensic backbone: a dropped weapon keeps a serial.
         if MBT.EnsureSerial then MBT.EnsureSerial(src, item) end
         if not Inventory:RemoveItem(src, item.name, item.count, nil, item.slot) then return end
 
@@ -100,7 +80,7 @@ else
         local drop = drops[dropId]
         if not drop then return false end
         -- Server-authoritative proximity: a client knows every drop id (getGroundDrops),
-        -- so without this it could loot any drop on the map. Must be next to it.
+        -- so without this it could loot any drop on the map.
         local ped = GetPlayerPed(src)
         if not ped or ped == 0 then return false end
         if not drop.coords or #(GetEntityCoords(ped) - drop.coords) > 3.0 then return false end
@@ -113,8 +93,8 @@ else
     end)
 
     lib.callback.register('mbt_malisling:getGroundDrops', function()
-        -- Late-join sync only needs coords + hash to render the prop. Don't return the item
-        -- metadata (serial) or let a client enumerate every grounded weapon's contents.
+        -- Late-join sync only needs coords + hash. Don't leak item metadata (serial) or let
+        -- a client enumerate every grounded weapon's contents.
         local out = {}
         for id, d in pairs(drops) do out[id] = { coords = d.coords, weaponHash = d.weaponHash } end
         return out

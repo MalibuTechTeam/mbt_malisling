@@ -1,10 +1,7 @@
 -- ─────────────────────────────────────────────────────────────────────────────
--- Jobs bridge — server
---
--- Enumerates every job/group from the active framework, normalized to a flat
--- list { { name = 'police', label = 'Police' }, ... } for the admin NUI's
--- per-job weapon-position editor. Framework detected at runtime (same soft
--- approach as the inventory/job bridges).
+-- Jobs bridge — server. Enumerates framework jobs/groups into a flat list
+-- { { name='police', label='Police' }, ... } for the NUI per-job position editor.
+-- Framework detected at runtime.
 -- ─────────────────────────────────────────────────────────────────────────────
 
 local function started(res) return GetResourceState(res) == 'started' end

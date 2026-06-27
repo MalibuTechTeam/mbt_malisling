@@ -1,11 +1,8 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Weapon Weight / Carry Penalty — server
---
--- Returns the list of WEAPON_* items a player carries (name + count) via the
--- Inventory abstraction (ox + qb). The CLIENT resolves each weapon's group with
--- GetWeapontypeGroup (a client native — not reliable server-side) and applies the
--- move-rate penalty. GetInventoryItems is keyed by name on qb, so duplicates
--- collapse into one entry; we return the real count so a stack still weighs right.
+-- Returns carried WEAPON_* items (name + count). CLIENT resolves groups via
+-- GetWeapontypeGroup (client native, not reliable server-side) and applies the penalty.
+-- qb keys GetInventoryItems by name (duplicates collapse) so we return the real count.
 -- ─────────────────────────────────────────────────────────────────────────────
 
 if not MBT.WeaponWeight then return end   -- always register; Enabled is live-checked in the callback

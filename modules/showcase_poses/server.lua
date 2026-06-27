@@ -1,11 +1,8 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Showcase Poses — server
---
--- Holds the player's active pose in a replicated Player statebag. Unlike the
--- one-shot broadcast used by inspect/charge, a pose is persistent, so a statebag
--- is the right tool: when a new player streams in, their client's
--- StateBagChangeHandler fires and replays the pose on the already-posing ped —
--- which makes the group-photo / late-join case work automatically.
+-- Holds the active pose in a replicated Player statebag (vs a one-shot broadcast):
+-- a pose is persistent, so a late-streaming client's StateBagChangeHandler replays
+-- it on the already-posing ped — group-photo / late-join works automatically.
 -- ─────────────────────────────────────────────────────────────────────────────
 
 -- Load if the block exists; Enabled + Sync checked at use time (live-apply via menu).

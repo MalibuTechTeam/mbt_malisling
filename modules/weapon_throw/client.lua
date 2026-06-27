@@ -7,8 +7,8 @@ local isThrowing = false
 
 local HAND_BONE = 6286   -- right-hand grip bone the weapon prop attaches to
 
---- World position of the right-hand grip bone (the throw origin). GetWorldPositionOfEntityBone
---- wants the bone INDEX, not the bone ID — passing 6286 raw returns vec3(0,0,0).
+--- Throw origin = right-hand grip bone. GetWorldPositionOfEntityBone wants the bone
+--- INDEX not the ID — passing 6286 raw returns vec3(0,0,0).
 local function handPos()
     return GetWorldPositionOfEntityBone(cache.ped, GetPedBoneIndex(cache.ped, HAND_BONE))
 end
@@ -22,8 +22,8 @@ local function isAllowedToThrow(weaponGroup)
     return g and g["Allowed"] or false
 end
 
---- Detach + throw with Gianmarco's IMPULSE physics (the engine does the tumble, arc and landing —
---- his "fluid" feel) by applying `vel` as the impulse along the ped facing. Returns landed coords.
+--- Detach + throw with Gianmarco's IMPULSE physics (engine does tumble/arc/landing —
+--- his "fluid" feel): apply `vel` as impulse along ped facing. Returns landed coords.
 local function launchForce(obj, vel)
     DetachEntity(obj, true, true)
     SetEntityCollision(obj, true, true)
@@ -49,8 +49,8 @@ local function launchForce(obj, vel)
     return coords
 end
 
---- Forward throw: Gianmarco's exact behaviour. `power` (default 1.0 = the legacy throw) scales the
---- per-group impulse — the charge-power throw passes 1.0..MaxMultiplier; a tap passes exactly 1.0.
+--- Forward throw (Gianmarco's exact behaviour). `power` scales the per-group impulse
+--- (1.0 = legacy throw; charge passes 1.0..MaxMultiplier).
 local function throwInstant(data, model, power)
     power = power or 1.0
     TaskPlayAnim(cache.ped, throwAnim["Dict"], throwAnim["Anim"], 8.0, -8.0, -1, 0, 0.0, false, false, false)
@@ -88,7 +88,7 @@ local function throwWeapon(data, power)
             Coords     = coords,
         })
     else
-        -- The weapon was disarmed but never thrown → put it back on the body (item still in inv).
+        -- Disarmed but never thrown → put it back on the body (item still in inv).
         equippedWeapon.dropped = false
         TriggerServerEvent('mbt_malisling:checkInventory')
     end
@@ -124,8 +124,8 @@ local function canStartCharge()
     return true
 end
 
---- heldMs → (powerMultiplier, pct). Tap (< TapThresholdMs) = exactly 1.0 (the legacy throw);
---- a hold ramps 1.0 → MaxMultiplier over (ChargeMs - threshold). A short hold is never weaker.
+--- heldMs → (powerMultiplier, pct). Tap (< threshold) = 1.0; hold ramps 1.0 →
+--- MaxMultiplier over (ChargeMs - threshold). A short hold is never weaker.
 local function computeChargePower(heldMs)
     local c = getChargeConfig()
     local threshold = c.TapThresholdMs or 150
@@ -159,8 +159,8 @@ RegisterCommand('+' .. MBT.Throw["Command"], function()
     chargeState = { startedAt = GetGameTimer(), data = { Hash = weaponHash, Group = group } }
     if charge.ShowUI then SendNUIMessage({ action = 'charge:start' }) end
 
-    -- UI throttle (50ms / Δpct ≥ 0.02) + safety: charge is non-authoritative, self-cleaning so a
-    -- lost key-up (resource restart, focus loss) can never soft-lock the player.
+    -- UI throttle (50ms / Δpct ≥ 0.02) + self-cleaning: a lost key-up (restart,
+    -- focus loss) can never soft-lock the player.
     CreateThread(function()
         local lastPct = -1
         while chargeState do

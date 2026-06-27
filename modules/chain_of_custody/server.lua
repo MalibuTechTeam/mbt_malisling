@@ -1,15 +1,10 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Chain of Custody (Forensics) — server
---
--- A server-side ledger of who has carried each weapon, keyed by the weapon's
--- SERIAL. Deliberately NOT stored in the item metadata: writing metadata on the
--- equip path re-fires ox_inventory:updateInventory, which the sling system reacts
--- to by re-spawning the slung prop while the weapon is in hand (visual bug).
---
--- Optionally persisted to a self-managed oxmysql table `mbt_malisling_custody`
--- (documented "no DB" exception, feature-gated on oxmysql). Without oxmysql the
--- ledger is in-memory only (resets on restart). The Inspect overlay reads a
--- weapon's chain via the `mbt_malisling:getCustody` callback (by serial).
+-- Server-side ledger of who carried each weapon, keyed by SERIAL. NOT stored in
+-- item metadata on purpose: writing metadata on equip re-fires ox_inventory:
+-- updateInventory → sling re-spawns the prop while the weapon is in hand (visual bug).
+-- Optionally persisted to self-managed oxmysql `mbt_malisling_custody` (feature-gated;
+-- in-memory only without oxmysql). Inspect overlay reads via `mbt_malisling:getCustody`.
 -- ─────────────────────────────────────────────────────────────────────────────
 
 if not MBT.ChainOfCustody then return end   -- always register; Enabled is live-checked in the handlers
@@ -68,10 +63,9 @@ local function record(source, serial)
     persist(serial)
 end
 
---- Called from core/server.lua AFTER the sling sync with the player's slung
---- weapons. Records the holder for each weapon that has a serial. Weapons WITHOUT
---- one get a deferred background repair (EnsureSerial, well off the equip path) so
---- admin-given/legacy guns join the forensic loop instead of silently skipping it.
+--- Called from core/server.lua after the sling sync. Records the holder for each
+--- serialled weapon; serial-less ones get deferred EnsureSerial repair (off the
+--- equip path) so admin-given/legacy guns still join the forensic loop.
 ---@param source number
 ---@param playerWeapons table
 function MBT.ChainOfCustody.RecordHolders(source, playerWeapons)

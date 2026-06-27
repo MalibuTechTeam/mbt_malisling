@@ -1,13 +1,9 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Weapon-Prop Position Editor — client
---
--- Two responsibilities:
---   1) ALL clients: apply a broadcast position change live (update MBT.PropInfo /
---      CustomPropPosition, rebuild propInfoTable via sendAnimations, re-attach the
---      local slung prop of that type).
---   2) ADMIN only: an in-NUI live editor — a preview prop on the ped, an orbit
---      camera driven by NUI buttons, and live re-attach as the admin nudges the
---      offset. Save/Reset go through the ACE-checked server events.
+--   1) ALL clients: apply a broadcast position change live (update MBT.PropInfo/
+--      CustomPropPosition, rebuild via sendAnimations, re-attach the local slung prop).
+--   2) ADMIN only: in-NUI live editor — preview prop on the ped, orbit camera, live
+--      re-attach as the admin nudges. Save/Reset go through ACE-checked server events.
 -- ─────────────────────────────────────────────────────────────────────────────
 
 -- Representative weapon shown per type while editing (so you can edit without owning one).
@@ -17,8 +13,8 @@ local PREVIEW = {
     extinguisher = 'WEAPON_FIREEXTINGUISHER',
 }
 
--- Non-weapon preview types: plain object props (CreateObject, not CreateWeaponObject). The
--- tactical sling uses per-variant virtual types 'sling:<id>' (bare 'sling' = default variant).
+-- Non-weapon preview types: plain object props (CreateObject). The tactical sling uses
+-- per-variant virtual types 'sling:<id>' (bare 'sling' = default variant).
 local function slingVariantId(wtype)
     if wtype == 'sling' then return (MBT.TacticalSling and MBT.TacticalSling.DefaultVariant) or 'normal' end
     if type(wtype) == 'string' and wtype:sub(1, 6) == 'sling:' then return wtype:sub(7) end
@@ -47,9 +43,8 @@ local function coerceInts(d)
     if type(d) ~= 'table' then return d end
     if d.Bone     ~= nil then d.Bone     = math.floor(tonumber(d.Bone) or 0) end
     if d.RotOrder ~= nil then d.RotOrder = math.floor(tonumber(d.RotOrder) or 2) end
-    -- Force Pos/Rot to FLOATS. The NUI's React rotation sliders send INTEGERS, which survive
-    -- JSON -> DB -> decode as Lua integers; an integer rotation arg makes AttachEntityToEntity
-    -- IGNORE the rotation (prop stuck at the default pose). Floats at the source fix it.
+    -- Force Pos/Rot to FLOATS. NUI sliders send INTEGERS that survive JSON->DB->decode as
+    -- Lua ints; an integer rotation arg makes AttachEntityToEntity IGNORE the rotation.
     for _, k in ipairs({ 'Pos', 'Rot' }) do
         local g = d[k]
         if type(g) == 'table' then
@@ -111,9 +106,8 @@ RegisterNetEvent('mbt_malisling:propPos:apply', function(p)
     end
 end)
 
--- Pull the DB-persisted overrides at init (called from core Init() BEFORE its first
--- sendAnimations) so saved positions survive a resource restart — the broadcast above
--- only reaches clients already connected when the save happened.
+-- Pull DB overrides at init (from core Init() BEFORE its first sendAnimations) so saved
+-- positions survive a restart — the broadcast above only reaches already-connected clients.
 function MBT.SyncSavedPropPositions()
     local rows = lib.callback.await('mbt_malisling:getPropPositions', false)
     if type(rows) ~= 'table' then return end
@@ -145,11 +139,9 @@ local function sanitizeAngle(v)
     return ((v + 180.0) % 360.0) - 180.0   -- wrap to -180..180
 end
 
--- Normalise editor data in place. The KEY fix (from the rotation NaN investigation):
--- AttachEntityToEntity with isPed=FALSE ignores pitch and only accepts NEGATIVE roll,
--- which is exactly why high positive roll + negative pitch produced -nan. Forcing
--- isPed=TRUE makes the native apply full pitch/roll/yaw correctly. We also persist
--- isPed=true so the runtime re-attach replays the prop the same way the preview shows it.
+-- Normalise editor data in place. KEY fix: AttachEntityToEntity with isPed=FALSE ignores
+-- pitch and only accepts NEGATIVE roll (high +roll + -pitch → -nan). Force isPed=TRUE for
+-- full pitch/roll/yaw, and persist it so the runtime re-attach replays what the preview shows.
 local function normalizeEditorData(data)
     if type(data) ~= 'table' then return data end
     data.Bone     = math.floor(tonumber(data.Bone) or 0)
@@ -177,9 +169,8 @@ local function destroyPreview()
     lastGoodPreview = nil
 end
 
--- While editing, hide the player's REAL slung weapon(s) so the editor preview prop doesn't
--- overlap/duplicate them (e.g. editing 'back' while a real rifle is already slung). We hide
--- (not delete) to avoid a respawn round-trip; restored on stop.
+-- While editing, hide the player's REAL slung weapon(s) so the preview prop doesn't
+-- overlap them. Restored on stop.
 local hiddenSlung = {}
 local function hideRealSlung()
     hiddenSlung = {}
@@ -187,9 +178,8 @@ local function hideRealSlung()
     if type(mine) ~= 'table' then return end
     for wtype, prop in pairs(mine) do
         if type(prop) == 'number' and DoesEntityExist(prop) then
-            -- SetEntityVisible doesn't reliably hide attached weapon objects, so DELETE them
-            -- (the core does the same for vehicle hiding). The `true` sentinel keeps the slot
-            -- reserved so syncSling won't respawn it while editing.
+            -- SetEntityVisible doesn't reliably hide attached weapon objects, so DELETE.
+            -- The `true` sentinel reserves the slot so syncSling won't respawn it while editing.
             DeleteEntity(prop)
             mine[wtype] = true
             hiddenSlung[#hiddenSlung + 1] = wtype
@@ -227,16 +217,13 @@ local function applyPreview(data, gender)
     if not pos or not rot then return end   -- guard against malformed data
     local bone = GetPedBoneIndex(ped, data.Bone)
     local rotOrder = data.RotOrder
-    -- isPed = TRUE (the fix). With isPed=false the native ignores pitch and only takes
-    -- negative roll → high positive roll + negative pitch returned a NaN matrix. isPed=true
-    -- applies full pitch/roll/yaw. rotOrder stays the integer 2. We persist isPed=true so
-    -- the runtime re-attach replays exactly what the preview shows.
+    -- isPed=TRUE (the fix): isPed=false ignores pitch + only takes negative roll → NaN matrix.
+    -- isPed=true applies full pitch/roll/yaw; persisted so the runtime re-attach matches.
     AttachEntityToEntity(previewObj, ped, bone,
         pos.x, pos.y, pos.z, rot.x, rot.y, rot.z,
         true, true, false, true, rotOrder, data.FixedRot ~= false)
 
-    -- Guard: if the native still produced a NaN matrix, revert to the last valid pose
-    -- instead of leaving the entity poisoned.
+    -- Guard: if the native still produced a NaN matrix, revert to the last valid pose.
     local f = GetEntityForwardVector(previewObj)
     if not vecFinite(f) then
         Utils.mbtWarn(('rejected NaN attach | bone=%s ro=%s rot=%s,%s,%s'):format(
@@ -271,24 +258,20 @@ RegisterNUICallback('propEdit:start', function(d, cb)
         -- Hide only the real strap (keep weapons visible as an alignment reference).
         if MBT.SetSlingEditing then MBT.SetSlingEditing(true) end
     else
-        -- Hide the player's real slung weapon(s) so the preview prop doesn't overlap them.
         hideRealSlung()
-        -- Show the tactical sling strap (if enabled + this weapon type is eligible) as a
-        -- placement reference while positioning the weapon.
+        -- Show the sling strap (if eligible) as a placement reference.
         if MBT.SetSlingWeaponPreview then MBT.SetSlingWeaponPreview(wtype) end
     end
 
     local ped = cache.ped
-    -- IMPORTANT: do NOT FreezeEntityPosition the ped and do NOT SetEntityCollision
-    -- off on the prop. Soft-pinning is a PHYSICS constraint; freezing the ped /
-    -- killing the prop's collision disables the physics it needs to reorient the
-    -- prop → only the raw Euler applies → gimbal lock. /mbt_propedit does neither,
-    -- which is exactly why rotation works there. NUI focus already blocks movement.
+    -- IMPORTANT: do NOT freeze the ped or disable the prop's collision. Soft-pinning is a
+    -- PHYSICS constraint; killing it leaves only the raw Euler → gimbal lock. /mbt_propedit
+    -- does neither, which is why rotation works there. NUI focus already blocks movement.
     SetCurrentPedWeapon(ped, `WEAPON_UNARMED`, true)
 
     destroyPreview()
-    -- Create the prop AT the ped (like /mbt_propedit). Creating it at world origin
-    -- (0,0,0) made soft-pinning try to drag it across the map on attach → fling/vanish.
+    -- Create the prop AT the ped (not world origin, which made soft-pinning drag it across
+    -- the map on attach → fling/vanish).
     local pc = GetEntityCoords(ped)
     if isObjectType(wtype) then
         -- Plain object prop (e.g. sling strap): CreateObject, not CreateWeaponObject.
@@ -309,9 +292,8 @@ RegisterNUICallback('propEdit:start', function(d, cb)
     editGender = d.gender or (IsPedMale(ped) and 'male' or 'female')
     applyPreview(editData, editGender)
 
-    -- Default camera: BEHIND the ped so the slung weapon (back/side/hip) is in frame.
-    -- Derived from the ped's real forward vector — a fixed world yaw (180) only framed
-    -- the back when the ped happened to face north; any other heading missed it.
+    -- Default camera: BEHIND the ped so the slung weapon is in frame. From the forward
+    -- vector — a fixed world yaw (180) only framed the back when the ped faced north.
     local fwd = GetEntityForwardVector(ped)
     orbit.yaw = math.deg(math.atan(-fwd.x, -fwd.y)) % 360.0
     orbit.pitch, orbit.dist = -5.0, 2.4
@@ -319,11 +301,9 @@ RegisterNUICallback('propEdit:start', function(d, cb)
     updateCam()
     RenderScriptCams(true, false, 0, true, true)
 
-    -- Render loop: re-attach ONLY when a value actually changed (dirty), then STOP —
-    -- exactly like /mbt_propedit (which re-attaches only while a key is held).
-    -- Re-attaching a SOFT-PINNED prop every single frame forever never lets the physics
-    -- constraint settle: it diverges to NaN (forward vector = nan → the prop vanishes /
-    -- snaps to a stock pose). Letting it settle between changes is the whole fix.
+    -- Render loop: re-attach ONLY when a value changed (dirty), then STOP — like
+    -- /mbt_propedit. Re-attaching a SOFT-PINNED prop every frame never lets the physics
+    -- constraint settle → diverges to NaN (prop vanishes / snaps to stock). Settling is the fix.
     CreateThread(function()
         while editing do
             Wait(0)
@@ -339,7 +319,7 @@ end)
 
 RegisterNUICallback('propEdit:update', function(d, cb)
     if editing and type(d) == 'table' and type(d.data) == 'table' then
-        editData   = normalizeEditorData(d.data)   -- render loop re-attaches once next frame
+        editData   = normalizeEditorData(d.data)   -- render loop re-attaches next frame
         editGender = d.gender or editGender
         dirty      = true
     end
@@ -366,14 +346,13 @@ end)
 
 RegisterNUICallback('propEdit:reset', function(d, cb)
     if type(d) ~= 'table' or not d.wtype then cb({}); return end
-    -- Clear any saved override (persist the reset) ...
+    -- Persist the reset, then snap the live preview + sliders back to the factory default.
     TriggerServerEvent('mbt_malisling:propPos:reset', { scope = d.scope, wtype = d.wtype })
-    -- ... and snap the live preview + sliders back to the factory default.
     local def = PROP_DEFAULTS[d.wtype]
     if not def then cb({}); return end
     local data = json.decode(json.encode(def))   -- fresh copy
     normalizeEditorData(data)
-    editData   = data                            -- feed the render loop the reset values
+    editData   = data
     editGender = d.gender or editGender
     applyPreview(data, editGender)
     cb(data)

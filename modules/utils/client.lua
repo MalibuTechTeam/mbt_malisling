@@ -1,8 +1,7 @@
 Utils = {}
 
--- Logging — the canonical leveled logger lives in modules/utils/logger.lua
--- (shared_script, loaded before this). Alias it onto Utils so the existing call
--- sites keep working; new code can use Utils.Debug/Info/Warn/Error directly.
+-- Logging — canonical logger lives in modules/utils/logger.lua (shared_script,
+-- loaded first). Aliased onto Utils so existing call sites keep working.
 Utils.Debug = MBTLog.Debug
 Utils.Info  = MBTLog.Info
 Utils.Warn  = MBTLog.Warn
@@ -13,8 +12,7 @@ Utils.mbtWarn     = MBTLog.Warn    -- back-compat alias
 ---@param s string
 ---@return boolean
 function Utils.isWeapon(s)
-    -- Case-insensitive: qb-inventory weapon item names are lowercase
-    -- ('weapon_pistol'); ox + GTA hashes + MBT.WeaponsInfo are uppercase.
+    -- Case-insensitive: qb-inventory item names are lowercase; ox/GTA/MBT uppercase.
     return type(s) == "string" and string.upper(string.sub(s, 1, 7)) == "WEAPON_"
 end
 
@@ -26,24 +24,16 @@ function Utils.weaponType(name)
     return w and w.type
 end
 
----@param t table
----@return integer
 function Utils.getTableLength(t)
     local count = 0
     for _ in pairs(t) do count = count + 1 end
     return count
 end
 
----@param t table
----@return boolean
 function Utils.isTableEmpty(t)
     return next(t) == nil
 end
 
----@param array table
----@param value any
----@return boolean
----@return integer
 function Utils.containsValue(array, value)
     for i=1, #array do
         if array[i] == value then
@@ -53,8 +43,6 @@ function Utils.containsValue(array, value)
     return false, -1
 end
 
----@param t table
----@return table
 function Utils.tableDeepCopy(t)
     local copy = {}
 
@@ -68,13 +56,8 @@ function Utils.tableDeepCopy(t)
     return copy
 end
 
----@param ped number
----@param weaponHash any
----@param compList any
----@return boolean
 function Utils.weaponHasFlashlight(ped, weaponHash, compList)
-    -- Defensive: on some holster/disarm transitions the weapon name is nil before
-    -- the next currentWeapon update — joaat(nil) would hard-error.
+    -- Defensive: weapon name can be nil mid holster/disarm transition — joaat(nil) hard-errors.
     if not weaponHash or type(compList) ~= 'table' then return false end
     local hash = (type(weaponHash) == 'number') and weaponHash or joaat(weaponHash)
     local hasFlash = false
@@ -85,8 +68,6 @@ function Utils.weaponHasFlashlight(ped, weaponHash, compList)
     return hasFlash == 1
 end
 
----@param componentName any
----@return boolean
 function Utils.isComponentAFlashlight(componentName)
     return componentName == "at_flashlight"
 end
@@ -108,8 +89,8 @@ local function getChance(d)
         end
     end
 
-    -- A weapon with unknown durability (e.g. a qb-inventory item with no info.quality) gives
-    -- d = nil — guard before the comparisons below, which would otherwise error on `nil > key`.
+    -- Unknown durability (e.g. qb item with no info.quality) gives d = nil — guard
+    -- before the `nil > key` comparisons below.
     if type(d) ~= 'number' then return 0 end
     for key in orderedPairs(MBT.Jamming["Chance"], function(a, b) return a > b end) do
         if prevKey and d > key and d < prevKey then
@@ -120,8 +101,6 @@ local function getChance(d)
     return 0
 end
 
----@param value any
----@return unknown
 function Utils.getJammingChance(value)
     local chance = getChance(value)
     math.randomseed(GetGameTimer() * math.random(30568, 90214))
@@ -130,10 +109,8 @@ function Utils.getJammingChance(value)
     return random < chance
 end
 
---- Map a weapon's durability (0-100) to a discrete condition tier 1-5
---- (5 = pristine, 1 = damaged). Single source of truth for the shooting bridge
---- export GetWeaponCondition and any condition HUD. Derived on read — no second
---- metadata field to keep in sync with durability.
+--- Durability (0-100) -> condition tier 1-5 (5 = pristine). Single source of truth
+--- for the shooting-bridge export GetWeaponCondition; derived on read, not stored.
 ---@param durability number?
 ---@return integer? tier  1..5, or nil if durability is unknown
 function Utils.durabilityToTier(durability)

@@ -1,12 +1,9 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Pat-down (LEO frisk) — server
---
--- An allowed-job officer frisks a nearby person. The TRUTH comes from here: the
--- server reads the target's inventory weapons and, for each, derives how it was
--- carried — visible / concealed (poor|good) / back-carried — from the concealment
--- statebag and the weapon type. The target consents (unless cuffed + bypass).
--- This is NOT an inventory search: only weapons + carry status + serial leave the
--- server. Every completed frisk → optional Discord audit webhook.
+-- TRUTH lives here: server reads the target's inventory weapons and derives carry
+-- status (visible / concealed poor|good / back) from the concealment statebag and
+-- weapon type. Target consents unless cuffed + bypass. NOT an inventory search:
+-- only weapons + carry status + serial leave the server. Optional Discord audit.
 -- ─────────────────────────────────────────────────────────────────────────────
 
 if not MBT.PatDown then return end
@@ -110,10 +107,9 @@ RegisterNetEvent('mbt_malisling:patdown:request', function(targetServerId)
         return
     end
 
-    -- Cuffed targets can be frisked without consent (config); otherwise ask. IsPedCuffed reads the
-    -- TARGET's ped state — unreliable/client-influenced server-side — so prefer a trusted restraint
-    -- check the server owner wires (cfg.IsRestrained(targetSrc) -> bool, e.g. their cuff resource);
-    -- fall back to the native only when it isn't provided.
+    -- Cuffed targets skip consent (config). IsPedCuffed reads the TARGET's ped state
+    -- (client-influenced server-side) so prefer a trusted cfg.IsRestrained(src); fall
+    -- back to the native only when it isn't provided.
     local cuffed = false
     if cfg.CuffedBypass then
         if type(cfg.IsRestrained) == 'function' then

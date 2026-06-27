@@ -1,10 +1,7 @@
 -- ─────────────────────────────────────────────────────────────────────────────
--- Ammo Sharing — client
---
--- Press the share key while holding a weapon near another player to offer them a
--- portion of your ammo. The receiver gets a key-driven prompt (reuses the
--- Handoff pill NUI) and, on accept, both play a synced give/take gesture while
--- the server moves the ammo item. Mirrors the weapon-handoff flow.
+-- Ammo Sharing — client. Mirrors the weapon-handoff flow but moves an ammo item.
+-- Press the key near another player to offer ammo; receiver gets a key-driven
+-- prompt (reuses the Handoff pill NUI), accept plays a synced give/take gesture.
 -- ─────────────────────────────────────────────────────────────────────────────
 
 if not MBT.AmmoSharing then return end

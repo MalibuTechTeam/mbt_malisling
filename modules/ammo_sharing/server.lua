@@ -1,10 +1,7 @@
 -- ─────────────────────────────────────────────────────────────────────────────
--- Ammo Sharing — server
---
--- Hand a portion of your ammo to a nearby player. Same offer/consent/transfer
--- shape as the weapon handoff, but moves an ammo item (resolved from the held
--- weapon's ox ammo name, or the giver's largest ammo stack). Atomic with
--- rollback; the receiver consents first. All validation server-side.
+-- Ammo Sharing — server. Same offer/consent/transfer shape as weapon handoff,
+-- but moves an ammo item (resolved from the held weapon's ox ammo name, or the
+-- giver's largest ammo stack). Atomic with rollback; all validation server-side.
 -- ─────────────────────────────────────────────────────────────────────────────
 
 if not MBT.AmmoSharing then return end
@@ -15,10 +12,9 @@ local lastUse = {}
 
 local function maxDist() return (cfg.MaxDistance or 2.5) + 2.0 end
 
---- Resolve the ammo item to share for the held weapon. Uses the inventory bridge's
---- getAmmoItemName (ox: weapon `ammoname`; qb: weapon `ammotype` → `<type>_ammo`) to
---- find the exact compatible ammo item; falls back to the giver's largest ammo
---- stack (name starting 'ammo', ox-style). Returns (itemName, availableCount).
+--- Resolve the ammo item to share for the held weapon via getAmmoItemName (ox
+--- `ammoname` / qb `ammotype`→`<type>_ammo`); falls back to the giver's largest
+--- 'ammo'-prefixed stack. Returns (itemName, availableCount).
 local function resolveAmmo(src, heldWeapon)
     local items = Inventory:GetInventoryItems(src)
     if type(items) ~= 'table' then return nil end

@@ -1,8 +1,6 @@
 -- ─────────────────────────────────────────────────────────────────────────────
--- Charge Weapon — server
---
--- Broadcasts a charge to nearby players so they see the anim + hear the sound on
--- the source ped. Distance-based, rate-limited. Mirrors weapon_inspect/server.lua.
+-- Charge Weapon — server. Broadcasts a charge to nearby players (anim + sound on
+-- source ped). Distance-based, rate-limited. Mirrors weapon_inspect/server.lua.
 -- ─────────────────────────────────────────────────────────────────────────────
 
 if not MBT.ChargeWeapon then return end   -- always register; Enabled is live-checked in the handler

@@ -5,26 +5,23 @@ if GetResourceState('qb-core') ~= 'started' then
     return
 end
 
--- QBCore is set up by modules/bridge/qb/server.lua which loads first (bridge/ < inventory/)
+-- QBCore set up by bridge/qb/server.lua (loads first: bridge/ < inventory/).
 
--- ── Integration warnings (admin dashboard chips) ───────────────────────────────
--- qb-weapons' client/weapdraw.lua animates every weapon swap through UNARMED, which
--- breaks the weapon-on-back sling. Detect at RUNTIME (no user config): read qb-weapons'
--- fxmanifest and check whether weapdraw is still wired in. If the owner commented it
--- out, the manifest read shows it's gone → no warning.
+-- ── Integration warnings (admin dashboard chips) ──
+-- qb-weapons' weapdraw.lua breaks the weapon-on-back sling. Detect at RUNTIME by reading
+-- qb-weapons' fxmanifest and checking whether weapdraw is still wired in.
 local function qbWeapdrawActive()
     if GetResourceState('qb-weapons') ~= 'started' then return false end
     local manifest = LoadResourceFile('qb-weapons', 'fxmanifest.lua')
-    if not manifest then return true end  -- running but manifest unreadable → assume qb default (weapdraw on)
+    if not manifest then return true end  -- unreadable → assume qb default (weapdraw on)
     for line in manifest:gmatch('[^\r\n]+') do
-        -- strip any trailing `-- comment`, then look for an active weapdraw reference
-        if line:gsub('%-%-.*$', ''):find('weapdraw') then return true end
+        if line:gsub('%-%-.*$', ''):find('weapdraw') then return true end   -- strip trailing comment first
     end
     return false  -- weapdraw not loaded (commented out or removed)
 end
 
--- Register a warning provider the config module merges into the openAdmin payload.
--- Lives here (qb bridge) so it only exists on qb-inventory setups; ox never sees it.
+-- Warning provider the config module merges into openAdmin. Lives here so it only
+-- exists on qb-inventory setups; ox never sees it.
 MBT.IntegrationWarnings = MBT.IntegrationWarnings or {}
 MBT.IntegrationWarnings[#MBT.IntegrationWarnings + 1] = function()
     if qbWeapdrawActive() then
@@ -35,11 +32,9 @@ MBT.IntegrationWarnings[#MBT.IntegrationWarnings + 1] = function()
     end
 end
 
--- qb-weapons stores attachments in info.attachments as { { component = <GTA hash
--- or name> }, ... }. The slung-prop renderer (core applyAttachments) expects
--- metadata.components = { '<ox item key>', ... } indexing MBT.WeaponsInfo.Components
--- (each key's client.component is a list of GTA hashes). Reverse-map so the slung
--- prop shows accessories on qb too (mirrors the client bridge helper).
+-- qb stores info.attachments as { { component = <GTA hash/name> }, ... }; the slung-prop
+-- renderer wants metadata.components = { '<ox key>', ... } into MBT.WeaponsInfo.Components.
+-- Reverse-map so accessories show on qb too (mirrors the client bridge helper).
 local function qbAttachmentsToComponents(attachments)
     if type(attachments) ~= 'table' or not next(attachments) then return nil end
     local comps = MBT.WeaponsInfo and MBT.WeaponsInfo.Components
@@ -62,22 +57,19 @@ local function qbAttachmentsToComponents(attachments)
     return out[1] and out or nil
 end
 
--- ── Normalisation helper ───────────────────────────────────────────────────────
--- Maps qb-inventory item field names to the ox_inventory-compatible field names
--- that core/server.lua and the weapon modules expect.
+-- ── Normalisation helper ──
+-- Maps qb-inventory item fields to the ox_inventory-compatible names core/server.lua expects.
 local function normalizeItem(item)
     if not item then return nil end
     local info = item.info or {}
     local metadata = {}
     for k, v in pairs(info) do metadata[k] = v end
-    -- qb uses .quality (0-100) for durability and .serie for serial number
+    -- qb uses .quality (0-100) for durability and .serie for serial
     metadata.durability = metadata.durability or info.quality
     metadata.serial     = metadata.serial     or info.serie
-    -- qb attachments → ox-style components list (for slung-prop accessories)
     metadata.components = metadata.components or qbAttachmentsToComponents(info.attachments)
-    -- qb weapon item names are LOWERCASE ('weapon_pistol'); MBT + MBT.WeaponsInfo +
-    -- ox are uppercase. Canonicalize the name so all weapon logic/lookup matches,
-    -- and keep the raw qb name for the qb-inventory export calls.
+    -- qb item names are LOWERCASE; MBT/WeaponsInfo/ox are uppercase. Canonicalize for lookup,
+    -- keep the raw qb name for qb-inventory export calls.
     local rawName = item.name
     local name = rawName
     if type(rawName) == 'string' and rawName:sub(1, 7):upper() == 'WEAPON_' then
@@ -93,11 +85,11 @@ local function normalizeItem(item)
     }
 end
 
--- qb-inventory item names are always lowercase → safe to lower any name MBT passes
--- (weapon names arrive canonicalized to uppercase; this maps them back for qb).
+-- qb-inventory item names are always lowercase → lower any name MBT passes
+-- (weapon names arrive uppercase; this maps them back for qb).
 local function qbName(name) return type(name) == 'string' and name:lower() or name end
 
--- ── Global inventory interface ─────────────────────────────────────────────────
+-- ── Global inventory interface ──
 Inventory = {}
 
 ---Mimics ox_inventory:GetSlot(source, slot)
@@ -111,9 +103,8 @@ function Inventory:RemoveItem(source, name, count, _, slot)
     return exports['qb-inventory']:RemoveItem(tonumber(source), qbName(name), count, slot) ~= false
 end
 
----Mimics ox_inventory:GetInventoryItems(source) — returns a table keyed by SLOT
----(not by item name: two weapons of the same name with distinct serials must NOT
----collapse into one — needed by pat-down, serial sweep, custody, ammo, multi-weapon).
+---Mimics ox_inventory:GetInventoryItems(source) — keyed by SLOT, not name, so two
+---weapons of the same name with distinct serials don't collapse (pat-down, custody, ammo, multi).
 function Inventory:GetInventoryItems(source)
     local Player = QBCore.Functions.GetPlayer(tonumber(source))
     if not Player then return {} end
@@ -126,39 +117,36 @@ function Inventory:GetInventoryItems(source)
     return result
 end
 
----Mimics ox_inventory:SetMetadata(source, slot, metadata)
----Uses qb-inventory's SetItemData export (no destructive remove+re-add needed)
+---Mimics ox_inventory:SetMetadata via qb-inventory's SetItemData (no destructive remove+re-add).
 function Inventory:SetMetadata(source, slot, metadata)
     local item = exports['qb-inventory']:GetItemBySlot(tonumber(source), tonumber(slot))
     if not item then return false end
-    -- Merge new metadata back to qb-style info, preserving fields we don't touch
+    -- Merge into qb-style info, preserving untouched fields
     local newInfo = item.info or {}
     for k, v in pairs(metadata) do newInfo[k] = v end
-    -- Sync normalized fields back to qb field names
+    -- Sync normalized fields back to qb names
     if metadata.durability then newInfo.quality = metadata.durability end
     if metadata.serial     then newInfo.serie   = metadata.serial     end
     return exports['qb-inventory']:SetItemData(tonumber(source), item.name, 'info', newInfo, tonumber(slot)) ~= false
 end
 
----Mimics ox_inventory:AddItem(source, name, count, metadata) — returns success boolean.
----Used by the GroundDrop system to hand a looted weapon back to the player.
+---Mimics ox_inventory:AddItem — returns success boolean. Used by GroundDrop to hand a looted weapon back.
 function Inventory:AddItem(source, name, count, metadata)
     local info = {}
     if type(metadata) == 'table' then
         for k, v in pairs(metadata) do info[k] = v end
-        -- Denormalize ox-style field names back to qb's
+        -- Denormalize ox-style names back to qb's
         if metadata.durability then info.quality = metadata.durability end
         if metadata.serial     then info.serie   = metadata.serial     end
     end
     return exports['qb-inventory']:AddItem(tonumber(source), qbName(name), count, false, info) ~= false
 end
 
--- ── Flashlight state persistence ───────────────────────────────────────────────
--- Stores flashlight on/off state into item.info.flashlightState when player holsters.
+-- ── Flashlight state persistence ──
+-- Stores flashlight on/off into item.info.flashlightState on holster.
 AddStateBagChangeHandler('WeaponFlashlightState', nil, function(bagName, key, value)
     if not value then return end
-    -- gsub returns (string, count); assign first so the count isn't passed to
-    -- tonumber as a (out-of-range) base.
+    -- gsub returns (string, count); assign first so the count isn't passed to tonumber as a base.
     local netId        = bagName:gsub('player:', '')
     local playerSource = tonumber(netId)
     if not playerSource then return end
@@ -167,9 +155,8 @@ AddStateBagChangeHandler('WeaponFlashlightState', nil, function(bagName, key, va
         local item = exports['qb-inventory']:GetItemBySlot(playerSource, tonumber(slot))
         if item then
             local newInfo = item.info or {}
-            -- Serial guard: only write the flashlight state if the gun in this slot is
-            -- still the same one the state was captured for (slot may have been refilled
-            -- with a different weapon) — otherwise one weapon's torch leaks onto another.
+            -- Serial guard: only write if the gun in this slot is still the one the state was
+            -- captured for (slot may have been refilled), else one weapon's torch leaks onto another.
             local serial = newInfo.serial or newInfo.serie
             if not (payload.Serial and serial and serial ~= payload.Serial) then
                 newInfo.flashlightState = payload.FlashlightState == true
@@ -179,13 +166,10 @@ AddStateBagChangeHandler('WeaponFlashlightState', nil, function(bagName, key, va
     end
 end)
 
--- ── Ammo item resolution (qb) ──────────────────────────────────────────────────
--- qb weapons carry an `ammotype` (e.g. AMMO_PISTOL); the loose ammo items are named
--- `<type>_ammo`. Map ammotype → qb ammo item name. (qb-core/shared/weapons.lua +
--- shared/items.lua.) Used by Ammo Sharing.
--- NB (qb only): Ammo Sharing matches the giver's ammo by these item names. If your server
--- RENAMED its ammo items (not the qb-core defaults below), EXTEND this map with your names,
--- otherwise the share can't find the right stack. (Documented in the README qb section.)
+-- ── Ammo item resolution (qb) ──
+-- Map weapon `ammotype` (AMMO_PISTOL) → loose ammo item name (`<type>_ammo`); used by Ammo Sharing.
+-- NB: if your server RENAMED its ammo items (not the qb-core defaults below), EXTEND this map
+-- with your names or the share can't find the right stack. (See README qb section.)
 local QB_AMMO = {
     ['AMMO_PISTOL']  = 'pistol_ammo',
     ['AMMO_SMG']     = 'smg_ammo',

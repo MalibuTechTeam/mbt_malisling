@@ -1,38 +1,31 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Admin config — server
 --
--- Powers the admin dashboard (modules/admin NUI). On /mbtsling the server ACE-
--- checks the player and sends a full config snapshot; on save it validates,
--- applies live to MBT.* on every client (broadcast), and persists the runtime-safe
--- fields to runtime_config.json so they survive a restart.
---
--- Built per-section so new sections plug in by extending snapshot()/applyGeneral
--- etc. Phase 1 wires the General section end-to-end; more sections follow.
+-- Powers the admin dashboard. On /mbtsling: ACE-check, send config snapshot. On
+-- save: validate, apply live to MBT.* on every client (broadcast), persist.
+-- Built per-section so new sections plug in via snapshot()/apply.
 -- ─────────────────────────────────────────────────────────────────────────────
 
 local VALID_POSITIONS = { ['bottom-center'] = true, ['top-center'] = true, ['bottom-right'] = true, ['custom'] = true }
--- Throw groups are keyed by weapon-group HASH in config; the menu edits them by a
--- stable name. This maps menu name → group hash for round-tripping Allowed flags.
+-- Maps menu name → group hash: config keys throw groups by HASH, the menu by name.
 local THROW_GROUPS    = {
     MELEE = `GROUP_MELEE`, PISTOL = `GROUP_PISTOL`, RIFLE = `GROUP_RIFLE`,
     MG = `GROUP_MG`, SMG = `GROUP_SMG`, SHOTGUN = `GROUP_SHOTGUN`,
     STUNGUN = `GROUP_STUNGUN`, SNIPER = `GROUP_SNIPER`, HEAVY = `GROUP_HEAVY`,
 }
 local adminCommand    = (MBT.Admin and MBT.Admin.Command) or 'mbtsling'
--- Default to the command's own ACE so a server with the usual
--- `add_ace group.admin command.* allow` (or a wildcard admin principal) works
--- with NO extra server.cfg lines — same as mbt_elevator.
+-- Default to the command's own ACE so a wildcard admin principal works with NO
+-- extra server.cfg lines — same as mbt_elevator.
 local adminPerm       = (MBT.Admin and MBT.Admin.Permission) or ('command.' .. adminCommand)
 
--- ox_inventory auto-patch outcome (set by modules/ox_patch/installer.js via a
--- server-local event). 'ok' = patched/present · '<reason>' = failed · nil = n/a
--- (qb-inventory / ox not found → the JS never reports). Surfaced in the sidebar.
+-- ox_inventory auto-patch outcome (set by ox_patch/installer.js, server-local event).
+-- 'ok' = patched · '<reason>' = failed · nil = n/a. Surfaced in the sidebar.
 local oxPatchStatus = nil
 
 local function b(v) return v and true or false end
 local function num(v, default) if type(v) == 'number' then return v end return default end
 
--- ── Snapshot: the config the dashboard reads (full state, incl. overview flags) ──
+-- ── Snapshot: full config the dashboard reads (incl. overview flags) ──
 local function snapshot()
     local S, D = MBT.Sounds or {}, MBT.WeaponDrop or {}
     local DD, DL = D.Despawn or {}, D.Logging or {}
@@ -61,7 +54,7 @@ local function snapshot()
     for name, hash in pairs(THROW_GROUPS) do
         throwGroups[name] = b(thg[hash] and thg[hash].Allowed)
     end
-    -- Strap variant options (id + label only — model names stay Lua-side) for the NUI dropdown.
+    -- Strap variant options for the NUI dropdown (id + label only; model names stay Lua-side).
     local slingVariants = {}
     for _, v in ipairs(TS.Variants or {}) do slingVariants[#slingVariants + 1] = { id = v.id, label = v.label or v.id } end
     return {
@@ -239,7 +232,7 @@ local function snapshot()
     }
 end
 
--- ── Validate only the runtime-safe (editable) fields ─────────────────────────────
+-- ── Validate the runtime-safe (editable) fields ──
 local function validate(d)
     if type(d) ~= 'table' then return false end
     -- General
@@ -418,7 +411,7 @@ local function validate(d)
     return true
 end
 
--- ── Apply the editable fields to MBT.* (server side) ─────────────────────────────
+-- ── Apply the editable fields to MBT.* (server side) ──
 local function applyToMBT(d)
     MBT.EnableSling       = d.EnableSling
     MBT.EnableFlashlight  = d.EnableFlashlight
@@ -620,10 +613,8 @@ local function persistable(d)
 end
 
 --- Strip server-only secrets (Discord webhook URLs) before config goes to CLIENTS.
---- The admin-open snapshot keeps them (ACE-gated, the admin edits them) and the DB
---- stores the real value; the broadcast + getRuntimeConfig reach EVERY client, which
---- never needs a webhook (logging fires server-side). Without this any player could
---- read the webhook URLs and spam the server's Discord.
+--- Security: broadcast + getRuntimeConfig reach EVERY client; without this any player
+--- could read the webhooks and spam Discord. The ACE-gated admin snapshot keeps them.
 local function stripWebhooks(d)
     local out = json.decode(json.encode(d))
     if out.WeaponDrop and out.WeaponDrop.Logging then out.WeaponDrop.Logging.Webhook = '' end
@@ -632,11 +623,9 @@ local function stripWebhooks(d)
     return out
 end
 
---- Deep-merge SAVED values onto the live template: only keys present in the
---- template are read from the file (type-checked); anything missing — e.g. a
---- feature block added after the file was saved — keeps its config.lua default.
---- Schema auto-migration: an older runtime_config can never wipe the whole
---- saved state again, it just gains the new defaults.
+--- Deep-merge SAVED values onto the live template: only template keys are read
+--- (type-checked); anything missing keeps its config.lua default. Schema
+--- auto-migration — an older saved config gains new defaults, never wipes state.
 local function mergeKnown(template, saved)
     if type(saved) ~= 'table' then return template end
     local out = {}
@@ -653,12 +642,10 @@ local function mergeKnown(template, saved)
     return out
 end
 
--- ── Persistence: a single self-managed oxmysql row (mbt_malisling_config / 'dashboard')
--- holding the dashboard JSON. DB-canonical: oxmysql is guaranteed (both ox_inventory
--- and qb-inventory depend on it), and a DB row survives resource-folder replacement
--- on update — unlike a JSON file in the resource folder. No migration / JSON fallback
--- (malisling ships pre-release, no legacy file). Auto-created on start; pattern mirrors
--- weapon_rack / mbt_elevator. Self-managed → no .sql to import.
+-- ── Persistence: one self-managed oxmysql row (mbt_malisling_config / 'dashboard').
+-- DB-canonical: oxmysql is guaranteed (ox/qb inventory depend on it) and a DB row
+-- survives resource-folder replacement on update, unlike a JSON file. No migration /
+-- fallback (pre-release). Auto-created on start; no .sql to import.
 local DB_ROW = 'dashboard'
 local function hasDb() return GetResourceState('oxmysql') == 'started' end
 
@@ -669,8 +656,8 @@ local function applySaved(raw)
         Utils.mbtWarn('config ~ saved row unreadable, keeping config.lua defaults')
         return
     end
-    -- Merge over the current live snapshot (config.lua defaults + any feature block
-    -- the saved row predates), then validate the COMPLETE result.
+    -- Merge over the live snapshot (defaults fill blocks the saved row predates), then
+    -- validate the COMPLETE result.
     local merged = mergeKnown(snapshot(), data)
     if not validate(merged) then
         Utils.mbtWarn('config ~ saved row failed validation after merge, keeping defaults')
@@ -682,8 +669,8 @@ end
 
 local function loadRuntimeConfig()
     CreateThread(function()
-        -- Load-order safety: the inventory pulls oxmysql, but it can start a beat after
-        -- us. Wait up to ~10s, then fall back to config.lua defaults (no persistence).
+        -- Load-order: oxmysql can start a beat after us. Wait up to ~10s, else fall
+        -- back to config.lua defaults (no persistence).
         local tries = 0
         while not hasDb() and tries < 40 do Wait(250); tries = tries + 1 end
         if not hasDb() then
@@ -713,10 +700,9 @@ end
 
 --- Send the dashboard to an authorized admin.
 local function openFor(src)
-    -- Non-critical integration warnings → discreet chips in the dashboard overview.
-    -- Providers are registered at runtime by the bridges (e.g. the qb bridge detects
-    -- qb-weapons' weapdraw), so there's no user config here. Critical failures use the
-    -- centered alert instead. pcall so a faulty provider can't block the dashboard.
+    -- Non-critical integration warnings → chips in the dashboard overview. Providers
+    -- are registered at runtime by the bridges. pcall so a faulty one can't block the
+    -- dashboard.
     local warnings = {}
     for _, provider in ipairs(MBT.IntegrationWarnings or {}) do
         local ok, w = pcall(provider)
@@ -726,13 +712,13 @@ local function openFor(src)
     TriggerClientEvent('mbt_malisling:openAdmin', src, {
         config   = snapshot(),
         version  = GetResourceMetadata(GetCurrentResourceName(), 'version', 0) or 'v2',
-        oxPatch  = oxPatchStatus or false,   -- 'ok' | failure reason | false (n/a) → sidebar status
-        warnings = warnings,                 -- non-critical integration chips
+        oxPatch  = oxPatchStatus or false,   -- 'ok' | reason | false → sidebar status
+        warnings = warnings,
     })
 end
 
--- Command registered SERVER-side (like mbt_elevator) so FiveM auto-registers its
--- ACE — a wildcard admin principal then works with no extra server.cfg lines.
+-- Registered SERVER-side (like mbt_elevator) so FiveM auto-registers its ACE — a
+-- wildcard admin principal then works with no extra server.cfg lines.
 RegisterCommand(adminCommand, function(source)
     if source == 0 then return end  -- console
     if IsPlayerAceAllowed(source, adminPerm) then
@@ -748,9 +734,8 @@ RegisterNetEvent('mbt_malisling:requestConfig', function()
     if IsPlayerAceAllowed(src, adminPerm) then openFor(src) end
 end)
 
--- ox_inventory auto-patch outcome from the JS patcher (server-local event, not a
--- net event → clients cannot spoof it). Stored and shown in the dashboard sidebar
--- to admins (openFor includes it in the openAdmin payload).
+-- ox_inventory auto-patch outcome from the JS patcher. Server-local event (not a net
+-- event) → clients cannot spoof it. Shown in the dashboard sidebar.
 AddEventHandler('mbt_malisling:oxPatchResult', function(ok, reason)
     if ok then oxPatchStatus = 'ok' return end
     oxPatchStatus = (type(reason) == 'string' and reason ~= '') and reason or 'see server console'
@@ -766,7 +751,7 @@ RegisterNetEvent('mbt_malisling:adminSave', function(data)
     applyToMBT(data)
     local payload = persistable(data)
     if hasDb() then
-        -- Single-row upsert. No dual-write (DB is canonical) → no "which is true?" drift.
+        -- Single-row upsert. DB is canonical → no dual-write drift.
         exports.oxmysql:execute(
             'INSERT INTO mbt_malisling_config (id, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)',
             { DB_ROW, json.encode(payload) }
@@ -778,9 +763,8 @@ RegisterNetEvent('mbt_malisling:adminSave', function(data)
     Utils.mbtDebugger('Admin config saved by player', src)
 end)
 
--- Clients fetch the current live config when they (re)initialise, so a resource
--- restart or a fresh join picks up runtime_config without needing a save. Returns
--- the editable snapshot the client's applyConfig handler consumes.
+-- Clients fetch the live config on (re)init so a restart or fresh join picks it up
+-- without needing a save. Returns the editable snapshot applyConfig consumes.
 lib.callback.register('mbt_malisling:getRuntimeConfig', function()
     return stripWebhooks(persistable(snapshot()))
 end)

@@ -1,15 +1,10 @@
 -- ─────────────────────────────────────────────────────────────────────────────
--- Charge Weapon (rack the slide)
---
--- RP intimidation gesture: rack the slide / charge the held firearm with a marked
--- animation + a mechanical "clack". No HUD, no ammo logic — purely the gesture.
--- Broadcast to nearby players (they see the anim on the source ped and hear the
--- sound) so the intimidation actually lands on whoever you're facing.
+-- Charge Weapon (rack the slide) — RP intimidation gesture: anim + mechanical
+-- "clack". No HUD/ammo logic. Broadcast to nearby players so it lands on whoever
+-- you're facing.
 -- ─────────────────────────────────────────────────────────────────────────────
 
--- Load if the feature block exists at all; the Enabled flag is checked at use
--- time so the admin menu can toggle it live (cfg is the live MBT.ChargeWeapon
--- table, so field edits from applyConfig are seen automatically).
+-- Enabled checked at use time so the admin menu can toggle live.
 if not MBT.ChargeWeapon then return end
 
 local cfg     = MBT.ChargeWeapon

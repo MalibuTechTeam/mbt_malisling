@@ -1,16 +1,10 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Vehicle Trunk Weapon Rack — server
---
--- Stow a long gun into a vehicle's trunk and retrieve it later. Persistence is a
--- single self-managed oxmysql table (mbt_malisling_trunk), keyed by plate, so a
--- racked weapon survives resource/server restarts and vehicle despawn — no item
--- loss. The weapon never lives in an inventory stash: its data
--- {name,count,metadata} is held in our table and re-minted into the player's
--- inventory on retrieve via the framework-agnostic Inventory bridge (ox + qb).
---
--- oxmysql is a SOFT, feature-gated dependency: without it this module disables
--- itself and the rest of the script stays DB-free. Every handler also early-exits
--- on cfg.Enabled so the admin menu can toggle it live.
+-- Stow/retrieve a long gun in a trunk. Persistence: oxmysql table mbt_malisling_trunk
+-- keyed by plate, so a rack survives restarts + despawn (no item loss). The weapon never
+-- lives in a stash — {name,count,metadata} is held here and re-minted on retrieve via the
+-- Inventory bridge (ox + qb). oxmysql is a SOFT feature-gated dep; without it this module
+-- disables itself. Handlers early-exit on cfg.Enabled so the admin menu can toggle it live.
 -- ─────────────────────────────────────────────────────────────────────────────
 
 if not MBT.VehicleTrunkRack then return end
@@ -61,8 +55,8 @@ local function saveRack(plate)
 end
 
 -- ── Prop-offset overrides (admin-tunable via /mbt_trunktune, DB-persisted) ────────
--- Per-class (or per-model) prop placement, set in-world by an admin and broadcast
--- live to every client. Scope = 'class:<n>' or 'model:<name>'.
+-- Per-class/per-model placement, set in-world by an admin, broadcast live.
+-- Scope = 'class:<n>' or 'model:<name>'.
 local adminCommand = (MBT.Admin and MBT.Admin.Command) or 'mbtsling'
 local adminPerm    = (MBT.Admin and MBT.Admin.Permission) or ('command.' .. adminCommand)
 local trunkOffsets = {}   -- [scope] = { Pos = {x,y,z}, Rot = {x,y,z} }
@@ -75,9 +69,8 @@ local function validOffset(d)
     end
     return true
 end
--- Trunk rotation is a raw Euler offset on the vehicle boot bone; large pitch+roll
--- gimbal-locks it. Constrain pitch/roll to ±45°, keep yaw free. Runs on every save AND
--- on load, so any corrupt rotation an earlier build persisted is scrubbed automatically.
+-- Raw Euler offset on the boot bone; large pitch+roll gimbal-locks it. Constrain
+-- pitch/roll to ±45°, keep yaw free. Runs on save + load (scrubs old corrupt rotation).
 local TRUNK_MAX_TILT = 45.0
 local function clampN(n, lo, hi)
     n = tonumber(n) or 0.0
@@ -165,12 +158,10 @@ end
 
 local weaponType = Utils.weaponType
 
---- Access control for the trunk rack (the interaction happens at the REAR, so the player is
---- normally standing outside behind the boot). Outside access uses the vehicle LOCK status —
---- but GetVehicleDoorLockStatus isn't reliable on every FXServer build, so unlike the old code
---- we DENY on a read failure (no fail-open that let a nearby thief drain a locked trunk). Only
---- the locked statuses block access; 0 (none) / 1 (unlocked) allow it. A server owner can override
---- with a trusted keys/ownership check via cfg.CanAccessOutside(src, veh, plate) -> bool.
+--- Access control. Outside access uses the vehicle LOCK status; GetVehicleDoorLockStatus
+--- isn't reliable on every FXServer build, so we DENY on a read failure (no fail-open
+--- letting a thief drain a locked trunk). Locked statuses block; 0/1 allow. Owners can
+--- override with cfg.CanAccessOutside(src, veh, plate) -> bool.
 local function isAccessible(src, ped, veh, plate)
     if GetVehiclePedIsIn(ped, false) == veh then return true end
     if type(cfg.CanAccessOutside) == 'function' then
@@ -245,9 +236,8 @@ lib.callback.register('mbt_malisling:trunkRack:retrieve', function(src, data)
     local entry = index and racks[plate][index]
     if not entry then return { ok = false } end
 
-    -- Claim the entry BEFORE the AddItem yield. ox AddItem yields, so two players
-    -- retrieving from the same trunk at once would otherwise both read this entry and
-    -- both receive the weapon (item dupe). Remove first; give it back if AddItem fails.
+    -- Claim the entry BEFORE the AddItem yield, else two simultaneous retrieves both read
+    -- it and both get the weapon (dupe). Remove first; give it back if AddItem fails.
     table.remove(racks[plate], index)
     if not Inventory:AddItem(src, entry.name, entry.count, entry.metadata) then
         table.insert(racks[plate], index, entry)
@@ -256,9 +246,8 @@ lib.callback.register('mbt_malisling:trunkRack:retrieve', function(src, data)
     saveRack(plate)
     publish(veh, plate)
 
-    -- Optional equip-on-retrieve: ox uses the returned slot (useSlot); qb finds the
-    -- weapon client-side and triggers its normal use-weapon flow. We just return the
-    -- identifiers the client needs.
+    -- Optional equip-on-retrieve: ox uses the returned slot, qb finds the weapon
+    -- client-side. Just return the identifiers the client needs.
     local serial = entry.metadata and entry.metadata.serial
     local equipSlot
     if GetResourceState('ox_inventory') == 'started' then

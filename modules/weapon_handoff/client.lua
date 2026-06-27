@@ -1,11 +1,8 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Physical Weapon Handoff — client
---
--- GIVER: press the handoff key while holding a weapon near another player — the
--- closest player in reach gets the offer. RECEIVER: a key-driven NUI prompt
--- (E accept / BACKSPACE decline, no mouse focus). On accept both peds turn to
--- face each other and play a synced give/take gesture while the server moves
--- the item. The receiver can optionally take the weapon straight into hand.
+-- GIVER: press the key while holding a weapon near another player (closest in
+-- reach gets the offer). RECEIVER: key-driven NUI prompt (E accept / BACKSPACE
+-- decline). On accept both peds face each other + play a synced give/take gesture.
 -- ─────────────────────────────────────────────────────────────────────────────
 
 if not MBT.Handoff then return end

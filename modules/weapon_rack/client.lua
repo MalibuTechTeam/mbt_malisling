@@ -1,16 +1,13 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Weapon Rack / Gun Locker — client
 --
--- Spawns the config-defined rack props in the world, lets a player stow/retrieve a
--- weapon at one (ox_target, or an [E] prompt fallback), and renders the racked
--- weapons attached to the rack prop. Contents are replicated via GlobalState
--- (mbt_weaponRacks) — the rack prop itself is local + identical on every client, so
--- only the contents sync. Persistence + validation are server-authoritative
--- (server.lua); this file only drives the interaction, animation and rendering.
+-- Spawns config-defined rack props, lets a player stow/retrieve a weapon (ox_target
+-- or an [E] fallback), and renders racked weapons attached to the prop. Contents
+-- replicate via GlobalState (mbt_weaponRacks); the prop is local + identical per
+-- client, so only contents sync. Persistence + validation are server-authoritative.
 --
--- Because the weapon prop is ATTACHED to the (frozen, static) rack prop, its offset
--- lives in the rack's LOCAL space — the rack heading is accounted for automatically,
--- so there's none of the heading/gimbal math the vehicle trunk needs.
+-- Weapon props ATTACH to the frozen rack prop, so offsets live in the rack's LOCAL
+-- space — heading is automatic, none of the gimbal math the vehicle trunk needs.
 -- ─────────────────────────────────────────────────────────────────────────────
 
 if not MBT.WeaponRack then return end
@@ -38,8 +35,8 @@ local function rackCount(id)
     return l and #l or 0
 end
 
---- Local-space attach offset for the i-th weapon of type wtype: the per-type base
---- from config, shifted along SlotAxis so successive weapons don't overlap.
+--- Local-space attach offset for the i-th weapon of type wtype: per-type config base,
+--- shifted along SlotAxis so successive weapons don't overlap.
 local function slotOffset(wtype, i)
     local o = (cfg.Offsets and cfg.Offsets[wtype]) or { Pos = { x = 0.0, y = 0.0, z = 1.0 }, Rot = { x = 0.0, y = 0.0, z = 0.0 } }
     local px, py, pz = o.Pos.x or 0.0, o.Pos.y or 0.0, o.Pos.z or 0.0
@@ -49,9 +46,9 @@ local function slotOffset(wtype, i)
     return px, py, pz, (o.Rot or { x = 0.0, y = 0.0, z = 0.0 })
 end
 
---- Play one anim step ({Dict, Anim, Ms, Flag?}); missing/bad dicts degrade to a plain wait.
---- Flag defaults to 49 (upper-body loop — fits the give/take handling gestures); pass Flag = 2
---- for a full-body hold-last-frame clip (e.g. the kneel-and-place rack install).
+--- Play one anim step ({Dict, Anim, Ms, Flag?}); missing/bad dicts degrade to a wait.
+--- Flag defaults to 49 (upper-body loop, fits give/take gestures); pass Flag = 2 for
+--- a full-body hold-last-frame clip (e.g. the kneel-and-place rack install).
 local function playAnimStep(step)
     if type(step) ~= 'table' then return end
     local ms = step.Ms or 800
@@ -69,7 +66,7 @@ local function playAnimSequence(steps)
     for i = 1, #steps do playAnimStep(steps[i]) end
 end
 
---- Turn the ped toward the rack before the gesture (premium default; config toggle).
+--- Turn the ped toward the rack before the gesture (config toggle).
 local function faceRack(id)
     local a = cfg.Animation or {}
     if a.FaceRack == false then return end
@@ -80,7 +77,7 @@ local function faceRack(id)
 end
 
 --- Weapon-handling sound (holster on place / unholster on take), synced to nearby
---- players through the existing sounds module events.
+--- players via the sounds module events.
 local function rackSound(action, wtype)
     local a = cfg.Animation or {}
     if a.Sound == false or not wtype then return end
@@ -106,11 +103,11 @@ local function renderRack(id)
         if hash and hash ~= 0 then
             lib.requestWeaponAsset(hash, 1000, 31, 1)
             local obj = CreateWeaponObject(hash, 50, 0.0, 0.0, 0.0, true, 1.0, 0)
-            RemoveWeaponAsset(hash)   -- the object keeps its model; don't leave the asset resident
+            RemoveWeaponAsset(hash)   -- object keeps its model; don't leave the asset resident
             if obj and DoesEntityExist(obj) then
                 SetEntityCollision(obj, false, false)
                 local px, py, pz, rot = slotOffset(e.wtype, i)
-                -- isPed = FALSE: the target is a prop/object (not a ped). Local-space attach.
+                -- isPed = FALSE: target is a prop, not a ped. Local-space attach.
                 AttachEntityToEntity(obj, sr.prop, 0, px, py, pz, rot.x, rot.y, rot.z,
                     false, false, false, false, 2, true)
                 props[i] = obj
@@ -120,9 +117,9 @@ local function renderRack(id)
     rackedProps[id] = { props = props, count = #list }
 end
 
---- Cheap content signature for a rack's list (weapon names + order/count) so refreshAll can skip
---- racks that didn't change. The whole map lives in ONE GlobalState bag, so every stow/retrieve
---- anywhere fires this handler for ALL clients — without the diff each one re-rendered EVERY rack.
+--- Content signature (weapon names + order/count) so refreshAll skips unchanged racks.
+--- The whole map is ONE GlobalState bag, so every stow/retrieve fires this for ALL
+--- clients — without the diff each one would re-render EVERY rack.
 local rackSig = {}   -- [id] = last rendered signature
 local function listSig(list)
     if not list then return '' end
@@ -131,8 +128,7 @@ local function listSig(list)
     return table.concat(parts, '|')
 end
 
---- Pull the latest contents for all spawned racks from GlobalState and re-render ONLY the ones
---- whose contents actually changed.
+--- Re-render only the spawned racks whose GlobalState contents actually changed.
 local function refreshAll(value)
     local map = (type(value) == 'table') and value or (GlobalState.mbt_weaponRacks or {})
     for id in pairs(spawnedRacks) do
@@ -159,14 +155,14 @@ local function doStow(id)
     local slot  = CurrentWeapon.slot
     local wtype = weaponTypeOf(CurrentWeapon.name)
     local a = cfg.Animation or {}
-    -- Validate with the server BEFORE the place animation: no access (wrong job /
-    -- owner-only) → just a notify, never the "putting it on the rack" gesture.
+    -- Server-validate BEFORE the place animation: no access → notify only, never the
+    -- "putting it on the rack" gesture.
     faceRack(id)
     local res = lib.callback.await('mbt_malisling:weaponRack:stow', false, { id = id, slot = slot })
     busy = false
     if res and res.ok then
         playAnimSequence(a.Place)
-        rackSound('place', wtype)   -- the moment the weapon lands on the rack
+        rackSound('place', wtype)
     elseif res and res.reason then
         MBT.NotifyLabel(res.reason)
     end
@@ -189,7 +185,7 @@ local function retrieveIndex(id, index)
             elseif GetResourceState('qb-inventory') == 'started' and res.name
                 and PlayerData and PlayerData.items then
                 for _, it in pairs(PlayerData.items) do
-                    -- qb item names are lowercase; res.name is canonical UPPER.
+                    -- qb item names are lowercase; res.name is UPPER.
                     if it.name and it.name:upper() == res.name
                         and (not res.serial or (it.info and it.info.serie == res.serial)) then
                         TriggerServerEvent('qb-inventory:server:useItem', it)
@@ -203,7 +199,7 @@ local function retrieveIndex(id, index)
     end
 end
 
--- ── Weapon picker (custom NUI, key-driven — no mouse focus) ───────────────────────
+-- ── Weapon picker (custom NUI, key-driven — no mouse focus) ──
 --- durability (0-100) → localized condition label + tone, like the Inspect overlay.
 local function conditionInfo(dur)
     if dur == nil then return nil, nil end
@@ -236,7 +232,7 @@ local function openPicker(id)
     for i, e in ipairs(list) do
         local cond, tone = conditionInfo(e.dur)
         entries[i] = {
-            name      = e.label or e.weapon,   -- engraved custom name, or the weapon code
+            name      = e.label or e.weapon,   -- engraved custom name, or weapon code
             serial    = e.serial,
             condition = cond,
             tone      = tone,
@@ -250,7 +246,7 @@ local function openPicker(id)
         local sr = spawnedRacks[id]
         while picker do
             Wait(0)
-            -- Block conflicting inputs while picking (incl. attack, so you can't fire).
+            -- Block conflicting inputs while picking (incl. attack).
             for _, c in ipairs({ 172, 173, 191, 177, 38, 24, 25, 140, 141, 142 }) do
                 DisableControlAction(0, c, true)
             end
@@ -281,14 +277,12 @@ local function doRetrieve(id)
     openPicker(id)
 end
 
--- ── Spawn / despawn the rack props ───────────────────────────────────────────────
--- Own identifier (for the owner-only pickup option), prefetched: canInteract runs
--- every frame on hover, so it must NOT await a callback. Retry until the framework
--- bridge resolves the CHARACTER identifier. Critical: early after a resource start
--- the framework player isn't loaded yet, so the bridge returns its fallback (the
--- server id as a string); caching that forever would never match the real owner
--- identifier set at placement → the owner could never pick their rack back up.
--- Reject that fallback and keep retrying until we get the real char identifier.
+-- ── Spawn / despawn the rack props ──
+-- Own identifier (for owner-only pickup), prefetched: canInteract runs every frame on
+-- hover so it must NOT await. Gotcha: early after a resource start the framework player
+-- isn't loaded, so the bridge returns a fallback (server id as string); caching that
+-- would never match the real owner identifier → owner could never pick their rack up.
+-- Reject the fallback and retry until we get the real char identifier.
 local myIdentifier = nil
 local myServerId = tostring(GetPlayerServerId(PlayerId()))
 CreateThread(function()
@@ -327,7 +321,7 @@ local function addTarget(id, prop)
             onSelect = function() doRetrieve(id) end,
         },
         {
-            -- Owner-only: dismount an EMPTY item-placed rack and get the item back.
+            -- Owner-only: dismount an EMPTY item-placed rack, get the item back.
             name        = 'mbt_rack_pickup_' .. id,
             icon        = 'fa-solid fa-screwdriver-wrench',
             label       = Translate('rack_pickup'),
@@ -335,8 +329,8 @@ local function addTarget(id, prop)
             canInteract = function()
                 local sr = spawnedRacks[id]
                 local owner = sr and sr.loc and sr.loc.owner
-                -- Permissive on an unresolved identifier so the owner always sees it
-                -- (the server re-checks owner/ACE on pickup either way).
+                -- Permissive on unresolved identifier so the owner always sees it
+                -- (server re-checks owner/ACE on pickup anyway).
                 return cfg.Enabled and not cache.vehicle and owner
                     and cfg.Placement and cfg.Placement.Enabled and cfg.Placement.AllowPickup ~= false
                     and rackCount(id) == 0 and (not myIdentifier or myIdentifier == owner)
@@ -374,7 +368,7 @@ local function spawnRack(loc)
     spawnedRacks[loc.id] = { prop = prop, blip = blip, loc = loc }
     addTarget(loc.id, prop)
 
-    -- Initial contents from GlobalState (covers join after weapons were already racked).
+    -- Initial contents from GlobalState (covers join after weapons were racked).
     local g = GlobalState.mbt_weaponRacks
     local list = type(g) == 'table' and g[loc.id]
     rackData[loc.id] = (type(list) == 'table' and #list > 0) and list or nil
@@ -397,11 +391,11 @@ local function despawnRack(id)
     rackData[id] = nil
 end
 
--- Keep the world in sync with cfg.Enabled (so the dashboard toggle spawns/despawns
--- without a restart) and with the Locations list.
+-- Keep the world in sync with cfg.Enabled (dashboard toggle spawns/despawns without a
+-- restart) and the Locations list.
 CreateThread(function()
     while not MBT.WeaponsInfo do Wait(250) end
-    -- Spawn any runtime-placed (admin) racks that already exist (covers late join / re-init).
+    -- Spawn existing runtime-placed (admin) racks (covers late join / re-init).
     local dyn = lib.callback.await('mbt_malisling:weaponRack:getDynamic', false)
     if type(dyn) == 'table' then
         for _, loc in ipairs(dyn) do
@@ -425,7 +419,7 @@ CreateThread(function()
     end
 end)
 
--- ── [E] fallback when ox_target isn't installed ──────────────────────────────────
+-- ── [E] fallback when ox_target isn't installed ──
 if GetResourceState('ox_target') ~= 'started' then
     CreateThread(function()
         local shown = false
@@ -460,20 +454,19 @@ if GetResourceState('ox_target') ~= 'started' then
     end)
 end
 
--- ── Setup helper: /mbt_rackcoords ────────────────────────────────────────────────
--- This places a FIXED, config-defined rack (the item-based in-world placement is a
--- separate flow, below). To add a fixed rack: stand exactly where you want it, facing it,
--- and run /mbt_rackcoords. It prints + copies a ready-to-paste config line for
--- MBT.WeaponRack.Locations. Tweak the heading (last number) and the prop if needed.
+-- ── Setup helper: /mbt_rackcoords ──
+-- Prints + copies a ready-to-paste MBT.WeaponRack.Locations line for a FIXED rack
+-- (item-based placement is a separate flow, below). Stand where you want it, facing
+-- it, and run it; tweak the heading (last number) and prop as needed.
 local rackCoordSeq = 0
 RegisterCommand('mbt_rackcoords', function()
     local c = GetEntityCoords(cache.ped)
     local h = GetEntityHeading(cache.ped)
     rackCoordSeq = rackCoordSeq + 1
-    -- Default prop name printed for convenience; swap it for your rack/locker model.
+    -- Default prop name printed for convenience; swap for your rack/locker model.
     local line = ("{ id = 'rack_%d', coords = vec4(%.2f, %.2f, %.2f, %.1f), prop = `xm_prop_xm_gunlocker_01a`, job = false, label = 'Armory' },")
         :format(rackCoordSeq, c.x, c.y, c.z, h)
-    -- Console echo is Debug-gated; the clipboard copy + notify below always deliver it.
+    -- Console echo is Debug-gated; clipboard + notify below always deliver it.
     Utils.mbtDebugger('Weapon Rack location -> paste into MBT.WeaponRack.Locations:\n' .. line)
     if lib.setClipboard then lib.setClipboard(line) end
     lib.notify({
@@ -482,10 +475,10 @@ RegisterCommand('mbt_rackcoords', function()
     })
 end, false)
 
--- ── Player placement (inventory item): carry ghost → rotate → mount ───────────────
--- Use the rack item → the ped CARRIES the locker (box-carry loop, you can walk
--- around with it) while a ghost preview floats in front; ←/→ rotates it, E confirms
--- (plays the install gesture, then the rack solidifies), BACKSPACE cancels.
+-- ── Player placement (inventory item): carry ghost → rotate → mount ──
+-- Use the rack item → ped CARRIES the locker (box-carry loop, walkable) while a ghost
+-- preview floats in front; ←/→ rotates, E confirms (install gesture, then solidify),
+-- BACKSPACE cancels.
 local placing = false
 
 local function showPlaceHints()
@@ -534,8 +527,8 @@ RegisterNetEvent('mbt_malisling:weaponRack:startPlace', function()
     local rotOff = 0.0
     local heading = GetEntityHeading(cache.ped)
 
-    --- Where the CAMERA aims, raycast against world geometry (build-mode feel:
-    --- the ghost sits under your crosshair, not glued in front of the ped).
+    --- Raycast where the CAMERA aims (build-mode feel: ghost sits under your
+    --- crosshair, not glued in front of the ped).
     local function camAimPoint()
         local cam = GetGameplayCamCoord()
         local rot = GetGameplayCamRot(2)
@@ -559,7 +552,7 @@ RegisterNetEvent('mbt_malisling:weaponRack:startPlace', function()
             if IsDisabledControlPressed(0, 175) then rotOff = (rotOff + step) % 360.0 end
 
             -- Ghost at the camera aim point (clamped to reach), ground-snapped;
-            -- falls back to "1.7m ahead" when aiming at the sky / out of reach.
+            -- falls back to "1.7m ahead" when aiming at sky / out of reach.
             local pc  = GetEntityCoords(cache.ped)
             local aim = camAimPoint()
             if aim and #(pc - aim) > 6.0 then aim = nil end
@@ -575,12 +568,12 @@ RegisterNetEvent('mbt_malisling:weaponRack:startPlace', function()
                 hidePlaceHints()
                 stopCarry()
                 if DoesEntityExist(ghost) then DeleteEntity(ghost) end
-                -- Validate + install FIRST; only play the install gesture when the
-                -- server actually accepted (nothing plays on "too close"/"limit").
+                -- Validate + install FIRST; play the gesture only on server accept
+                -- (nothing plays on "too close"/"limit").
                 local res = lib.callback.await('mbt_malisling:weaponRack:placeItem', false,
                     { x = lastX, y = lastY, z = lastZ, w = lastW })
                 if res and res.ok then
-                    playAnimStep(cfg.Placement.InstallAnim)   -- mount gesture (raw clip, degrades safely)
+                    playAnimStep(cfg.Placement.InstallAnim)   -- mount gesture (degrades safely)
                     MBT.NotifyLabel('rack_placed')
                 elseif res and res.reason then
                     MBT.NotifyLabel(res.reason)
@@ -592,7 +585,7 @@ RegisterNetEvent('mbt_malisling:weaponRack:startPlace', function()
                 if DoesEntityExist(ghost) then DeleteEntity(ghost) end
             end
         end
-        -- Safety: never leak the ghost (resource stop happens via the handler below).
+        -- Safety: never leak the ghost.
         if not placing and DoesEntityExist(ghost) then DeleteEntity(ghost) end
     end)
 end)
@@ -601,7 +594,7 @@ end)
 function doPickup(id)
     if busy or placing then return end
     busy = true
-    playAnimStep(cfg.Placement and cfg.Placement.PickupAnim)   -- dismount gesture (raw clip)
+    playAnimStep(cfg.Placement and cfg.Placement.PickupAnim)   -- dismount gesture
     local res = lib.callback.await('mbt_malisling:weaponRack:pickup', false, id)
     busy = false
     if res and res.ok then
@@ -611,7 +604,7 @@ function doPickup(id)
     end
 end
 
--- ── Runtime placement (admin) — spawn/despawn pushed by the server ────────────────
+-- ── Runtime placement (admin) — spawn/despawn pushed by the server ──
 RegisterNetEvent('mbt_malisling:weaponRack:spawn', function(loc)
     if type(loc) ~= 'table' or type(loc.id) ~= 'string' or spawnedRacks[loc.id] then return end
     if not cfg.Enabled then return end
@@ -622,9 +615,8 @@ RegisterNetEvent('mbt_malisling:weaponRack:despawn', function(id)
     if type(id) == 'string' then despawnRack(id) end
 end)
 
--- Quick placement: drop a working rack ~1.3m in front of you (admin only, enforced
--- server-side). Runtime-only (resets on restart) — the persisted item/admin placement
--- is the v1.1 version. /mbt_removerack clears the nearest runtime rack.
+-- Quick placement: drop a rack ~1.3m in front of you (admin only, enforced
+-- server-side). Runtime-only (resets on restart). /mbt_removerack clears the nearest.
 RegisterCommand('mbt_placerack', function()
     local ped = cache.ped
     local c   = GetEntityCoords(ped)
@@ -633,7 +625,7 @@ RegisterCommand('mbt_placerack', function()
     local found, gz = GetGroundZFor_3dCoord(x, y, c.z + 1.0, false)
     TriggerServerEvent('mbt_malisling:weaponRack:place', {
         x = x, y = y, z = found and gz or c.z,
-        w = GetEntityHeading(ped) % 360.0,   -- locker front follows your facing
+        w = GetEntityHeading(ped) % 360.0,   -- front follows your facing
     })
 end, false)
 
@@ -653,7 +645,7 @@ RegisterCommand('mbt_removerack', function()
     end
 end, false)
 
--- How many placed racks YOU own (toward the MaxPerPlayer cap) + where they are.
+-- How many placed racks YOU own (toward MaxPerPlayer) + where they are.
 RegisterCommand('mbt_rackcount', function()
     local r = lib.callback.await('mbt_malisling:weaponRack:myRacks', false)
     if type(r) ~= 'table' then return end
@@ -676,12 +668,10 @@ RegisterNetEvent('mbt_malisling:weaponRack:clearedMine', function(n)
 end)
 
 -- ── Dev tuner: /mbt_racktune — dial the per-TYPE rack offset live, copy the config line ──
--- Stand near a rack holding at least one weapon and run the command. It tunes the offset for
--- the TYPE of the FIRST stored weapon (MBT.WeaponRack.Offsets[wtype]); to tune a different
--- type, store a weapon of that type. TAB toggles POS/ROT, arrows + Q/E move the three axes,
--- SHIFT = bigger step, ENTER copies + prints the config line (paste under MBT.WeaponRack.Offsets
--- in default.lua), BACKSPACE exits. Admin/Debug only (gated server-side). The effect is local —
--- it re-positions THIS client's rack props until restart; persist the result via the printed line.
+-- Stand near a rack holding a weapon and run it. Tunes the offset for the TYPE of the
+-- FIRST stored weapon (MBT.WeaponRack.Offsets[wtype]). TAB = POS/ROT, arrows + Q/E move,
+-- SHIFT = bigger step, ENTER copies the config line, BACKSPACE exits. Admin/Debug only
+-- (gated server-side). Effect is local until restart; persist via the printed line.
 local rackTuning = nil
 
 local function nearestRackWithWeapon()

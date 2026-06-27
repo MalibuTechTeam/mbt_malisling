@@ -2,11 +2,8 @@ MBT = MBT or {}
 
 local Locales = {}
 
---- Translate a key into the active language (MBT.Language), falling back to English.
---- Extra arguments are passed through string.format.
----@param key string
----@param ... any
----@return string
+--- Translate a key into MBT.Language, falling back to English. Extra args go through
+--- string.format.
 function Translate(key, ...)
     if Locales[MBT.Language] and Locales[MBT.Language][key] then
         if ... then
@@ -14,7 +11,6 @@ function Translate(key, ...)
         end
         return Locales[MBT.Language][key]
     end
-    -- Fallback to English
     if Locales['en'] and Locales['en'][key] then
         if ... then
             return string.format(Locales['en'][key], ...)
@@ -24,15 +20,12 @@ function Translate(key, ...)
     return key
 end
 
---- Register a locale table for a language. Called by each locales/<lang>.lua file.
----@param lang string
----@param data table<string, string>
+--- Register a locale table. Called by each locales/<lang>.lua file.
 function RegisterLocale(lang, data)
     Locales[lang] = data
 end
 
--- Expose the Locale table on MBT for compatibility with other MBT scripts:
--- MBT.Locale['key'] resolves through Translate().
+-- Expose MBT.Locale['key'] (resolves through Translate) for other MBT scripts.
 CreateThread(function()
     Wait(0)
     MBT.Locale = setmetatable({}, {
@@ -71,7 +64,6 @@ NUI_LOCALE_KEYS = {
 }
 
 --- Build the flat locale table sent to the NUI.
----@return table<string, string>
 function buildNuiLocale()
     local out = {}
     for i = 1, #NUI_LOCALE_KEYS do
@@ -392,9 +384,7 @@ MBT.Labels             = {
     },
 }
 
---- Build and fire a localized notification from an MBT.Labels entry.
---- The label entry holds presentation (type/icon) + locale keys (titleKey/descKey).
----@param key string
+--- Fire a localized notification from an MBT.Labels entry (presentation + locale keys).
 function MBT.NotifyLabel(key)
     local label = MBT.Labels and MBT.Labels[key]
     if not label then return end

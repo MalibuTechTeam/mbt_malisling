@@ -1,9 +1,7 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Low Ready — server
---
 -- Broadcasts a player's low-ready toggle to nearby players so they re-place the
--- slung prop they hold for that player. Distance-based, rate-limited. Mirrors
--- weapon_inspect/server.lua.
+-- slung prop. Distance-based, rate-limited. Mirrors weapon_inspect/server.lua.
 -- ─────────────────────────────────────────────────────────────────────────────
 
 if not MBT.LowReady then return end   -- always register; Enabled is live-checked in the handler

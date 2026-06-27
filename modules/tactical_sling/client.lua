@@ -1,15 +1,9 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Tactical Sling Prop (visible strap)
---
--- Shows a visible sling/strap on the torso while a long gun is slung. Implemented
--- as a PROP attached to a bone (CreateObject + AttachEntityToEntity), NOT clothing
--- (clothing needs a per-server drawable index and conflicts with server addons).
--- The strap models (mbt_belt_prop_a / _b, declared in mbt_m4_prop.ytyp) ship in
--- this resource's stream/, so the feature is fully portable.
---
--- Local player only (other clients attach their own). On/off is live-toggleable
--- from the admin dashboard (MBT.TacticalSling.Enabled, applied by the config
--- module). The attach offset is editable from the NUI Positions editor (type
+-- Visible strap on the torso while a long gun is slung. A PROP attached to a bone,
+-- NOT clothing (clothing needs a per-server drawable index + conflicts with addons).
+-- Strap models ship in stream/, so the feature is portable. Local player only;
+-- live-toggleable (MBT.TacticalSling.Enabled). Attach offset is NUI-editable (type
 -- 'sling') and read from MBT.PropInfo.sling, per gender.
 -- ─────────────────────────────────────────────────────────────────────────────
 

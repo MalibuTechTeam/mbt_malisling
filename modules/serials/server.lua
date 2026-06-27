@@ -1,20 +1,16 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Weapon Serials — ensure-generation (server)
+-- Forensic backbone: every world weapon gets a metadata.serial. ox serials cover
+-- ox-created weapons; this covers the rest (admin-given, legacy, custom shops).
 --
--- The forensic backbone: guarantees every weapon that participates in the world
--- gets a metadata.serial. ox_inventory serials cover weapons ox creates; this
--- covers the rest (admin-given, legacy/imported, custom shops) the first time
--- the system touches them.
---
--- Safety rules (the Chain of Custody bug taught us SetMetadata re-fires
--- ox_inventory:updateInventory on the owning client):
---   • Write ONCE per weapon lifetime, only on safe inventory transitions
---     (rack stow / handoff / drop — the item is moving anyway) or in deferred
---     background repair (post-join sweep, custody repair). NEVER while firing.
+-- Safety rules (SetMetadata re-fires ox_inventory:updateInventory on the owner —
+-- the Chain of Custody bug):
+--   • Write ONCE per weapon, only on safe transitions (rack stow / handoff / drop)
+--     or deferred repair (join sweep, custody repair). NEVER while firing.
 --   • Per-(player,slot) lock + slot re-read before writing (race/stale guard).
---   • Full-metadata merge: ox SetMetadata REPLACES the table — always write the
---     fresh metadata table back with serial added, never { serial = ... } alone.
---   • Stacks are hostile: count > 1 is skipped (one physical weapon = one item).
+--   • ox SetMetadata REPLACES the table — write the full fresh table with serial
+--     added, never { serial = ... } alone.
+--   • Stacks are hostile: count > 1 is skipped (one weapon = one item).
 -- ─────────────────────────────────────────────────────────────────────────────
 
 if not MBT.Serials then return end
@@ -40,9 +36,9 @@ local function generate()
     return s
 end
 
---- Ensure the weapon in `item` has a serial; returns it (or nil if not ensurable).
---- Safe to call anywhere the item is a fresh server-side read with a .slot — the
---- actual write only happens after a re-read confirms the slot is unchanged.
+--- Ensure the weapon in `item` has a serial; returns it (nil if not ensurable).
+--- Safe wherever item is a fresh server read with a .slot — the write only happens
+--- after a re-read confirms the slot is unchanged.
 ---@param src number
 ---@param item table   server-side item ({ name, slot, count, metadata })
 ---@return string|nil
@@ -65,7 +61,7 @@ function MBT.EnsureSerial(src, item)
     locks[key] = true
 
     -- Re-read before writing: same weapon, still serial-less? (a parallel hook or
-    -- an inventory move may have beaten us here)
+    -- inventory move may have beaten us here)
     local fresh = Inventory:GetSlot(src, slot)
     if not fresh or fresh.name ~= item.name or (fresh.count or 1) > 1 then
         locks[key] = nil

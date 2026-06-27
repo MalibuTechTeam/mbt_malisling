@@ -1,18 +1,11 @@
 -- ─────────────────────────────────────────────────────────────────────────────
--- No-Draw Zones
---
--- Areas (hospital, PD, courthouse...) where weapons can't be drawn. Inside a zone
--- the player's firing is disabled and any drawn firearm is put away again (via
--- ox_inventory:disarm — the same path the throw uses), with a cooldowned notice.
--- Melee can be left usable (cfg.AllowMelee).
---
--- Detection is client-side via ox_lib zones; enforcement is a tight loop that runs
--- ONLY while inside a zone. Purely RP — a determined cheater could bypass the
--- client check (server-side enforcement is future hardening).
+-- No-Draw Zones — areas (hospital, PD...) where firing is disabled and any drawn
+-- firearm is put away via ox_inventory:disarm (same path as throw). Melee can be
+-- left usable (cfg.AllowMelee). Client-side detection/enforcement, purely RP —
+-- a cheater could bypass it (server-side enforcement is future hardening).
 -- ─────────────────────────────────────────────────────────────────────────────
 
--- Load if the block exists; Enabled checked in the enforcement loop so the admin
--- menu can toggle it live (zones stay registered but inert when disabled).
+-- Enabled checked in the loop so the admin menu can toggle live (zones stay registered).
 if not MBT.NoDrawZones then return end
 
 local cfg = MBT.NoDrawZones
@@ -62,7 +55,6 @@ for _, z in ipairs(cfg.Zones or {}) do
 end
 
 --- True for melee weapons (allowed through when cfg.AllowMelee).
----@param weaponHash number
 local function isMelee(weaponHash)
     return GetWeapontypeGroup(weaponHash) == `GROUP_MELEE`
 end

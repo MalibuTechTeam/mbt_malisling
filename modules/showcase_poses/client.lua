@@ -1,11 +1,7 @@
 -- ─────────────────────────────────────────────────────────────────────────────
--- Showcase Poses
---
--- Static display poses to show off the player and their slung weapons (for
--- screenshots / gunshop windows / RP markets). The command enters a looped idle
--- pose; running it again cycles to the next pose, /pose <n> jumps to a specific
--- one. Moving, shooting or entering a vehicle exits. Local-only and cosmetic —
--- the slung props are already visible to others through the scope system.
+-- Showcase Poses — static display poses (screenshots / gunshops / RP markets).
+-- Command enters a looped idle pose; re-running cycles, /pose <n> jumps. Moving,
+-- shooting or entering a vehicle exits. Local-only/cosmetic (props already sync).
 -- ─────────────────────────────────────────────────────────────────────────────
 
 -- Load if the block exists; Enabled checked at use time (live-apply via menu).
@@ -106,9 +102,9 @@ if cfg.Key and cfg.Key ~= '' then
     RegisterKeyMapping(cfg.Command, '[MBT] Showcase pose', 'keyboard', cfg.Key)
 end
 
--- Remote players' poses (group photos + late-join). The statebag fires for every
--- client — including those who stream the poser in AFTER the pose started — so
--- their ped replays it. We skip our own player (handled by the local logic above).
+-- Remote players' poses (group photos + late-join): the statebag fires for every
+-- client, including ones streaming the poser in AFTER the pose started, so the ped
+-- replays it. Skip our own player (handled locally above).
 if cfg.Sync then
     AddStateBagChangeHandler('mbt_showcasePose', nil, function(bagName, _, value)
         local player = GetPlayerFromStateBagName(bagName)

@@ -1,13 +1,10 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Concealed Carry — server
---
--- Authoritative concealment state. The client keybind only sends a REQUEST with
--- its clothing-quality evaluation (drawables are client-side data); the server
--- validates everything else: feature on, type concealable, the player actually
--- carries a weapon of that type, cooldown, alive. State is published as a
--- replicated player statebag (mbt_concealed = { [type] = 'good'|'poor' }) that
--- every client's prop-spawn guard reads. The prop teardown/respawn reuses the
--- existing core flows (syncDeletion / checkInventory) — no new sync paths.
+-- Authoritative concealment state. Client sends a REQUEST with its clothing-quality
+-- eval (drawables are client data); server validates the rest (feature on, type
+-- concealable, carries that weapon, cooldown, alive). Published as a replicated
+-- statebag (mbt_concealed = { [type] = 'good'|'poor' }) read by every client's
+-- prop-spawn guard. Teardown/respawn reuses core flows (syncDeletion/checkInventory).
 -- ─────────────────────────────────────────────────────────────────────────────
 
 if not MBT.ConcealedCarry then return end
@@ -31,8 +28,7 @@ local function hasTypeWeapon(src, wtype)
     return false
 end
 
---- Toggle request from the client. data = { wtype, quality ('good'|'poor'|'none') }.
---- Returns the new state so the client can drive the prop teardown/respawn.
+--- Toggle request. data = { wtype, quality }; returns new state for client prop sync.
 lib.callback.register('mbt_malisling:concealed:toggle', function(src, data)
     if not cfg.Enabled or type(data) ~= 'table' then return { ok = false } end
 

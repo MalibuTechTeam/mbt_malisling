@@ -1,12 +1,9 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Pat-down (LEO frisk) — client
---
--- OFFICER: press the frisk key near a person (allowed job, server-checked) → a
--- consent request goes to them. On accept the officer plays a frisk gesture for
--- the search time, then a result card lists the weapons found and how each was
--- carried (visible / concealed / back). TARGET: a key-driven consent pill
--- (E accept / BACKSPACE decline) + a notification that they were frisked.
--- All truth is server-side; this file only drives input, anim and the NUI.
+-- OFFICER: frisk key near a person → consent request; on accept, play the gesture
+-- for the search time then show a result card. TARGET: key-driven consent pill
+-- (E accept / BACKSPACE decline). All truth is server-side; this only drives
+-- input, anim and the NUI.
 -- ─────────────────────────────────────────────────────────────────────────────
 
 if not MBT.PatDown then return end
@@ -39,8 +36,7 @@ RegisterKeyMapping('mbtPatdown', '[MBT] Pat-down nearby person', 'keyboard', cfg
 
 local busy = false
 
---- Officer runs the frisk: face the target, play the gesture for the search time,
---- then show the result card.
+--- Officer runs the frisk: face target, play gesture for the search time, show card.
 RegisterNetEvent('mbt_malisling:patdown:run', function(data)
     if busy or type(data) ~= 'table' then return end
     busy = true

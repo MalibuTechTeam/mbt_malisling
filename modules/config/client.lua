@@ -1,11 +1,7 @@
--- ─────────────────────────────────────────────────────────────────────────────
--- Admin config — client
---
--- /mbtsling asks the server (ACE-checked) to open the admin dashboard. The
--- server replies with openAdmin + the config snapshot, which we forward to the
--- NUI and give it focus. The dashboard saves via the adminSave NUI callback and
--- closes via adminClose. applyConfig re-applies the live-broadcast changes.
--- ─────────────────────────────────────────────────────────────────────────────
+-- ── Admin config — client ──
+-- /mbtsling asks the server (ACE-checked) to open the dashboard; the server replies with
+-- openAdmin + config snapshot, which we forward to the NUI. Saves via adminSave, closes via
+-- adminClose. applyConfig re-applies the live-broadcast changes.
 
 -- Throw groups are keyed by group hash in config but by name over the wire.
 local THROW_GROUPS = {
@@ -14,9 +10,8 @@ local THROW_GROUPS = {
     STUNGUN = `GROUP_STUNGUN`, SNIPER = `GROUP_SNIPER`, HEAVY = `GROUP_HEAVY`,
 }
 
--- The admin command is registered SERVER-side (modules/config/server.lua) so its
--- ACE auto-registers. The server pushes openAdmin straight to us. The optional
--- client keybind below fires the same server-validated request path.
+-- The admin command is registered SERVER-side so its ACE auto-registers; the server pushes
+-- openAdmin to us. This optional keybind fires the same server-validated request path.
 if MBT.Admin and type(MBT.Admin.Key) == 'string' and MBT.Admin.Key ~= '' then
     RegisterCommand('mbt_malisling:openAdmin', function()
         TriggerServerEvent('mbt_malisling:requestConfig')   -- server re-checks ACE
@@ -30,7 +25,7 @@ RegisterNetEvent('mbt_malisling:openAdmin', function(payload)
 end)
 
 RegisterNUICallback('adminSave', function(data, cb)
-    -- Keep NUI focus: the panel stays open after save (shows a confirmation pill).
+    -- Keep NUI focus: the panel stays open after save (confirmation pill).
     TriggerServerEvent('mbt_malisling:adminSave', data)
     cb({})
 end)
@@ -40,7 +35,7 @@ RegisterNUICallback('adminClose', function(_, cb)
     cb({})
 end)
 
--- The NUI pulls this on mount to apply reduced-motion (CEF often can't read the OS
+-- NUI pulls this on mount for reduced-motion (CEF often can't read the OS
 -- prefers-reduced-motion setting). config.lua-driven; no focus needed.
 RegisterNUICallback('getReduceMotion', function(_, cb)
     cb({ on = MBT.ReduceMotion and true or false })
@@ -196,9 +191,8 @@ local function applyConfig(d)
         if d.TacticalSling.Types then
             MBT.TacticalSling.Types = { ['back'] = d.TacticalSling.Types.back and true or false, ['back2'] = d.TacticalSling.Types.back2 and true or false }
         end
-        -- Enabled/Types are handled live by the strap loop; a Variant change (default or per-job)
-        -- needs a respawn to swap the model — only when it actually changed (no flicker on
-        -- unrelated config saves).
+        -- Enabled/Types handled live by the strap loop; a Variant change needs a respawn to swap
+        -- the model — only when it actually changed (no flicker on unrelated saves).
         if (oldVariant ~= MBT.TacticalSling.DefaultVariant
             or oldJV ~= json.encode(MBT.TacticalSling.JobVariants or {})) and MBT.RefreshSling then
             MBT.RefreshSling()
@@ -241,7 +235,7 @@ end
 RegisterNetEvent('mbt_malisling:applyConfig', applyConfig)
 
 -- On (re)start / fresh join, pull the current live config so this client matches
--- runtime_config.json without needing a save. Retries until the server answers.
+-- the saved runtime config without needing a save.
 CreateThread(function()
     local data = lib.callback.await('mbt_malisling:getRuntimeConfig', false)
     if data then applyConfig(data) end

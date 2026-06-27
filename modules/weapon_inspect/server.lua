@@ -1,9 +1,7 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Weapon Inspect — server
---
--- Broadcasts the inspect start/stop to nearby players so they see the animation
--- on the source ped (distance-based, mirrors weapon_sounds/server.lua). The
--- overlay itself never leaves the inspecting client.
+-- Broadcasts inspect start/stop to nearby players for the source-ped animation
+-- (distance-based, mirrors weapon_sounds/server.lua). Overlay stays client-local.
 -- ─────────────────────────────────────────────────────────────────────────────
 
 -- Load if the block exists; Enabled + MaxDistance read fresh (live-apply via menu).

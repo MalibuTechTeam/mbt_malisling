@@ -1,12 +1,9 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Physical Weapon Handoff — server
---
--- Hand-to-hand weapon transfer between two nearby players. The giver offers the
--- weapon they're HOLDING; the receiver accepts or declines. On accept the item
--- moves atomically (RemoveItem giver → AddItem receiver, with rollback) carrying
--- its full metadata — serial, condition and custom name travel with the gun, and
--- Chain of Custody records the new holder when they equip it. One pending offer
--- per receiver; offers expire. All checks server-side.
+-- Giver offers the weapon they're HOLDING; receiver accepts/declines. On accept
+-- the item moves atomically (RemoveItem→AddItem, with rollback) carrying full
+-- metadata (serial/condition/name). One pending offer per receiver; offers
+-- expire. All checks server-side.
 -- ─────────────────────────────────────────────────────────────────────────────
 
 if not MBT.Handoff then return end
@@ -22,8 +19,8 @@ local function slotWeapon(src, slot, name, serial)
     local item = Inventory:GetSlot(src, slot)
     if not item or item.name ~= name then return nil end
     if type(item.name) ~= 'string' or item.name:sub(1, 7) ~= 'WEAPON_' then return nil end
-    -- Anti bait-and-switch: if the offer carried a serial, the slot must STILL hold that exact
-    -- weapon (a giver could otherwise swap a same-name gun with a different serial after offering).
+    -- Anti bait-and-switch: if the offer carried a serial, the slot must STILL hold
+    -- that exact weapon (else a giver swaps a same-name gun with a different serial).
     if serial ~= nil and (not item.metadata or item.metadata.serial ~= serial) then return nil end
     return item
 end
@@ -95,8 +92,7 @@ lib.callback.register('mbt_malisling:handoff:respond', function(src, accept)
         return { ok = false }
     end
 
-    -- Forensic backbone: a weapon changing hands always gets a serial first
-    -- (safe transition — the item is being moved anyway).
+    -- Forensic backbone: a weapon changing hands always gets a serial first.
     if MBT.EnsureSerial then MBT.EnsureSerial(giver, item) end
 
     -- Atomic move with rollback: the weapon must never vanish.

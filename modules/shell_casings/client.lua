@@ -1,14 +1,8 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Forensic Shell Casings — client
---
--- Two halves:
---   • SHOOTER: while armed, each shot (throttled) reports the landing spot +
---     weapon to the server, which rolls the chance and registers the casing.
---     GTA's own ejected-brass particle already covers the firing visual.
---   • WORLD: a light poll pulls nearby casing positions; each one gets a subtle
---     ground glint (or a physical prop when cfg.Prop is set) and an ox_target
---     sphere ([E]/[G] fallback) to Examine (EvidenceUI card: weapon, masked
---     serial, age) or Collect (scene cleaning).
+-- SHOOTER half: throttled shots report landing spot + weapon to the server.
+-- WORLD half: poll nearby casings, render glint/prop + ox_target ([E]/[G] fallback)
+-- to Examine (EvidenceUI: weapon, masked serial, age) or Collect (scene cleaning).
 -- ─────────────────────────────────────────────────────────────────────────────
 
 if not MBT.ShellCasings then return end
@@ -102,7 +96,6 @@ end
 local function collectCasing(id)
     if busy then return end
     busy = true
-    -- Bend down and pick it up.
     if DoesAnimDictExist('pickup_object') then
         lib.requestAnimDict('pickup_object')
         TaskPlayAnim(cache.ped, 'pickup_object', 'pickup_low', 4.0, -4.0, 800, 49, 0.0, false, false, false)

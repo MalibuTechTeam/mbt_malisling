@@ -1,12 +1,9 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Forensic Shell Casings — server
---
--- In-memory registry of shell casings left by gunfire, keyed by id and linked to
--- the firing weapon's SERIAL. Ephemeral by design: global cap (FIFO) + expiry —
--- no DB. The shot event comes from the firing client (coords + weapon); the
--- CHANCE roll, throttle and serial resolution happen HERE (never trust the
--- client for outcomes). Examine reveals weapon family + masked serial + age;
--- collect removes the casing (scene cleaning).
+-- In-memory casing registry keyed by id, linked to the firing weapon's SERIAL.
+-- Ephemeral: global FIFO cap + expiry, no DB. Client reports the shot (coords +
+-- weapon); CHANCE roll, throttle and serial resolution happen HERE (never trust
+-- client for outcomes). Examine reveals weapon family + masked serial + age.
 -- ─────────────────────────────────────────────────────────────────────────────
 
 if not MBT.ShellCasings then return end

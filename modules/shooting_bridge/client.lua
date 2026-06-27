@@ -1,23 +1,13 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Shooting Bridge (opaque integration socket) — client
---
--- malisling exposes an OPAQUE extension surface that a companion combat resource
--- can plug into. malisling never names that resource and ships ZERO of its logic:
--- the bridge is a set of no-op dispatch points. Without a registered bridge,
--- everything here is inert and malisling runs exactly as a standalone script.
---
--- How it works (separate resources = separate Lua VMs, so the companion cannot
--- write MBT.* directly):
---   1. The companion calls  exports.mbt_malisling:RegisterShootingBridge(resName)
---      once at start, passing ITS OWN resource name.
---   2. malisling stores that name and, at each lifecycle point, calls the
---      companion's matching export:  exports[resName]:OnX(...)  — pcall-guarded.
---   3. MBT.ShootingBridge is malisling's local dispatcher (always defined here).
---      Other malisling modules call MBT.ShootingBridge.OnX(...); it forwards to
---      the registered companion, or no-ops.
---
--- The GitHub source therefore reveals only empty hooks — nothing about what the
--- companion does.
+-- An OPAQUE extension surface for a companion combat resource. malisling never
+-- names it and ships ZERO of its logic — these are no-op dispatch points; without
+-- a registered bridge everything is inert and malisling runs standalone.
+-- Separate resources = separate Lua VMs (no direct MBT.* writes), so:
+--   1. companion calls exports.mbt_malisling:RegisterShootingBridge(itsOwnName) once.
+--   2. at each lifecycle point malisling calls exports[name]:OnX(...) (pcall-guarded).
+--   3. MBT.ShootingBridge is the local dispatcher modules call; forwards or no-ops.
+-- The GitHub source thus reveals only empty hooks.
 -- ─────────────────────────────────────────────────────────────────────────────
 
 local bridgeResource          -- resource name registered by the companion (or nil)
@@ -76,9 +66,8 @@ MBT.ShootingBridge = {
         callBridge('OnUnholster', weaponType)
     end,
 
-    --- True when a companion combat resource has registered and is running. Lets
-    --- other resources detect the companion without learning anything about it.
-    --- (Reveals only that a companion exists — never any of its logic.)
+    --- True when a companion has registered and is running. Lets others detect it
+    --- without learning anything about its logic.
     ---@return boolean
     IsConnected = function()
         return bridgeResource ~= nil and GetResourceState(bridgeResource) == 'started'
@@ -90,10 +79,9 @@ MBT.ShootingBridge = {
 AddEventHandler('mbt_malisling:onHolster',   function(weaponType) MBT.ShootingBridge.OnHolster(weaponType) end)
 AddEventHandler('mbt_malisling:onUnholster', function(weaponType) MBT.ShootingBridge.OnUnholster(weaponType) end)
 
--- Fired-shot detection. malisling OWNS CEventGunShotWhizzedBy; the companion
--- subscribes through the bridge, never to the game event directly. Decoupled
--- from the jamming feature so OnWeaponFired fires even if jamming is disabled.
--- IsPedShooting guards against nearby players' shots whizzing by.
+-- Fired-shot detection. malisling OWNS CEventGunShotWhizzedBy; companion subscribes
+-- via the bridge, not the event. Decoupled from jamming so OnWeaponFired fires even
+-- when jamming is off. IsPedShooting guards against nearby players' shots.
 AddEventHandler('CEventGunShotWhizzedBy', function()
     if not bridgeResource then return end
     if not currentWeapon then return end

@@ -1,14 +1,11 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Weapon Weight / Carry Penalty — client
---
--- Carrying many counted-group weapons slightly slows the player. The server hands
--- back the carried WEAPON_* items; we resolve each group with GetWeapontypeGroup
--- (client native) and, if the counted total exceeds the threshold, apply a
--- move-rate override scaling with the surplus, capped at MaxPenalty. Purely RP.
+-- Server hands back carried WEAPON_* items; we resolve groups with GetWeapontypeGroup
+-- (client native) and, if count exceeds threshold, apply a move-rate override scaling
+-- with the surplus, capped at MaxPenalty. Purely RP.
 -- ─────────────────────────────────────────────────────────────────────────────
 
--- Load if the feature block exists; Enabled + Mode are read at use time so the
--- admin menu can toggle/retune live (cfg is the live MBT.WeaponWeight table).
+-- Enabled + Mode read at use time so the admin menu can toggle/retune live.
 if not MBT.WeaponWeight then return end
 
 local cfg = MBT.WeaponWeight
@@ -48,8 +45,7 @@ local function refresh()
     moveRate = surplus <= 0 and 1.0 or (1.0 - math.min(t.MAX_PENALTY, surplus * t.PER_WEAPON))
 end
 
--- Apply loop: SetPedMoveRateOverride must be re-applied every frame while a
--- penalty is active (it resets). Sleeps fully when there's no penalty.
+-- SetPedMoveRateOverride resets, so re-apply every frame while penalised; sleep otherwise.
 CreateThread(function()
     while true do
         if moveRate < 1.0 then
