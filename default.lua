@@ -862,8 +862,8 @@ MBT.TacticalSling      = {
     --   id    = stored/selected value   model = prop model name   label = NUI text
     DefaultVariant = 'normal',   -- variant id used when a job has no override below
     Variants = {
-        { id = 'normal', model = 'mbt_belt_prop_a', label = 'Belt — Normal' },
-        { id = 'camo',   model = 'mbt_belt_prop_b', label = 'Belt — Camo' },
+        { id = 'normal', model = 'mbt_belt_prop_b', label = 'Belt — Standard' },
+        { id = 'camo',   model = 'mbt_belt_prop_a', label = 'Belt — Camo' },
         { id = 'm4',     model = 'mbt_m4_prop',     label = 'M4 Rig' },
     },
     -- Per-job variant override (editable from the dashboard). e.g. ['police'] = 'camo'.
