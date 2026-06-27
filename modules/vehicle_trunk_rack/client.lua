@@ -44,6 +44,9 @@ end
 local CurrentWeapon = {}
 local busy          = false
 local rackedProps   = {}  -- [veh] = { [index] = propEntity }
+local tedit         = nil -- live trunk-offset editor state — declared here (above the
+                          -- auto-render thread) so that thread can tell which vehicle is
+                          -- being tuned. Shape: { veh, model, class, off, prop, cam, orbit }
 
 AddEventHandler('ox_inventory:currentWeapon', function(w) CurrentWeapon = w or {} end)
 
@@ -345,6 +348,10 @@ CreateThread(function()
                 elseif #(pc - GetEntityCoords(veh)) > 20.0 then
                     -- Far trunk: skip the door-angle math entirely (just ensure props are cleared).
                     if rackedProps[veh] then clearProps(veh) end
+                elseif tedit and tedit.veh == veh then
+                    -- This trunk is being tuned live in the editor, which renders its OWN preview
+                    -- prop — keep the real stowed props hidden so the weapon doesn't duplicate.
+                    if rackedProps[veh] then clearProps(veh) end
                 else
                     local r = rackedProps[veh]
                     if bootIsOpen(veh) then
@@ -426,7 +433,7 @@ end)
 -- nudges the offset live. Targets the CLOSEST vehicle (its real scale → precise).
 -- Spawns its own preview weapon, so you can tune an empty vehicle too. Save writes
 -- the per-model or per-class override through the ACE-checked offset event.
-local tedit = nil   -- { veh, model, class, off, prop, cam, orbit }
+-- (tedit itself is declared near the top, so the auto-render thread can see it.)
 
 local TEDIT_WEAPON = 'WEAPON_CARBINERIFLE'
 
@@ -539,6 +546,7 @@ RegisterNUICallback('trunkEdit:start', function(_, cb)
         orbit = { yaw = camYaw, pitch = -15.0, dist = 2.6 },
     }
     teditAttach()
+    clearProps(veh)   -- drop the real stowed props now; the editor shows its own preview (no dup)
     teditUpdateCam()
     RenderScriptCams(true, false, 0, true, true)
 
