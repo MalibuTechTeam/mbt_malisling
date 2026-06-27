@@ -732,6 +732,12 @@ MBT.ShellCasings       = {
     Prop          = nil,
     -- Weapon types that never leave casings (data/weapons.lua types).
     ExcludeTypes  = { ['melee'] = true, ['melee2'] = true, ['melee3'] = true, ['extinguisher'] = true },
+    -- Areas where NO casing is generated — shooting ranges, armories, any legal/supervised
+    -- fire where forensic brass makes no sense. A shot within radius of a zone leaves nothing
+    -- (3D sphere). Grab coords in-world with /mbt_casingzone (prints a ready-to-paste line).
+    ExcludeZones  = {
+        -- { coords = vec3(0.0, 0.0, 0.0), radius = 20.0 },
+    },
 }
 
 -- ── Chain of Custody (Forensics) ──────────────────────────────────────────────

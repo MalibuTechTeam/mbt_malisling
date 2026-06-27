@@ -17,6 +17,18 @@ local lastShot = {}    -- [src] = GetGameTimer() (throttle)
 local finite     = Utils.finite
 local weaponType = Utils.weaponType
 
+--- True if (x,y,z) is inside any configured no-casing zone (ranges/armories). 3D sphere.
+local function inExcludeZone(x, y, z)
+    local zones = cfg.ExcludeZones
+    if type(zones) ~= 'table' then return false end
+    local at = vec3(x, y, z)
+    for i = 1, #zones do
+        local zn = zones[i]
+        if zn and zn.coords and #(at - zn.coords) <= (zn.radius or 20.0) then return true end
+    end
+    return false
+end
+
 local function removeCasing(id)
     casings[id] = nil   -- order is cleaned lazily
 end
@@ -37,6 +49,7 @@ RegisterNetEvent('mbt_malisling:casing:shot', function(p)
     local src = source
     if not cfg.Enabled or type(p) ~= 'table' then return end
     if not (finite(p.x) and finite(p.y) and finite(p.z)) then return end
+    if inExcludeZone(p.x, p.y, p.z) then return end   -- ranges/armories: no forensic casings
 
     local now = GetGameTimer()
     if lastShot[src] and (now - lastShot[src]) < (cfg.MinIntervalMs or 1200) then return end

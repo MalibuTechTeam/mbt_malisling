@@ -233,6 +233,17 @@ if not hasTarget then
     end)
 end
 
+-- Dev helper: /mbt_casingzone — print + copy a ready-to-paste ExcludeZone line at your
+-- position (paste into MBT.ShellCasings.ExcludeZones to keep a range/armory casing-free).
+RegisterCommand('mbt_casingzone', function()
+    local c = GetEntityCoords(cache.ped)
+    local line = ('{ coords = vec3(%.2f, %.2f, %.2f), radius = 20.0 },'):format(c.x, c.y, c.z)
+    Utils.mbtDebugger('Casing exclude zone -> paste into MBT.ShellCasings.ExcludeZones:\n' .. line)
+    if lib.setClipboard then lib.setClipboard(line) end
+    lib.notify({ type = 'success', title = 'Shell Casings',
+        description = 'Exclude-zone line copied to clipboard + printed to F8.' })
+end, false)
+
 AddEventHandler('onResourceStop', function(res)
     if res ~= GetCurrentResourceName() then return end
     for id in pairs(nearby) do removeLocal(id) end
