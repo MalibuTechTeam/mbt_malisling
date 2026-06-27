@@ -1,7 +1,7 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Admin config — server
 --
--- Powers the admin dashboard (modules/admin NUI). On /mbtconfig the server ACE-
+-- Powers the admin dashboard (modules/admin NUI). On /mbtsling the server ACE-
 -- checks the player and sends a full config snapshot; on save it validates,
 -- applies live to MBT.* on every client (broadcast), and persists the runtime-safe
 -- fields to runtime_config.json so they survive a restart.
@@ -18,7 +18,7 @@ local THROW_GROUPS    = {
     MG = `GROUP_MG`, SMG = `GROUP_SMG`, SHOTGUN = `GROUP_SHOTGUN`,
     STUNGUN = `GROUP_STUNGUN`, SNIPER = `GROUP_SNIPER`, HEAVY = `GROUP_HEAVY`,
 }
-local adminCommand    = (MBT.Admin and MBT.Admin.Command) or 'mbtconfig'
+local adminCommand    = (MBT.Admin and MBT.Admin.Command) or 'mbtsling'
 -- Default to the command's own ACE so a server with the usual
 -- `add_ace group.admin command.* allow` (or a wildcard admin principal) works
 -- with NO extra server.cfg lines — same as mbt_elevator.

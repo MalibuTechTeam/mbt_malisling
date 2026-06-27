@@ -1,7 +1,7 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Admin config — client
 --
--- /mbtconfig asks the server (ACE-checked) to open the admin dashboard. The
+-- /mbtsling asks the server (ACE-checked) to open the admin dashboard. The
 -- server replies with openAdmin + the config snapshot, which we forward to the
 -- NUI and give it focus. The dashboard saves via the adminSave NUI callback and
 -- closes via adminClose. applyConfig re-applies the live-broadcast changes.

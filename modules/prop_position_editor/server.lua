@@ -9,7 +9,7 @@
 -- of the script stays DB-free. This is the 2nd documented exception to "no DB".
 -- ─────────────────────────────────────────────────────────────────────────────
 
-local adminCommand = (MBT.Admin and MBT.Admin.Command) or 'mbtconfig'
+local adminCommand = (MBT.Admin and MBT.Admin.Command) or 'mbtsling'
 local adminPerm    = (MBT.Admin and MBT.Admin.Permission) or ('command.' .. adminCommand)
 
 local WTYPES = { side = true, back = true, back2 = true, melee = true, melee2 = true, melee3 = true, extinguisher = true, sling = true }

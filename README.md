@@ -70,7 +70,7 @@ Free and open source — the discovery tier of the MBT weapon ecosystem.
 
 ### Admin & Configuration
 
-- **Live React dashboard** (`/mbtconfig`) — a premium NUI control panel to toggle and tune every feature in real time, organized by category (Core, Handling, Interaction, World), persisted to the database
+- **Live React dashboard** (`/mbtsling`) — a premium NUI control panel to toggle and tune every feature in real time, organized by category (Core, Handling, Interaction, World), persisted to the database
 - **NUI Position Editor** — a live, in-world editor (orbit camera, preview prop, button controls) to set each weapon type's sling position **per type and per job**, saved to the database
 - **Dev tuning commands** — `/mbt_propedit`, `/mbt_racktune` and `/mbt_trunktune` print/copy ready-to-paste offset lines for fine placement (admin / debug only)
 
@@ -136,7 +136,7 @@ Frameworks: **ESX · QBCore · QBox · OX** (auto-detected).
 
 4. Restart your server, or run `ensure mbt_malisling` in the live console.
 
-5. Open the admin dashboard in-game with `/mbtconfig` (admin only) and tune to taste.
+5. Open the admin dashboard in-game with `/mbtsling` (admin only) and tune to taste.
 
 ---
 
@@ -146,7 +146,7 @@ Configuration is split across two files plus the live dashboard:
 
 - **`default.lua`** — the complete default block for **every** feature (toggles, thresholds, animations, positions). Loaded first. Most values are meant to be tuned **live from the dashboard**, not by hand.
 - **`config.lua`** — thin server settings only: `Admin` (command + ACE permission), `QBWeapons`, `Language`, `Debug`, `Notification`. Loaded after `default.lua`, so it can override any default.
-- **Dashboard** (`/mbtconfig`) — toggles and tunes features at runtime; changes persist to the `mbt_malisling_config` database row and survive resource updates.
+- **Dashboard** (`/mbtsling`) — toggles and tunes features at runtime; changes persist to the `mbt_malisling_config` database row and survive resource updates.
 
 ```lua
 -- config.lua
@@ -154,8 +154,8 @@ MBT.Language = 'en'      -- 'en', 'it', 'fr'
 MBT.Debug    = false     -- debug logs + dev tuning commands
 
 MBT.Admin = {
-    Command    = 'mbtconfig',
-    Permission = 'command.mbtconfig',   -- ACE permission for the dashboard + placement
+    Command    = 'mbtsling',
+    Permission = 'command.mbtsling',   -- ACE permission for the dashboard + placement
 }
 ```
 
@@ -167,7 +167,7 @@ MBT.Admin = {
 
 | Command | Access | Action |
 |---|---|---|
-| `/mbtconfig` | Admin (ACE) | Open the live configuration dashboard |
+| `/mbtsling` | Admin (ACE) | Open the live configuration dashboard |
 | `/mbt_placerack` · `/mbt_removerack` | Admin (ACE) | Place / remove a runtime weapon rack |
 | `/mbt_rackcoords` | Anyone | Print a config line for a fixed rack at your position |
 | `/mbt_racktune` | Admin / Debug | Live-tune the per-type weapon offsets on a wall rack |
