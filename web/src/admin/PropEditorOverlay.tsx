@@ -146,9 +146,14 @@ export function PropEditorOverlay({ wtype, job, gender: initGender, onClose }: P
 
       <div className="mbt-pe__axgroup">
         <span className="mbt-pe__camhead">Position (m)</span>
-        <CamSlider label="Left / Right" min={-1} max={1} step={0.005} val={pos.x} fmt={(v) => v.toFixed(3)} onChange={(v) => setAxis('Pos', 'x', v)} />
+        {/* Body props all attach to the spine "Back" bone, whose LOCAL frame is rotated:
+            local X runs vertically, local Z runs horizontally. Map the world-intuitive
+            labels onto the matching axis so the sliders move the way they read (Left/Right
+            → local Z, Up/Down → local X). The stored offset stays bone-local — only which
+            slider edits which component changes. */}
+        <CamSlider label="Left / Right" min={-1} max={1} step={0.005} val={pos.z} fmt={(v) => v.toFixed(3)} onChange={(v) => setAxis('Pos', 'z', v)} />
         <CamSlider label="Fwd / Back"   min={-1} max={1} step={0.005} val={pos.y} fmt={(v) => v.toFixed(3)} onChange={(v) => setAxis('Pos', 'y', v)} />
-        <CamSlider label="Up / Down"    min={-1} max={1} step={0.005} val={pos.z} fmt={(v) => v.toFixed(3)} onChange={(v) => setAxis('Pos', 'z', v)} />
+        <CamSlider label="Up / Down"    min={-1} max={1} step={0.005} val={pos.x} fmt={(v) => v.toFixed(3)} onChange={(v) => setAxis('Pos', 'x', v)} />
       </div>
       <div className="mbt-pe__axgroup">
         <span className="mbt-pe__camhead">Rotation (°)</span>
