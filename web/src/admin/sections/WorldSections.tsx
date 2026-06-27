@@ -140,10 +140,10 @@ const VEHICLE_CLASSES: Record<number, string> = {
 }
 interface TrunkOverride { scope: string; data: { Pos: { x: number; y: number; z: number }; Rot: { x: number; y: number; z: number } } }
 interface TrunkStart { ok: boolean; model: string; class: number; off: TrunkOverride['data']; view?: { yaw: number; pitch: number; dist: number } }
-interface TrunkPositionsProps extends SectionProps { onEdit?: (s: TrunkStart) => void }
+interface TrunkPositionsProps extends SectionProps { onEdit?: (s: TrunkStart) => void; refreshKey?: number }
 
 /** Trunk Positions — feature toggle + live in-world editor + per-model/class offsets. */
-export function TrunkPositionsSection({ config, update, onEdit }: TrunkPositionsProps) {
+export function TrunkPositionsSection({ config, update, onEdit, refreshKey }: TrunkPositionsProps) {
   const t = config?.VehicleTrunkRack ?? {}
   const [list, setList] = useState<TrunkOverride[]>([])
   const [note, setNote] = useState('')   // in-dashboard warning (no ox_lib)
@@ -151,6 +151,9 @@ export function TrunkPositionsSection({ config, update, onEdit }: TrunkPositions
     fetchNui('trunkOffsets:get').then((r: any) => setList(Array.isArray(r) ? r : []))
   }, [])
   useEffect(() => { refresh() }, [refresh])
+  // The live editor lives in a sibling component; when it saves, the dashboard bumps refreshKey.
+  // Re-pull after a short delay so the server has persisted the new override before we read it.
+  useEffect(() => { if (refreshKey) window.setTimeout(refresh, 150) }, [refreshKey, refresh])
 
   // Auto-dismiss the inline warning after a few seconds.
   useEffect(() => {

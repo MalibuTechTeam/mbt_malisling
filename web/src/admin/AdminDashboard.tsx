@@ -112,6 +112,7 @@ export default function AdminDashboard() {
   const [jobs, setJobs] = useState<Job[]>([])       // framework job list (lazy)
   const [editing, setEditing] = useState<EditTarget | null>(null) // live position editor
   const [trunkEditing, setTrunkEditing] = useState<{ model: string; vclass: number; off: any; view?: any } | null>(null)
+  const [trunkRefresh, setTrunkRefresh] = useState(0) // bump → TrunkPositionsSection re-pulls its list after a save
   const [closing, setClosing] = useState(false)     // playing the exit animation before unmount
   const [oxPatch, setOxPatch] = useState<string | false>(false) // ox auto-patch failure reason (CRITICAL → center alert)
   const [warnings, setWarnings] = useState<{ code: string; msg: string }[]>([]) // non-critical integration warnings → discreet right chips
@@ -315,7 +316,7 @@ export default function AdminDashboard() {
             {isPositions ? (
               <>
                 <PositionsSection jobs={jobs} onEdit={(t) => setEditing(t)} />
-                <TrunkPositionsSection config={cfg} update={update}
+                <TrunkPositionsSection config={cfg} update={update} refreshKey={trunkRefresh}
                   onEdit={(s) => setTrunkEditing({ model: s.model, vclass: s.class, off: s.off, view: s.view })} />
                 <SlingPositionsSection config={cfg} update={update} jobs={jobs}
                   onEdit={(variant, g) => setEditing({ wtype: 'sling:' + variant, job: 'default', gender: g })} />
@@ -400,6 +401,7 @@ export default function AdminDashboard() {
         off={trunkEditing.off}
         view={trunkEditing.view}
         onClose={() => setTrunkEditing(null)}
+        onSaved={() => setTrunkRefresh((n) => n + 1)}
       />
     ) : null}
     </>

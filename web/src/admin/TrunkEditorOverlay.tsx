@@ -15,7 +15,7 @@ import { CamSlider } from './ui/CamSlider'
 interface Vec { x: number; y: number; z: number }
 interface Off { Pos: Vec; Rot: Vec }
 interface View { yaw: number; pitch: number; dist: number }
-interface Props { model: string; vclass: number; off: Off; view?: View; onClose: () => void }
+interface Props { model: string; vclass: number; off: Off; view?: View; onClose: () => void; onSaved?: () => void }
 
 // Wrap an angle to -180..180 (slider centre = 0°, no 0/360 jump).
 const n180 = (v: number) => { const m = (((v % 360) + 360) % 360); return m > 180 ? m - 360 : m }
@@ -33,7 +33,7 @@ const safeOff = (o: Off): Off => ({
   },
 })
 
-export function TrunkEditorOverlay({ model, vclass, off: initOff, view: initView, onClose }: Props) {
+export function TrunkEditorOverlay({ model, vclass, off: initOff, view: initView, onClose, onSaved }: Props) {
   const [off, setOff] = useState<Off>(() => safeOff(initOff))
   const [view, setView] = useState<View>(initView ?? { yaw: 180, pitch: -15, dist: 2.6 })
   const [scope, setScope] = useState<'model' | 'class'>('model')
@@ -58,6 +58,7 @@ export function TrunkEditorOverlay({ model, vclass, off: initOff, view: initView
   const save = () => {
     fetchNui('trunkEdit:save', { scope })
     setSaved(true); window.setTimeout(() => setSaved(false), 1200)
+    onSaved?.()   // tell the dashboard to refresh the Trunk Positions list so the new card shows
   }
   const reset = () => fetchNui('trunkEdit:reset').then((r: any) => { if (r?.Pos) setOff(safeOff(r)) })
   const close = () => { fetchNui('trunkEdit:stop'); onClose() }
