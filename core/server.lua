@@ -1,3 +1,7 @@
+-- Refuse to run under a renamed folder (anti clone-and-rebrand). core/server.lua registers
+-- the script's server callbacks, so bailing here leaves the whole resource inert on a rename.
+if not Utils.MbtResourceNameCheck('mbt_malisling') then return end
+
 lib.versionCheck('MalibuTechTeam/mbt_malisling')
 
 local isReady = false

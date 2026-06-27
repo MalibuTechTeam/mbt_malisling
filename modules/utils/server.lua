@@ -10,6 +10,18 @@ Utils.Error = MBTLog.Error
 Utils.mbtDebugger = MBTLog.Debug   -- back-compat alias (lowercase, malisling call sites)
 Utils.mbtWarn     = MBTLog.Warn    -- back-compat alias
 
+---Refuse to run under a renamed folder (the usual clone-and-rebrand). Prints a console
+---error and returns false when the resource isn't named expectedName.
+---@param expectedName string
+---@return boolean ok
+function Utils.MbtResourceNameCheck(expectedName)
+    local actual = GetCurrentResourceName()
+    if actual == expectedName then return true end
+    print(('^1[MalibuTech] ERROR: This resource must be named "%s"!^0'):format(expectedName))
+    print(('^1[MalibuTech] Current folder name: "%s" — please rename it and restart.^0'):format(actual))
+    return false
+end
+
 ---@param array table
 ---@param value any
 ---@return boolean
