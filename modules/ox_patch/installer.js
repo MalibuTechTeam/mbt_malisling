@@ -34,7 +34,11 @@
   // [SLING] badge + level + timestamp, so these JS boot lines read like the rest of
   // the script. The JS runtime can't call the Lua MBTLog, so the format is replicated.
   const ts = () => new Date().toTimeString().slice(0, 8);
-  const line = (m) => console.log(`^4[SLING]^7 ^2[INFO  ${ts()}]^7 ${m}^0`);
+  // INFO is muted by default so a clean boot is quiet (the dashboard + the oxPatchResult
+  // event already carry the patch status). Set `setr malisling:debug true` to see the boot
+  // lines. WARN always prints — it means the patch actually failed.
+  const DEBUG = GetConvar('malisling:debug', 'false') === 'true';
+  const line = (m) => { if (DEBUG) console.log(`^4[SLING]^7 ^2[INFO  ${ts()}]^7 ${m}^0`); };
   const warn = (m) => console.log(`^4[SLING]^7 ^3[WARN  ${ts()}]^7 ${m}^0`);
 
   // Tell the Lua side the outcome so it can notify ACE admins in-game on failure
