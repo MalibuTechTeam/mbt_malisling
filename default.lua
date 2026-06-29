@@ -736,7 +736,7 @@ MBT.ShellCasings       = {
     -- fire where forensic brass makes no sense. A shot within radius of a zone leaves nothing
     -- (3D sphere). Grab coords in-world with /mbt_casingzone (prints a ready-to-paste line).
     ExcludeZones  = {
-        -- { coords = vec3(0.0, 0.0, 0.0), radius = 20.0 },
+        { coords = vec3(824.97, -2162.98, 29.62), radius = 20.0 },   -- shooting range
     },
 }
 
