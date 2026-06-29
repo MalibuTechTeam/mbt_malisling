@@ -553,8 +553,12 @@ end)
 AddEventHandler('onResourceStop', function(resourceName)
     if (GetCurrentResourceName() ~= resourceName) then return end
     for i=1, #weaponObjectiveSpawned do
-        if DoesEntityExist(weaponObjectiveSpawned[i]) then
-            DeleteEntity(weaponObjectiveSpawned[i])
+        local e = weaponObjectiveSpawned[i]
+        -- Only delete OUR weapon OBJECTS (type 3). Entity handles get recycled by the engine,
+        -- so a stale handle left in this registry can point at a ped/vehicle (e.g. an MLO ped)
+        -- by now — deleting that is what made interior peds drop on restart.
+        if e and DoesEntityExist(e) and GetEntityType(e) == 3 then
+            DeleteEntity(e)
         end
     end
 end)
