@@ -234,9 +234,9 @@ if not hasTarget then
 end
 
 -- Dev helper: /mbt_casingzone — capture an ExcludeZone line for MBT.ShellCasings.ExcludeZones
--- (a range/armory where no forensic casings spawn). In Debug it opens a live editor: a ground
--- footprint marker at your spot with ↑/↓ to size the radius (walk to the edge to gauge it),
--- ENTER copies the line, BACKSPACE exits. Without Debug it just prints a line at radius 20.
+-- (a range/armory where no forensic casings spawn). Admin/Debug only (gated server-side): opens
+-- a live editor — a ground footprint marker at your spot, ↑/↓ to size the radius (walk to the
+-- edge to gauge it), ENTER copies the line, BACKSPACE exits.
 local casingZoneEditing = false
 
 local function copyCasingZone(c, radius)
@@ -248,9 +248,12 @@ local function copyCasingZone(c, radius)
 end
 
 RegisterCommand('mbt_casingzone', function()
-    local center = GetEntityCoords(cache.ped)
-    if not MBT.Debug then copyCasingZone(center, 20.0); return end   -- non-debug: one-shot, r=20
     if casingZoneEditing then return end
+    if not lib.callback.await('mbt_malisling:casing:canTune', false) then
+        lib.notify({ type = 'error', title = 'Shell Casings', description = '/mbt_casingzone is admin/debug only.' })
+        return
+    end
+    local center = GetEntityCoords(cache.ped)
     casingZoneEditing = true
     local radius = 20.0
     CreateThread(function()
