@@ -233,15 +233,47 @@ if not hasTarget then
     end)
 end
 
--- Dev helper: /mbt_casingzone — print + copy a ready-to-paste ExcludeZone line at your
--- position (paste into MBT.ShellCasings.ExcludeZones to keep a range/armory casing-free).
-RegisterCommand('mbt_casingzone', function()
-    local c = GetEntityCoords(cache.ped)
-    local line = ('{ coords = vec3(%.2f, %.2f, %.2f), radius = 20.0 },'):format(c.x, c.y, c.z)
+-- Dev helper: /mbt_casingzone — capture an ExcludeZone line for MBT.ShellCasings.ExcludeZones
+-- (a range/armory where no forensic casings spawn). In Debug it opens a live editor: a ground
+-- footprint marker at your spot with ↑/↓ to size the radius (walk to the edge to gauge it),
+-- ENTER copies the line, BACKSPACE exits. Without Debug it just prints a line at radius 20.
+local casingZoneEditing = false
+
+local function copyCasingZone(c, radius)
+    local line = ('{ coords = vec3(%.2f, %.2f, %.2f), radius = %.1f },'):format(c.x, c.y, c.z, radius)
     Utils.mbtDebugger('Casing exclude zone -> paste into MBT.ShellCasings.ExcludeZones:\n' .. line)
     if lib.setClipboard then lib.setClipboard(line) end
     lib.notify({ type = 'success', title = 'Shell Casings',
-        description = 'Exclude-zone line copied to clipboard + printed to F8.' })
+        description = ('Zone (r=%.0f) copied to clipboard + printed to F8.'):format(radius) })
+end
+
+RegisterCommand('mbt_casingzone', function()
+    local center = GetEntityCoords(cache.ped)
+    if not MBT.Debug then copyCasingZone(center, 20.0); return end   -- non-debug: one-shot, r=20
+    if casingZoneEditing then return end
+    casingZoneEditing = true
+    local radius = 20.0
+    CreateThread(function()
+        while casingZoneEditing do
+            Wait(0)
+            for _, c in ipairs({ 172, 173, 21, 191, 177 }) do DisableControlAction(0, c, true) end
+            local step = IsDisabledControlPressed(0, 21) and 2.0 or 0.5
+            if IsDisabledControlPressed(0, 172) then radius = math.min(200.0, radius + step)       -- ↑ grow
+            elseif IsDisabledControlPressed(0, 173) then radius = math.max(1.0, radius - step) end  -- ↓ shrink
+            -- Ground footprint (the zone is a 3D sphere server-side; the cylinder shows the area).
+            DrawMarker(1, center.x, center.y, center.z - 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                radius * 2.0, radius * 2.0, 4.0, 218, 165, 32, 90, false, false, 2, false, nil, nil, false)
+            SetTextFont(4); SetTextScale(0.42, 0.42); SetTextColour(255, 255, 255, 255); SetTextCentre(true)
+            SetTextEntry('STRING')
+            AddTextComponentString(('CASING ZONE   radius %.1f m    ~y~UP/DOWN~s~ resize · SHIFT fast · ENTER copy · BKSP exit'):format(radius))
+            DrawText(0.5, 0.86)
+            if IsDisabledControlJustPressed(0, 191) then       -- ENTER → copy the tuned line
+                copyCasingZone(center, radius)
+            elseif IsDisabledControlJustPressed(0, 177) then   -- BACKSPACE → exit
+                casingZoneEditing = false
+            end
+        end
+    end)
 end, false)
 
 AddEventHandler('onResourceStop', function(res)
