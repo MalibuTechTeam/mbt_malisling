@@ -217,6 +217,20 @@ local function typeOf(name)
         and MBT.WeaponsInfo.Weapons[name].type or nil
 end
 
+--- Play a weapon type's holster gesture from MBT.PropInfo[type].HolsterAnim: dir 'in' = draw
+--- (animIn), 'out' = put away (animOut). No-op if the draw animation is off or the type has no clip.
+local function playHolsterAnim(wtype, dir)
+    if not (MBT.QBWeapons and MBT.QBWeapons.DrawAnimation) then return end
+    local ha = wtype and MBT.PropInfo and MBT.PropInfo[wtype] and MBT.PropInfo[wtype].HolsterAnim
+    if not ha or not ha.dict then return end
+    local clip = (dir == 'out') and ha.animOut or ha.animIn
+    local ms   = ((dir == 'out') and ha.sleepOut) or ha.sleep or 1000
+    if not clip or clip == '0' or clip == 0 then return end
+    lib.requestAnimDict(ha.dict)
+    TaskPlayAnim(cache.ped, ha.dict, clip, 2.5, -4.0, ms, 48, 0.0, false, false, false)
+    Wait(ms)
+end
+
 --- Equip shared by all transitions: fires currentWeapon(data), with the side-weapon
 --- holster prompt when qbSidearmDrawMode == 'malisling'.
 local function doEquip(weaponData, weaponHash)
@@ -233,9 +247,11 @@ local function doEquip(weaponData, weaponHash)
         while holsterState == true do Wait(50) end
         SendNUIMessage({ action = 'hideHolster' })
         if holsterState == 'confirmed' then
+            -- Weapon is still hidden from the prompt: play the draw gesture, THEN bring it out —
+            -- a coordinated draw, not a gesture over an already-out gun (matches the else branch).
+            playHolsterAnim(typeOf(weaponData.name), 'in')
             SetCurrentPedWeapon(cache.ped, weaponHash, true)
             TriggerEvent('ox_inventory:currentWeapon', weaponData)
-            playHolsterAnim(typeOf(weaponData.name), 'in')
         else
             lastWeaponHash = `WEAPON_UNARMED`   -- cancelled: weapon stays on the sling
         end
