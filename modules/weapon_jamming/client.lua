@@ -124,11 +124,15 @@ AddEventHandler("CEventGunShotWhizzedBy", function(entities, eventEntity, args)
             Utils.durabilityToTier(currentWeapon.metadata.durability))
 
         local shouldJam
+        local source
         if override ~= nil then
             shouldJam = override and true or false
+            source    = 'bridge override'
         else
             shouldJam = Utils.getJammingChance(currentWeapon.metadata.durability)
+            source    = 'base durability chance'
         end
+        Utils.mbtDebugger("WeaponJamming ~ shouldJam:", shouldJam, "| source:", source)
 
         if shouldJam then
             jammed = GetGameTimer()

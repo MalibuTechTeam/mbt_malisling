@@ -219,13 +219,20 @@ end
 
 --- Play a weapon type's holster gesture from MBT.PropInfo[type].HolsterAnim: dir 'in' = draw
 --- (animIn), 'out' = put away (animOut). No-op if the draw animation is off or the type has no clip.
-local function playHolsterAnim(wtype, dir)
+---@param weaponHash number?  the weapon being drawn (dir='in' only) — for the Quick Draw bridge hook
+local function playHolsterAnim(wtype, dir, weaponHash)
     if not (MBT.QBWeapons and MBT.QBWeapons.DrawAnimation) then return end
     local ha = wtype and MBT.PropInfo and MBT.PropInfo[wtype] and MBT.PropInfo[wtype].HolsterAnim
     if not ha or not ha.dict then return end
     local clip = (dir == 'out') and ha.animOut or ha.animIn
     local ms   = ((dir == 'out') and ha.sleepOut) or ha.sleep or 1000
     if not clip or clip == '0' or clip == 0 then return end
+    -- Quick Draw (shooting bridge): the companion may speed up the draw-in gesture
+    -- only — putting a weapon away isn't a skill check.
+    if dir ~= 'out' and MBT.ShootingBridge and weaponHash then
+        local mult = MBT.ShootingBridge.OnDrawSpeedRequest(wtype, weaponHash)
+        if mult then ms = math.floor(ms * mult) end
+    end
     lib.requestAnimDict(ha.dict)
     TaskPlayAnim(cache.ped, ha.dict, clip, 2.5, -4.0, ms, 48, 0.0, false, false, false)
     Wait(ms)
@@ -249,7 +256,7 @@ local function doEquip(weaponData, weaponHash)
         if holsterState == 'confirmed' then
             -- Weapon is still hidden from the prompt: play the draw gesture, THEN bring it out —
             -- a coordinated draw, not a gesture over an already-out gun (matches the else branch).
-            playHolsterAnim(typeOf(weaponData.name), 'in')
+            playHolsterAnim(typeOf(weaponData.name), 'in', weaponHash)
             SetCurrentPedWeapon(cache.ped, weaponHash, true)
             TriggerEvent('ox_inventory:currentWeapon', weaponData)
         else
@@ -265,9 +272,15 @@ local function doEquip(weaponData, weaponHash)
             and ha and ha.dict and ha.animIn and ha.animIn ~= '0' and ha.animIn ~= 0 then
             SetCurrentPedWeapon(cache.ped, `WEAPON_UNARMED`, true)
             lib.requestAnimDict(ha.dict)
+            local ms = ha.sleep or 1000
+            -- Quick Draw (shooting bridge): companion may speed up the draw-in gesture.
+            if MBT.ShootingBridge then
+                local mult = MBT.ShootingBridge.OnDrawSpeedRequest(t, weaponHash)
+                if mult then ms = math.floor(ms * mult) end
+            end
             -- Softer blend-in (2.5) so the draw eases in. Gesture length per type via HolsterAnim.sleep.
-            TaskPlayAnim(cache.ped, ha.dict, ha.animIn, 2.5, -4.0, ha.sleep or 1000, 48, 0.0, false, false, false)
-            Wait(ha.sleep or 1000)
+            TaskPlayAnim(cache.ped, ha.dict, ha.animIn, 2.5, -4.0, ms, 48, 0.0, false, false, false)
+            Wait(ms)
             SetCurrentPedWeapon(cache.ped, weaponHash, true)
         end
         TriggerEvent('ox_inventory:currentWeapon', weaponData)

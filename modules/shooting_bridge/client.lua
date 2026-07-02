@@ -56,6 +56,24 @@ MBT.ShootingBridge = {
         return callBridge('OnJamCheck', weaponHash, conditionTier)
     end,
 
+    --- Ask the companion for a draw-speed multiplier (Quick Draw skill) for the
+    --- weapon about to be drawn. Malisling clamps defensively (0.3-1.0) so a buggy
+    --- or malicious companion can never warp draw timing to near-zero or beyond normal.
+    ---@param weaponType string  malisling prop type (side/back/...)
+    ---@param weaponHash number
+    ---@return number?  <1.0 = faster · nil = no change (companion has no opinion)
+    OnDrawSpeedRequest = function(weaponType, weaponHash)
+        local raw  = callBridge('OnDrawSpeedRequest', weaponType, weaponHash)
+        local mult = raw
+        if type(mult) ~= 'number' then mult = nil
+        else
+            if mult < 0.3 then mult = 0.3 end
+            if mult > 1.0 then mult = 1.0 end
+        end
+        Utils.mbtDebugger('ShootingBridge OnDrawSpeedRequest ~ weaponType:', weaponType, '| raw:', raw, '| clamped:', mult)
+        return mult
+    end,
+
     ---@param weaponType string  malisling prop type (side/back/...)
     OnHolster = function(weaponType)
         callBridge('OnHolster', weaponType)
