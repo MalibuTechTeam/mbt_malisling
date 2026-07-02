@@ -13,8 +13,7 @@ local poses = cfg.Poses or {}
 local posing  = false
 local current = 0   -- index of the active pose
 
---- Play a pose anim on a ped (local or remote). Best-effort: a remote pose can be
---- interrupted by GTA's own state machine, so never block on it.
+--- Play a pose anim on a ped (local or remote); best-effort, since GTA's state machine can interrupt a remote pose, so never block on it.
 local function applyPose(ped, p)
     if not p or not DoesAnimDictExist(p.dict) then return end
     lib.requestAnimDict(p.dict)

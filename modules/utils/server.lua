@@ -9,8 +9,7 @@ Utils.Error = MBTLog.Error
 Utils.mbtDebugger = MBTLog.Debug   -- back-compat alias (lowercase, malisling call sites)
 Utils.mbtWarn     = MBTLog.Warn    -- back-compat alias
 
----Refuse to run under a renamed folder (clone-and-rebrand guard): prints an error
----and returns false when the resource isn't named expectedName.
+---Refuse to run under a renamed folder (clone-and-rebrand guard): prints an error and returns false when the resource isn't named expectedName.
 ---@param expectedName string
 ---@return boolean ok
 function Utils.MbtResourceNameCheck(expectedName)
@@ -38,8 +37,7 @@ function Utils.weaponType(name)
     return w and w.type
 end
 
----True if n is a real number within world-coordinate bounds (rejects NaN/inf/absurd
----magnitudes) — the guard for coords arriving over net events.
+---True if n is a real number within world-coordinate bounds (rejects NaN/inf/absurd magnitudes) — the guard for coords arriving over net events.
 ---@param n any
 function Utils.finite(n)
     return type(n) == 'number' and n == n and n > -1e6 and n < 1e6

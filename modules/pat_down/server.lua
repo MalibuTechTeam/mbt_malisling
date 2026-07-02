@@ -52,8 +52,7 @@ local function frisk(target)
     return out
 end
 
---- Worst (longest) search time among the findings — a well-hidden gun makes the
---- whole frisk take longer; a poorly-hidden / visible one is quick.
+--- Worst (longest) search time among the findings: a well-hidden gun makes the frisk take longer, a poorly-hidden or visible one is quick.
 local function searchMs(findings)
     local ms = cfg.SearchMsPoor or 600
     for _, f in ipairs(findings) do

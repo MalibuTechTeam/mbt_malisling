@@ -57,8 +57,7 @@ local function toggleBlocked()
     return false
 end
 
---- The concealable type the player can act on right now: a currently concealed
---- one first (so the key always un-conceals), else one with a slung prop.
+--- The concealable type to act on now: a currently concealed one first (so the key always un-conceals), else one with a slung prop.
 local function actionableType()
     if type(myState) == 'table' then
         for wtype in pairs(myState) do return wtype end

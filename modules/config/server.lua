@@ -623,9 +623,7 @@ local function stripWebhooks(d)
     return out
 end
 
---- Deep-merge SAVED values onto the live template: only template keys are read
---- (type-checked); anything missing keeps its config.lua default. Schema
---- auto-migration — an older saved config gains new defaults, never wipes state.
+--- Deep-merge SAVED values onto the live template: only template keys are read (type-checked), missing ones keep their config.lua default — so an older saved config auto-migrates to new defaults, never wiping state.
 local function mergeKnown(template, saved)
     if type(saved) ~= 'table' then return template end
     local out = {}

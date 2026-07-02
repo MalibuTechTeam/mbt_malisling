@@ -109,8 +109,7 @@ function Utils.getJammingChance(value)
     return random < chance
 end
 
---- Durability (0-100) -> condition tier 1-5 (5 = pristine). Single source of truth
---- for the shooting-bridge export GetWeaponCondition; derived on read, not stored.
+--- Durability (0-100) -> condition tier 1-5 (5 = pristine); single source of truth for the shooting-bridge export GetWeaponCondition, derived on read, not stored.
 ---@param durability number?
 ---@return integer? tier  1..5, or nil if durability is unknown
 function Utils.durabilityToTier(durability)

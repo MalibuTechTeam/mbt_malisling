@@ -1,4 +1,4 @@
--- Load if the block exists; Enabled checked at use time (live-apply via menu).
+-- Enabled is read at use time, so the dashboard can toggle it live.
 if not MBT.Throw then return end
 
 local currentWeapon
@@ -7,8 +7,8 @@ local isThrowing = false
 
 local HAND_BONE = 6286   -- right-hand grip bone the weapon prop attaches to
 
---- Throw origin = right-hand grip bone. GetWorldPositionOfEntityBone wants the bone
---- INDEX not the ID — passing 6286 raw returns vec3(0,0,0).
+-- Throw origin: the right-hand grip bone. Watch out — GetWorldPositionOfEntityBone wants the
+-- bone INDEX, not the ID; pass 6286 raw and you get (0,0,0).
 local function handPos()
     return GetWorldPositionOfEntityBone(cache.ped, GetPedBoneIndex(cache.ped, HAND_BONE))
 end
@@ -22,8 +22,9 @@ local function isAllowedToThrow(weaponGroup)
     return g and g["Allowed"] or false
 end
 
---- Detach + throw with Gianmarco's IMPULSE physics (engine does tumble/arc/landing —
---- his "fluid" feel): apply `vel` as impulse along ped facing. Returns landed coords.
+-- Detach and fling `vel` as an impulse, then let the engine do the tumble/arc/landing.
+-- Impulse (not a teleport to the landing spot) is what gives the throw its fluid feel.
+-- Returns where it comes to rest.
 local function launchForce(obj, vel)
     DetachEntity(obj, true, true)
     SetEntityCollision(obj, true, true)
@@ -49,8 +50,8 @@ local function launchForce(obj, vel)
     return coords
 end
 
---- Forward throw (Gianmarco's exact behaviour). `power` scales the per-group impulse
---- (1.0 = legacy throw; charge passes 1.0..MaxMultiplier).
+-- Forward throw. `power` scales the per-group impulse: 1.0 is the original throw,
+-- charge passes 1.0..MaxMultiplier.
 local function throwInstant(data, model, power)
     power = power or 1.0
     TaskPlayAnim(cache.ped, throwAnim["Dict"], throwAnim["Anim"], 8.0, -8.0, -1, 0, 0.0, false, false, false)
@@ -124,8 +125,8 @@ local function canStartCharge()
     return true
 end
 
---- heldMs → (powerMultiplier, pct). Tap (< threshold) = 1.0; hold ramps 1.0 →
---- MaxMultiplier over (ChargeMs - threshold). A short hold is never weaker.
+-- heldMs → (powerMultiplier, pct). A tap (< threshold) is 1.0; holding ramps 1.0 →
+-- MaxMultiplier over (ChargeMs - threshold). A short hold is never weaker than a tap.
 local function computeChargePower(heldMs)
     local c = getChargeConfig()
     local threshold = c.TapThresholdMs or 150
@@ -159,8 +160,8 @@ RegisterCommand('+' .. MBT.Throw["Command"], function()
     chargeState = { startedAt = GetGameTimer(), data = { Hash = weaponHash, Group = group } }
     if charge.ShowUI then SendNUIMessage({ action = 'charge:start' }) end
 
-    -- UI throttle (50ms / Δpct ≥ 0.02) + self-cleaning: a lost key-up (restart,
-    -- focus loss) can never soft-lock the player.
+    -- Throttle the UI (50ms / Δpct ≥ 0.02), and self-clean: a lost key-up (restart, focus
+    -- loss) must never soft-lock the player.
     CreateThread(function()
         local lastPct = -1
         while chargeState do

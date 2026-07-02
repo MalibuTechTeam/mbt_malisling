@@ -103,8 +103,7 @@ function Inventory:RemoveItem(source, name, count, _, slot)
     return exports['qb-inventory']:RemoveItem(tonumber(source), qbName(name), count, slot) ~= false
 end
 
----Mimics ox_inventory:GetInventoryItems(source) — keyed by SLOT, not name, so two
----weapons of the same name with distinct serials don't collapse (pat-down, custody, ammo, multi).
+---Mimics ox_inventory:GetInventoryItems(source), keyed by SLOT not name so same-name weapons with distinct serials don't collapse (pat-down, custody, ammo, multi).
 function Inventory:GetInventoryItems(source)
     local Player = QBCore.Functions.GetPlayer(tonumber(source))
     if not Player then return {} end

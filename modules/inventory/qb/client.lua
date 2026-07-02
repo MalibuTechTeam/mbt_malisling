@@ -2,8 +2,7 @@ if GetResourceState('qb-inventory') ~= 'started' or GetResourceState('ox_invento
 
 -- QBCore set up by bridge/qb/client.lua (loads first: bridge/ < inventory/).
 
----Global inventory interface — drop-in replacement for exports['ox_inventory'] client-side
----(ox_inventory events emulated via the polling threads below).
+---Global inventory interface — drop-in replacement for exports['ox_inventory'] client-side, with ox_inventory events emulated via the polling threads below.
 Inventory = {}
 
 -- ── Attachment translation (qb → MBT/ox) ──
@@ -238,8 +237,7 @@ local function playHolsterAnim(wtype, dir, weaponHash)
     Wait(ms)
 end
 
---- Equip shared by all transitions: fires currentWeapon(data), with the side-weapon
---- holster prompt when qbSidearmDrawMode == 'malisling'.
+--- Equip shared by all transitions: fires currentWeapon(data), with the side-weapon holster prompt when qbSidearmDrawMode == 'malisling'.
 local function doEquip(weaponData, weaponHash)
     if needsHolsterPrompt(weaponData) then
         SetCurrentPedWeapon(cache.ped, `WEAPON_UNARMED`, true)   -- hide during prompt
@@ -287,8 +285,7 @@ local function doEquip(weaponData, weaponHash)
     end
 end
 
---- After a direct armed→armed switch, re-create the PREVIOUS weapon's slung prop
---- (qb-weapons swaps without a stable UNARMED step, so core never re-slings it).
+--- After a direct armed→armed switch, re-create the PREVIOUS weapon's slung prop (qb-weapons swaps without a stable UNARMED step, so core never re-slings it).
 local function reslingPrevious(prevHash)
     if prevHash == `WEAPON_UNARMED` then return end
     local mine = playersToTrack[cache.serverId]

@@ -17,8 +17,7 @@ AddEventHandler('ox_inventory:currentWeapon', function(data)
     currentWeapon = data
 end)
 
---- Call a hook export on the registered companion resource, guarded so a faulty
---- or missing hook can never break malisling. Returns the hook's result, or nil.
+--- Call a hook export on the registered companion resource, guarded so a faulty or missing hook can never break malisling; returns the hook's result, or nil.
 ---@param hook string
 ---@return any
 local function callBridge(hook, ...)
@@ -47,8 +46,8 @@ MBT.ShootingBridge = {
     end,
 
     --- Let the companion decide whether the weapon jams on this shot. Returns:
-    ---   true  → force jam · false → force no jam · nil → companion has no opinion
-    --- (malisling falls back to its base durability-chance logic).
+    ---   true → force jam · false → force no jam · nil → no opinion
+    --- (nil falls back to malisling's base durability-chance logic).
     ---@param weaponHash number
     ---@param conditionTier integer?  1..5
     ---@return boolean?
@@ -56,9 +55,9 @@ MBT.ShootingBridge = {
         return callBridge('OnJamCheck', weaponHash, conditionTier)
     end,
 
-    --- Ask the companion for a draw-speed multiplier (Quick Draw skill) for the
-    --- weapon about to be drawn. Malisling clamps defensively (0.3-1.0) so a buggy
-    --- or malicious companion can never warp draw timing to near-zero or beyond normal.
+    --- Ask the companion for a draw-speed multiplier (Quick Draw skill) for the weapon
+    --- about to be drawn. Clamped defensively to 0.3-1.0 so a buggy or malicious companion
+    --- can never warp draw timing to near-zero or beyond normal.
     ---@param weaponType string  malisling prop type (side/back/...)
     ---@param weaponHash number
     ---@return number?  <1.0 = faster · nil = no change (companion has no opinion)
@@ -84,8 +83,7 @@ MBT.ShootingBridge = {
         callBridge('OnUnholster', weaponType)
     end,
 
-    --- True when a companion has registered and is running. Lets others detect it
-    --- without learning anything about its logic.
+    --- True when a companion has registered and is running, without exposing its logic.
     ---@return boolean
     IsConnected = function()
         return bridgeResource ~= nil and GetResourceState(bridgeResource) == 'started'
@@ -123,9 +121,7 @@ exports('GetWeaponSerial', function()
     return currentWeapon and currentWeapon.metadata and currentWeapon.metadata.serial or nil
 end)
 
---- Condition tier 1-5 (5 = pristine) for a serial. Currently resolves the HELD
---- weapon (the combat use case); pass no serial, or the held weapon's serial.
---- Arbitrary-serial lookup is a server concern — added if the companion needs it.
+--- Condition tier 1-5 (5 = pristine) for a serial; only resolves the HELD weapon (the combat case), so pass no serial or the held weapon's serial. Arbitrary-serial lookup is a server concern.
 ---@param serial string?
 ---@return integer?
 exports('GetWeaponCondition', function(serial)

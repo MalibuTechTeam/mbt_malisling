@@ -63,9 +63,7 @@ function deleteAllWeapons()
     end
 end
 
---- True when the weapon should STAY visible inside this vehicle (roofless: bikes,
---- quads, buggies, convertibles with the top down). Enclosed vehicles return false
---- so the prop is hidden to avoid the barrel clipping through the roof.
+--- True when the weapon stays visible inside this vehicle (roofless: bikes, quads, buggies, convertibles); enclosed vehicles return false so the prop can't clip through the roof.
 ---@param veh number
 ---@return boolean
 local function isOpenVehicle(veh)
@@ -86,7 +84,7 @@ end
 -- duplicate props — after riding an open vehicle where we left them visible).
 local hiddenForVehicle = false
 
---- Check when player enter/exit a vehicle, remove weapon objects when enter to avoid weird behaviors caused by props interpenetration and attachments disappears
+--- On vehicle enter, remove weapon objects (props clip/break otherwise); on exit, re-sync if we hid anything.
 ---@param value number|boolean  vehicle entity when entering, false when exiting
 local function onVehicleCheck(value)
     if value then
@@ -113,7 +111,7 @@ local function onVehicleCheck(value)
     end
 end
 
---- Check when player change ped, remove weapon objects when enter to avoid weird behaviors caused by props interpenetration and attachments disappears
+--- On ped change, remove weapon objects then re-check inventory: stale attachments on the old ped clip/break otherwise.
 local function onPedChange()
     deleteAllWeapons()
     local playerToTrack = playersToTrack[cache.serverId]
@@ -128,7 +126,6 @@ local function onPedChange()
     TriggerServerEvent("mbt_malisling:checkInventory")
 end
 
---- Fire server event for sync
 ---@param data table
 local function syncSling(data)
     TriggerServerEvent("mbt_malisling:syncSling", data)
@@ -175,7 +172,8 @@ local function applyAttachments(data)
     return appliedFlashlight
 end
 
----Afaik, seems that there is like a "shadow zone" where the player is detected as in scope by the server handler but on client its not truly existing yet, so, waiting if player enter or left our scope and return the outcome
+---Scope "shadow zone": server marks the player in-scope before the client ped truly exists.
+---Wait until the player resolves (return true) or leaves our scope (return false).
 ---@param data table
 ---@return boolean
 local function waitingForTargetPlayerPed(data)
@@ -213,18 +211,14 @@ local function getAttachInfo(data)
     return MBT.PropInfo[data.Type]
 end
 
---- Resolved back/sling attach info for a prop type, with job overrides applied
---- (propInfoTable is rebuilt by sendAnimations per the local player's job/group).
---- Exposed as a global so sibling client modules (e.g. low_ready) can re-attach a
---- slung prop to its canonical back position without duplicating the job lookup.
+--- Resolved back/sling attach info for a prop type, job overrides applied; global so sibling modules (e.g. low_ready) can re-attach a slung prop without duplicating the job lookup.
 ---@param propType string
 ---@return table?
 function GetResolvedPropInfo(propType)
     return propInfoTable[propType]
 end
 
---- The slung-prop entity currently tracked for the local player at this type, or
---- nil. (playersToTrack[serverId][type] is the weapon object handle when slung.)
+--- The slung-prop entity tracked for the local player at this type, or nil (playersToTrack[serverId][type] is the weapon object handle when slung).
 ---@param propType string
 ---@return number?
 function GetLocalSlungProp(propType)

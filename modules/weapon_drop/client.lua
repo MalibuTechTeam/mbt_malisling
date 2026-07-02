@@ -96,9 +96,7 @@ if isOx then
     local weaponDrops = {}  -- [dropId] = { prop, coords, bagCoords }
     local bagModel = joaat(GetConvar('inventory:dropmodel', 'prop_med_bag_01b'))
 
-    --- Hide EVERY ox bag prop at a drop spot. Clustered drops stack multiple bags at ~one point;
-    --- GetClosestObjectOfType returns only one, leaving others visible+collidable to hijack walk-in
-    --- pickup → wrong drop opened. GetGamePool enumerates them all.
+    --- Hide EVERY ox bag prop at a drop spot (GetGamePool, not GetClosestObjectOfType): clustered drops stack multiple bags at ~one point, and a leftover visible+collidable bag hijacks the walk-in pickup → wrong drop opened.
     local function hideBagsNear(coords)
         if not coords then return end
         -- Pool scan only worth it when close enough to see the bag; skip for far drops.
@@ -134,9 +132,7 @@ if isOx then
         weaponDrops[dropId] = nil
     end
 
-    --- (Re)build the weapon models for a drop, ring-spread around its zone. Deletes previous
-    --- models first — used on first render and on refresh (ox adds a 2nd weapon to an EXISTING
-    --- drop without re-firing createDrop, so the rendered set can go stale).
+    --- (Re)build the weapon models for a drop, ring-spread around its zone, deleting previous models first — needed on refresh since ox adds a 2nd weapon to an EXISTING drop without re-firing createDrop, so the rendered set can go stale.
     local function buildProps(dropId, hashes)
         local d = weaponDrops[dropId]
         if not d then return end

@@ -12,8 +12,7 @@ local cfg = MBT.WeaponWeight
 
 local moveRate = 1.0   -- 1.0 = normal speed; <1 = slowed
 
---- Resolve the active tuning from Mode each call (preset / custom / off).
---- Returns nil when the feature is off or the Mode is unknown.
+--- Resolve the active tuning from Mode each call (preset / custom / off); returns nil when the feature is off or the Mode is unknown.
 local function activeTuning()
     if not cfg.Enabled then return nil end
     local mode = cfg.Mode or 'custom'

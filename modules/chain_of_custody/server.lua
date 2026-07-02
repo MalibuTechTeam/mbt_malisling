@@ -63,9 +63,7 @@ local function record(source, serial)
     persist(serial)
 end
 
---- Called from core/server.lua after the sling sync. Records the holder for each
---- serialled weapon; serial-less ones get deferred EnsureSerial repair (off the
---- equip path) so admin-given/legacy guns still join the forensic loop.
+--- Records the holder for each serialled weapon (called after sling sync); serial-less ones get deferred EnsureSerial repair off the equip path so legacy guns still join the forensic loop.
 ---@param source number
 ---@param playerWeapons table
 function MBT.ChainOfCustody.RecordHolders(source, playerWeapons)

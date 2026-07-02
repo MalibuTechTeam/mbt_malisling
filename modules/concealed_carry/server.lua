@@ -67,8 +67,7 @@ lib.callback.register('mbt_malisling:concealed:toggle', function(src, data)
     return { ok = true, concealed = true, quality = quality }
 end)
 
---- Force-reveal (clothing change made concealment invalid). Client-reported,
---- server-applied: it only ever REVEALS, so there's nothing to spoof-abuse.
+--- Force-reveal (clothing change invalidated concealment); client-reported but only ever REVEALS, so there's nothing to spoof-abuse.
 RegisterNetEvent('mbt_malisling:concealed:forceReveal', function(wtype)
     local src = source
     if not cfg.Enabled or type(wtype) ~= 'string' then return end

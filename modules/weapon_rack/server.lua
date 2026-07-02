@@ -145,8 +145,7 @@ end
 -- ── Helpers ──────────────────────────────────────────────────────────────────────
 local weaponType = Utils.weaponType
 
---- Access gate: job-locked racks check the player's job; item-placed racks optionally
---- lock to their owner (Placement.Access = 'owner').
+--- Access gate: job-locked racks check the player's job; item-placed racks optionally lock to their owner (Placement.Access = 'owner').
 local function canUse(src, loc)
     if loc.owner and (cfg.Placement and cfg.Placement.Access) == 'owner' then
         if identifierOf(src) ~= loc.owner then return false end
@@ -155,8 +154,7 @@ local function canUse(src, loc)
     return getPlayerJob(src) == loc.job
 end
 
---- Armory audit log → Discord webhook (fire-and-forget). Reads cfg.Logging fresh each
---- call so the admin menu's live-apply takes effect without a restart.
+--- Armory audit log → Discord webhook (fire-and-forget); reads cfg.Logging fresh each call so the admin menu's live-apply takes effect without a restart.
 ---@param action 'store'|'take'
 ---@param loc table        rack location (id/label)
 ---@param entry table      { name, metadata }
@@ -190,8 +188,7 @@ local function logRack(src, action, loc, entry)
         json.encode(payload), { ['Content-Type'] = 'application/json' })
 end
 
---- Shared stow/retrieve guard: resolves the rack id, runs rate / proximity / job
---- checks. Returns (loc, ped) or (loc, ped, reason).
+--- Shared stow/retrieve guard: resolves the rack id, runs rate / proximity / job checks; returns (loc, ped) or (loc, ped, reason).
 local function guard(src, data)
     if not cfg.Enabled or type(data) ~= 'table' then return end
     local now = GetGameTimer()
@@ -258,8 +255,8 @@ lib.callback.register('mbt_malisling:weaponRack:retrieve', function(src, data)
     end
 
     -- Claim BEFORE the AddItem yield: ox AddItem yields, so two players at the same rack
-    -- would both read this entry and both receive the weapon (dupe). Remove first; give
-    -- it back if AddItem fails.
+    -- would both read this entry and both get the weapon (dupe). Remove first, give it
+    -- back if AddItem fails.
     table.remove(racks[loc.id], index)
     if not Inventory:AddItem(src, entry.name, entry.count, entry.metadata) then
         table.insert(racks[loc.id], index, entry)
@@ -455,8 +452,7 @@ lib.callback.register('mbt_malisling:weaponRack:myRacks', function(src)
     return { count = #list, max = (cfg.Placement and cfg.Placement.MaxPerPlayer) or 2, list = list }
 end)
 
---- Remove ALL the caller's own EMPTY placed racks (test/cleanup; racks with weapons
---- must be emptied first).
+--- Remove ALL the caller's own EMPTY placed racks (test/cleanup; racks with weapons must be emptied first).
 RegisterNetEvent('mbt_malisling:weaponRack:clearMine', function()
     local src = source
     local owner = identifierOf(src)

@@ -160,7 +160,7 @@ local weaponType = Utils.weaponType
 
 --- Access control. Outside access uses the vehicle LOCK status; GetVehicleDoorLockStatus
 --- isn't reliable on every FXServer build, so we DENY on a read failure (no fail-open
---- letting a thief drain a locked trunk). Locked statuses block; 0/1 allow. Owners can
+--- letting a thief drain a locked trunk). Locked statuses block, 0/1 allow. Owners can
 --- override with cfg.CanAccessOutside(src, veh, plate) -> bool.
 local function isAccessible(src, ped, veh, plate)
     if GetVehiclePedIsIn(ped, false) == veh then return true end

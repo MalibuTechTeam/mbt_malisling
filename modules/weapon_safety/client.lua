@@ -84,8 +84,7 @@ local function condTier()
     return Utils.durabilityToTier(md and md.durability)
 end
 
---- Push the combined pill. `safetyState` = 'safe'|'fire'|nil (nil = safety segment
---- hidden). The condition segment is resolved here from config + durability.
+--- Push the combined pill; `safetyState` = 'safe'|'fire'|nil (nil hides the safety segment), condition segment resolved here from config + durability.
 local function sendStatus(safetyState)
     local cond = condTier()
     if safetyState == nil and cond == nil then
@@ -105,8 +104,7 @@ local function hideStatus()
     lastSafetySent, lastCondSent = nil, nil
 end
 
---- Short "work the safety" gesture: a truncated, slowed pistol-reload partial.
---- TaskPlayAnim only — never touches ammo. Cosmetic, fire-and-forget.
+--- Short "work the safety" gesture: a truncated, slowed pistol-reload partial; TaskPlayAnim only, never touches ammo, cosmetic and fire-and-forget.
 local function playToggleAnim()
     local a = cfg.Animation
     if not a or not a.Enabled then return end

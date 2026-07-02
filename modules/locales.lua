@@ -2,8 +2,7 @@ MBT = MBT or {}
 
 local Locales = {}
 
---- Translate a key into MBT.Language, falling back to English. Extra args go through
---- string.format.
+--- Translate a key into MBT.Language, falling back to English; extra args go through string.format.
 function Translate(key, ...)
     if Locales[MBT.Language] and Locales[MBT.Language][key] then
         if ... then

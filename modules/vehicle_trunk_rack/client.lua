@@ -93,8 +93,7 @@ local function bootDoorList(veh)
     return { 2, 3 }
 end
 
---- Local-space offset from vehicle origin to the storage opening (front for hood trunks,
---- rear otherwise). Prop BASE on models with no 'boot' bone + editor proximity/cam anchor.
+--- Local-space offset from vehicle origin to the storage opening (front for hood trunks, rear otherwise); prop BASE on models with no 'boot' bone, plus editor proximity/cam anchor.
 local function trunkAnchorLocal(veh)
     local mn, mx = GetModelDimensions(GetEntityModel(veh))
     local fy = hoodTrunk(veh) and 1.0 or 0.0   -- max.y = front of the model, min.y = rear
@@ -129,8 +128,7 @@ local function playAnim(dict, name, ms, flag)
     ClearPedTasks(cache.ped)
 end
 
---- Positioned anim (TaskPlayAnimAdvanced) at the ped's spot — needed for the close
---- gesture (return_case/trevor_action); plain TaskPlayAnim doesn't show it.
+--- Positioned anim (TaskPlayAnimAdvanced) at the ped's spot — needed for the close gesture (return_case/trevor_action), which plain TaskPlayAnim doesn't show.
 local function playAnimAdvanced(dict, name, ms)
     ms = ms or 1000
     if not dict or dict == '' or not name or name == '' or not DoesAnimDictExist(dict) then Wait(ms); return end
@@ -214,7 +212,6 @@ local function doRetrieve(veh)
         retrieveIndex(veh, 1)
         return
     end
-    -- More than one racked: let the player pick which.
     local options = {}
     for i, e in ipairs(list) do
         options[#options + 1] = {
@@ -250,8 +247,7 @@ end
 -- Live dev tuner state (/mbt_trunktune) — overrides the offset for one vehicle.
 local tuning = nil   -- { veh, class, off }
 
---- Offset for this vehicle: live tuner > per-MODEL > per-class > default.
---- Per-model is the precise tier (each vehicle exact), tuned with /mbt_trunktune.
+--- Offset for this vehicle: live tuner > per-MODEL (the precise tier, tuned with /mbt_trunktune) > per-class > default.
 local function offsetFor(veh)
     if tuning and tuning.veh == veh then return tuning.off end
     local po = cfg.PropOffset or {}
@@ -264,7 +260,7 @@ end
 --- Anchor on the 'boot' bone so the prop is visible (bone 0 placed it under the car).
 --- The boot bone is the lid → open height varies per vehicle, so tune per MODEL with
 --- /mbt_trunktune; render only when fully open (bootIsOpen) to avoid the swing slide.
---- bone 0 fallback for vehicles with no boot bone.
+--- Falls back to bone 0 for vehicles with no boot bone.
 local function anchorFor(veh)
     local off = offsetFor(veh)
     local bone = GetEntityBoneIndexByName(veh, 'boot')

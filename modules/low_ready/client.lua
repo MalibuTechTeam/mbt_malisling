@@ -33,9 +33,7 @@ local function placeChest(prop, ped, propType)
     if p then attachAt(prop, ped, p.Bone, p.Pos, p.Rot, p.isPed, p.RotOrder, p.FixedRot) end
 end
 
---- Per-sex chest-stance attach info for `propType`, or nil if not low-ready. Core
---- spawn path reads it (opaque) so a re-slung weapon spawns at the chest directly,
---- no back→chest snap. Shaped like getAttachInfo's return (chest pos is sex-shared).
+--- Per-sex chest-stance attach info for `propType`, or nil if not low-ready; shaped like getAttachInfo's return so the core spawn path re-slings straight to the chest with no back→chest snap.
 function MBT.GetLowReadyOverride(propType)
     if not cfg.Enabled or not lowReady[propType] then return nil end
     local p = cfg.Position and cfg.Position[propType]
@@ -63,9 +61,7 @@ local function placeAt(prop, ped, propType, where)
     else placeBack(prop, ped, propType) end
 end
 
---- Choreographed step list: play each clip and snap the prop mid-clip. mask=true
---- hides the prop until it snaps into place — masks the back→hand teleport so the
---- weapon "appears" in the hand instead of sliding across the body.
+--- Choreographed step list: play each clip and snap the prop mid-clip; mask=true hides the prop until it snaps, masking the back→hand teleport so the weapon "appears" in hand instead of sliding across the body.
 local function runSequence(prop, ped, propType, steps)
     for i = 1, #steps do
         local s = steps[i]

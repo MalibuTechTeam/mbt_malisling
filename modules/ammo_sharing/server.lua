@@ -12,9 +12,7 @@ local lastUse = {}
 
 local function maxDist() return (cfg.MaxDistance or 2.5) + 2.0 end
 
---- Resolve the ammo item to share for the held weapon via getAmmoItemName (ox
---- `ammoname` / qb `ammotype`→`<type>_ammo`); falls back to the giver's largest
---- 'ammo'-prefixed stack. Returns (itemName, availableCount).
+--- Resolve the ammo item for the held weapon via getAmmoItemName, else the giver's largest 'ammo'-prefixed stack. Returns (itemName, availableCount).
 local function resolveAmmo(src, heldWeapon)
     local items = Inventory:GetInventoryItems(src)
     if type(items) ~= 'table' then return nil end

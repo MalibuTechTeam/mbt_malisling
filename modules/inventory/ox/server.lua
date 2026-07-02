@@ -12,7 +12,6 @@ end
 Inventory = exports['ox_inventory']
 
 ---Returns the raw weapons data table from ox_inventory's own data file.
----Called by loadWeaponsInfo() in core/server.lua.
 function loadInventoryWeaponsData()
     local weaponsFile  = LoadResourceFile("ox_inventory", 'data/weapons.lua')
     local weaponsChunk = assert(load(weaponsFile, '@@ox_inventory/data/weapons.lua'))

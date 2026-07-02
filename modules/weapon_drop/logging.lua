@@ -6,8 +6,7 @@
 
 MBT = MBT or {}
 
---- Fire-and-forget log of a weapon drop. Reads MBT.WeaponDrop.Logging fresh each call
---- so the admin menu's live-apply takes effect without a restart.
+--- Fire-and-forget log of a weapon drop; reads MBT.WeaponDrop.Logging fresh each call so the admin menu's live-apply takes effect without a restart.
 function MBT.LogWeaponDrop(src, item, coords)
     local cfg = (MBT.WeaponDrop or {}).Logging or {}
     if not cfg.Enabled then return end

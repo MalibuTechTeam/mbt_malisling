@@ -18,8 +18,7 @@ local suppHash        = 0   -- weapon hash whose suppressor currently holds the 
 local lastClip        = nil -- clip ammo last frame, to detect shots fired
 local suppressorComps = {}
 
---- Collect every suppressor component hash from MBT.WeaponsInfo (type='muzzle', or a
---- 'supp' key-name fallback). Returns true if at least one was found.
+--- Collect every suppressor component hash from MBT.WeaponsInfo (type='muzzle', or a 'supp' key-name fallback); returns true if at least one was found.
 ---@return boolean ok
 local function buildSuppressorList()
     local comps = MBT.WeaponsInfo and MBT.WeaponsInfo.Components
@@ -61,8 +60,7 @@ local function heatT()
 end
 
 -- ── Glow target entity ──────────────────────────────────────────────────────────
---- The held weapon if armed, else the matching slung prop (tracked in
---- playersToTrack[cache.serverId], matched by model) so the glow survives holstering.
+--- The held weapon if armed, else the matching slung prop (matched by model) so the glow survives holstering.
 ---@param weaponHash number  hash of the (possibly holstered) suppressed weapon
 ---@return number entity  0 if neither is available
 local function glowEntity(weaponHash)
@@ -85,8 +83,7 @@ local function glowEntity(weaponHash)
     return 0
 end
 
---- World position of the weapon entity's muzzle, or nil if the entity is gone (no
---- hand-bone fallback — that snap-to-hand is what caused the holster flicker).
+--- World position of the weapon entity's muzzle, or nil if the entity is gone (no hand-bone fallback — that snap-to-hand caused the holster flicker).
 ---@param entity number
 ---@return vector3?
 local function muzzlePos(entity)
@@ -137,9 +134,7 @@ local function stopGlow()
     end
 end
 
---- Start / maintain the looped heat-glow particle on the weapon's muzzle.
---- Tints orange -> red and scales with heat. Works on the held weapon or, once
---- holstered, the matching slung prop (entity resolved by the caller).
+--- Start / maintain the looped heat-glow particle on the muzzle, tinting orange -> red and scaling with heat; works on the held weapon or, once holstered, the matching slung prop (entity resolved by the caller).
 ---@param weaponEntity number
 local function updateGlow(weaponEntity)
     if not weaponEntity or weaponEntity == 0 or not DoesEntityExist(weaponEntity) then

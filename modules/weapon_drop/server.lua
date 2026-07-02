@@ -35,8 +35,7 @@ if isOx then
         SetTimeout(10000, function() despawned[dropId] = nil end)   -- forget so the table can't grow unbounded
     end)
 
-    --- Which weapons a freshly created drop holds. ox can merge several items into ONE drop,
-    --- so return EVERY weapon's hash — client renders a model for each. Empty list → no weapons.
+    --- Which weapons a freshly created drop holds; ox can merge several items into ONE drop, so return EVERY weapon's hash (client renders a model for each). Empty list → no weapons.
     lib.callback.register('mbt_malisling:checkWeaponDrop', function(src, dropId)
         local items = exports.ox_inventory:GetInventoryItems(dropId)
         if type(items) ~= 'table' then return {} end

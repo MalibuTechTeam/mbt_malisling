@@ -22,7 +22,6 @@ local rackData      = {}  -- [id] = { { weapon, wtype }, ... }  (mirror of Globa
 
 AddEventHandler('ox_inventory:currentWeapon', function(w) CurrentWeapon = w or {} end)
 
--- ── Helpers ────────────────────────────────────────────────────────────────────
 local weaponTypeOf = Utils.weaponType
 
 local function holdingAllowed()
@@ -35,8 +34,7 @@ local function rackCount(id)
     return l and #l or 0
 end
 
---- Local-space attach offset for the i-th weapon of type wtype: per-type config base,
---- shifted along SlotAxis so successive weapons don't overlap.
+--- Local-space attach offset for the i-th weapon of type wtype: per-type config base, shifted along SlotAxis so successive weapons don't overlap.
 local function slotOffset(wtype, i)
     local o = (cfg.Offsets and cfg.Offsets[wtype]) or { Pos = { x = 0.0, y = 0.0, z = 1.0 }, Rot = { x = 0.0, y = 0.0, z = 0.0 } }
     local px, py, pz = o.Pos.x or 0.0, o.Pos.y or 0.0, o.Pos.z or 0.0
@@ -76,15 +74,13 @@ local function faceRack(id)
     Wait(450)
 end
 
---- Weapon-handling sound (holster on place / unholster on take), synced to nearby
---- players via the sounds module events.
+--- Weapon-handling sound (holster on place / unholster on take), synced to nearby players via the sounds module events.
 local function rackSound(action, wtype)
     local a = cfg.Animation or {}
     if a.Sound == false or not wtype then return end
     TriggerEvent(action == 'place' and 'mbt_malisling:onHolster' or 'mbt_malisling:onUnholster', wtype)
 end
 
--- ── Render ───────────────────────────────────────────────────────────────────────
 local function clearProps(id)
     local r = rackedProps[id]
     if not r then return end
@@ -117,9 +113,7 @@ local function renderRack(id)
     rackedProps[id] = { props = props, count = #list }
 end
 
---- Content signature (weapon names + order/count) so refreshAll skips unchanged racks.
---- The whole map is ONE GlobalState bag, so every stow/retrieve fires this for ALL
---- clients — without the diff each one would re-render EVERY rack.
+--- Content signature (weapon names + order/count) so refreshAll skips unchanged racks: the whole map is ONE GlobalState bag, so every stow/retrieve fires for ALL clients and without this diff each would re-render EVERY rack.
 local rackSig = {}   -- [id] = last rendered signature
 local function listSig(list)
     if not list then return '' end
@@ -156,7 +150,7 @@ local function doStow(id)
     local wtype = weaponTypeOf(CurrentWeapon.name)
     local a = cfg.Animation or {}
     -- Server-validate BEFORE the place animation: no access → notify only, never the
-    -- "putting it on the rack" gesture.
+    -- gesture.
     faceRack(id)
     local res = lib.callback.await('mbt_malisling:weaponRack:stow', false, { id = id, slot = slot })
     busy = false
@@ -527,8 +521,7 @@ RegisterNetEvent('mbt_malisling:weaponRack:startPlace', function()
     local rotOff = 0.0
     local heading = GetEntityHeading(cache.ped)
 
-    --- Raycast where the CAMERA aims (build-mode feel: ghost sits under your
-    --- crosshair, not glued in front of the ped).
+    --- Raycast where the CAMERA aims (build-mode feel: ghost sits under your crosshair, not glued in front of the ped).
     local function camAimPoint()
         local cam = GetGameplayCamCoord()
         local rot = GetGameplayCamRot(2)

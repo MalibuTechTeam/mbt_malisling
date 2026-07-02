@@ -32,7 +32,7 @@ MBT = MBT or {}
 -- server-owner setting.
 MBT.Log = MBT.Log or {}
 MBT.Log.Tag = 'SLING'  -- short badge, printed as [SLING]
-MBT.Log.Color = '^4'   -- badge colour (^0-^9) — ^4 = blue
+MBT.Log.Color = '^6'  -- badge colour (^0-^9)
 -- MBT.Log.Timestamp = false  -- default true (prepend HH:MM:SS)
 -- MBT.Log.Caller = 'always'  -- 'never' | 'auto' (default: debug+warn+error) | 'always'
 -- ─────────────────────────────────────────────────────────────────────────────
