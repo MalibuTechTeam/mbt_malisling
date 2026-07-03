@@ -1,11 +1,5 @@
-/**
- * Simple wrapper around fetch API tailored for FiveM NUI.
- * This function can be used to send data to the client script.
- *
- * @param eventName - The endpoint event name
- * @param data - Data to send to the client script
- * @param mockData - Mock data to return if in browser environment
- */
+/** POST to a FiveM NUI callback; returns the parsed JSON reply, or {} on empty/error.
+ *  In browser dev (no invokeNative) returns `mockData` instead. */
 export const fetchNui = async (eventName: string, data?: any, mockData?: any): Promise<any> => {
   const options = {
     method: 'post',

@@ -7,11 +7,7 @@ interface NuiMessageData<T = any> {
 
 type NuiHandlerSignature<T> = (data: T) => void;
 
-/**
- * A hook that manages event listeners for receiving data from the client scripts
- * @param action The specific `action` that should invoke this handler
- * @param handler The callback function that will handle the data received
- */
+/** Subscribe to a NUI message `action`; `handler` runs with its data payload. */
 export const useNuiEvent = <T = any>(action: string, handler: (data: T) => void) => {
   const savedHandler = useRef<NuiHandlerSignature<T> | undefined>(undefined);
 

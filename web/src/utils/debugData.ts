@@ -5,13 +5,7 @@ interface DebugEvent<T = any> {
   data: T;
 }
 
-/**
- * Emulates dispatching an event using the SendNuiMessage in the lua scripts.
- * This is used when developing in browser
- *
- * @param events - The event(s) to dispatch
- * @param timer - (Optional) Time, in ms, to wait before dispatching the events
- */
+/** Browser-dev only: replays SendNuiMessage events so overlays/dashboard render in Chrome. */
 export const debugData = <P>(events: DebugEvent<P>[], timer = 1000) => {
   if (import.meta.env.MODE === 'development' && isEnvBrowser()) {
     for (const event of events) {
