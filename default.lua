@@ -205,10 +205,10 @@ MBT.CustomPropPosition = {
 }
 
 -- ── Holster / Unholster Sounds ────────────────────────────────────────────────
--- File audio in web/dist/sounds/ (formato .ogg).
--- default: usato quando nessun override specifico è definito per quel tipo.
--- Override per tipo: decommentare e aggiungere il file .ogg corrispondente.
--- MaxDistance: raggio in metri entro cui i player vicini sentono il suono.
+-- Audio files in web/dist/sounds/ (.ogg format).
+-- default: used when no per-type override is defined for that type.
+-- Per-type override: uncomment and add the matching .ogg file.
+-- MaxDistance: radius in metres within which nearby players hear the sound.
 -- Volume: 0.0 - 1.0
 MBT.Sounds             = {
     Enabled     = true,

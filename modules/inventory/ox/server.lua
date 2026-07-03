@@ -82,7 +82,7 @@ local function appendMalisling()
     local hasAppend = st:find('mbt_malisling:sendAnim', 1, true)
 
     if hasHook and hasAppend then
-        Utils.mbtDebugger("appendMalisling ~ patch completa, OK")
+        Utils.mbtDebugger("appendMalisling ~ patch complete, OK")
         return
     end
 
