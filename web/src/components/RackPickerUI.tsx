@@ -57,7 +57,7 @@ export default function RackPickerUI() {
 
         <div className="rkp-list">
           {data.weapons.map((w, i) => (
-            <div className={`rkp-entry${i + 1 === index ? ' rkp-entry--sel' : ''}`} key={i}>
+            <div className={`rkp-entry${i + 1 === index ? ' rkp-entry--sel' : ''}`} key={w.serial ?? `${w.name}-${i}`}>
               <span className="rkp-marker" />
               <span className="rkp-info">
                 <span className="rkp-name">{w.name.replace('WEAPON_', '')}</span>

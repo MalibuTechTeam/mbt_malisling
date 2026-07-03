@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useNuiEvent } from '../utils/useNuiEvent'
 import './HintUI.css'
 
@@ -11,8 +11,10 @@ export default function HintUI() {
   const [visible, setVisible] = useState(false)
   const [exiting, setExiting] = useState(false)
   const [items,   setItems]   = useState<HintItem[]>([])
+  const hideTimer = useRef<number | null>(null)
 
   useNuiEvent<HintData>('showHint', (d) => {
+    if (hideTimer.current) { clearTimeout(hideTimer.current); hideTimer.current = null }
     setItems(d.items ?? [])
     setExiting(false)
     setVisible(true)
@@ -20,8 +22,11 @@ export default function HintUI() {
 
   useNuiEvent('hideHint', () => {
     setExiting(true)
-    setTimeout(() => { setVisible(false); setExiting(false) }, 200)
+    if (hideTimer.current) clearTimeout(hideTimer.current)
+    hideTimer.current = window.setTimeout(() => { setVisible(false); setExiting(false); hideTimer.current = null }, 200)
   })
+
+  useEffect(() => () => { if (hideTimer.current) clearTimeout(hideTimer.current) }, [])
 
   if (!visible || items.length === 0) return null
 

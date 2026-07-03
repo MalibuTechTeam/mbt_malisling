@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useNuiEvent } from '../utils/useNuiEvent'
 import { makeT, type Locale } from '../utils/i18n'
 import './EvidenceUI.css'
@@ -14,8 +14,10 @@ export default function EvidenceUI() {
   const [visible, setVisible] = useState(false)
   const [exiting, setExiting] = useState(false)
   const [data,    setData]    = useState<EvidenceData | null>(null)
+  const hideTimer = useRef<number | null>(null)
 
   useNuiEvent<EvidenceData>('showEvidence', (incoming) => {
+    if (hideTimer.current) { clearTimeout(hideTimer.current); hideTimer.current = null }
     setData(incoming)
     setExiting(false)
     setVisible(true)
@@ -23,8 +25,11 @@ export default function EvidenceUI() {
 
   useNuiEvent('hideEvidence', () => {
     setExiting(true)
-    setTimeout(() => { setVisible(false); setExiting(false) }, 250)
+    if (hideTimer.current) clearTimeout(hideTimer.current)
+    hideTimer.current = window.setTimeout(() => { setVisible(false); setExiting(false); hideTimer.current = null }, 250)
   })
+
+  useEffect(() => () => { if (hideTimer.current) clearTimeout(hideTimer.current) }, [])
 
   if (!visible || !data) return null
 

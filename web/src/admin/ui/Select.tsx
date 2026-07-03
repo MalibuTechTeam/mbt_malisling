@@ -96,11 +96,11 @@ export function Select({
         break;
       case "ArrowDown":
         e.preventDefault();
-        setActiveIndex((i) => (i + 1) % options.length);
+        if (options.length) setActiveIndex((i) => (i + 1) % options.length);
         break;
       case "ArrowUp":
         e.preventDefault();
-        setActiveIndex((i) => (i - 1 + options.length) % options.length);
+        if (options.length) setActiveIndex((i) => (i - 1 + options.length) % options.length);
         break;
       case "Home":
         e.preventDefault();
@@ -108,7 +108,7 @@ export function Select({
         break;
       case "End":
         e.preventDefault();
-        setActiveIndex(options.length - 1);
+        if (options.length) setActiveIndex(options.length - 1);
         break;
       case "Enter":
       case " ":

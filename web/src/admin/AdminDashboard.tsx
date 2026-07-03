@@ -107,7 +107,6 @@ export default function AdminDashboard() {
   const [active, setActive] = useState('core')
   const [cfg, setCfg] = useState<any>(null)
   const [version, setVersion] = useState('v2.0')
-  const [dirty, setDirty] = useState(false)        // unsaved changes
   const [savePulse, setSavePulse] = useState(false) // one-shot pulse on save
   const [jobs, setJobs] = useState<Job[]>([])       // framework job list (lazy)
   const [editing, setEditing] = useState<EditTarget | null>(null) // live position editor
@@ -123,7 +122,6 @@ export default function AdminDashboard() {
     const c = data?.config ?? {}
     setCfg(c)
     baseline.current = JSON.stringify(c)
-    setDirty(false)
     if (data?.version) setVersion(data.version)
     setOxPatch(typeof data?.oxPatch === 'string' ? data.oxPatch : false)
     setWarnings(Array.isArray(data?.warnings) ? data.warnings : [])
@@ -177,7 +175,6 @@ export default function AdminDashboard() {
         node = node[keys[i]]
       }
       node[keys[keys.length - 1]] = value
-      setDirty(JSON.stringify(next) !== baseline.current)
       return next
     })
   }, [])
@@ -185,7 +182,6 @@ export default function AdminDashboard() {
   const save = useCallback(() => {
     fetchNui('adminSave', cfg)   // panel stays open; feedback is on the button
     baseline.current = JSON.stringify(cfg)
-    setDirty(false)
     setSavePulse(true)
     window.setTimeout(() => setSavePulse(false), 560)
   }, [cfg])
@@ -193,10 +189,12 @@ export default function AdminDashboard() {
   // Discard — revert the draft to the last-saved snapshot (no NUI round-trip).
   const discard = useCallback(() => {
     setCfg(JSON.parse(baseline.current))
-    setDirty(false)
   }, [])
 
   if (!open || !cfg) return null
+
+  // Derived: the draft differs from the last-saved snapshot (drives Save/Discard).
+  const dirty = JSON.stringify(cfg) !== baseline.current
 
   const activeCat = CATEGORIES.find((c) => c.id === active) ?? CATEGORIES[0]
   const isPositions = active === 'positions'
