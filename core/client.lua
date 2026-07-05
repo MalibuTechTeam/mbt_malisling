@@ -735,7 +735,14 @@ AddEventHandler('mbt_malisling:syncSling', function (data)
             end
             local boneIndex = GetPedBoneIndex(playerPed, attachInfo["Bone"])
             weaponData.weaponHash = joaat(weaponData.name)
-            lib.requestWeaponAsset(weaponData.weaponHash, 1000, 31, 1)
+            -- Streaming can exceed 1s under load (restart/asset spikes). pcall so a slow
+            -- stream doesn't throw a red error and wedge the reserved slot — release it
+            -- and skip this type; a later sync retries once streaming frees up.
+            if not pcall(lib.requestWeaponAsset, weaponData.weaponHash, 5000, 31, 1) then
+                Utils.mbtDebugger("syncSling ~ weapon asset failed to stream for ", weaponData.name)
+                playersToTrack[data.playerSource][weaponType] = false
+                goto continue
+            end
             weaponData.weaponObj = CreateWeaponObject(weaponData.weaponHash, 50, playerCoords.x, playerCoords.y, playerCoords.z, true, 1.0, 0)
             RequestWeaponHighDetailModel(weaponData.weaponObj)
             RemoveWeaponAsset(weaponData.weaponHash)   -- object keeps its model; the asset was never freed (streaming-memory leak)
@@ -778,6 +785,7 @@ AddEventHandler('mbt_malisling:syncSling', function (data)
                 weaponObjectiveSpawned[#weaponObjectiveSpawned+1] = weaponData.weaponObj
             end
         end
+        ::continue::
     end
 
     playersToTrack[data.playerSource]["waiting"] = nil
