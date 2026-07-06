@@ -63,6 +63,7 @@ local function snapshot()
         EnableFlashlight  = b(MBT.EnableFlashlight),
         DropWeaponOnDeath = b(MBT.DropWeaponOnDeath),
         UIPosition        = MBT.UI.Position,
+        HolsterStyle      = (MBT.Holster and MBT.Holster.Style) or 'standard',
         Language          = MBT.Language,            -- read-only in the UI
         -- Holster & Sounds
         Sounds = {
@@ -240,6 +241,7 @@ local function validate(d)
     if type(d.EnableFlashlight) ~= 'boolean' then return false end
     if type(d.DropWeaponOnDeath) ~= 'boolean' then return false end
     if type(d.UIPosition) ~= 'string' or not VALID_POSITIONS[d.UIPosition] then return false end
+    if d.HolsterStyle ~= 'standard' and d.HolsterStyle ~= 'cinematic' then return false end
     -- Sounds
     if type(d.Sounds) ~= 'table' then return false end
     if type(d.Sounds.Enabled) ~= 'boolean' then return false end
@@ -417,6 +419,8 @@ local function applyToMBT(d)
     MBT.EnableFlashlight  = d.EnableFlashlight
     MBT.DropWeaponOnDeath = d.DropWeaponOnDeath
     MBT.UI.Position       = d.UIPosition
+    MBT.Holster           = MBT.Holster or {}
+    MBT.Holster.Style     = d.HolsterStyle
     MBT.Sounds.Enabled     = d.Sounds.Enabled
     MBT.Sounds.MaxDistance = d.Sounds.MaxDistance
     MBT.Sounds.Volume      = d.Sounds.Volume
@@ -580,7 +584,7 @@ end
 local function persistable(d)
     return {
         EnableSling = d.EnableSling, EnableFlashlight = d.EnableFlashlight,
-        DropWeaponOnDeath = d.DropWeaponOnDeath, UIPosition = d.UIPosition,
+        DropWeaponOnDeath = d.DropWeaponOnDeath, UIPosition = d.UIPosition, HolsterStyle = d.HolsterStyle,
         Sounds = { Enabled = d.Sounds.Enabled, MaxDistance = d.Sounds.MaxDistance, Volume = d.Sounds.Volume },
         WeaponDrop = {
             WeaponModelProp = d.WeaponDrop.WeaponModelProp, OxTargetPickup = d.WeaponDrop.OxTargetPickup,

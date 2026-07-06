@@ -1,12 +1,20 @@
 import { Section, ToggleRow, FieldBlock, type SectionProps } from './parts'
 import { NumberInput } from '../ui/NumberInput'
+import { Segmented } from '../ui/Segmented'
 
-/** Holster & Sounds — holster/unholster sound feedback. Per-type sound files
+/** Holster — prompt style + holster/draw sound feedback. Per-type sound files
  *  stay in config.lua (technical); the menu exposes the runtime-safe toggles. */
 export function HolsterSection({ config, update }: SectionProps) {
   const s = config.Sounds ?? {}
   return (
-    <Section icon="speaker" title="HOLSTER SOUNDS" sub="Audio on holster and draw.">
+    <Section icon="speaker" title="HOLSTER" sub="Prompt style and holster/draw sounds.">
+      <FieldBlock label="Prompt Style" hint="Standard pill, or a cinematic lower-third reveal.">
+        <Segmented
+          value={config.HolsterStyle ?? 'standard'}
+          onChange={(v) => update('HolsterStyle', v)}
+          options={[{ value: 'standard', label: 'Standard' }, { value: 'cinematic', label: 'Cinematic' }]}
+        />
+      </FieldBlock>
       <ToggleRow title="Enable Sounds" desc="Plays a sound on holster and draw"
         checked={!!s.Enabled} onChange={(v) => update('Sounds.Enabled', v)} />
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginTop: 4 }}>

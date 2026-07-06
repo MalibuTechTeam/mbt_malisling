@@ -43,6 +43,7 @@ AddEventHandler('mbt_malisling:holster_request', function(data)
     SendNUIMessage({ action = 'showHolster', data = {
         weaponLabel = data.weaponLabel,
         position    = MBT.UI and MBT.UI.Position or 'bottom-center',
+        style       = MBT.Holster and MBT.Holster.Style or 'standard',
         confirm     = { label = MBT.HolsterControls["Confirm"]["Label"], display = 'RMB' },
         cancel      = { label = MBT.HolsterControls["Cancel"]["Label"],  display = 'BACKSPACE' },
         locale      = buildNuiLocale(),

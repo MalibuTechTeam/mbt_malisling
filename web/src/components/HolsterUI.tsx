@@ -13,6 +13,7 @@ const shortKey = (k: string) => KEY_ABBR[k.toUpperCase()] ?? k
 interface HolsterData {
   weaponLabel: string
   position: 'bottom-center' | 'top-center' | 'bottom-right'
+  style?: 'standard' | 'cinematic'
   confirm: KeybindHint
   cancel:  KeybindHint
   locale?: Locale
@@ -46,6 +47,26 @@ export default function HolsterUI() {
 
   const t = makeT(data.locale)
   const weaponName = data.weaponLabel.replace('WEAPON_', '')
+
+  // Cinematic style (Holster.Style = 'cinematic'): a filmic lower-third reveal.
+  // Same data + RMB/BSPC flow as the standard pill — purely a different look.
+  if (data.style === 'cinematic') {
+    return (
+      <div className={`holcine holcine-${data.position} ${exiting ? 'holcine-exit' : 'holcine-enter'}`} aria-hidden="true">
+        <span className="holcine-tick" />
+        <div className="holcine-body">
+          <div className="holcine-over">{t('holster_action', 'Holster')}</div>
+          <div className="holcine-name">{weaponName}</div>
+          <div className="holcine-line" />
+          <div className="holcine-keys">
+            <span className="mbt-kc">{shortKey(data.confirm.display)}</span> {t('holster_confirm', 'Confirm')}
+            <span className="holcine-sep">·</span>
+            <span className="mbt-kc">{shortKey(data.cancel.display)}</span> {t('holster_cancel', 'Cancel')}
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className={`holster-pill holster-pos-${data.position} ${exiting ? 'holster-exit' : 'holster-enter'}`}>
