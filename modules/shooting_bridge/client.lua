@@ -115,6 +115,33 @@ end)
 
 -- ── Data exports malisling exposes to the companion ──────────────────────────
 
+--- Companion-driven clearing animation. Loops the configured jam-clear anim on the
+--- local ped while active (flag 48 = upper-body + secondary, so the player keeps
+--- moving/looking). The companion's malfunction pipeline suppresses malisling's base
+--- jam (OnJamCheck=false) and thus its animation — this gives it back the hands-on
+--- gesture. Networked implicitly: a task anim on the owned player ped replicates to
+--- nearby players. No-op if the Jamming feature block (and its anim) isn't present.
+---@param active boolean
+local _clearingAnim = false
+exports('PlayClearingAnim', function(active)
+    if not active then _clearingAnim = false return end
+    if _clearingAnim then return end
+    local a = MBT.Jamming and MBT.Jamming.Animation
+    if not a or not a.Dict or not a.Anim then return end
+    _clearingAnim = true
+    CreateThread(function()
+        lib.requestAnimDict(a.Dict)
+        while _clearingAnim do
+            if not IsEntityPlayingAnim(cache.ped, a.Dict, a.Anim, 3) then
+                TaskPlayAnim(cache.ped, a.Dict, a.Anim, 2.0, 2.0, 750, 48, 0.0, false, false, false)
+            end
+            Wait(500)
+        end
+        ClearPedSecondaryTask(cache.ped)
+        RemoveAnimDict(a.Dict)
+    end)
+end)
+
 --- Serial of the held weapon (from ox_inventory metadata), or nil.
 ---@return string?
 exports('GetWeaponSerial', function()

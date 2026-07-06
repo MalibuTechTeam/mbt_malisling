@@ -18,6 +18,20 @@ local suppHash        = 0   -- weapon hash whose suppressor currently holds the 
 local lastClip        = nil -- clip ammo last frame, to detect shots fired
 local suppressorComps = {}
 
+-- External heat drive (companion combat resource, via export). When fresh, it takes
+-- precedence over the internal ammo-based heat and glows ANY held weapon's muzzle —
+-- not just suppressed ones — so a paid overheat system is the single source of truth.
+local extHeat01 = 0.0   -- 0..1 normalised heat pushed by the companion
+local extHeatAt = 0     -- GetGameTimer() of the last push (freshness gate)
+
+--- Companion drives the muzzle glow with its own heat (0..1). Overrides the internal
+--- suppressor heat while fresh; works on any weapon in hand.
+---@param t number  0..1
+exports('SetMuzzleHeat', function(t)
+    extHeat01 = math.max(0.0, math.min(tonumber(t) or 0.0, 1.0))
+    extHeatAt = GetGameTimer()
+end)
+
 --- Collect every suppressor component hash from MBT.WeaponsInfo (type='muzzle', or a 'supp' key-name fallback); returns true if at least one was found.
 ---@return boolean ok
 local function buildSuppressorList()
@@ -192,6 +206,30 @@ CreateThread(function()
     end
 
     while true do
+        -- Companion-driven glow (paid overheat): if a combat resource pushed heat
+        -- recently, it OWNS the glow — on ANY held weapon's muzzle, bypassing both the
+        -- suppressor/ammo path AND malisling's own suppressor toggle (shooting gates it
+        -- on its side). Single source of truth, no double-count.
+        if (GetGameTimer() - extHeatAt) < 600 then
+            local eHas, eHash = GetCurrentPedWeapon(cache.ped, true)
+            if eHas and eHash ~= 0 and eHash ~= `WEAPON_UNARMED` then
+                heat = extHeat01 * cfg.MaxHeat
+                if heat >= cfg.WarmThreshold then
+                    local entity = GetCurrentPedWeaponEntityIndex(cache.ped)
+                    if entity ~= 0 and DoesEntityExist(entity) then
+                        if cfg.Mode == 'particle' then updateGlow(entity)
+                        elseif cfg.Mode == 'light' then renderLight(entity)
+                        else renderGlowSphere(entity) end
+                    else stopGlow() end
+                else
+                    stopGlow()
+                end
+                lastClip = nil
+                Wait(0)
+                goto continue
+            end
+        end
+
         if not cfg.Enabled then
             if heat > 0 then heat = 0 end
             stopGlow()
