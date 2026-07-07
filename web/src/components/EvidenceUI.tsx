@@ -8,6 +8,7 @@ interface EvidenceData {
   serial?: string | null // masked server-side; null/undefined = withheld
   agoMin?: number
   locale?: Locale
+  style?: 'standard' | 'cinematic'
 }
 
 export default function EvidenceUI() {
@@ -41,7 +42,7 @@ export default function EvidenceUI() {
 
   return (
     <div className={`evd-overlay ${exiting ? 'evd-exit' : 'evd-enter'}`}>
-      <div className="evd-card">
+      <div className={`evd-card${data.style === 'cinematic' ? ' cine-chip' : ''}`}>
         <div className="evd-header">
           <span className="evd-label">{t('casing_title', 'SHELL CASING')}</span>
           <span className="evd-weapon">{weaponName}</span>

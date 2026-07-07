@@ -10,8 +10,8 @@ interface Finding {
   quality?: 'good' | 'poor'
 }
 
-interface PromptData { officer?: string; locale?: Locale }
-interface ResultData { findings: Finding[]; locale?: Locale }
+interface PromptData { officer?: string; locale?: Locale; style?: 'standard' | 'cinematic' }
+interface ResultData { findings: Finding[]; locale?: Locale; style?: 'standard' | 'cinematic' }
 
 function statusText(t: (k: string, f: string) => string, f: Finding): string {
   if (f.status === 'concealed') {
@@ -61,7 +61,7 @@ export default function PatdownUI() {
       {prompt && (() => {
         const t = makeT(prompt.locale)
         return (
-          <div className={`ptd-pill ${pExit ? 'ptd-exit' : 'ptd-enter'}`}>
+          <div className={`ptd-pill${prompt.style === 'cinematic' ? ' cine-chip' : ''} ${pExit ? 'ptd-exit' : 'ptd-enter'}`}>
             <span className="ptd-top">
               <span className="ptd-ic">
                 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -88,7 +88,7 @@ export default function PatdownUI() {
         const t = makeT(result.locale)
         return (
           <div className={`ptd-card-wrap ${rExit ? 'ptd-exit' : 'ptd-enter'}`}>
-            <div className="ptd-card">
+            <div className={`ptd-card${result.style === 'cinematic' ? ' cine-chip' : ''}`}>
               <div className="ptd-header">
                 <span className="ptd-label">{t('patdown_result', 'PAT-DOWN')}</span>
                 <span className="ptd-count">{result.findings.length}</span>

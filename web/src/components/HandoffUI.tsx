@@ -9,6 +9,7 @@ interface HandoffData {
   label?: string         // engraved custom name, if any
   serial?: string
   locale?: Locale
+  style?: 'standard' | 'cinematic'
 }
 
 export default function HandoffUI() {
@@ -38,7 +39,7 @@ export default function HandoffUI() {
   const weaponName = data.label || (data.weapon || 'WEAPON').replace('WEAPON_', '')
 
   return (
-    <div className={`hof-pill ${exiting ? 'hof-exit' : 'hof-enter'}`}>
+    <div className={`hof-pill${data.style === 'cinematic' ? ' cine-chip' : ''} ${exiting ? 'hof-exit' : 'hof-enter'}`}>
       <span className="hof-top">
         <span className="hof-ic">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

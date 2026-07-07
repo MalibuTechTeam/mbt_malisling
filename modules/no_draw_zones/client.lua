@@ -18,7 +18,7 @@ local function onEnter(label)
     if inside == 1 and cfg.HudIndicator then
         SendNUIMessage({
             action = 'showNoDraw',
-            data   = { title = label, subtitle = Translate('no_draw_zone_hud') },
+            data   = { title = label, subtitle = Translate('no_draw_zone_hud'), style = MBT.UIStyle or 'standard' },
         })
     end
 end

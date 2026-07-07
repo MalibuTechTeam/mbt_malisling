@@ -476,7 +476,7 @@ end, false)
 local placing = false
 
 local function showPlaceHints()
-    SendNUIMessage({ action = 'showHint', data = { items = {
+    SendNUIMessage({ action = 'showHint', data = { style = MBT.UIStyle or 'standard', items = {
         { k = '←/→',  l = Translate('rack_hint_rotate') },
         { k = 'SHIFT', l = Translate('rack_hint_fast') },
         { k = 'E',     l = Translate('rack_hint_place') },

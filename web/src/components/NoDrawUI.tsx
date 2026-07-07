@@ -5,6 +5,7 @@ import './NoDrawUI.css'
 interface NoDrawData {
   title: string
   subtitle: string
+  style?: 'standard' | 'cinematic'
 }
 
 export default function NoDrawUI() {
@@ -31,7 +32,7 @@ export default function NoDrawUI() {
   if (!visible || !data) return null
 
   return (
-    <div className={`nodraw-pill ${exiting ? 'nodraw-exit' : 'nodraw-enter'}`}>
+    <div className={`nodraw-pill${data.style === 'cinematic' ? ' cine-chip cine-chip--alert' : ''} ${exiting ? 'nodraw-exit' : 'nodraw-enter'}`}>
       <div className="nodraw-icon">
         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8" />

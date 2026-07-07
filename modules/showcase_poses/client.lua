@@ -27,6 +27,7 @@ local function showHud()
         index  = current,
         total  = #poses,
         locale = buildNuiLocale(),
+        style  = MBT.UIStyle or 'standard',
     } })
 end
 

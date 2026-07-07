@@ -61,6 +61,7 @@ RegisterNetEvent('mbt_malisling:patdown:run', function(data)
     SendNUIMessage({ action = 'showPatdownResult', data = {
         locale   = buildNuiLocale(),
         findings = findings,
+        style    = MBT.UIStyle or 'standard',
     } })
 end)
 
@@ -84,6 +85,7 @@ RegisterNetEvent('mbt_malisling:patdown:prompt', function(data)
     prompt = true
     SendNUIMessage({ action = 'showPatdownPrompt', data = {
         locale = buildNuiLocale(), officer = data.officer,
+        style = MBT.UIStyle or 'standard',
     } })
     CreateThread(function()
         local deadline = GetGameTimer() + (cfg.RequestTimeoutMs or 8000)

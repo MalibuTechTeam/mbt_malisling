@@ -77,6 +77,7 @@ RegisterNetEvent('mbt_malisling:handoff:incoming', function(data)
         weapon   = data.weapon,
         label    = data.label,
         serial   = data.serial,
+        style    = MBT.UIStyle or 'standard',
     } })
     CreateThread(function()
         local deadline = GetGameTimer() + (data.timeoutMs or 8000)

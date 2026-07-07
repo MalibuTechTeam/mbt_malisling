@@ -1,0 +1,82 @@
+/* cinematic-chip.css — shared filmic theme for the fixed "simple chip" overlays in
+   the 'cinematic' UI style (NoDraw, Handoff, Evidence, Pat-down, Pose, Hint). Applied
+   via a `.cine-chip` class on the overlay root; each overlay keeps its own position
+   and enter/exit. Same language as WeaponStatus/Jam: dark surface + a breathing accent
+   hairline + a one-shot power-on shimmer. `--alert` = faulty-tinted (NoDraw).
+
+   `!important` on the surface props so it wins over each overlay's own pill styling
+   regardless of CSS import order. */
+
+.cine-chip {
+  background:
+    linear-gradient(180deg, rgba(var(--mbt-accent-rgb), 0.07), transparent 45%),
+    linear-gradient(180deg, rgba(16, 21, 18, 0.90), rgba(9, 12, 10, 0.93)) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  border-radius: 3px !important;
+  box-shadow:
+    0 12px 30px rgba(0, 0, 0, 0.55),
+    0 0 18px rgba(var(--mbt-accent-rgb), 0.10),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+}
+.cine-chip.cine-chip--alert {
+  background:
+    linear-gradient(180deg, rgba(var(--mbt-faulty-rgb), 0.08), transparent 45%),
+    linear-gradient(180deg, rgba(20, 13, 13, 0.90), rgba(11, 8, 8, 0.93)) !important;
+  box-shadow:
+    0 12px 30px rgba(0, 0, 0, 0.55),
+    0 0 18px rgba(var(--mbt-faulty-rgb), 0.10),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07) !important;
+}
+
+/* Breathing accent hairline. */
+.cine-chip::before {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; top: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent,
+    rgba(var(--mbt-accent-rgb), 0.85) 25%, rgba(var(--mbt-accent-rgb), 0.85) 75%, transparent);
+  box-shadow: 0 0 8px rgba(var(--mbt-accent-rgb), 0.5);
+  animation: cine-glow 4.5s ease-in-out 0.7s infinite;
+  pointer-events: none;
+}
+.cine-chip.cine-chip--alert::before {
+  background: linear-gradient(90deg, transparent,
+    rgba(var(--mbt-faulty-rgb), 0.85) 25%, rgba(var(--mbt-faulty-rgb), 0.85) 75%, transparent);
+  box-shadow: 0 0 8px rgba(var(--mbt-faulty-rgb), 0.5);
+  animation: cine-glow-alert 3.2s ease-in-out 0.5s infinite;
+}
+
+/* One-shot power-on shimmer across the hairline on open. */
+.cine-chip::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 45%; height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.85), rgba(var(--mbt-accent-rgb), 0.9), transparent);
+  filter: blur(0.5px);
+  opacity: 0;
+  pointer-events: none;
+  animation: cine-shimmer 0.85s var(--mbt-ease) 0.14s;
+}
+.cine-chip.cine-chip--alert::after {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.85), rgba(var(--mbt-faulty-rgb), 0.9), transparent);
+}
+
+@keyframes cine-glow {
+  0%, 100% { box-shadow: 0 0 6px rgba(var(--mbt-accent-rgb), 0.35); }
+  50%      { box-shadow: 0 0 13px rgba(var(--mbt-accent-rgb), 0.62); }
+}
+@keyframes cine-glow-alert {
+  0%, 100% { box-shadow: 0 0 6px rgba(var(--mbt-faulty-rgb), 0.4); }
+  50%      { box-shadow: 0 0 13px rgba(var(--mbt-faulty-rgb), 0.72); }
+}
+@keyframes cine-shimmer {
+  0%   { opacity: 0; transform: translateX(-40%); }
+  25%  { opacity: 1; }
+  100% { opacity: 0; transform: translateX(180%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cine-chip::before, .cine-chip::after { animation: none; }
+}

@@ -18,6 +18,7 @@ import PatdownUI from './components/PatdownUI'
 import AmmoPickerUI from './components/AmmoPickerUI'
 import ChargeMeter from './components/ChargeMeter'
 import AdminDashboard from './admin/AdminDashboard'
+import './components/cinematic-chip.css'   // shared cinematic theme for the simple chip overlays (imported last so it wins)
 
 // ── Browser dev preview (npm run dev) ────────────────────────────────────────
 // 'admin'    → opens the dashboard with a full mock config (UI polish in Chrome).

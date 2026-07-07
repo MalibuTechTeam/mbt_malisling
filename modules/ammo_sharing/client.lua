@@ -98,6 +98,7 @@ RegisterNetEvent('mbt_malisling:ammo:incoming', function(data)
         weapon   = 'AMMO',
         -- Reuse the Handoff pill's bold slot for the rounds line.
         label    = ('%d× %s'):format(data.amount or 0, Translate('ammo_rounds')),
+        style    = MBT.UIStyle or 'standard',
     } })
     CreateThread(function()
         local deadline = GetGameTimer() + (data.timeoutMs or 8000)

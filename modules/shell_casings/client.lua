@@ -81,6 +81,7 @@ local function examineCasing(id)
         weapon = data.weapon,
         serial = data.serial,        -- already masked server-side; nil = hidden
         agoMin = data.agoMin,
+        style  = MBT.UIStyle or 'standard',
     } })
 end
 
