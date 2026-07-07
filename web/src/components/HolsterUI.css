@@ -136,6 +136,16 @@
 .holcine-top-center    { top: 56px;   left: 50%; transform: translateX(-50%); --pos-transform: translateX(-50%); }
 .holcine-bottom-right  { bottom: 96px; right: 44px; --pos-transform: translateX(0); }
 
+/* World-anchored (botz-style): Lua projects a point near the player to screen each
+   frame and sets left/top imperatively. Starts off-screen until the first frame;
+   floats up-right of the anchor so it sits just above the weapon/hand. */
+.holcine-anchored {
+  position: fixed;
+  left: -9999px; top: 0; bottom: auto; right: auto;
+  transform: translate(14px, -120%);
+  --pos-transform: translate(14px, -120%);
+}
+
 .holcine-tick {
   width: 3px;
   border-radius: 2px;

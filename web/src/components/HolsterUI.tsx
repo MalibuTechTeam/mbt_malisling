@@ -24,6 +24,7 @@ export default function HolsterUI() {
   const [exiting, setExiting] = useState(false)
   const [data,    setData]    = useState<HolsterData | null>(null)
   const hideTimer = useRef<number | null>(null)
+  const anchorRef = useRef<HTMLDivElement | null>(null)
 
   useNuiEvent<HolsterData>('showHolster', (incoming) => {
     // Cancel a pending hide so a quick re-show isn't killed by the stale timer.
@@ -41,6 +42,16 @@ export default function HolsterUI() {
     }, 350)
   })
 
+  // Cinematic tracks a world point near the player (Lua projects it each frame).
+  // Position it via the ref imperatively — no React re-render per frame.
+  useNuiEvent<{ x?: number; y?: number; off?: boolean }>('holster:anchor', (p) => {
+    const el = anchorRef.current
+    if (!el) return
+    if (p.off || p.x == null || p.y == null) { el.style.left = '-9999px'; return }
+    el.style.left = `${(p.x * 100).toFixed(3)}%`
+    el.style.top  = `${(p.y * 100).toFixed(3)}%`
+  })
+
   useEffect(() => () => { if (hideTimer.current) clearTimeout(hideTimer.current) }, [])
 
   if (!visible || !data) return null
@@ -52,7 +63,7 @@ export default function HolsterUI() {
   // Same data + RMB/BSPC flow as the standard pill — purely a different look.
   if (data.style === 'cinematic') {
     return (
-      <div className={`holcine holcine-${data.position} ${exiting ? 'holcine-exit' : 'holcine-enter'}`} aria-hidden="true">
+      <div ref={anchorRef} className={`holcine holcine-anchored ${exiting ? 'holcine-exit' : 'holcine-enter'}`} aria-hidden="true">
         <span className="holcine-tick" />
         <div className="holcine-body">
           <div className="holcine-over">{t('holster_action', 'Holster')}</div>

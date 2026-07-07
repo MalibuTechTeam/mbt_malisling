@@ -86,6 +86,7 @@ if (DEV_PREVIEW === 'overlays') {
       cancel:  { label: 'Cancel Holster',  display: 'BACKSPACE' },
     },
   }], 500)
+  debugData([{ action: 'holster:anchor', data: { x: 0.52, y: 0.5 } }], 650)
   debugData([{ action: 'hideHolster', data: {} }], 5000)
 
   debugData([{

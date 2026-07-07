@@ -250,7 +250,19 @@ local function doEquip(weaponData, weaponHash)
             cancel      = { label = MBT.HolsterControls["Cancel"]["Label"],  display = 'BACKSPACE' },
             locale      = buildNuiLocale(),
         }})
-        while holsterState == true do Wait(50) end
+        local isCine = (MBT.Holster and MBT.Holster.Style) == 'cinematic'
+        while holsterState == true do
+            if isCine then
+                -- Cinematic anchors near the player (botz-style). qb hides the weapon
+                -- during the prompt, so track the right-hand bone, not the weapon object.
+                local pos = GetWorldPositionOfEntityBone(cache.ped, GetPedBoneIndex(cache.ped, 28422))
+                local on, sx, sy = GetScreenCoordFromWorldCoord(pos.x, pos.y, pos.z + 0.2)
+                SendNUIMessage({ action = 'holster:anchor', data = on and { x = sx, y = sy } or { off = true } })
+                Wait(0)
+            else
+                Wait(50)
+            end
+        end
         SendNUIMessage({ action = 'hideHolster' })
         if holsterState == 'confirmed' then
             -- Weapon is still hidden from the prompt: play the draw gesture, THEN bring it out —
