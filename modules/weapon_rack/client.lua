@@ -234,7 +234,7 @@ local function openPicker(id)
     end
     picker = { id = id, idx = 1, n = #entries }
     SendNUIMessage({ action = 'showRackPicker',
-        data = { locale = buildNuiLocale(), weapons = entries, index = 1 } })
+        data = { locale = buildNuiLocale(), weapons = entries, index = 1, style = MBT.UIStyle or 'standard' } })
 
     CreateThread(function()
         local sr = spawnedRacks[id]

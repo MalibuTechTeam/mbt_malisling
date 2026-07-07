@@ -36,7 +36,7 @@ local function pickAmount(target, weapon, have)
     if amount < 1 then amount = math.min(1, have) end
 
     SendNUIMessage({ action = 'showAmmoPicker', data = {
-        locale = buildNuiLocale(), amount = amount, max = have,
+        locale = buildNuiLocale(), amount = amount, max = have, style = MBT.UIStyle or 'standard',
     } })
     CreateThread(function()
         while picking do

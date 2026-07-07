@@ -3,7 +3,7 @@ import { useNuiEvent } from '../utils/useNuiEvent'
 import { makeT, type Locale } from '../utils/i18n'
 import './AmmoPickerUI.css'
 
-interface AmmoPickerData { amount: number; max: number; locale?: Locale }
+interface AmmoPickerData { amount: number; max: number; locale?: Locale; style?: 'standard' | 'cinematic' }
 
 /** Key-driven ammo amount selector (no ox_lib). The Lua side owns the value and
  *  pushes updates; this just renders the current amount / max + key hints. */
@@ -35,7 +35,7 @@ export default function AmmoPickerUI() {
   const pct = data.max > 0 ? Math.min(100, Math.max(0, Math.round((amount / data.max) * 100))) : 0
 
   return (
-    <div className={`amp-pill ${exiting ? 'amp-exit' : 'amp-enter'}`}>
+    <div className={`amp-pill${data.style === 'cinematic' ? ' cine-chip' : ''} ${exiting ? 'amp-exit' : 'amp-enter'}`}>
       <div className="amp-head">
         <span className="amp-label">{t('ammo_share_title', 'SHARE AMMO')}</span>
         <span className="amp-val">{amount}<span className="amp-max"> / {data.max}</span></span>

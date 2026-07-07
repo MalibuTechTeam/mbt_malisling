@@ -14,6 +14,7 @@ interface RackPickerData {
   weapons: RackWeapon[]
   index: number                     // 1-based selection (Lua side)
   locale?: Locale
+  style?: 'standard' | 'cinematic'
 }
 
 export default function RackPickerUI() {
@@ -49,7 +50,7 @@ export default function RackPickerUI() {
 
   return (
     <div className={`rkp-overlay ${exiting ? 'rkp-exit' : 'rkp-enter'}`}>
-      <div className="rkp-card">
+      <div className={`rkp-card${data.style === 'cinematic' ? ' cine-chip' : ''}`}>
         <div className="rkp-header">
           <span className="rkp-label">{t('rack_picker_title', 'WEAPON RACK')}</span>
           <span className="rkp-count">{index}/{data.weapons.length}</span>
