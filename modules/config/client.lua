@@ -53,8 +53,7 @@ local function applyConfig(d)
     MBT.EnableFlashlight  = d.EnableFlashlight
     MBT.DropWeaponOnDeath = d.DropWeaponOnDeath
     if MBT.UI then MBT.UI.Position = d.UIPosition end
-    MBT.Holster = MBT.Holster or {}
-    if d.HolsterStyle then MBT.Holster.Style = d.HolsterStyle end
+    if d.UIStyle then MBT.UIStyle = d.UIStyle end
     if d.Sounds and MBT.Sounds then
         MBT.Sounds.Enabled     = d.Sounds.Enabled
         MBT.Sounds.MaxDistance = d.Sounds.MaxDistance

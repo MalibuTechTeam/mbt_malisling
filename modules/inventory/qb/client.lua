@@ -245,24 +245,18 @@ local function doEquip(weaponData, weaponHash)
         SendNUIMessage({ action = 'showHolster', data = {
             weaponLabel = weaponData.name:upper(),
             position    = MBT.UI and MBT.UI.Position or 'bottom-center',
-            style       = MBT.Holster and MBT.Holster.Style or 'standard',
+            style       = MBT.UIStyle or 'standard',
             confirm     = { label = MBT.HolsterControls["Confirm"]["Label"], display = 'RMB' },
             cancel      = { label = MBT.HolsterControls["Cancel"]["Label"],  display = 'BACKSPACE' },
             locale      = buildNuiLocale(),
         }})
-        local isCine = (MBT.Holster and MBT.Holster.Style) == 'cinematic'
-        while holsterState == true do
-            if isCine then
-                -- Cinematic anchors near the player (botz-style). qb hides the weapon
-                -- during the prompt, so track the right-hand bone, not the weapon object.
-                local pos = GetWorldPositionOfEntityBone(cache.ped, GetPedBoneIndex(cache.ped, 28422))
-                local on, sx, sy = GetScreenCoordFromWorldCoord(pos.x, pos.y, pos.z + 0.2)
-                SendNUIMessage({ action = 'holster:anchor', data = on and { x = sx, y = sy } or { off = true } })
-                Wait(0)
-            else
-                Wait(50)
-            end
+        -- Cinematic: float the prompt next to the hand (botz-style) via the shared anchor.
+        -- qb hides the weapon during the prompt, so HandPos tracks the hand, not the object.
+        if MBT.UIStyle == 'cinematic' then
+            MBT.Anchor.Start('holster', function() return MBT.Anchor.HandPos(0.2) end)
         end
+        while holsterState == true do Wait(50) end
+        MBT.Anchor.Stop()
         SendNUIMessage({ action = 'hideHolster' })
         if holsterState == 'confirmed' then
             -- Weapon is still hidden from the prompt: play the draw gesture, THEN bring it out —

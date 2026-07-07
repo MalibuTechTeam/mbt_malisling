@@ -31,9 +31,9 @@ MBT.HolsterControls    = {
     ["Cancel"]  = { ["Label"] = "Cancel Holster", ["Input"] = "keyboard", ["Key"] = "BACK" },
 }
 
--- Holster prompt look (dashboard-editable): 'standard' = the pill, 'cinematic' =
--- filmic lower-third reveal. Same RMB/BSPC flow either way.
-MBT.Holster            = { Style = 'standard' }
+-- UI style (dashboard-editable): 'standard' = the classic pills, 'cinematic' =
+-- filmic overlays anchored near the weapon. Applies to the weapon-moment overlays.
+MBT.UIStyle            = 'standard'
 
 -- Sling prop positions and holster animations per weapon type.
 -- Each key maps to a weapon type defined in data/weapons.lua.

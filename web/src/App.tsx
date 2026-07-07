@@ -35,7 +35,7 @@ const DEV_SCENARIO = 'healthy' as 'healthy' | 'critical' | 'warning' | 'both'
 
 // Full mock of the server config snapshot (modules/config/server.lua → snapshot()).
 const MOCK_ADMIN_CONFIG = {
-  EnableSling: true, EnableFlashlight: true, DropWeaponOnDeath: true, UIPosition: 'bottom-center', HolsterStyle: 'standard', Language: 'en',
+  EnableSling: true, EnableFlashlight: true, DropWeaponOnDeath: true, UIPosition: 'bottom-center', UIStyle: 'standard', Language: 'en',
   Sounds: { Enabled: true, MaxDistance: 8.0, Volume: 0.3 },
   WeaponDrop: { WeaponModelProp: true, OxTargetPickup: true, Despawn: { Enabled: true, Seconds: 300, BlinkLastSec: 10 }, Logging: { Enabled: false, Webhook: '' } },
   Jamming: { Enabled: true, Cooldown: 5, UnjamPresses: 5 },

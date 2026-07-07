@@ -43,26 +43,19 @@ AddEventHandler('mbt_malisling:holster_request', function(data)
     SendNUIMessage({ action = 'showHolster', data = {
         weaponLabel = data.weaponLabel,
         position    = MBT.UI and MBT.UI.Position or 'bottom-center',
-        style       = MBT.Holster and MBT.Holster.Style or 'standard',
+        style       = MBT.UIStyle or 'standard',
         confirm     = { label = MBT.HolsterControls["Confirm"]["Label"], display = 'RMB' },
         cancel      = { label = MBT.HolsterControls["Cancel"]["Label"],  display = 'BACKSPACE' },
         locale      = buildNuiLocale(),
     }})
 
-    local isCine = (MBT.Holster and MBT.Holster.Style) == 'cinematic'
-    local deadline = GetGameTimer() + 16000
-    while holsterState == true and GetGameTimer() < deadline do
-        if isCine then
-            -- Cinematic anchors near the player (botz-style): project the right-hand
-            -- bone (SKEL_R_Hand) to screen each frame and feed the coords to the NUI.
-            local pos = GetWorldPositionOfEntityBone(cache.ped, GetPedBoneIndex(cache.ped, 28422))
-            local on, sx, sy = GetScreenCoordFromWorldCoord(pos.x, pos.y, pos.z + 0.2)
-            SendNUIMessage({ action = 'holster:anchor', data = on and { x = sx, y = sy } or { off = true } })
-            Wait(0)
-        else
-            Wait(50)
-        end
+    -- Cinematic: float the prompt next to the hand (botz-style) via the shared anchor.
+    if MBT.UIStyle == 'cinematic' then
+        MBT.Anchor.Start('holster', function() return MBT.Anchor.HandPos(0.2) end)
     end
+    local deadline = GetGameTimer() + 16000
+    while holsterState == true and GetGameTimer() < deadline do Wait(50) end
+    MBT.Anchor.Stop()
     if holsterState == true then holsterState = 'cancelled' end
 
     SendNUIMessage({ action = 'hideHolster' })

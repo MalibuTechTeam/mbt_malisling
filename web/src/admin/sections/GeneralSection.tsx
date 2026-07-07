@@ -1,5 +1,6 @@
 import { PositionPicker } from '../ui/PositionPicker'
-import { Section, ToggleRow, type SectionProps } from './parts'
+import { Segmented } from '../ui/Segmented'
+import { Section, ToggleRow, FieldBlock, type SectionProps } from './parts'
 
 /**
  * Core category — split into atomic cards so the category page can order them
@@ -25,7 +26,14 @@ export function CoreSection({ config, update }: SectionProps) {
 export function InterfaceSection({ config, update }: SectionProps) {
   const pos = config.UIPosition ?? 'bottom-center'
   return (
-    <Section icon="grid" title="INTERFACE" sub="On-screen prompt placement.">
+    <Section icon="grid" title="INTERFACE" sub="Prompt placement and style.">
+      <FieldBlock label="Prompt Style" hint="Standard pills, or cinematic overlays anchored near the weapon.">
+        <Segmented
+          value={config.UIStyle ?? 'standard'}
+          onChange={(v) => update('UIStyle', v)}
+          options={[{ value: 'standard', label: 'Standard' }, { value: 'cinematic', label: 'Cinematic' }]}
+        />
+      </FieldBlock>
       <PositionPicker value={pos} onChange={(v) => update('UIPosition', v)} />
       {pos === 'custom' && (
         <p className="mbt-field__hint" style={{ marginTop: 8 }}>
