@@ -10,7 +10,7 @@
 MBT = MBT or {}
 
 -- ── General ───────────────────────────────────────────────────────────────────
-MBT.Debug              = true   -- dev logging; intentionally NOT exposed in the dashboard
+MBT.Debug              = false  -- dev logging; intentionally NOT exposed in the dashboard
 MBT.Language           = 'en'   -- read-only in the dashboard; set the server language here
 
 -- ── Admin ─────────────────────────────────────────────────────────────────────
@@ -54,6 +54,25 @@ MBT.QBWeapons          = {
 -- sensitive players. Applied client-side via the `mbt-reduce-motion` root class.
 MBT.ReduceMotion       = false
 
+-- One configurable sink: uncomment the preset for your notification resource. Called
+-- with { title?, description, type?, icon?, duration? } (also via MBT.NotifyLabel).
+-- NOTE: mbt_malisling depends on ox_lib, so lib.notify is the natural default — leave
+-- it uncommented to keep notifications working out of the box.
 MBT.Notification       = function(data)
+    -- ox_lib (required by this resource):
     lib.notify(data)
+
+    -- Native GTA feed:
+    -- BeginTextCommandThefeedPost('STRING')
+    -- AddTextComponentSubstringPlayerName(data.description or data.title or '')
+    -- EndTextCommandThefeedPostTicker(false, true)
+
+    -- ESX:
+    -- ESX.ShowNotification(data.description or data.title)
+
+    -- QBCore:
+    -- QBCore.Functions.Notify(data.description or data.title, data.type or 'primary')
+
+    -- mbt_visual (our own notification system):
+    -- exports.mbt_visual:notify({ title = data.title, description = data.description, type = data.type or 'inform', icon = data.icon, duration = data.duration or 5000 })
 end

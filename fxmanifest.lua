@@ -3,7 +3,7 @@ game 'gta5'
 lua54 'yes'
 
 name 'mbt_malisling'
-author 'Malibù Tech Team'
+author 'Malibu Tech Team'
 version      '2.0.0'
 repository 'https://github.com/MalibuTechTeam/mbt_malisling'
 description 'Weapon on back with various features'
@@ -11,20 +11,19 @@ description 'Weapon on back with various features'
 dependencies {
     '/onesync',
     'ox_lib',
-    -- ox_inventory and qb-inventory are soft dependencies: detected at runtime
 }
 
 shared_scripts {
     '@ox_lib/init.lua',
-    'default.lua',                -- factory feature defaults (loaded first)
-    'config.lua',                 -- server settings + optional overrides (loaded after)
-    'modules/utils/logger.lua',   -- canonical MBTLog (aliased onto Utils in utils/{server,client}.lua)
+    'default.lua',               
+    'config.lua',                 
+    'modules/utils/logger.lua',  
     'modules/locales.lua',
     'locales/*.lua',
 }
 
 server_scripts {
-    'modules/ox_patch/installer.js',   -- auto-applies the ox_inventory patch (cross-platform, no shell)
+    'modules/ox_patch/installer.js',
     'modules/utils/server.lua',
     'modules/weapon_sounds/server.lua',
     'modules/bridge/esx/server.lua',
@@ -100,8 +99,8 @@ files {
     'data/*.lua',
     'web/dist/index.html',
     'web/dist/assets/**',
-    'web/dist/*.svg',           -- logo_mbt.svg (root of dist, not under assets/)
-    'web/dist/*.png',           -- logo-192.png and any other root icons
+    'web/dist/*.svg',          
+    'web/dist/*.png',           
     'web/dist/sounds/*.ogg',
 }
 
