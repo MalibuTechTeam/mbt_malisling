@@ -1,7 +1,8 @@
 /* HolsterUI — premium 2-row holster prompt. Borrows the mbt_emote_menu pill
    recipe (accent corner glow + surface gradient + inset highlight + accent-
    tinted edge) so it reads as a crafted MBT component, not a flat tooltip.
-   Row 1: icon chip + context. Row 2: the two action hints. */
+   Row 1: icon chip + context. Row 2: the two action hints.
+   The 'cinematic' UIStyle uses <CinematicCard> instead (see CinematicCard.css). */
 
 .holster-pill {
   position: fixed;
@@ -118,91 +119,4 @@
 
 @media (prefers-reduced-motion: reduce) {
   .holster-enter, .holster-exit { animation: none; }
-}
-
-/* ═══ Cinematic style (Holster.Style = 'cinematic') — filmic lower-third ═══
-   No pill box: an accent tick + overline + big display name + hairline + keys,
-   revealed with a short coordinated sweep. Reads like a movie nameplate. */
-.holcine {
-  position: fixed;
-  z-index: 9999;
-  display: flex;
-  gap: 14px;
-  align-items: stretch;
-  pointer-events: none;
-  font-family: var(--mbt-font-body);
-}
-.holcine-bottom-center { bottom: 96px; left: 50%; transform: translateX(-50%); --pos-transform: translateX(-50%); }
-.holcine-top-center    { top: 56px;   left: 50%; transform: translateX(-50%); --pos-transform: translateX(-50%); }
-.holcine-bottom-right  { bottom: 96px; right: 44px; --pos-transform: translateX(0); }
-
-/* World-anchored (botz-style): Lua projects a point near the player to screen each
-   frame and sets left/top imperatively. Starts off-screen until the first frame;
-   floats up-right of the anchor so it sits just above the weapon/hand. */
-.holcine-anchored {
-  position: fixed;
-  left: -9999px; top: 0; bottom: auto; right: auto;
-  transform: translate(14px, -120%);
-  --pos-transform: translate(14px, -120%);
-}
-
-.holcine-tick {
-  width: 3px;
-  border-radius: 2px;
-  background: var(--mbt-accent);
-  box-shadow: 0 0 12px rgba(var(--mbt-accent-rgb), 0.55);
-  transform-origin: bottom;
-}
-.holcine-over {
-  font-family: var(--mbt-font-mono);
-  font-size: 10px;
-  letter-spacing: 0.34em;
-  text-transform: uppercase;
-  color: var(--mbt-accent);
-  margin-bottom: 5px;
-}
-.holcine-name {
-  font-family: var(--mbt-font-display);
-  font-size: 34px;
-  line-height: 0.95;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  color: var(--mbt-text-hi);
-  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.6);
-}
-.holcine-line {
-  height: 1px;
-  width: 180px;
-  margin: 9px 0;
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.5), transparent);
-}
-.holcine-keys {
-  font-size: 12px;
-  color: var(--mbt-text-lo);
-}
-.holcine-keys .mbt-kc { margin-right: 4px; }
-.holcine-sep { opacity: 0.5; margin: 0 8px; }
-
-/* Coordinated one-shot reveal (`both` holds the end state after playing). */
-.holcine-enter .holcine-tick { animation: holcine-tick var(--mbt-dur-slow) var(--mbt-ease) both; }
-.holcine-enter .holcine-over { animation: holcine-fade var(--mbt-dur)      var(--mbt-ease) both; }
-.holcine-enter .holcine-name { animation: holcine-name var(--mbt-dur-slow) var(--mbt-ease) 40ms both; }
-.holcine-enter .holcine-line { animation: holcine-line var(--mbt-dur-slow) var(--mbt-ease) 120ms both; }
-.holcine-enter .holcine-keys { animation: holcine-fade var(--mbt-dur)      var(--mbt-ease) 160ms both; }
-.holcine-exit { animation: holcine-out var(--mbt-dur-fast) var(--mbt-ease-exit) forwards; }
-
-@keyframes holcine-tick { from { transform: scaleY(0); } to { transform: scaleY(1); } }
-@keyframes holcine-name {
-  from { opacity: 0; clip-path: inset(0 100% 0 0); }
-  to   { opacity: 1; clip-path: inset(0 0 0 0); }
-}
-@keyframes holcine-line { from { width: 0; } to { width: 180px; } }
-@keyframes holcine-fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes holcine-out {
-  from { opacity: 1; transform: var(--pos-transform, translateX(-50%)); }
-  to   { opacity: 0; transform: var(--pos-transform, translateX(-50%)) translateY(6px); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .holcine-enter *, .holcine-exit { animation: none !important; }
 }

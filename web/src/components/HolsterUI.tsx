@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useNuiEvent } from '../utils/useNuiEvent'
 import { makeT, type Locale } from '../utils/i18n'
 import './HolsterUI.css'
+import { CinematicCard } from './CinematicCard'
 
 interface KeybindHint { label: string; display: string }
 
@@ -24,7 +25,6 @@ export default function HolsterUI() {
   const [exiting, setExiting] = useState(false)
   const [data,    setData]    = useState<HolsterData | null>(null)
   const hideTimer = useRef<number | null>(null)
-  const anchorRef = useRef<HTMLDivElement | null>(null)
 
   useNuiEvent<HolsterData>('showHolster', (incoming) => {
     // Cancel a pending hide so a quick re-show isn't killed by the stale timer.
@@ -42,16 +42,6 @@ export default function HolsterUI() {
     }, 350)
   })
 
-  // Cinematic tracks a world point near the player (Lua projects it each frame).
-  // Position it via the ref imperatively — no React re-render per frame.
-  useNuiEvent<{ x?: number; y?: number; off?: boolean }>('holster:anchor', (p) => {
-    const el = anchorRef.current
-    if (!el) return
-    if (p.off || p.x == null || p.y == null) { el.style.left = '-9999px'; return }
-    el.style.left = `${(p.x * 100).toFixed(3)}%`
-    el.style.top  = `${(p.y * 100).toFixed(3)}%`
-  })
-
   useEffect(() => () => { if (hideTimer.current) clearTimeout(hideTimer.current) }, [])
 
   if (!visible || !data) return null
@@ -59,23 +49,20 @@ export default function HolsterUI() {
   const t = makeT(data.locale)
   const weaponName = data.weaponLabel.replace('WEAPON_', '')
 
-  // Cinematic style (Holster.Style = 'cinematic'): a filmic lower-third reveal.
-  // Same data + RMB/BSPC flow as the standard pill — purely a different look.
+  // Cinematic style (MBT.UIStyle = 'cinematic'): the shared filmic card, anchored
+  // near the weapon. Same data + RMB/BSPC flow as the standard pill.
   if (data.style === 'cinematic') {
     return (
-      <div ref={anchorRef} className={`holcine holcine-anchored ${exiting ? 'holcine-exit' : 'holcine-enter'}`} aria-hidden="true">
-        <span className="holcine-tick" />
-        <div className="holcine-body">
-          <div className="holcine-over">{t('holster_action', 'Holster')}</div>
-          <div className="holcine-name">{weaponName}</div>
-          <div className="holcine-line" />
-          <div className="holcine-keys">
-            <span className="mbt-kc">{shortKey(data.confirm.display)}</span> {t('holster_confirm', 'Confirm')}
-            <span className="holcine-sep">·</span>
-            <span className="mbt-kc">{shortKey(data.cancel.display)}</span> {t('holster_cancel', 'Cancel')}
-          </div>
-        </div>
-      </div>
+      <CinematicCard
+        overline={t('holster_action', 'Holster')}
+        title={weaponName}
+        anchor="holster"
+        exiting={exiting}
+        keys={[
+          { cap: shortKey(data.confirm.display), label: t('holster_confirm', 'Confirm') },
+          { cap: shortKey(data.cancel.display), label: t('holster_cancel', 'Cancel') },
+        ]}
+      />
     )
   }
 

@@ -56,7 +56,7 @@ end
 local function buildData()
     local _, weaponHash = GetCurrentPedWeapon(cache.ped, true)
     local md = (currentWeapon and currentWeapon.metadata) or {}
-    local data = { locale = buildNuiLocale(), show = cfg.Show }
+    local data = { locale = buildNuiLocale(), show = cfg.Show, style = MBT.UIStyle or 'standard' }
 
     if cfg.Show.Name then
         -- md.label = future Custom Weapon Name; falls back to the weapon's own name.
@@ -113,6 +113,10 @@ local function startInspect()
         and MBT.ShootingBridge.OnInspectStart(data) == true
     if not companionHandled then
         SendNUIMessage({ action = 'showInspect', data = data })
+        -- Cinematic: anchor the card to the held weapon (in hand + visible here).
+        if MBT.UIStyle == 'cinematic' then
+            MBT.Anchor.Start('inspect', function() return MBT.Anchor.WeaponPos(0.12) end)
+        end
     end
     TriggerServerEvent('mbt_malisling:syncInspect', 'start')
 
@@ -133,6 +137,7 @@ end
 function stopInspect()
     if not inspecting then return end
     inspecting = false
+    MBT.Anchor.Stop()
     StopAnimTask(cache.ped, anim.Dict, anim.Anim, 4.0)
     RemoveAnimDict(anim.Dict)
     if companionHandled then

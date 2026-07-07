@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useNuiEvent } from '../utils/useNuiEvent'
 import { makeT, type Locale } from '../utils/i18n'
 import './InspectUI.css'
+import { CinematicCard, type CinematicRow } from './CinematicCard'
 
 interface InspectShow {
   Serial?: boolean
@@ -23,6 +24,7 @@ interface InspectData {
   custody?: CustodyEntry[]   // chain of custody (oldest first), optional
   show?: InspectShow
   locale?: Locale
+  style?: 'standard' | 'cinematic'
 }
 
 function Row({ label, value, tone }: { label: string; value: string; tone?: Tone }) {
@@ -67,6 +69,25 @@ export default function InspectUI() {
   // gun is actually empty. Empty (exact 0) → faulty; vague labels stay neutral.
   const ammoTone: Tone | undefined =
     typeof data.ammo === 'number' ? (data.ammo > 0 ? 'accent' : 'bad') : undefined
+
+  // Cinematic style: the shared filmic card anchored to the weapon (serial /
+  // condition / ammo rows). Custody stays in the full standard card — keep the
+  // anchored card compact next to the gun.
+  if (data.style === 'cinematic') {
+    const rows: CinematicRow[] = []
+    if (show.Serial) rows.push({ label: t('inspect_serial', 'Serial'), value: data.serial ?? '—' })
+    if (show.Condition) rows.push({ label: t('inspect_condition', 'Condition'), value: data.condition ?? '—', tone: data.conditionTone })
+    if (show.Ammo) rows.push({ label: t('inspect_ammo', 'Ammo'), value: data.ammo != null ? String(data.ammo) : '—', tone: ammoTone })
+    return (
+      <CinematicCard
+        overline={t('inspect_title', 'Inspecting')}
+        title={weaponName}
+        anchor="inspect"
+        exiting={exiting}
+        rows={rows}
+      />
+    )
+  }
 
   return (
     <div className={`insp-overlay ${exiting ? 'insp-exit' : 'insp-enter'}`}>
