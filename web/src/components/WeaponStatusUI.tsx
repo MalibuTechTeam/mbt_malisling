@@ -18,6 +18,7 @@ interface StatusData {
   safety?: Safety | null
   condition?: number | null   // durability tier 1-5 (5 = pristine)
   locale?: Locale
+  style?: 'standard' | 'cinematic'
 }
 
 const PIPS = [1, 2, 3, 4, 5]
@@ -45,7 +46,7 @@ export default function WeaponStatusUI() {
   const tone = tier == null ? null : tier >= 4 ? 'good' : tier === 3 ? 'warn' : 'bad'
 
   return (
-    <div className="ws-pill">
+    <div className={`ws-pill${data.style === 'cinematic' ? ' is-cinematic' : ''}`}>
       {safety && (
         <span className={`ws-safety ws-safety--${safety}${pulse ? ' is-pulse' : ''}`}>
           {safety === 'safe' ? (

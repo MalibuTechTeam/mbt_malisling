@@ -36,6 +36,7 @@ local function unjamMinigame()
             total       = total,
             key         = unjamCfg["Display"],
             locale      = buildNuiLocale(),
+            style       = MBT.UIStyle or 'standard',
         }
     })
 

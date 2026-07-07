@@ -9,6 +9,7 @@ interface JamData {
   total: number
   key: string
   locale?: Locale
+  style?: 'standard' | 'cinematic'
 }
 
 export default function JamUI() {
@@ -47,7 +48,7 @@ export default function JamUI() {
   const dots = Array.from({ length: data.total }, (_, i) => i < progress)
 
   return (
-    <div className={`jam-pill ${exiting ? 'jam-exit' : 'jam-enter'}`}>
+    <div className={`jam-pill${data.style === 'cinematic' ? ' is-cinematic' : ''} ${exiting ? 'jam-exit' : 'jam-enter'}`}>
       <div className="jam-top">
         <span className="jam-chip"><span className="jam-chip-dot" />{t('jam_status', 'JAMMED')}</span>
         <span className="jam-wn">{weaponName}</span>

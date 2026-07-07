@@ -93,6 +93,35 @@
   box-shadow: 0 0 8px rgba(var(--mbt-accent-rgb), 0.4);
 }
 
+/* ── Cinematic theme (MBT.UIStyle = 'cinematic') — same bottom-centre spot, kept
+   compact so a jam mid-fight never obstructs. Filmic look: no box, a faulty tick,
+   display type. Fixed (NOT anchored — it's a combat alert, not a reveal). ── */
+.jam-pill.is-cinematic {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  border-radius: 0;
+  min-width: 0;
+  padding: 2px 0 2px 12px;
+}
+.jam-pill.is-cinematic::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 2px; bottom: 2px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--mbt-faulty);
+  box-shadow: 0 0 10px rgba(var(--mbt-faulty-rgb), 0.5);
+}
+.jam-pill.is-cinematic .jam-chip {
+  background: transparent;
+  padding: 0;
+  font-family: var(--mbt-font-display);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+}
+.jam-pill.is-cinematic .jam-wn { font-family: var(--mbt-font-mono); }
+
 @media (prefers-reduced-motion: reduce) {
   .jam-enter, .jam-exit { animation: none; }
   .jam-chip-dot { animation: none; }

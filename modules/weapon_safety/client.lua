@@ -96,6 +96,7 @@ local function sendStatus(safetyState)
     lastSafetySent, lastCondSent, hudShown = safetyState, cond, true
     SendNUIMessage({ action = 'showWeaponStatus', data = {
         safety = safetyState, condition = cond, locale = buildNuiLocale(),
+        style = MBT.UIStyle or 'standard',
     } })
 end
 

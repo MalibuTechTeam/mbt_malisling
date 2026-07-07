@@ -74,6 +74,34 @@
 .ws-cond--warn .ws-pip.is-on { background: var(--mbt-hacked); }
 .ws-cond--bad  .ws-pip.is-on { background: var(--mbt-faulty); }
 
+/* ── Cinematic theme (MBT.UIStyle = 'cinematic') — same top-centre spot (persistent
+   HUD, NOT anchored to the weapon), filmic look: no pill box, an accent tick,
+   display type. ── */
+.ws-pill.is-cinematic {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  border-radius: 0;
+  height: auto;
+  min-width: 0;
+  padding: 3px 0 3px 12px;
+}
+.ws-pill.is-cinematic::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 3px; bottom: 3px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--mbt-accent);
+  box-shadow: 0 0 10px rgba(var(--mbt-accent-rgb), 0.5);
+}
+.ws-pill.is-cinematic .ws-safety {
+  font-family: var(--mbt-font-display);
+  letter-spacing: 0.14em;
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.7);
+}
+.ws-pill.is-cinematic .ws-cond__k { color: var(--mbt-accent); }
+
 @media (prefers-reduced-motion: reduce) {
   .ws-pill { animation: none; }
   .ws-safety.is-pulse { animation: none; }
