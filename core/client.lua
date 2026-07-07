@@ -612,6 +612,7 @@ AddEventHandler("mbt_malisling:checkWeaponProps", function(t)
     if type(t) ~= "table" then return end
     if Utils.isTableEmpty(t) then Utils.mbtDebugger("checkWeaponProps ~ Table is empty!") return end
     local playerWeapons = {}
+    local _, heldHash = GetCurrentPedWeapon(cache.ped, 1)  -- weapon in hand → not slung
 
     Utils.mbtDebugger("checkWeaponProps ~ Starting iterating inventory weapons!")
 
@@ -620,7 +621,11 @@ AddEventHandler("mbt_malisling:checkWeaponProps", function(t)
             local weaponType = MBT.WeaponsInfo["Weapons"][weaponData.name]?.type
             Utils.mbtDebugger("checkWeaponProps ~ weaponType ", weaponData.name, weaponType	)
 
-            if not playerWeapons[weaponType] then
+            -- Skip the drawn weapon: it's in hand, not on the back. A full re-sync
+            -- (e.g. a conceal reveal fires checkInventory) would otherwise spawn a
+            -- back prop while the player is holding it.
+            local drawn = heldHash and heldHash ~= `WEAPON_UNARMED` and joaat(weaponData.name) == heldHash
+            if not drawn and not playerWeapons[weaponType] then
                 weaponData.type = weaponType
                 playerWeapons[weaponType] = weaponData
             end
