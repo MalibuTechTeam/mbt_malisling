@@ -14,6 +14,7 @@ local cfg  = MBT.Inspect
 local anim = cfg.Animation
 
 local inspecting    = false
+local companionHandled = false  -- true = the companion (paid) renders its own card
 local currentWeapon         -- ox_inventory:currentWeapon payload (has .metadata)
 
 AddEventHandler('ox_inventory:currentWeapon', function(data)
@@ -106,7 +107,13 @@ local function startInspect()
         local chain = lib.callback.await('mbt_malisling:getCustody', 1000, md.serial)
         if type(chain) == 'table' and #chain > 0 then data.custody = chain end
     end
-    SendNUIMessage({ action = 'showInspect', data = data })
+    -- Companion (paid) may render its own richer card. If it takes over we suppress our
+    -- base overlay — never two at once. Absent/declines → we show ours (fallback).
+    companionHandled = MBT.ShootingBridge and MBT.ShootingBridge.OnInspectStart
+        and MBT.ShootingBridge.OnInspectStart(data) == true
+    if not companionHandled then
+        SendNUIMessage({ action = 'showInspect', data = data })
+    end
     TriggerServerEvent('mbt_malisling:syncInspect', 'start')
 
     -- Auto-cancel: leave inspect the moment it stops making sense.
@@ -128,7 +135,14 @@ function stopInspect()
     inspecting = false
     StopAnimTask(cache.ped, anim.Dict, anim.Anim, 4.0)
     RemoveAnimDict(anim.Dict)
-    SendNUIMessage({ action = 'hideInspect', data = {} })
+    if companionHandled then
+        if MBT.ShootingBridge and MBT.ShootingBridge.OnInspectStop then
+            MBT.ShootingBridge.OnInspectStop()
+        end
+        companionHandled = false
+    else
+        SendNUIMessage({ action = 'hideInspect', data = {} })
+    end
     TriggerServerEvent('mbt_malisling:syncInspect', 'stop')
 end
 
