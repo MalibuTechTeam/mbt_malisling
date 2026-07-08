@@ -31,7 +31,7 @@ CreateThread(function()
         if cfg.Enabled then
             local armed, hash = GetCurrentPedWeapon(cache.ped, true)
             if armed and hash ~= `WEAPON_UNARMED` then
-                sleep = 0
+                sleep = 50   -- poll for shots while a gun is out; 50ms catches IsPedShooting without a per-frame spin
                 if IsPedShooting(cache.ped) then
                     local now = GetGameTimer()
                     if (now - lastSent) >= (cfg.MinIntervalMs or 1200) then

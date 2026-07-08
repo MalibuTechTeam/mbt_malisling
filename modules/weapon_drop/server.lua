@@ -29,7 +29,21 @@ if isOx then
     -- requests (one per client running the timer) are no-ops.
     local despawned = {}  -- [dropId] = true
     RegisterNetEvent('mbt_malisling:despawnWeaponDrop', function(dropId)
-        if not dropId or despawned[dropId] then return end
+        local src = source
+        -- dropId is client-supplied, so it never reaches ClearInventory unvalidated: ox drop
+        -- ids are strings (player/stash inventories are numeric), and OUR drops hold only
+        -- WEAPON_ items — a player/stash inventory (bread, phone, …) fails the check and is
+        -- refused, so a replayed id can't wipe someone's inventory.
+        if type(dropId) ~= 'string' or despawned[dropId] then return end
+        if not (MBT.NetThrottle and MBT.NetThrottle(src, 'despawn', 250)) then return end
+
+        local items = exports.ox_inventory:GetInventoryItems(dropId)
+        if type(items) ~= 'table' or not next(items) then return end
+        for _, item in pairs(items) do
+            if type(item) ~= 'table' or type(item.name) ~= 'string'
+               or item.name:sub(1, 7) ~= 'WEAPON_' then return end
+        end
+
         despawned[dropId] = true
         exports.ox_inventory:ClearInventory(dropId)
         SetTimeout(10000, function() despawned[dropId] = nil end)   -- forget so the table can't grow unbounded
@@ -112,6 +126,7 @@ end
 RegisterNetEvent('mbt_malisling:dropWeapon', function(data)
     local src = source
     if type(data) ~= 'table' or type(data.slot) ~= 'number' then return end
+    if not (MBT.NetThrottle and MBT.NetThrottle(src, 'dropWeapon', 250)) then return end
     local ped = GetPlayerPed(src)
     if not ped or ped == 0 then return end
     WeaponDropServer.Create(src, data.slot, GetEntityCoords(ped), data.weaponHash)

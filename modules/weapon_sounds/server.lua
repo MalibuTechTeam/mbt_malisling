@@ -6,6 +6,8 @@ RegisterNetEvent('mbt_malisling:syncHolsterSound')
 AddEventHandler('mbt_malisling:syncHolsterSound', function(weaponType, action)
     if not MBT.Sounds.Enabled then return end   -- live on/off from the dashboard
     local src    = source
+    -- Fans out to every nearby client, so rate-limit the source to stop amplification spam.
+    if not (MBT.NetThrottle and MBT.NetThrottle(src, 'holsterSound', 150)) then return end
     local srcPed = GetPlayerPed(src)
     if not srcPed or srcPed == 0 then return end
 

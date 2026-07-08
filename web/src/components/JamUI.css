@@ -118,8 +118,9 @@
   height: 1px;
   background: linear-gradient(90deg, transparent,
     rgba(var(--mbt-faulty-rgb), 0.85) 25%, rgba(var(--mbt-faulty-rgb), 0.85) 75%, transparent);
-  box-shadow: 0 0 8px rgba(var(--mbt-faulty-rgb), 0.5);
+  box-shadow: 0 0 11px rgba(var(--mbt-faulty-rgb), 0.55);
   animation: jamc-glow 3s ease-in-out 0.5s infinite;
+  will-change: opacity;   /* breathe via opacity, not box-shadow (compositor-only in CEF) */
 }
 /* One-shot "power-on" shimmer: a light band sweeps the hairline once on open. */
 .jam-pill.is-cinematic::after {
@@ -157,8 +158,8 @@
   100% { opacity: 0; clip-path: inset(0 0 60% 0); transform: var(--pos-transform) translateY(-2px); }
 }
 @keyframes jamc-glow {
-  0%, 100% { box-shadow: 0 0 6px rgba(var(--mbt-faulty-rgb), 0.4); }
-  50%      { box-shadow: 0 0 13px rgba(var(--mbt-faulty-rgb), 0.72); }
+  0%, 100% { opacity: 0.6; }
+  50%      { opacity: 1; }
 }
 @keyframes jamc-shimmer {
   0%   { opacity: 0; transform: translateX(-40%); }

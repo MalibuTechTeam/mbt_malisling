@@ -52,7 +52,8 @@ AddEventHandler('onServerResourceStart', function(resource)
     loadWeaponsInfo()
 end)
 
--- Per-source net-event throttle — the house anti-spam pattern the feature modules already use.
+-- Per-source net-event throttle — the house anti-spam pattern. Exposed as MBT.NetThrottle
+-- so feature modules share one per-src table (cleared on playerDropped below).
 local _lastNet = {}   -- [src] = { [key] = lastMs }
 local function netThrottle(src, key, ms)
     local t = _lastNet[src]
@@ -62,6 +63,7 @@ local function netThrottle(src, key, ms)
     t[key] = now
     return true
 end
+MBT.NetThrottle = netThrottle
 
 AddEventHandler("playerDropped", function()
     if not source then return end
@@ -113,7 +115,7 @@ AddEventHandler("mbt_malisling:syncSling", function(data)
     -- keyed by serial — NOT a metadata write, which would re-trigger updateInventory
     -- and re-spawn the slung prop while the weapon is in hand).
     if MBT.ChainOfCustody and MBT.ChainOfCustody.RecordHolders then
-        MBT.ChainOfCustody.RecordHolders(_source, data.playerWeapons)
+        MBT.ChainOfCustody.RecordHolders(_source)   -- resolves serials server-side; ignores client payload
     end
 
     Wait(100)

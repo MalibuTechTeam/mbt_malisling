@@ -63,19 +63,24 @@ local function record(source, serial)
     persist(serial)
 end
 
---- Records the holder for each serialled weapon (called after sling sync); serial-less ones get deferred EnsureSerial repair off the equip path so legacy guns still join the forensic loop.
+--- Records the holder for each serialled weapon the player actually carries (called after
+--- sling sync). Serials are read from the player's REAL server-side inventory, NOT from the
+--- client payload — trusting client metadata would let a client append itself to any serial's
+--- ledger. Serial-less legacy guns get a deferred EnsureSerial repair off the equip path.
 ---@param source number
----@param playerWeapons table
-function MBT.ChainOfCustody.RecordHolders(source, playerWeapons)
+function MBT.ChainOfCustody.RecordHolders(source)
     if not MBT.ChainOfCustody.Enabled then return end   -- live on/off from the dashboard
-    if type(playerWeapons) ~= 'table' then return end
+    local items = Inventory:GetInventoryItems(source)
+    if type(items) ~= 'table' then return end
     local missing = nil
-    for _, v in pairs(playerWeapons) do
-        if type(v) == 'table' and v.metadata and v.metadata.serial then
-            record(source, v.metadata.serial)
-        elseif type(v) == 'table' and type(v.name) == 'string' then
-            missing = missing or {}
-            missing[v.name] = true
+    for _, v in pairs(items) do
+        if type(v) == 'table' and type(v.name) == 'string' and v.name:sub(1, 7) == 'WEAPON_' then
+            if v.metadata and v.metadata.serial then
+                record(source, v.metadata.serial)
+            else
+                missing = missing or {}
+                missing[v.name] = true
+            end
         end
     end
     if not missing or not MBT.EnsureSerial then return end
