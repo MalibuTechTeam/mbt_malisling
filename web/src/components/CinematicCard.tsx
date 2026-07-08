@@ -4,6 +4,9 @@ import './CinematicCard.css'
 
 export interface CinematicRow { label: string; value: string; tone?: 'accent' | 'good' | 'warn' | 'bad' }
 export interface CinematicKey { cap: string; label: string }
+/** Pre-collapsed, pre-localized custody list (InspectUI owns the i18n + tail collapse). */
+export type CinematicCustodyItem = { name: string; tag?: string } | { gap: string }
+export interface CinematicCustody { title: string; count: number; items: CinematicCustodyItem[] }
 
 interface CinematicCardProps {
   overline: string          // small mono eyebrow, e.g. "Holster" / "Inspecting"
@@ -12,6 +15,7 @@ interface CinematicCardProps {
   exiting: boolean
   rows?: CinematicRow[]      // data body (inspect)
   keys?: CinematicKey[]      // action keys (prompts, e.g. holster)
+  custody?: CinematicCustody // chain of custody (inspect), rendered below the rows
 }
 
 /**
@@ -20,7 +24,7 @@ interface CinematicCardProps {
  * action keys (holster). Anchors to a world point near the weapon: the Lua side projects
  * it each frame and this positions the element via a ref — no React re-render per frame.
  */
-export function CinematicCard({ overline, title, anchor, exiting, rows, keys }: CinematicCardProps) {
+export function CinematicCard({ overline, title, anchor, exiting, rows, keys, custody }: CinematicCardProps) {
   const ref = useRef<HTMLDivElement | null>(null)
 
   useNuiEvent<{ x?: number; y?: number; off?: boolean }>(`${anchor}:anchor`, (p) => {
@@ -56,6 +60,26 @@ export function CinematicCard({ overline, title, anchor, exiting, rows, keys }: 
                 <span className="mbt-kc">{k.cap}</span> {k.label}
               </span>
             ))}
+          </div>
+        )}
+        {custody && custody.items.length > 0 && (
+          <div className="holcine-custody">
+            <div className="holcine-custody-title">
+              {custody.title}<span className="holcine-custody-count">{custody.count}</span>
+            </div>
+            <div className="holcine-custody-list">
+              {custody.items.map((it, i) =>
+                'gap' in it ? (
+                  <div className="holcine-custody-gap" key={`g${i}`}>{it.gap}</div>
+                ) : (
+                  <div className="holcine-custody-entry" key={i}>
+                    <span className="holcine-custody-dot" />
+                    <span className="holcine-custody-name">{it.name}</span>
+                    {it.tag && <span className="holcine-custody-tag">{it.tag}</span>}
+                  </div>
+                )
+              )}
+            </div>
           </div>
         )}
       </div>

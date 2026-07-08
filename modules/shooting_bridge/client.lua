@@ -83,18 +83,14 @@ MBT.ShootingBridge = {
         callBridge('OnUnholster', weaponType)
     end,
 
-    --- Weapon inspect started: hand the base overlay payload to the companion. If it
-    --- returns true, IT renders its own (richer) card and malisling suppresses its own
-    --- overlay — never two at once. nil/false → malisling shows its base card (fallback).
+    --- Weapon inspect: ask the companion for extra data rows to APPEND to malisling's
+    --- own inspect card (proficiency / familiarity / heat / jam risk...). One themed,
+    --- anchored card renders everything — no separate overlay. nil = no extra rows.
     ---@param baseData table  {name, serial, condition, conditionTone, ammo, custody?}
-    ---@return boolean?
-    OnInspectStart = function(baseData)
-        return callBridge('OnInspectStart', baseData) == true
-    end,
-
-    --- Weapon inspect ended: let the companion hide its card.
-    OnInspectStop = function()
-        callBridge('OnInspectStop')
+    ---@return table[]?  {label, value, tone?}[]
+    OnInspectRows = function(baseData)
+        local rows = callBridge('OnInspectRows', baseData)
+        return type(rows) == 'table' and rows or nil
     end,
 
     --- True when a companion has registered and is running, without exposing its logic.

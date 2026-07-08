@@ -14,7 +14,6 @@ local cfg  = MBT.Inspect
 local anim = cfg.Animation
 
 local inspecting    = false
-local companionHandled = false  -- true = the companion (paid) renders its own card
 local currentWeapon         -- ox_inventory:currentWeapon payload (has .metadata)
 
 AddEventHandler('ox_inventory:currentWeapon', function(data)
@@ -107,16 +106,16 @@ local function startInspect()
         local chain = lib.callback.await('mbt_malisling:getCustody', 1000, md.serial)
         if type(chain) == 'table' and #chain > 0 then data.custody = chain end
     end
-    -- Companion (paid) may render its own richer card. If it takes over we suppress our
-    -- base overlay — never two at once. Absent/declines → we show ours (fallback).
-    companionHandled = MBT.ShootingBridge and MBT.ShootingBridge.OnInspectStart
-        and MBT.ShootingBridge.OnInspectStart(data) == true
-    if not companionHandled then
-        SendNUIMessage({ action = 'showInspect', data = data })
-        -- Cinematic: anchor the card to the held weapon (in hand + visible here).
-        if MBT.UIStyle == 'cinematic' then
-            MBT.Anchor.Start('inspect', function() return MBT.Anchor.WeaponPos(0.12) end)
-        end
+    -- Companion (paid) may add proficiency rows to the SAME card (one themed, anchored
+    -- overlay renders base + companion rows together). Absent → just the base rows.
+    if MBT.ShootingBridge and MBT.ShootingBridge.OnInspectRows then
+        local extra = MBT.ShootingBridge.OnInspectRows(data)
+        if extra then data.companionRows = extra end
+    end
+    SendNUIMessage({ action = 'showInspect', data = data })
+    -- Cinematic: anchor the card to the held weapon (in hand + visible here).
+    if MBT.UIStyle == 'cinematic' then
+        MBT.Anchor.Start('inspect', function() return MBT.Anchor.WeaponPos(0.12) end)
     end
     TriggerServerEvent('mbt_malisling:syncInspect', 'start')
 
@@ -140,14 +139,7 @@ function stopInspect()
     MBT.Anchor.Stop()
     StopAnimTask(cache.ped, anim.Dict, anim.Anim, 4.0)
     RemoveAnimDict(anim.Dict)
-    if companionHandled then
-        if MBT.ShootingBridge and MBT.ShootingBridge.OnInspectStop then
-            MBT.ShootingBridge.OnInspectStop()
-        end
-        companionHandled = false
-    else
-        SendNUIMessage({ action = 'hideInspect', data = {} })
-    end
+    SendNUIMessage({ action = 'hideInspect', data = {} })
     TriggerServerEvent('mbt_malisling:syncInspect', 'stop')
 end
 
