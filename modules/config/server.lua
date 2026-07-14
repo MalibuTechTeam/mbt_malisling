@@ -28,7 +28,7 @@ local function num(v, default) if type(v) == 'number' then return v end return d
 -- ── Snapshot: full config the dashboard reads (incl. overview flags) ──
 local function snapshot()
     local S, D = MBT.Sounds or {}, MBT.WeaponDrop or {}
-    local DD, DL = D.Despawn or {}, D.Logging or {}
+    local DD = D.Despawn or {}   -- Logging.Webhook is a server-only secret set in config.lua; not in the snapshot
     local J, SH = MBT.Jamming or {}, MBT.SuppressorHeat or {}
     local SF, CH, WW = MBT.Safety or {}, MBT.ChargeWeapon or {}, MBT.WeaponWeight or {}
     local LR  = MBT.LowReady or {}
@@ -44,7 +44,6 @@ local function snapshot()
     local CCY = MBT.ConcealedCarry or {}
     local cct = CCY.Tell or {}
     local PD = MBT.PatDown or {}
-    local pdl = PD.Logging or {}
     local AS = MBT.AmmoSharing or {}
     local vat = VTR.AllowedTypes or {}
     local war = WR.AllowedTypes or {}
@@ -76,7 +75,6 @@ local function snapshot()
             WeaponModelProp = b(D.WeaponModelProp),
             OxTargetPickup  = b(D.OxTargetPickup),
             Despawn = { Enabled = b(DD.Enabled), Seconds = num(DD.Seconds, 300), BlinkLastSec = num(DD.BlinkLastSec, 10) },
-            Logging = { Enabled = b(DL.Enabled), Webhook = DL.Webhook or '' },
         },
         -- Combat / RP
         Jamming = {
@@ -172,8 +170,6 @@ local function snapshot()
             InteractionDistance = num(WR.InteractionDistance, 2.0),
             EquipOnRetrieve     = b(WR.EquipOnRetrieve),
             AllowedTypes        = { back = b(war['back']), back2 = b(war['back2']), side = b(war['side']) },
-            Logging             = { Enabled = b(WR.Logging and WR.Logging.Enabled),
-                                    Webhook = (WR.Logging and WR.Logging.Webhook) or '' },
             Placement           = {
                 Enabled      = b(WR.Placement and WR.Placement.Enabled),
                 MaxPerPlayer = num(WR.Placement and WR.Placement.MaxPerPlayer, 2),
@@ -223,7 +219,6 @@ local function snapshot()
             CuffedBypass   = b(PD.CuffedBypass),
             ShowAmmo       = b(PD.ShowAmmo),
             MaxDistance    = num(PD.MaxDistance, 2.0),
-            Logging        = { Enabled = b(pdl.Enabled), Webhook = pdl.Webhook or '' },
         },
         AmmoSharing = {
             Enabled     = b(AS.Enabled),
@@ -255,9 +250,6 @@ local function validate(d)
     if type(dd) ~= 'table' or type(dd.Enabled) ~= 'boolean' then return false end
     if type(dd.Seconds) ~= 'number' or dd.Seconds < 5 or dd.Seconds > 3600 then return false end
     if type(dd.BlinkLastSec) ~= 'number' or dd.BlinkLastSec < 0 or dd.BlinkLastSec > 60 then return false end
-    local dl = d.WeaponDrop.Logging
-    if type(dl) ~= 'table' or type(dl.Enabled) ~= 'boolean' then return false end
-    if type(dl.Webhook) ~= 'string' or #dl.Webhook > 300 then return false end
     -- Jamming
     local j = d.Jamming
     if type(j) ~= 'table' or type(j.Enabled) ~= 'boolean' then return false end
@@ -349,8 +341,6 @@ local function validate(d)
     if type(wr.AllowedTypes) ~= 'table'
         or type(wr.AllowedTypes.back) ~= 'boolean' or type(wr.AllowedTypes.back2) ~= 'boolean'
         or type(wr.AllowedTypes.side) ~= 'boolean' then return false end
-    if type(wr.Logging) ~= 'table' or type(wr.Logging.Enabled) ~= 'boolean' then return false end
-    if type(wr.Logging.Webhook) ~= 'string' or #wr.Logging.Webhook > 300 then return false end
     local wrp = wr.Placement
     if type(wrp) ~= 'table' or type(wrp.Enabled) ~= 'boolean' or type(wrp.AllowPickup) ~= 'boolean' then return false end
     if type(wrp.MaxPerPlayer) ~= 'number' or wrp.MaxPerPlayer < 1 or wrp.MaxPerPlayer > 20 then return false end
@@ -403,8 +393,6 @@ local function validate(d)
     if type(pd) ~= 'table' or type(pd.Enabled) ~= 'boolean' or type(pd.RequireConsent) ~= 'boolean'
         or type(pd.CuffedBypass) ~= 'boolean' or type(pd.ShowAmmo) ~= 'boolean' then return false end
     if type(pd.MaxDistance) ~= 'number' or pd.MaxDistance < 1 or pd.MaxDistance > 10 then return false end
-    if type(pd.Logging) ~= 'table' or type(pd.Logging.Enabled) ~= 'boolean' then return false end
-    if type(pd.Logging.Webhook) ~= 'string' or #pd.Logging.Webhook > 300 then return false end
     -- Ammo Sharing
     local as = d.AmmoSharing
     if type(as) ~= 'table' or type(as.Enabled) ~= 'boolean' then return false end
@@ -428,8 +416,7 @@ local function applyToMBT(d)
     MBT.WeaponDrop.Despawn.Enabled     = d.WeaponDrop.Despawn.Enabled
     MBT.WeaponDrop.Despawn.Seconds     = d.WeaponDrop.Despawn.Seconds
     MBT.WeaponDrop.Despawn.BlinkLastSec= d.WeaponDrop.Despawn.BlinkLastSec
-    MBT.WeaponDrop.Logging.Enabled     = d.WeaponDrop.Logging.Enabled
-    MBT.WeaponDrop.Logging.Webhook     = d.WeaponDrop.Logging.Webhook
+    -- WeaponDrop.Logging is server-only (config.lua) — never touched from the dashboard
     -- Combat / RP
     MBT.Jamming.Enabled          = d.Jamming.Enabled
     MBT.Jamming.Cooldown         = d.Jamming.Cooldown
@@ -514,9 +501,6 @@ local function applyToMBT(d)
             ['back2'] = d.WeaponRack.AllowedTypes.back2,
             ['side']  = d.WeaponRack.AllowedTypes.side,
         }
-        MBT.WeaponRack.Logging = MBT.WeaponRack.Logging or {}
-        MBT.WeaponRack.Logging.Enabled = d.WeaponRack.Logging.Enabled
-        MBT.WeaponRack.Logging.Webhook = d.WeaponRack.Logging.Webhook
         MBT.WeaponRack.Placement = MBT.WeaponRack.Placement or {}
         MBT.WeaponRack.Placement.Enabled      = d.WeaponRack.Placement.Enabled
         MBT.WeaponRack.Placement.MaxPerPlayer = d.WeaponRack.Placement.MaxPerPlayer
@@ -568,9 +552,6 @@ local function applyToMBT(d)
         MBT.PatDown.CuffedBypass   = d.PatDown.CuffedBypass
         MBT.PatDown.ShowAmmo       = d.PatDown.ShowAmmo
         MBT.PatDown.MaxDistance    = d.PatDown.MaxDistance
-        MBT.PatDown.Logging = MBT.PatDown.Logging or {}
-        MBT.PatDown.Logging.Enabled = d.PatDown.Logging.Enabled
-        MBT.PatDown.Logging.Webhook = d.PatDown.Logging.Webhook
     end
     if MBT.AmmoSharing then
         MBT.AmmoSharing.Enabled     = d.AmmoSharing.Enabled
@@ -587,7 +568,7 @@ local function persistable(d)
         Sounds = { Enabled = d.Sounds.Enabled, MaxDistance = d.Sounds.MaxDistance, Volume = d.Sounds.Volume },
         WeaponDrop = {
             WeaponModelProp = d.WeaponDrop.WeaponModelProp, OxTargetPickup = d.WeaponDrop.OxTargetPickup,
-            Despawn = d.WeaponDrop.Despawn, Logging = d.WeaponDrop.Logging,
+            Despawn = d.WeaponDrop.Despawn,
         },
         Jamming = d.Jamming,
         SuppressorHeat = d.SuppressorHeat,
@@ -613,17 +594,6 @@ local function persistable(d)
         PatDown = d.PatDown,
         AmmoSharing = d.AmmoSharing,
     }
-end
-
---- Strip server-only secrets (Discord webhook URLs) before config goes to CLIENTS.
---- Security: broadcast + getRuntimeConfig reach EVERY client; without this any player
---- could read the webhooks and spam Discord. The ACE-gated admin snapshot keeps them.
-local function stripWebhooks(d)
-    local out = json.decode(json.encode(d))
-    if out.WeaponDrop and out.WeaponDrop.Logging then out.WeaponDrop.Logging.Webhook = '' end
-    if out.WeaponRack and out.WeaponRack.Logging then out.WeaponRack.Logging.Webhook = '' end
-    if out.PatDown   and out.PatDown.Logging   then out.PatDown.Logging.Webhook   = '' end
-    return out
 end
 
 --- Deep-merge SAVED values onto the live template: only template keys are read (type-checked), missing ones keep their config.lua default — so an older saved config auto-migrates to new defaults, never wiping state.
@@ -760,14 +730,14 @@ RegisterNetEvent('mbt_malisling:adminSave', function(data)
     else
         Utils.mbtWarn('config ~ oxmysql not started; save applied live but NOT persisted')
     end
-    TriggerClientEvent('mbt_malisling:applyConfig', -1, stripWebhooks(payload))
+    TriggerClientEvent('mbt_malisling:applyConfig', -1, payload)   -- no secrets in payload (webhooks live in config.lua)
     Utils.mbtDebugger('Admin config saved by player', src)
 end)
 
 -- Clients fetch the live config on (re)init so a restart or fresh join picks it up
 -- without needing a save. Returns the editable snapshot applyConfig consumes.
 lib.callback.register('mbt_malisling:getRuntimeConfig', function()
-    return stripWebhooks(persistable(snapshot()))
+    return persistable(snapshot())
 end)
 
 AddEventHandler('onServerResourceStart', function(resource)

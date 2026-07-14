@@ -356,12 +356,13 @@ MBT.WeaponDrop         = {
         Seconds     = 300,   -- 5 min on the ground before it disappears
         BlinkLastSec = 10,   -- blink during the final N seconds (0 = no blink)
     },
-    -- Logging: send a Discord webhook for every weapon drop/throw/death-drop —
-    -- who, what weapon, serial, coords, timestamp. Server-side; useful for admin
-    -- audit / anti-abuse. Requires a Webhook URL (no webhook = no logging).
+    -- Logging: Discord webhook for every weapon drop/throw/death-drop — who, weapon,
+    -- serial, coords. Server-side admin audit / anti-abuse. The Webhook URL is a
+    -- server-only secret → set it in config.lua (NOT here, NOT the dashboard).
+    -- No webhook = no logging.
     Logging = {
         Enabled  = true,
-        Webhook  = '',       -- Discord webhook URL (required for logging to work)
+        Webhook  = '',       -- filled server-side in config.lua (IsDuplicityVersion guard)
         BotName  = 'MBT Malisling',
     },
 }
@@ -493,11 +494,11 @@ MBT.WeaponRack         = {
     -- Optional map blip per rack location.
     Blip                = { Enabled = false, Sprite = 110, Color = 1, Scale = 0.8, Label = 'Armory' },
     -- Armory audit log → Discord webhook: who stored/took which weapon (serial included)
-    -- at which rack, with their job. Same pattern as WeaponDrop.Logging — set the URL
-    -- here or from the dashboard (World → Weapon Rack). Empty URL = logging off.
+    -- at which rack, with their job. Webhook URL is a server-only secret → set it in
+    -- config.lua (NOT here, NOT the dashboard). Empty URL = logging off.
     Logging             = {
         Enabled = true,
-        Webhook = '',
+        Webhook = '',       -- filled server-side in config.lua
         BotName = 'MBT Armory',
     },
     -- ── Player placement (inventory item) ──────────────────────────────────────────
@@ -654,7 +655,8 @@ MBT.PatDown            = {
     Animation     = {
         CopDict = 'mp_arresting', CopAnim = 'a_uncuff', CopMs = 2600,   -- officer frisking gesture
     },
-    -- Audit webhook (officer · suspect · weapons · serials · concealment). Empty = off.
+    -- Audit webhook (officer · suspect · weapons · serials · concealment). Server-only
+    -- secret → set the URL in config.lua (NOT the dashboard). Empty = off.
     Logging       = { Enabled = true, Webhook = '', BotName = 'MBT Pat-Down' },
 }
 

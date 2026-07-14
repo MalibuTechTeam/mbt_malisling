@@ -105,12 +105,6 @@ export function WeaponRackSection({ config, update }: SectionProps) {
       </Grid2>
       <ToggleRow title="Retrieve to Hand" desc="Take the weapon straight into hand (ox + qb)"
         checked={!!t.EquipOnRetrieve} onChange={(v) => update('WeaponRack.EquipOnRetrieve', v)} />
-      <ToggleRow title="Armory Log" desc="Log store and take (player, job, weapon, serial) to Discord"
-        checked={!!t.Logging?.Enabled} onChange={(v) => update('WeaponRack.Logging.Enabled', v)} />
-      <FieldBlock label="Discord Webhook" hint="Required — the armory log needs a webhook URL." style={{ marginBottom: 0 }}>
-        <input className="mbt-input" value={t.Logging?.Webhook ?? ''} placeholder="https://discord.com/api/webhooks/..."
-          onChange={(e) => update('WeaponRack.Logging.Webhook', e.target.value)} />
-      </FieldBlock>
       <FieldBlock label="Item Placement" hint="Players place their own racks from an inventory item.">
         <ToggleRow title="Enable Placement" desc="Install a rack in the world from the rack item (needs oxmysql)"
           checked={!!t.Placement?.Enabled} onChange={(v) => update('WeaponRack.Placement.Enabled', v)} />

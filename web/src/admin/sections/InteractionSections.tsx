@@ -186,7 +186,6 @@ export function AmmoSharingSection({ config, update }: SectionProps) {
 /** Pat-down — police frisk a nearby person for weapons (open vs concealed). */
 export function PatDownSection({ config, update }: SectionProps) {
   const p = config.PatDown ?? {}
-  const l = p.Logging ?? {}
   return (
     <Section icon="search" title="PAT-DOWN" sub="Police frisk a person for weapons — open vs concealed."
       action={<ToggleRow.Inline checked={!!p.Enabled} onChange={(v) => update('PatDown.Enabled', v)} />}>
@@ -200,14 +199,8 @@ export function PatDownSection({ config, update }: SectionProps) {
         <NumberInput min={1} max={10} step={0.5} value={String(p.MaxDistance ?? 2.0)}
           onChange={numUpdate(update, 'PatDown.MaxDistance', 2.0)} />
       </FieldBlock>
-      <ToggleRow title="Audit Log" desc="Log each frisk (officer, suspect, weapons, serials) to Discord"
-        checked={!!l.Enabled} onChange={(v) => update('PatDown.Logging.Enabled', v)} />
-      <FieldBlock label="Discord Webhook" hint="Required for the audit log." style={{ marginBottom: 0 }}>
-        <input className="mbt-input" value={l.Webhook ?? ''} placeholder="https://discord.com/api/webhooks/..."
-          onChange={(e) => update('PatDown.Logging.Webhook', e.target.value)} />
-      </FieldBlock>
       <div className="mbt-field__hint" style={{ marginTop: 2 }}>
-        The frisk key and allowed jobs live in <code>config.lua</code> (<code>MBT.PatDown</code>).
+        The frisk key, allowed jobs, and the audit-log Discord webhook live in <code>config.lua</code> (<code>MBT.PatDown</code>).
       </div>
     </Section>
   )
@@ -300,8 +293,6 @@ const SERIAL_REVEALS = [
 ]
 export function ShellCasingsSection({ config, update }: SectionProps) {
   const s = config.ShellCasings ?? {}
-  const reveal = s.SerialReveal ?? 'partial'
-  const casingSerial = reveal === 'none' ? 'Not recoverable' : reveal === 'full' ? 'A7F-3K9Q' : 'A7••••9Q'
   return (
     <Section icon="search" title="SHELL CASINGS" sub="Gunfire leaves serial-linked casings on the ground (Forensics)."
       action={<ToggleRow.Inline checked={!!s.Enabled} onChange={(v) => update('ShellCasings.Enabled', v)} />}>
@@ -324,20 +315,6 @@ export function ShellCasingsSection({ config, update }: SectionProps) {
       <FieldBlock label="World Cap" hint="Max casings in the world (oldest removed first)." style={{ marginBottom: 0 }}>
         <NumberInput min={10} max={1000} step={10} value={String(s.MaxCasings ?? 150)}
           onChange={numUpdate(update, 'ShellCasings.MaxCasings', 150, true)} />
-      </FieldBlock>
-      <FieldBlock label="Casing Evidence" hint="What an investigator recovers from a casing — reflects Serial Reveal." style={{ marginBottom: 0, flex: 1 }}>
-        <div className="mbt-prev">
-          <div className="mbt-prev__hero">
-            <span className="mbt-prev__ic"><Icon name="search" size={20} /></span>
-            <span className="mbt-prev__title">9mm Casing</span>
-            <span className="mbt-prev__tag">EVIDENCE</span>
-          </div>
-          <div className="mbt-prev__div" />
-          <div className="mbt-prev__rows">
-            <div className="mbt-prev__row"><span>Serial</span><b className={reveal === 'none' ? 'is-warn' : ''}>{casingSerial}</b></div>
-            <div className="mbt-prev__row"><span>Recovered</span><b>just now</b></div>
-          </div>
-        </div>
       </FieldBlock>
     </Section>
   )

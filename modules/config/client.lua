@@ -67,10 +67,7 @@ local function applyConfig(d)
             MBT.WeaponDrop.Despawn.Seconds      = d.WeaponDrop.Despawn.Seconds
             MBT.WeaponDrop.Despawn.BlinkLastSec = d.WeaponDrop.Despawn.BlinkLastSec
         end
-        if d.WeaponDrop.Logging and MBT.WeaponDrop.Logging then
-            MBT.WeaponDrop.Logging.Enabled = d.WeaponDrop.Logging.Enabled
-            MBT.WeaponDrop.Logging.Webhook = d.WeaponDrop.Logging.Webhook
-        end
+        -- WeaponDrop.Logging is server-only (config.lua); the client never fires webhooks.
     end
     if d.Jamming and MBT.Jamming then
         MBT.Jamming.Enabled  = d.Jamming.Enabled

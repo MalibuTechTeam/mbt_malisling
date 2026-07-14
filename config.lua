@@ -76,3 +76,19 @@ MBT.Notification       = function(data)
     -- mbt_visual (our own notification system):
     -- exports.mbt_visual:notify({ title = data.title, description = data.description, type = data.type or 'inform', icon = data.icon, duration = data.duration or 5000 })
 end
+
+-- ── Discord audit-log webhooks — SERVER-ONLY secrets ───────────────────────────
+-- Set here, NOT in the dashboard: a webhook URL is a secret, and the dashboard is
+-- client-rendered NUI. This block is guarded by IsDuplicityVersion() (true only on
+-- the server) so the URLs NEVER reach any client, and they're never stored in the DB.
+-- Paste your Discord webhook URL to enable that audit log; leave '' (the default) to
+-- keep it off. No webhook = no logging.
+if IsDuplicityVersion() then
+    MBT.WeaponDrop.Logging.Webhook = ''   -- weapon drop / throw / death-drop (who, weapon, serial, coords)
+    MBT.WeaponRack.Logging.Webhook = ''   -- armory rack store/take (who, weapon, serial, job, rack)
+    MBT.PatDown.Logging.Webhook    = ''   -- frisk (officer, suspect, weapons, serials, concealment)
+
+    -- Optional: force a feature's log off even with a URL set, or rename the bot.
+    -- MBT.WeaponDrop.Logging.Enabled = false
+    -- MBT.WeaponDrop.Logging.BotName = 'MBT Malisling'
+end

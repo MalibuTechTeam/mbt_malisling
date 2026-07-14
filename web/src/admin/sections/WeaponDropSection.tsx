@@ -2,8 +2,9 @@ import { Section, ToggleRow, FieldBlock, Grid2, type SectionProps } from './part
 import { NumberInput } from '../ui/NumberInput'
 
 /**
- * Weapon Drop — three atomic cards (Drop Visual, Despawn Timer, Drop Logging) so
- * the Core category page can order and place them independently in the grid.
+ * Weapon Drop — two atomic cards (Drop Visual, Despawn Timer) so the Core category
+ * page can order and place them independently in the grid. Drop logging is a Discord
+ * webhook (a server-only secret) → configured in config.lua, not the dashboard.
  */
 
 /** DROP VISUAL — rendered drop model + ox_target pickup. */
@@ -40,17 +41,3 @@ export function DespawnSection({ config, update }: SectionProps) {
   )
 }
 
-/** DROP LOGGING — Discord webhook audit of weapon drops. */
-export function DropLoggingSection({ config, update }: SectionProps) {
-  const dl = (config.WeaponDrop ?? {}).Logging ?? {}
-  return (
-    <Section icon="clipboard" title="DROP LOGGING" sub="Log weapon drops to a Discord webhook.">
-      <ToggleRow title="Enable Logging" desc="Log drops (death, throw, manual) to Discord"
-        checked={!!dl.Enabled} onChange={(v) => update('WeaponDrop.Logging.Enabled', v)} />
-      <FieldBlock label="Discord Webhook" hint="Required — logging needs a webhook URL." style={{ marginBottom: 0 }}>
-        <input className="mbt-input" value={dl.Webhook ?? ''} placeholder="https://discord.com/api/webhooks/..."
-          onChange={(e) => update('WeaponDrop.Logging.Webhook', e.target.value)} />
-      </FieldBlock>
-    </Section>
-  )
-}

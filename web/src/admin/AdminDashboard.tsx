@@ -5,7 +5,7 @@ import { Icon, type IconName } from './ui/Icon'
 import type { SectionProps } from './sections/parts'
 import { CoreSection, InterfaceSection } from './sections/GeneralSection'
 import { HolsterSection } from './sections/HolsterSection'
-import { DropVisualSection, DespawnSection, DropLoggingSection } from './sections/WeaponDropSection'
+import { DropVisualSection, DespawnSection } from './sections/WeaponDropSection'
 import { JammingSection, SuppressorSection, SafetySection, ChargeSection, WeightSection, LowReadySection } from './sections/CombatSections'
 import { InspectSection, WeaponNameSection, PosesSection, ThrowSection, ChainOfCustodySection, ShellCasingsSection, HandoffSection, SerialsSection, ConcealedCarrySection, PatDownSection, AmmoSharingSection } from './sections/InteractionSections'
 import { NoDrawSection, VehicleSection, TrunkRackSection, WeaponRackSection, TrunkPositionsSection } from './sections/WorldSections'
@@ -39,7 +39,7 @@ const CATEGORIES: Category[] = [
     // Height-paired for the equal-height grid: the two tall cards (Core's 3 toggles,
     // Interface's 2x2 placement picker) share row 1; the three ~equal mid cards fill
     // rows 2-3 with the shortest (Drop Visual) closing — keeps the columns balanced.
-    sections: [CoreSection, InterfaceSection, HolsterSection, DespawnSection, DropLoggingSection, DropVisualSection] },
+    sections: [CoreSection, InterfaceSection, HolsterSection, DespawnSection, DropVisualSection] },
   { id: 'handling',    label: 'Handling',    hint: 'Feel and combat RP',     icon: 'target',
     // Ordered to pair similar heights for the equal-height grid: the two tall
     // cards (Suppressor, Safety) share row 1; the two short 2-input cards
@@ -69,7 +69,6 @@ const FEATURES: { label: string; path: string; cat: string }[] = [
   // Core — sling, holster, drop (in page-card order).
   { label: 'Holster Sounds', path: 'Sounds.Enabled',              cat: 'Core' },
   { label: 'Drop Despawn',   path: 'WeaponDrop.Despawn.Enabled',  cat: 'Core' },
-  { label: 'Drop Logging',   path: 'WeaponDrop.Logging.Enabled',  cat: 'Core' },
   { label: 'Tactical Sling', path: 'TacticalSling.Enabled',       cat: 'Core' },
   // Handling — feel and combat RP.
   { label: 'Suppressor Heat',path: 'SuppressorHeat.Enabled',      cat: 'Handling' },

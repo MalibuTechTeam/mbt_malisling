@@ -38,7 +38,7 @@ const DEV_SCENARIO = 'healthy' as 'healthy' | 'critical' | 'warning' | 'both'
 const MOCK_ADMIN_CONFIG = {
   EnableSling: true, EnableFlashlight: true, DropWeaponOnDeath: true, UIPosition: 'bottom-center', UIStyle: 'standard', Language: 'en',
   Sounds: { Enabled: true, MaxDistance: 8.0, Volume: 0.3 },
-  WeaponDrop: { WeaponModelProp: true, OxTargetPickup: true, Despawn: { Enabled: true, Seconds: 300, BlinkLastSec: 10 }, Logging: { Enabled: false, Webhook: '' } },
+  WeaponDrop: { WeaponModelProp: true, OxTargetPickup: true, Despawn: { Enabled: true, Seconds: 300, BlinkLastSec: 10 } },
   Jamming: { Enabled: true, Cooldown: 5, UnjamPresses: 5 },
   SuppressorHeat: { Enabled: true, Mode: 'glow', HeatPerShot: 5, DecayRate: 16, WarmThreshold: 35, HotThreshold: 75 },
   Safety: { Enabled: true, DefaultOn: true, PerWeapon: true, HudIndicator: true },
@@ -53,13 +53,13 @@ const MOCK_ADMIN_CONFIG = {
   NoDrawZones: { Enabled: true, AllowMelee: true, HudIndicator: true, NotifyCooldown: 3000 },
   VehicleHiding: { Enabled: true, UseRoofCheck: true },
   VehicleTrunkRack: { Enabled: true, Capacity: 2, InteractionDistance: 2.5, EquipOnRetrieve: true, AllowedTypes: { back: true, back2: true } },
-  WeaponRack: { Enabled: true, Capacity: 4, InteractionDistance: 2.0, EquipOnRetrieve: true, AllowedTypes: { back: true, back2: true, side: true }, Logging: { Enabled: false, Webhook: '' }, Placement: { Enabled: true, MaxPerPlayer: 2, AllowPickup: true, Access: 'owner' } },
+  WeaponRack: { Enabled: true, Capacity: 4, InteractionDistance: 2.0, EquipOnRetrieve: true, AllowedTypes: { back: true, back2: true, side: true }, Placement: { Enabled: true, MaxPerPlayer: 2, AllowPickup: true, Access: 'owner' } },
   TacticalSling: { Enabled: false },
   ShellCasings: { Enabled: true, Chance: 0.5, ExpireMinutes: 30, MaxCasings: 150, SerialReveal: 'partial', AllowCollect: true },
   Handoff: { Enabled: true, MaxDistance: 2.5, EquipOnAccept: true },
   Serials: { EnsureGeneration: true, Format: 'marked', SweepOnLoad: true },
   ConcealedCarry: { Enabled: true, ToggleCooldownMs: 3000, Tell: { Enabled: true, RollSeconds: 25, ChanceGood: 0.15, ChancePoor: 0.45 } },
-  PatDown: { Enabled: true, RequireConsent: true, CuffedBypass: true, ShowAmmo: true, MaxDistance: 2.0, Logging: { Enabled: false, Webhook: '' } },
+  PatDown: { Enabled: true, RequireConsent: true, CuffedBypass: true, ShowAmmo: true, MaxDistance: 2.0 },
   AmmoSharing: { Enabled: true, ShareAmount: 30, MaxDistance: 2.5 },
 }
 
