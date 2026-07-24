@@ -84,6 +84,8 @@ local function spawnStrap(ped)
     AttachEntityToEntity(obj, ped, bone,
         pos.x + 0.0, pos.y + 0.0, pos.z + 0.0, rot.x + 0.0, rot.y + 0.0, rot.z + 0.0,
         true, true, false, info.isPed == true, math.floor(tonumber(info.RotOrder) or 2), info.FixedRot ~= false)
+    -- Born matching the ped: on relog/multichar the ped is faded out while we spawn the strap.
+    Utils.syncPropAlpha(obj, GetEntityAlpha(ped))
     strapObj = obj
 end
 
@@ -101,6 +103,10 @@ CreateThread(function()
                 spawnStrap(ped)
             elseif not want and strapObj then
                 removeStrap()
+            elseif strapObj and DoesEntityExist(strapObj) then
+                -- The ped's alpha doesn't reach attached props; follow it so the strap fades
+                -- with its wearer (multichar switch / relog) instead of floating alone.
+                Utils.syncPropAlpha(strapObj, GetEntityAlpha(ped))
             end
         elseif (not cfg.Enabled or slingEditing) and strapObj then
             removeStrap()   -- toggled off / editing → drop the strap immediately

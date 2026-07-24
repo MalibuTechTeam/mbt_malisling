@@ -43,6 +43,21 @@ function Utils.containsValue(array, value)
     return false, -1
 end
 
+--- Match an attached prop's alpha to the ped wearing it. A ped's alpha does NOT
+--- propagate to attached entities, so a script that fades a ped out (multichar
+--- switch and relog commonly hold it at 0 for ~2s) leaves our props hanging in
+--- mid-air. Any alpha is honoured, not just 0/255, so partial fades work too.
+---@param prop number
+---@param pedAlpha number  0-255, from GetEntityAlpha on the owner ped
+function Utils.syncPropAlpha(prop, pedAlpha)
+    if GetEntityAlpha(prop) == pedAlpha then return end
+    if pedAlpha < 255 then
+        SetEntityAlpha(prop, pedAlpha, false)
+    else
+        ResetEntityAlpha(prop)   -- cleaner than SetEntityAlpha(255): clears the override outright
+    end
+end
+
 function Utils.tableDeepCopy(t)
     local copy = {}
 

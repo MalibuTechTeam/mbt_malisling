@@ -784,6 +784,10 @@ AddEventHandler('mbt_malisling:syncSling', function (data)
                     P.x + 0.0, P.y + 0.0, P.z + 0.0, R.x + 0.0, R.y + 0.0, R.z + 0.0,
                     true, true, false, attachInfo["isPed"], attachInfo["RotOrder"], attachInfo["FixedRot"])
                 SetEntityCompletelyDisableCollision(weaponData.weaponObj, false, true)
+                -- Match the ped's alpha at birth: on relog/multichar the ped is faded to 0 while
+                -- we re-spawn its slung weapons, and waiting for the sync tick would flash the
+                -- prop in mid-air over an otherwise invisible player.
+                Utils.syncPropAlpha(weaponData.weaponObj, GetEntityAlpha(playerPed))
                 SetFlashLightKeepOnWhileMoving(true)
                 Utils.mbtDebugger("syncSling ~ Apply attachments to weapon obj!")
                 playersToTrack[data.playerSource][weaponType] = weaponData.weaponObj
@@ -812,13 +816,16 @@ CreateThread(function()
     end
 end)
 
--- ── Slung prop visibility sync ────────────────────────────────────────────────
--- Keeps each tracked weapon prop's visibility in sync with its owner ped. When a
--- ped is made invisible by a third-party script (admin noclip being the common
--- case), the weapon props attached to it would otherwise stay visible and appear
--- to float in mid-air. Covers the local player and every tracked remote player
--- (handles networked noclip). The vehicle path deletes props rather than hiding
--- them, so the `type(v) == "number"` check naturally skips those entries.
+-- ── Slung prop visibility + alpha sync ────────────────────────────────────────
+-- Keeps each tracked weapon prop in sync with its owner ped on BOTH channels a
+-- third-party script can use to hide someone:
+--   * visibility flag — admin noclip is the common case (SetEntityVisible)
+--   * alpha           — multichar switch / relog fade the ped to 0 for ~2s while
+--                       the right outfit is applied (SetEntityAlpha)
+-- They're independent: a ped at alpha 0 still reports IsEntityVisible() == true,
+-- so syncing visibility alone left the props hanging in mid-air during a relog.
+-- Covers the local player and every tracked remote player. The vehicle path
+-- deletes props rather than hiding them, so `type(v) == "number"` skips those.
 CreateThread(function()
     while true do
         Wait(500)
@@ -836,10 +843,13 @@ CreateThread(function()
             if ped and ped ~= 0 and DoesEntityExist(ped)
                and (serverId == cache.serverId or #(mc - GetEntityCoords(ped)) < 80.0) then
                 local pedVisible = IsEntityVisible(ped)
+                local pedAlpha   = GetEntityAlpha(ped)
                 for _, v in pairs(props) do
-                    if type(v) == "number" and DoesEntityExist(v)
-                       and IsEntityVisible(v) ~= pedVisible then
-                        SetEntityVisible(v, pedVisible, 0)
+                    if type(v) == "number" and DoesEntityExist(v) then
+                        if IsEntityVisible(v) ~= pedVisible then
+                            SetEntityVisible(v, pedVisible, 0)
+                        end
+                        Utils.syncPropAlpha(v, pedAlpha)
                     end
                 end
             end
