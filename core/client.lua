@@ -762,6 +762,13 @@ AddEventHandler('mbt_malisling:syncSling', function (data)
                 playersToTrack[data.playerSource][weaponType] = false   -- release reservation
             else
                 Utils.mbtDebugger("syncSling ~ Weapon object created! ", weaponData.name, playerPed, boneIndex, attachInfo["Pos"][pedSex]["x"], attachInfo["Pos"][pedSex]["y"], attachInfo["Pos"][pedSex]["z"])
+                -- Hide it for the whole spawn window. CreateWeaponObject drops a physics-enabled
+                -- weapon at the player's feet, and it stays loose there — falling, tumbling —
+                -- through the component pass and the flashlight Wait below (up to ~550ms) until
+                -- the attach snaps it to the bone. That tumble is what you see on a restart.
+                -- The visibility tick can't reveal it early: the slot still holds the boolean
+                -- sentinel, and that loop only touches number handles.
+                SetEntityVisible(weaponData.weaponObj, false, 0)
                 local hasObjFlashlight = applyAttachments(weaponData)
                 -- Light the slung prop only when it ACTUALLY received a flashlight component
                 -- AND the saved state says it was on. The component check prevents a weapon
@@ -784,9 +791,10 @@ AddEventHandler('mbt_malisling:syncSling', function (data)
                     P.x + 0.0, P.y + 0.0, P.z + 0.0, R.x + 0.0, R.y + 0.0, R.z + 0.0,
                     true, true, false, attachInfo["isPed"], attachInfo["RotOrder"], attachInfo["FixedRot"])
                 SetEntityCompletelyDisableCollision(weaponData.weaponObj, false, true)
-                -- Match the ped's alpha at birth: on relog/multichar the ped is faded to 0 while
-                -- we re-spawn its slung weapons, and waiting for the sync tick would flash the
-                -- prop in mid-air over an otherwise invisible player.
+                -- In place at last — reveal it, matching whatever the owner is doing on both
+                -- channels: hidden (noclip) and faded out (relog/multichar fade the ped to 0
+                -- while we re-spawn its weapons, and the sync tick would flash them meanwhile).
+                SetEntityVisible(weaponData.weaponObj, IsEntityVisible(playerPed), 0)
                 Utils.syncPropAlpha(weaponData.weaponObj, GetEntityAlpha(playerPed))
                 SetFlashLightKeepOnWhileMoving(true)
                 Utils.mbtDebugger("syncSling ~ Apply attachments to weapon obj!")
