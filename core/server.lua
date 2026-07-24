@@ -2,7 +2,8 @@
 -- the script's server callbacks, so bailing here leaves the whole resource inert on a rename.
 if not Utils.MbtResourceNameCheck('mbt_malisling') then return end
 
-lib.versionCheck('MalibuTechTeam/mbt_malisling')
+-- Version check lives in modules/version/server.lua: it also feeds the dashboard badge,
+-- which lib.versionCheck can't do (console-only, result not exposed).
 
 local isReady = false
 playersToTrack = {}

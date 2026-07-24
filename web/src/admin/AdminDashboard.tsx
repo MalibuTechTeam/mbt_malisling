@@ -114,6 +114,7 @@ export default function AdminDashboard() {
   const [closing, setClosing] = useState(false)     // playing the exit animation before unmount
   const [oxPatch, setOxPatch] = useState<string | false>(false) // ox auto-patch failure reason (CRITICAL → center alert)
   const [warnings, setWarnings] = useState<{ code: string; msg: string }[]>([]) // non-critical integration warnings → discreet right chips
+  const [updateInfo, setUpdateInfo] = useState<{ current: string; latest: string; url: string } | null>(null) // newer release on GitHub, else null
   const baseline = useRef('')                       // last-saved snapshot
   const closeTimer = useRef<number | null>(null)    // deferred-unmount timer
 
@@ -124,6 +125,7 @@ export default function AdminDashboard() {
     if (data?.version) setVersion(data.version)
     setOxPatch(typeof data?.oxPatch === 'string' ? data.oxPatch : false)
     setWarnings(Array.isArray(data?.warnings) ? data.warnings : [])
+    setUpdateInfo(data?.update?.latest ? data.update : null)
     setActive('core')
     setEditing(null)
     setTrunkEditing(null)
@@ -268,6 +270,16 @@ export default function AdminDashboard() {
             <div><b>Running</b><small>Resource status</small></div>
             <span className="ver">{version}</span>
           </div>
+
+          {/* Newer release on GitHub. target=_blank hands the URL to FiveM's own
+              external-link confirmation overlay — the only way out of CEF. */}
+          {updateInfo && (
+            <a className="mbt-rail__update" href={updateInfo.url} target="_blank" rel="noreferrer"
+               title={`${updateInfo.current} → ${updateInfo.latest}`}>
+              <span className="udot" />
+              <div><b>Update available</b><small>{updateInfo.latest} on GitHub</small></div>
+            </a>
+          )}
         </nav>
 
         {/* ── Center ── */}

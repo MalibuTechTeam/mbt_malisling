@@ -683,6 +683,7 @@ local function openFor(src)
     TriggerClientEvent('mbt_malisling:openAdmin', src, {
         config   = snapshot(),
         version  = GetResourceMetadata(GetCurrentResourceName(), 'version', 0) or 'v2',
+        update   = MBT.UpdateInfo,          -- {current, latest, url} when a newer release exists, else nil
         oxPatch  = oxPatchStatus or false,   -- 'ok' | reason | false → sidebar status
         warnings = warnings,
     })

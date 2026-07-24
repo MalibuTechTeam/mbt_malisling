@@ -13,6 +13,11 @@ MBT = MBT or {}
 MBT.Debug              = false  -- dev logging; intentionally NOT exposed in the dashboard
 MBT.Language           = 'en'   -- read-only in the dashboard; set the server language here
 
+-- One request to the GitHub Releases API at startup; shows an "Update available" badge
+-- in the dashboard (and a console line) when a newer release exists. Set to false if you
+-- don't want the server making outbound HTTP calls. Nothing else is sent — it's a plain GET.
+MBT.VersionCheck       = true
+
 -- ── Admin ─────────────────────────────────────────────────────────────────────
 MBT.Admin              = {
     Command    = 'mbtsling',          -- chat command that opens the admin dashboard

@@ -25,6 +25,7 @@ shared_scripts {
 server_scripts {
     'modules/ox_patch/installer.js',
     'modules/utils/server.lua',
+    'modules/version/server.lua',
     'modules/weapon_sounds/server.lua',
     'modules/bridge/esx/server.lua',
     'modules/bridge/ox/server.lua',
