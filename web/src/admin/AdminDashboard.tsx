@@ -265,21 +265,31 @@ export default function AdminDashboard() {
             <span className="mbt-rail__tx"><span className="mbt-rail__label">Exit</span></span>
           </button>
 
-          <div className="mbt-rail__status">
-            <span className="sdot" />
-            <div><b>Running</b><small>Resource status</small></div>
-            <span className="ver">{version}</span>
-          </div>
-
-          {/* Newer release on GitHub. target=_blank hands the URL to FiveM's own
-              external-link confirmation overlay — the only way out of CEF. */}
-          {updateInfo && (
-            <a className="mbt-rail__update" href={updateInfo.url} target="_blank" rel="noreferrer"
-               title={`${updateInfo.current} → ${updateInfo.latest}`}>
-              <span className="udot" />
-              <div><b>Update available</b><small>{updateInfo.latest} on GitHub</small></div>
-            </a>
-          )}
+          {/* One card, two states: the version you run and whether it's current are the
+              same fact about the same thing, so an update recolours this card instead of
+              stacking a second one. As a link, target=_blank hands the URL to FiveM's own
+              external-link overlay — the only way out of CEF. */}
+          {(() => {
+            const Tag = updateInfo ? 'a' : 'div'
+            const linkProps = updateInfo
+              ? { href: updateInfo.url, target: '_blank', rel: 'noreferrer',
+                  title: `${updateInfo.current} → ${updateInfo.latest} — open the release page` }
+              : {}
+            return (
+              <Tag className={`mbt-rail__status${updateInfo ? ' has-update' : ''}`} {...linkProps}>
+                <span className="sdot" />
+                <div>
+                  {/* An update takes over the primary line — on the secondary one it read as
+                      decoration and got missed. "Running" is what the green dot already says. */}
+                  <b>{updateInfo ? 'Update available' : 'Running'}</b>
+                  <small>{updateInfo ? `${updateInfo.latest} on GitHub` : 'Resource status'}</small>
+                </div>
+                {/* The chip is dropped while updating: the card is about the NEW version, so
+                    repeating the one you're on just competes with it. */}
+                {!updateInfo && <span className="ver">{version}</span>}
+              </Tag>
+            )
+          })()}
         </nav>
 
         {/* ── Center ── */}

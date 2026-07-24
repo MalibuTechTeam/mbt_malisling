@@ -34,6 +34,10 @@ const DEV_PREVIEW = 'admin' as 'admin' | 'overlays'
 //   'both'     → critical banner + warning chip together
 const DEV_SCENARIO = 'healthy' as 'healthy' | 'critical' | 'warning' | 'both'
 
+// Preview the "Update available" rail badge. In-game it only appears when the GitHub
+// release is actually newer, so flip this to see (and style) it in the browser.
+const DEV_UPDATE = false
+
 // Full mock of the server config snapshot (modules/config/server.lua → snapshot()).
 const MOCK_ADMIN_CONFIG = {
   EnableSling: true, EnableFlashlight: true, DropWeaponOnDeath: true, UIPosition: 'bottom-center', UIStyle: 'standard', Language: 'en',
@@ -72,6 +76,9 @@ if (DEV_PREVIEW === 'admin') {
       warnings: (DEV_SCENARIO === 'warning' || DEV_SCENARIO === 'both')
         ? [{ code: 'qb_weapdraw', msg: 'qb-weapons detected — disable weapdraw.lua for correct holster/switch animations.' }]
         : [],
+      update: DEV_UPDATE
+        ? { current: '2.0.0', latest: '2.1.0', url: 'https://github.com/MalibuTechTeam/mbt_malisling/releases/tag/v2.1.0' }
+        : undefined,
     },
   }], 300)
 }

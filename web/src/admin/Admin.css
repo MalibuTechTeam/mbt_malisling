@@ -135,25 +135,28 @@
 .mbt-rail__status small { font-size: 10px; color: var(--mbt-text-lo); }
 .mbt-rail__status .ver { margin-left: auto; font-family: var(--mbt-font-mono); font-size: 9px; color: var(--mbt-text-faint); }
 
-/* Update-available badge — same shape as the status block below it, amber-tinted
-   (informational, not an error) and clickable: it opens the release page through
-   FiveM's external-link overlay. Only rendered when a newer release exists. */
-.mbt-rail__update {
-  display: flex; align-items: center; gap: 9px;
-  padding: 11px; margin-top: 8px;
+/* Update-available state of the SAME status card (no second card: the version you run
+   and whether it's current are one fact). Amber = informational, not an error — the
+   dot stays green because the resource is still running fine. Becomes a link to the
+   release page, so it also gets a hover. */
+.mbt-rail__status.has-update {
   background: rgba(var(--mbt-hacked-rgb), 0.10);
-  border: 1px solid rgba(var(--mbt-hacked-rgb), 0.30);
-  border-radius: var(--mbt-r-md);
+  border-color: rgba(var(--mbt-hacked-rgb), 0.30);
   text-decoration: none; cursor: pointer;
   transition: background var(--mbt-dur-fast) var(--mbt-ease), border-color var(--mbt-dur-fast) var(--mbt-ease);
 }
-.mbt-rail__update:hover { background: rgba(var(--mbt-hacked-rgb), 0.17); border-color: rgba(var(--mbt-hacked-rgb), 0.45); }
-.mbt-rail__update .udot { width: 7px; height: 7px; flex: none; border-radius: 50%; background: var(--mbt-hacked); box-shadow: 0 0 8px var(--mbt-hacked); animation: mbt-update-pulse 2.4s ease-in-out infinite; }
-.mbt-rail__update b { font-size: 11px; font-weight: 600; color: var(--mbt-hacked); display: block; }
-.mbt-rail__update small { font-size: 10px; color: var(--mbt-text-lo); }
+.mbt-rail__status.has-update:hover { background: rgba(var(--mbt-hacked-rgb), 0.17); border-color: rgba(var(--mbt-hacked-rgb), 0.45); }
+/* The headline carries the signal (amber + a pulsing dot); the version chip keeps showing
+   what you RUN — tinting that amber would read as "this is the new one". */
+.mbt-rail__status.has-update b { color: var(--mbt-hacked); }
+.mbt-rail__status.has-update .sdot {
+  background: var(--mbt-hacked);
+  box-shadow: 0 0 8px var(--mbt-hacked);
+  animation: mbt-update-pulse 2.4s ease-in-out infinite;
+}
 
 @keyframes mbt-update-pulse { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
-@media (prefers-reduced-motion: reduce) { .mbt-rail__update .udot { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .mbt-rail__status.has-update .sdot { animation: none; } }
 
 /* ── Center ────────────────────────────────────────────────────────────── */
 /* scrollbar-gutter:stable reserves the bar's width so the grid never reflows
