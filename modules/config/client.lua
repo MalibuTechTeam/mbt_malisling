@@ -19,9 +19,39 @@ if MBT.Admin and type(MBT.Admin.Key) == 'string' and MBT.Admin.Key ~= '' then
     RegisterKeyMapping('mbt_malisling:openAdmin', '[MBT] Open admin dashboard', 'keyboard', MBT.Admin.Key)
 end
 
+local dashboardOpen = false
+
+--- Shut the dashboard from the GAME side (death, resource stop) rather than the
+--- user clicking Exit. Focus is released here because the NUI's game-initiated
+--- close path deliberately skips the adminClose callback.
+local function forceCloseAdmin()
+    if not dashboardOpen then return end
+    dashboardOpen = false
+    SetNuiFocus(false, false)
+    SendNUIMessage({ action = 'closeAdmin', data = {} })
+end
+
 RegisterNetEvent('mbt_malisling:openAdmin', function(payload)
     SendNUIMessage({ action = 'openAdmin', data = payload or {} })
     SetNuiFocus(true, true)
+    dashboardOpen = true
+    -- Watcher lives only as long as the panel does (no idle thread when closed).
+    -- Dying with the dashboard up otherwise leaves it on screen holding NUI focus
+    -- straight through the respawn, with the player unable to click anything.
+    CreateThread(function()
+        while dashboardOpen do
+            Wait(500)
+            if IsEntityDead(cache.ped) then forceCloseAdmin() break end
+        end
+    end)
+end)
+
+-- Stopping the resource with the panel open would strand the cursor: the NUI is
+-- destroyed but the focus it held is not. Matters most on dev restarts.
+AddEventHandler('onResourceStop', function(resource)
+    if resource == GetCurrentResourceName() and dashboardOpen then
+        SetNuiFocus(false, false)
+    end
 end)
 
 RegisterNUICallback('adminSave', function(data, cb)
@@ -31,6 +61,7 @@ RegisterNUICallback('adminSave', function(data, cb)
 end)
 
 RegisterNUICallback('adminClose', function(_, cb)
+    dashboardOpen = false
     SetNuiFocus(false, false)
     cb({})
 end)

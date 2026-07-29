@@ -20,10 +20,9 @@ MBT.UI                 = {
     Position = "bottom-center" -- "bottom-center" | "top-center" | "bottom-right"
 }
 -- ── Sling / Holster ───────────────────────────────────────────────────────────
+-- Named bone ids for the PropInfo blocks below (readable > magic numbers).
 MBT.Bones              = {
     ["Back"]   = 24816,
-    ["LHand"]  = 36029,
-    ["LThigh"] = 58271,
 }
 
 MBT.HolsterControls    = {
@@ -536,10 +535,13 @@ MBT.WeaponRack         = {
         -- Pickup: a quick lift-off gesture (same handling dict as stow / retrieve).
         PickupAnim      = { Dict = 'mp_common', Anim = 'givetake1_a', Ms = 1200, Flag = 49 },
     },
-    -- ── Conversion seam (no-op without a combat companion) ────────────────────────
-    -- When true AND a companion combat resource is installed, retrieving a weapon class
-    -- requires the matching certification (enforced by the companion). Without it this
-    -- NEVER blocks — the rack UI just surfaces the requirement as info. Free build = seam only.
+    -- ── Conversion seam — RESERVED, not wired yet. Leave false. ───────────────────
+    -- Intent: with a companion combat resource installed, retrieving a weapon class
+    -- would require the matching certification (the companion decides). This build
+    -- never blocks and shows nothing about it.
+    -- Not just inert for lack of a companion: the check in weapon_rack/server.lua reads
+    -- a client-side table from the server, so it cannot fire at all. Wiring it needs a
+    -- server-side bridge — see the vault contract before switching this on.
     RequireCert         = false,
     -- Static rack locations (always work, no DB). v1.1 adds in-world item placement.
     -- id  = stable unique key (used as the persistence/sync key — keep it unique & stable).

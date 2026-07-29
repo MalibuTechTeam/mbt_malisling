@@ -68,10 +68,6 @@ local function actionableType()
     return nil
 end
 
-local function applyState(newState)
-    myState = (type(newState) == 'table' and next(newState)) and newState or nil
-end
-
 -- ── Toggle ───────────────────────────────────────────────────────────────────────
 local toggling = false
 local function toggleConcealed()

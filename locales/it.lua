@@ -88,7 +88,6 @@ RegisterLocale('it', {
     ['rack_hint_fast']          = 'Veloce',
     ['rack_hint_place']         = 'Piazza',
     ['rack_hint_cancel']        = 'Annulla',
-    ['rack_place_hint']         = 'SINISTRA/DESTRA ruota ~y~·~s~ SHIFT veloce ~y~·~s~ E piazza ~y~·~s~ BACKSPACE annulla',
     ['rack_placed_title']       = 'Rastrelliera',
     ['rack_placed_desc']        = 'Rastrelliera installata.',
     ['rack_picked_up_title']    = 'Rastrelliera',

@@ -88,7 +88,6 @@ RegisterLocale('en', {
     ['rack_hint_fast']          = 'Fast',
     ['rack_hint_place']         = 'Place',
     ['rack_hint_cancel']        = 'Cancel',
-    ['rack_place_hint']         = 'LEFT/RIGHT rotate ~y~·~s~ SHIFT fast ~y~·~s~ E place ~y~·~s~ BACKSPACE cancel',
     ['rack_placed_title']       = 'Gun Rack',
     ['rack_placed_desc']        = 'Rack installed.',
     ['rack_picked_up_title']    = 'Gun Rack',

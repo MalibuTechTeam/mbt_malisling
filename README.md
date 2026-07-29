@@ -178,6 +178,23 @@ Holster confirm / cancel keys and feature keybinds are configurable in `default.
 
 ---
 
+## Exports
+
+Client-side, for other resources on your server. These are the supported ones — treat anything else you find in the source as internal and subject to change.
+
+| Export | Returns | Use it for |
+|---|---|---|
+| `exports.mbt_malisling:ResetWeaponsOnBack()` | — | Re-read the player's inventory and respawn the slung props. Call it after your script changes the ped model or outfit: attached props don't survive a ped swap, so this restores them. |
+| `exports.mbt_malisling:dropCurrentWeapon()` | — | Drop the weapon in hand on the ground as a real, lootable object (same path as the drop-on-death and throw features). Useful for surrender/arrest flows. |
+| `exports.mbt_malisling:IsWeaponSafetyOn()` | `boolean` | Whether the held weapon's safety is engaged, e.g. to mirror it in your own HUD. |
+
+```lua
+-- after applying a new outfit or ped model
+exports.mbt_malisling:ResetWeaponsOnBack()
+```
+
+---
+
 ## qb-inventory notes
 
 The `qb-inventory` bridge has full feature parity with `ox_inventory` on all load-bearing paths (stow/retrieve/transfer preserve the serial, no duplication). A few qb-specific notes:

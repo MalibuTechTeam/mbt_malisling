@@ -24,12 +24,6 @@ function Utils.weaponType(name)
     return w and w.type
 end
 
-function Utils.getTableLength(t)
-    local count = 0
-    for _ in pairs(t) do count = count + 1 end
-    return count
-end
-
 function Utils.isTableEmpty(t)
     return next(t) == nil
 end

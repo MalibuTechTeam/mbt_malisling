@@ -88,7 +88,6 @@ RegisterLocale('fr', {
     ['rack_hint_fast']          = 'Rapide',
     ['rack_hint_place']         = 'Placer',
     ['rack_hint_cancel']        = 'Annuler',
-    ['rack_place_hint']         = 'GAUCHE/DROITE tourner ~y~·~s~ SHIFT rapide ~y~·~s~ E placer ~y~·~s~ RETOUR annuler',
     ['rack_placed_title']       = 'Râtelier',
     ['rack_placed_desc']        = 'Râtelier installé.',
     ['rack_picked_up_title']    = 'Râtelier',

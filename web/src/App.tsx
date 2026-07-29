@@ -169,14 +169,13 @@ if (DEV_PREVIEW === 'overlays') {
 }
 
 export default function App() {
-  // Reduced motion (manual — CEF often can't read the OS setting): pull the flag on
-  // mount and toggle the root class; the live event lets a config save update it too.
+  // Reduced motion (manual — CEF often can't read the OS setting): pulled once on
+  // mount. It's a config.lua value, so it can't change without a restart; if it ever
+  // becomes dashboard-editable this needs a push event to update live.
   useEffect(() => {
     fetchNui('getReduceMotion', {}, { on: false }).then((r: any) =>
       document.documentElement.classList.toggle('mbt-reduce-motion', !!r?.on))
   }, [])
-  useNuiEvent<{ on: boolean }>('setReduceMotion', ({ on }) =>
-    document.documentElement.classList.toggle('mbt-reduce-motion', !!on))
 
   useNuiEvent<{ file: string; volume: number }>('playHolsterSound', ({ file, volume }) => {
     // Guard the filename (it builds a path): only a safe token can be played, and

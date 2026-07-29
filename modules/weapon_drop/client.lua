@@ -55,8 +55,8 @@ if MBT.DropWeaponOnDeath then
     end)
 end
 
--- ── Manual drop (export, shared) ──
-function dropCurrentWeapon()
+-- ── Manual drop (reached from outside via the export below, not as a global) ──
+local function dropCurrentWeapon()
     if not CurrentWeapon or not CurrentWeapon.hash or not CurrentWeapon.slot then return end
 
     local playerPed = cache.ped
