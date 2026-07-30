@@ -66,7 +66,9 @@ const CATEGORIES: Category[] = [
 // MalibuTech links in the rail. Brand constants, not server config — a server owner
 // tunes their server here, not who wrote the script.
 const BRAND_LINKS: { icon: IconName; href: string; title: string }[] = [
-  { icon: 'globe',   href: 'https://malibutechteam.com/',                      title: 'MalibuTech — all our scripts' },
+  // 'logo' is the MBT mark from the icon set, not logo_mbt.svg — the file is a 168KB
+  // traced path that muddies at this size and can't take the hover tint.
+  { icon: 'logo',    href: 'https://malibutechteam.com/',                      title: 'MalibuTech — all our scripts' },
   { icon: 'discord', href: 'https://discord.gg/TaDRKtfaQt',                    title: 'Discord — support and updates' },
   { icon: 'github',  href: 'https://github.com/MalibuTechTeam/mbt_malisling',  title: 'GitHub — source, issues, releases' },
 ]
