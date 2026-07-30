@@ -63,6 +63,14 @@ const CATEGORIES: Category[] = [
     sections: [NoDrawSection, VehicleSection, TrunkRackSection, WeaponRackSection] },
 ]
 
+// MalibuTech links in the rail. Brand constants, not server config — a server owner
+// tunes their server here, not who wrote the script.
+const BRAND_LINKS: { icon: IconName; href: string; title: string }[] = [
+  { icon: 'globe',   href: 'https://malibutechteam.com/',                      title: 'MalibuTech — all our scripts' },
+  { icon: 'discord', href: 'https://discord.gg/TaDRKtfaQt',                    title: 'Discord — support and updates' },
+  { icon: 'github',  href: 'https://github.com/MalibuTechTeam/mbt_malisling',  title: 'GitHub — source, issues, releases' },
+]
+
 // Feature overview — every on/off toggle, keyed to the exact config path its
 // section writes (keep in sync when adding a feature). Drives the gauge + list.
 const FEATURES: { label: string; path: string; cat: string }[] = [
@@ -220,6 +228,17 @@ export default function AdminDashboard() {
           <div className="mbt-rail__logo">
             <span className="ic"><img src={`${import.meta.env.BASE_URL}logo_mbt.svg`} alt="MalibuTech" /></span>
             <div><b>MBT MALISLING</b></div>
+          </div>
+
+          {/* target=_blank hands the URL to FiveM's own external-link confirmation
+              overlay — the only way out of CEF. */}
+          <div className="mbt-rail__links">
+            {BRAND_LINKS.map((l) => (
+              <a key={l.href} className="mbt-rail__link" href={l.href} target="_blank" rel="noreferrer"
+                 title={l.title} aria-label={l.title}>
+                <Icon name={l.icon} size={15} />
+              </a>
+            ))}
           </div>
 
           <div className="mbt-rail__group">Categories</div>

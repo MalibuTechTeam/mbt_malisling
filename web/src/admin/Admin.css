@@ -89,6 +89,19 @@
 .mbt-rail__logo b { font-family: var(--mbt-font-display); font-size: 14px; font-weight: 700; color: var(--mbt-text-hi); letter-spacing: 0.02em; display: block; line-height: 1.1; }
 .mbt-rail__logo span { font-size: 8px; letter-spacing: 0.18em; color: var(--mbt-text-faint); display: block; }
 
+/* MalibuTech links — quiet by default (they're ours, not the admin's task) and
+   only light up on hover, so they never compete with the category rail. */
+.mbt-rail__links { display: flex; align-items: center; gap: 6px; padding: 0 4px; margin-top: -14px; }
+.mbt-rail__link {
+  width: 26px; height: 26px;
+  display: grid; place-items: center;
+  border-radius: var(--mbt-r-sm);
+  color: var(--mbt-text-faint);
+  background: transparent;
+  transition: color var(--mbt-dur-fast) var(--mbt-ease), background var(--mbt-dur-fast) var(--mbt-ease);
+}
+.mbt-rail__link:hover { color: var(--mbt-accent); background: var(--mbt-surface-2); }
+
 .mbt-rail__group { font-size: 10px; font-weight: 600; letter-spacing: 0.12em; color: var(--mbt-text-lo); padding: 14px 8px 8px; }
 .mbt-rail__item {
   display: flex; align-items: center; gap: 11px; padding: 9px 8px; width: 100%;
