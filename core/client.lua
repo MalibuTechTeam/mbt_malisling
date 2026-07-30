@@ -267,6 +267,21 @@ function Init()
     isReady = false
     equippedWeapon = {}
 
+    -- A restart wipes equippedWeapon, but a weapon already in the player's hands stays
+    -- there — and ox only fires currentWeapon on a CHANGE, so nothing re-announces it.
+    -- The holster branch would then hit the "no weapon was equipped" guard and skip the
+    -- re-sling entirely: the gun goes away and never reappears on the back. Seed from the
+    -- live inventory state instead. qb has no such export (its bridge polls and re-fires
+    -- currentWeapon by itself), so the pcall simply no-ops there.
+    local ok, held = pcall(function() return exports.ox_inventory:getCurrentWeapon() end)
+    if ok and type(held) == 'table' and held.name then
+        local md = held.metadata or {}
+        equippedWeapon.name       = held.name
+        equippedWeapon.slot       = held.slot
+        equippedWeapon.components = md.components
+        equippedWeapon.serial     = md.serial
+    end
+
     MBT.WeaponsInfo = lib.callback.await('mbt_malisling:getWeapoConf', false)
     Utils.mbtDebugger("Init ~ has been fired!!!")
 
