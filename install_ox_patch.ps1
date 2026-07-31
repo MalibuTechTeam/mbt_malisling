@@ -21,7 +21,9 @@ if (-not $OxPath) {
     # Candidates: walk up the tree from scriptDir + read DefaultDest from deploy-to-server.ps1
     $searchRoots = [System.Collections.Generic.List[string]]::new()
 
-    # 1) Read DefaultDest from deploy-to-server.ps1 if present
+    # 1) Read DefaultDest from deploy-to-server.ps1 if present. That file is a local
+    #    dev helper and is NOT shipped, so this branch simply never runs for a server
+    #    owner — they land on 2), which walks up from wherever this script was dropped.
     $deployScript = Join-Path $scriptDir "deploy-to-server.ps1"
     if (Test-Path -LiteralPath $deployScript) {
         $deployContent = Get-Content -LiteralPath $deployScript -Raw -ErrorAction SilentlyContinue

@@ -14,6 +14,11 @@ feature_shooting.md
 roadmap.md
 roadmap_malisling.md
 
+# Local deploy helper — hardcodes the developer's own server path, so it is useless
+# to anyone else and leaks the machine layout. install_ox_patch.ps1 reads it when
+# present but falls back cleanly without it.
+deploy-to-server.ps1
+
 # Dev-only design mockups (scratch)
 web/mockup-*.html
 

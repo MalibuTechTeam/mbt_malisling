@@ -70,7 +70,8 @@ Free and open source — the discovery tier of the MBT weapon ecosystem.
 
 ### Admin & Configuration
 
-- **Live React dashboard** (`/mbtsling`) — a premium NUI control panel to toggle and tune every feature in real time, organized by category (Core, Handling, Interaction, World), persisted to the database
+- **Live React dashboard** (`/mbtsling`) — a premium NUI control panel to toggle and tune every feature in real time, organized by category (Core, Handling, Interaction, Forensics, World), persisted to the database
+- **Two interface styles** — every on-screen prompt and HUD ships in **Standard** (fixed on screen) and **Cinematic** (filmic, anchored beside the weapon in the world). One switch in the dashboard changes all of them; nothing else about the script changes
 - **NUI Position Editor** — a live, in-world editor (orbit camera, preview prop, button controls) to set each weapon type's sling position **per type and per job**, saved to the database
 - **Dev tuning commands** — `/mbt_propedit`, `/mbt_racktune` and `/mbt_trunktune` print/copy ready-to-paste offset lines for fine placement (admin / debug only)
 
@@ -145,7 +146,7 @@ Frameworks: **ESX · QBCore · QBox · OX** (auto-detected).
 Configuration is split across two files plus the live dashboard:
 
 - **`default.lua`** — the complete default block for **every** feature (toggles, thresholds, animations, positions). Loaded first. Most values are meant to be tuned **live from the dashboard**, not by hand.
-- **`config.lua`** — thin server settings only: `Admin` (command + ACE permission), `QBWeapons`, `Language`, `Debug`, `Notification`. Loaded after `default.lua`, so it can override any default.
+- **`config.lua`** — thin server settings only: `Admin` (command + ACE permission), `QBWeapons`, `Language`, `Debug`, `Notification`, `ReduceMotion`, `VersionCheck`, and the Discord audit **webhooks**. Loaded after `default.lua`, so it can override any default.
 - **Dashboard** (`/mbtsling`) — toggles and tunes features at runtime; changes persist to the `mbt_malisling_config` database row and survive resource updates.
 
 ```lua
@@ -160,6 +161,25 @@ MBT.Admin = {
 ```
 
 > **Notifications:** the notify function in `config.lua` ships presets for **ox_lib**, **ESX**, **QBCore**, **QBox**, and native GTA — uncomment the one that matches your server.
+
+### Discord audit logs
+
+Weapon drops, armory racks and pat-downs can each post to a Discord webhook. The URLs live in `config.lua` and **not** in the dashboard: a webhook is a secret, and the dashboard is rendered on the player's side. They sit behind an `IsDuplicityVersion()` guard so they never reach a client.
+
+```lua
+-- config.lua
+if IsDuplicityVersion() then
+    MBT.WeaponDrop.Logging.Webhook = 'https://discord.com/api/webhooks/...'
+    MBT.WeaponRack.Logging.Webhook = ''
+    MBT.PatDown.Logging.Webhook    = ''
+end
+```
+
+Leave a URL empty (the default) and that log stays off. No webhook, no logging — nothing else to switch.
+
+### Update check
+
+At startup the server asks the GitHub Releases API whether a newer version exists, and the dashboard shows a badge if so. It is one plain GET and sends nothing about your server. Set `MBT.VersionCheck = false` in `config.lua` if you'd rather it made no outbound request at all.
 
 ---
 
