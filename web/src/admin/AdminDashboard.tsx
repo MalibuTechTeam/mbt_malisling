@@ -415,6 +415,15 @@ export default function AdminDashboard() {
 
         {/* ── Overview (right sidebar — mirrors elevator's config view) ── */}
         <aside className="mbt-admin__overview">
+          {/* Column header, elevator's icon+label lockup. It sits OUTSIDE the scroll area
+              and on the same line as the close button, which is pinned to the panel: a
+              title that slid away under a fixed button would look broken. Naming the
+              column here lets the list below drop its own label. */}
+          <div className="mbt-ov__head">
+            <Icon name="layers" size={12} /> SLING FEATURE OVERVIEW
+          </div>
+
+          <div className="mbt-ov__body">
           {/* Active-features gauge — a glanceable summary of the list below
               (mirrors the elevator overview's data-driven top block). */}
           <div className="mbt-ov__gauge">
@@ -429,7 +438,6 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          <div className="mbt-ov__label"><Icon name="layers" size={12} /> FEATURE OVERVIEW</div>
           <div className="mbt-ov__summary">
             {OV_CATS.map((cat) => (
               <div key={cat} className="mbt-ov__group">
@@ -460,6 +468,7 @@ export default function AdminDashboard() {
               <b>LIVE APPLY</b>
               <p>Saved changes apply live to all players. Keybinds and language stay in config.lua.</p>
             </div>
+          </div>
           </div>
         </aside>
 

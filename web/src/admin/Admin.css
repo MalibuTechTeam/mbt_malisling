@@ -480,10 +480,26 @@
 @keyframes mbt-head-in { from { opacity: 0; transform: translateX(8px); } to { opacity: 1; transform: translateX(0); } }
 
 /* ── Overview (optional right column) ──────────────────────────────────── */
-/* Extra headroom on top: the close button is pinned to the panel corner over this
-   column, and this column scrolls — so the gauge has to start below it rather than
-   pass underneath it. */
-.mbt-admin__overview { width: 300px; flex-shrink: 0; border-left: 1px solid var(--mbt-edge); padding: 50px 20px 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 18px; }
+/* Header outside the scroll, body inside it. The close button is pinned to the panel
+   corner over this column, so the title has to hold its line while the list moves —
+   a sticky header can't do it here either, because the panel's gradient means an
+   opaque strip would show as a patch. */
+.mbt-admin__overview { width: 300px; flex-shrink: 0; border-left: 1px solid var(--mbt-edge); padding: 13px 0 0; overflow: hidden; display: flex; flex-direction: column; }
+.mbt-ov__head {
+  flex: none;
+  display: flex; align-items: center; gap: 7px;
+  height: 28px;                  /* the close button's height — one shared line */
+  padding: 0 52px 0 20px;        /* right pad clears the button */
+  font-family: var(--mbt-font-body);
+  font-size: 10px; font-weight: 600; letter-spacing: 0.12em;
+  color: var(--mbt-text-faint);
+  white-space: nowrap;
+}
+.mbt-ov__body {
+  flex: 1; min-height: 0; overflow-y: auto;
+  padding: 18px 20px 20px;
+  display: flex; flex-direction: column; gap: 18px;
+}
 
 /* Active-features gauge — top block above FEATURE OVERVIEW (elevator pattern). */
 .mbt-ov__gauge { padding: 14px 15px; background: var(--mbt-surface-2); border: 1px solid var(--mbt-edge); border-radius: var(--mbt-r-md); }
