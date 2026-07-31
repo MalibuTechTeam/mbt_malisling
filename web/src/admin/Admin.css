@@ -96,9 +96,8 @@
   display: flex; align-items: center;
   justify-content: space-between;   /* spread to the rail's full width so the row reads
                                        as a deliberate band, not four stray icons */
-  padding: 10px 6px 8px;
-  margin-top: 4px;
-  border-top: 1px solid var(--mbt-edge);
+  padding: 8px 6px 0;
+  margin-top: 8px;
 }
 .mbt-rail__link {
   width: 26px; height: 26px;          /* ≥24px: WCAG 2.2 target size */
@@ -194,6 +193,64 @@
 
 @keyframes mbt-update-pulse { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .mbt-rail__status.has-update .sdot { animation: none; } }
+
+/* Close — the panel's own top-right corner, a full column away from Save & Apply so
+   the click that leaves can never be the one that meant to save. Neutral at rest,
+   faulty-tinted on approach: it discards nothing by itself, but it does end the session. */
+.mbt-admin__close {
+  position: absolute; top: 14px; right: 14px; z-index: 2;
+  width: 28px; height: 28px;            /* ≥24px: WCAG 2.2 target size */
+  display: grid; place-items: center;
+  border: 1px solid transparent; background: none; cursor: pointer;
+  border-radius: var(--mbt-r-sm);
+  color: var(--mbt-text-lo);
+  transition: color var(--mbt-dur-fast) var(--mbt-ease), background var(--mbt-dur-fast) var(--mbt-ease),
+              border-color var(--mbt-dur-fast) var(--mbt-ease);
+}
+.mbt-admin__close:hover {
+  color: var(--mbt-faulty);
+  background: rgba(var(--mbt-faulty-rgb), 0.10);
+  border-color: rgba(var(--mbt-faulty-rgb), 0.25);
+}
+.mbt-admin__close:focus-visible { outline: none; color: var(--mbt-faulty); box-shadow: 0 0 0 2px rgba(var(--mbt-faulty-rgb), 0.35); }
+.mbt-admin__close:active { transform: scale(0.94); }
+
+/* Unsaved-changes gate. Covers the whole panel — the decision is blocking by design,
+   because the alternative is silently throwing away a tuning session. */
+.mbt-admin__confirm {
+  position: absolute; inset: 0; z-index: 40;
+  display: grid; place-items: center;
+  background: rgba(0, 0, 0, 0.55);
+  border-radius: inherit;
+  animation: mbt-confirm-in var(--mbt-dur-fast) var(--mbt-ease);
+}
+.mbt-admin__confirm-card {
+  width: 340px; max-width: calc(100% - 48px);
+  padding: 18px;
+  background: var(--mbt-surface-2);
+  border: 1px solid var(--mbt-edge-hi);
+  border-radius: var(--mbt-r-lg);
+  box-shadow: var(--mbt-shadow-overlay);
+  animation: mbt-confirm-card-in var(--mbt-dur) var(--mbt-ease);
+}
+.mbt-admin__confirm-card b {
+  display: block; margin-bottom: 6px;
+  font-family: var(--mbt-font-display); font-size: 13px; font-weight: 600;
+  color: var(--mbt-text-hi);
+}
+.mbt-admin__confirm-card p { font-size: 12px; line-height: 1.55; color: var(--mbt-text-lo); }
+.mbt-admin__confirm-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+.mbt-btn-ghost.is-danger { color: var(--mbt-faulty); }
+.mbt-btn-ghost.is-danger:hover { background: rgba(var(--mbt-faulty-rgb), 0.10); border-color: rgba(var(--mbt-faulty-rgb), 0.28); }
+
+@keyframes mbt-confirm-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes mbt-confirm-card-in {
+  from { opacity: 0; transform: translateY(6px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mbt-admin__confirm, .mbt-admin__confirm-card { animation: none; }
+}
 
 /* ── Center ────────────────────────────────────────────────────────────── */
 /* scrollbar-gutter:stable reserves the bar's width so the grid never reflows

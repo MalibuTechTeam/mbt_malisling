@@ -129,6 +129,10 @@ export default function AdminDashboard() {
   const [updateInfo, setUpdateInfo] = useState<{ current: string; latest: string; url: string } | null>(null) // newer release on GitHub, else null
   const baseline = useRef('')                       // last-saved snapshot
   const closeTimer = useRef<number | null>(null)    // deferred-unmount timer
+  // `dirty` is derived further down, after the draft exists. The close handler is wired
+  // into a keydown effect, so it reads the flag through a ref: no re-subscribing the
+  // listener on every keystroke, and no stale value inside the callback.
+  const dirtyRef = useRef(false)
 
   useNuiEvent<any>('openAdmin', (data) => {
     const c = data?.config ?? {}
@@ -162,8 +166,16 @@ export default function AdminDashboard() {
     }, 150)
   }, [])
 
+  // The game closing the panel (death, resource stop) is not a choice — it never asks.
   useNuiEvent('closeAdmin', () => beginClose(false))
-  const close = useCallback(() => beginClose(true), [beginClose])
+
+  // Closing with edits pending asks first. Escape is a reflex key and the close control
+  // sits a panel away from Save, so without this a long tuning session dies in silence.
+  const [confirmClose, setConfirmClose] = useState(false)
+  const close = useCallback(() => {
+    if (dirtyRef.current) { setConfirmClose(true); return }
+    beginClose(true)
+  }, [beginClose])
 
   useEffect(() => {
     if (!open) return
@@ -208,6 +220,7 @@ export default function AdminDashboard() {
 
   // Derived: the draft differs from the last-saved snapshot (drives Save/Discard).
   const dirty = JSON.stringify(cfg) !== baseline.current
+  dirtyRef.current = dirty   // read by close(), which lives above this line
 
   const activeCat = CATEGORIES.find((c) => c.id === active) ?? CATEGORIES[0]
   const isPositions = active === 'positions'
@@ -226,6 +239,16 @@ export default function AdminDashboard() {
     <>
     <div className={`mbt-admin-overlay${editing || trunkEditing ? ' is-editing' : ''}${closing ? ' is-closing' : ''}`}>
       <div className="mbt-admin">
+
+        {/* Close lives in the panel's top-right corner — over the overview column, where a
+            dismiss control is always looked for, and a full column away from Save & Apply
+            so the click that leaves can't be the one that meant to save. A child of the
+            panel, not of the column: that column scrolls, and this must not scroll away. */}
+        <button className="mbt-admin__close" onClick={close} title="Close (ESC)" aria-label="Close dashboard">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          </svg>
+        </button>
 
         {/* ── Rail ── */}
         <nav className="mbt-admin__rail">
@@ -267,35 +290,9 @@ export default function AdminDashboard() {
 
           <div className="mbt-rail__spacer" />
 
-          {/* Brand links sit with the utility block, not under the wordmark: the rail's
-              job is navigation, and nothing should stand between it and the categories.
-              target=_blank hands the URL to FiveM's own external-link confirmation
-              overlay — the only way out of CEF. */}
-          <div className="mbt-rail__links">
-            {BRAND_LINKS.map((l) => (
-              <a key={l.href} className="mbt-rail__link" href={l.href} target="_blank" rel="noreferrer"
-                 title={l.title} aria-label={l.title}>
-                {l.icon === 'brand' ? (
-                  <span className="mbt-rail__brandmark" style={{
-                    maskImage: `url(${import.meta.env.BASE_URL}logo_mbt.svg)`,
-                    WebkitMaskImage: `url(${import.meta.env.BASE_URL}logo_mbt.svg)`,
-                  }} />
-                ) : (
-                  <Icon name={l.icon} size={15} />
-                )}
-              </a>
-            ))}
-          </div>
-
-          <button className="mbt-rail__item mbt-rail__exit" onClick={close}>
-            <span className="ic">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <path d="M14 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M10 12h11M18 9l3 3-3 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </span>
-            <span className="mbt-rail__tx"><span className="mbt-rail__label">Exit</span></span>
-          </button>
+          {/* No Exit item here any more: closing is an action, not a destination, and
+              styling it like a seventh category said otherwise. The X in the panel's
+              top-right corner owns it now, with Escape as the shortcut. */}
 
           {/* One card, two states: the version you run and whether it's current are the
               same fact about the same thing, so an update recolours this card instead of
@@ -322,6 +319,25 @@ export default function AdminDashboard() {
               </Tag>
             )
           })()}
+
+          {/* MalibuTech links close the column: the quietest thing last, under the status
+              plate. target=_blank hands the URL to FiveM's own external-link confirmation
+              overlay — the only way out of CEF. */}
+          <div className="mbt-rail__links">
+            {BRAND_LINKS.map((l) => (
+              <a key={l.href} className="mbt-rail__link" href={l.href} target="_blank" rel="noreferrer"
+                 title={l.title} aria-label={l.title}>
+                {l.icon === 'brand' ? (
+                  <span className="mbt-rail__brandmark" style={{
+                    maskImage: `url(${import.meta.env.BASE_URL}logo_mbt.svg)`,
+                    WebkitMaskImage: `url(${import.meta.env.BASE_URL}logo_mbt.svg)`,
+                  }} />
+                ) : (
+                  <Icon name={l.icon} size={15} />
+                )}
+              </a>
+            ))}
+          </div>
         </nav>
 
         {/* ── Center ── */}
@@ -435,6 +451,28 @@ export default function AdminDashboard() {
             </div>
           </div>
         </aside>
+
+      {/* Leaving with edits pending is the one place this panel can destroy work, so it
+          is the one place that stops and asks. Discard is styled as the destructive
+          option; keeping the draft is the safe default and takes the primary button. */}
+      {confirmClose && (
+        <div className="mbt-admin__confirm" role="alertdialog" aria-modal="true" aria-labelledby="mbt-confirm-t">
+          <div className="mbt-admin__confirm-card">
+            <b id="mbt-confirm-t">Unsaved changes</b>
+            <p>Your edits haven't been applied yet. Close the dashboard and lose them?</p>
+            <div className="mbt-admin__confirm-actions">
+              <button type="button" className="mbt-btn-ghost is-danger"
+                      onClick={() => { setConfirmClose(false); beginClose(true) }}>
+                Discard &amp; close
+              </button>
+              <button type="button" className="mbt-btn-primary" autoFocus
+                      onClick={() => setConfirmClose(false)}>
+                Keep editing
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       </div>
     </div>
     {editing ? (
