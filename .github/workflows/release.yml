@@ -55,8 +55,9 @@ jobs:
       - name: Bundle files
         run: |
           mkdir -p ./temp/mbt_malisling/web
-          cp ./{README.md,LICENSE.md,config.lua,default.lua,fxmanifest.lua,install_ox_patch.ps1} ./temp/mbt_malisling
-          cp -r ./{core,modules,locales,data,stream,patches} ./temp/mbt_malisling
+          cp ./{README.md,LICENSE.md,config.lua,default.lua,fxmanifest.lua} ./temp/mbt_malisling
+          cp -r ./{core,modules,locales,data,stream,patches,tools} ./temp/mbt_malisling
+          chmod +x ./temp/mbt_malisling/tools/*.sh
           cp -r ./web/dist ./temp/mbt_malisling/web/dist
           cd ./temp && zip -r ../mbt_malisling.zip ./mbt_malisling
 
