@@ -32,7 +32,7 @@ export function NoDrawSection({ config, update }: SectionProps) {
 export function VehicleSection({ config, update }: SectionProps) {
   const v = config.VehicleHiding ?? {}
   return (
-    <Section icon="vehicle" title="VEHICLE SMART HIDING" sub="Hidden in enclosed vehicles; configure roofless ones."
+    <Section icon="vehicle" title="VEHICLE SMART HIDING" sub="Slung weapons disappear inside a closed car."
       action={<ToggleRow.Inline checked={!!v.Enabled} onChange={(x) => update('VehicleHiding.Enabled', x)} />}>
       <ToggleRow title="Smart Hiding"
         desc="On: visible on roofless vehicles. Off: hidden in all"
@@ -69,7 +69,7 @@ export function TrunkRackSection({ config, update }: SectionProps) {
             onChange={numUpdate(update, 'VehicleTrunkRack.InteractionDistance', 2.5)} />
         </FieldBlock>
       </Grid2>
-      <ToggleRow title="Retrieve to Hand" desc="Take the weapon straight into hand (ox + qb)"
+      <ToggleRow title="Retrieve to Hand" desc="Taking one out puts it straight in the player's hands"
         checked={!!t.EquipOnRetrieve} onChange={(v) => update('VehicleTrunkRack.EquipOnRetrieve', v)} />
     </Section>
   )
@@ -103,7 +103,7 @@ export function WeaponRackSection({ config, update }: SectionProps) {
             onChange={numUpdate(update, 'WeaponRack.InteractionDistance', 2.0)} />
         </FieldBlock>
       </Grid2>
-      <ToggleRow title="Retrieve to Hand" desc="Take the weapon straight into hand (ox + qb)"
+      <ToggleRow title="Retrieve to Hand" desc="Taking one out puts it straight in the player's hands"
         checked={!!t.EquipOnRetrieve} onChange={(v) => update('WeaponRack.EquipOnRetrieve', v)} />
       <FieldBlock label="Item Placement" hint="Players place their own racks from an inventory item.">
         <ToggleRow title="Enable Placement" desc="Install a rack in the world from the rack item (needs oxmysql)"

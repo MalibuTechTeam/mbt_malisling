@@ -217,14 +217,14 @@ export function ConcealedCarrySection({ config, update }: SectionProps) {
         <NumberInput min={0} max={60000} step={500} value={String(c.ToggleCooldownMs ?? 3000)}
           onChange={numUpdate(update, 'ConcealedCarry.ToggleCooldownMs', 3000, true)} />
       </FieldBlock>
-      <ToggleRow title="Waistband Tell" desc="Carriers occasionally adjust their waistband — an observable RP tell"
+      <ToggleRow title="Waistband Tell" desc="Carriers occasionally adjust their waistband — something a witness can catch"
         checked={t.Enabled !== false} onChange={(v) => update('ConcealedCarry.Tell.Enabled', v)} />
       <Grid2>
         <FieldBlock label="Tell Roll (s)" hint="Seconds between tell chances." style={{ marginBottom: 0 }}>
           <NumberInput min={5} max={600} step={5} value={String(t.RollSeconds ?? 25)}
             onChange={numUpdate(update, 'ConcealedCarry.Tell.RollSeconds', 25, true)} />
         </FieldBlock>
-        <FieldBlock label="Chance poor / good" hint="Per-roll chance by concealment quality." style={{ marginBottom: 0 }}>
+        <FieldBlock label="Chance (poor / good)" hint="Odds per roll — a poorly hidden weapon gives more away." style={{ marginBottom: 0 }}>
           <Grid2>
             <NumberInput min={0} max={1} step={0.05} value={String(t.ChancePoor ?? 0.45)}
               onChange={numUpdate(update, 'ConcealedCarry.Tell.ChancePoor', 0.45)} />
@@ -251,7 +251,7 @@ export function SerialsSection({ config, update }: SectionProps) {
   return (
     <Section icon="search" title="WEAPON SERIALS" sub="Guarantee every weapon a serial (forensic backbone)."
       action={<ToggleRow.Inline checked={!!s.EnsureGeneration} onChange={(v) => update('Serials.EnsureGeneration', v)} />}>
-      <FieldBlock label="Generated Format" hint="Marked = auditable field-assigned serials · Factory-like = indistinguishable from ox.">
+      <FieldBlock label="Generated Format" hint="Marked = clearly issued by your server · Factory-like = looks like any other serial.">
         <Segmented value={s.Format ?? 'marked'} options={SERIAL_FORMATS}
           onChange={(v) => update('Serials.Format', v)} />
       </FieldBlock>
@@ -275,7 +275,7 @@ export function HandoffSection({ config, update }: SectionProps) {
         <NumberInput min={1} max={10} step={0.5} value={String(h.MaxDistance ?? 2.5)}
           onChange={numUpdate(update, 'Handoff.MaxDistance', 2.5)} />
       </FieldBlock>
-      <ToggleRow title="Equip on Accept" desc="The receiver takes the weapon straight into hand (ox)"
+      <ToggleRow title="Equip on Accept" desc="The receiver ends up holding it, not just carrying it"
         checked={!!h.EquipOnAccept} onChange={(v) => update('Handoff.EquipOnAccept', v)} />
       <div className="mbt-field__hint" style={{ marginTop: 2 }}>
         The handoff key and give/take animation clips live in <code>config.lua</code> (<code>MBT.Handoff</code>).

@@ -143,7 +143,7 @@ export function LowReadySection({ config, update }: SectionProps) {
   const l = config.LowReady ?? {}
   const ty = l.Types ?? {}
   return (
-    <Section icon="target" title="LOW READY" sub="Carry a slung long gun across the chest, hands free (key HOME)."
+    <Section icon="target" title="LOW READY" sub="A long gun rests across the chest instead of the back (key HOME)."
       action={<ToggleRow.Inline checked={!!l.Enabled} onChange={(v) => update('LowReady.Enabled', v)} />}>
       <FieldBlock label="Eligible Weapons" hint="Which slung long guns can drop to the chest stance."
         style={{ marginBottom: 0 }}>

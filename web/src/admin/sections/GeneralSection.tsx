@@ -10,12 +10,12 @@ import { Section, ToggleRow, FieldBlock, type SectionProps } from './parts'
 /** CORE — core sling toggles (runtime-safe; Debug stays in config.lua). */
 export function CoreSection({ config, update }: SectionProps) {
   return (
-    <Section icon="power" title="CORE" sub="Main sling toggles.">
+    <Section icon="power" title="CORE" sub="Whether weapons show on the body at all.">
       <ToggleRow title="Enable Sling" desc="Show the weapon on the player's body"
         checked={!!config.EnableSling} onChange={(v) => update('EnableSling', v)} />
-      <ToggleRow title="Enable Flashlight" desc="Render attached weapon flashlights"
+      <ToggleRow title="Enable Flashlight" desc="A slung weapon's torch stays lit if it was on"
         checked={!!config.EnableFlashlight} onChange={(v) => update('EnableFlashlight', v)} />
-      <ToggleRow title="Drop Weapon on Death" desc="Weapon drops to the ground on death"
+      <ToggleRow title="Drop Weapon on Death" desc="The weapon in hand falls where the player died"
         checked={!!config.DropWeaponOnDeath} onChange={(v) => update('DropWeaponOnDeath', v)} />
     </Section>
   )
@@ -27,7 +27,7 @@ export function InterfaceSection({ config, update }: SectionProps) {
   const pos = config.UIPosition ?? 'bottom-center'
   return (
     <Section icon="grid" title="INTERFACE" sub="Prompt placement and style.">
-      <FieldBlock label="Prompt Style" hint="Standard pills, or cinematic overlays anchored near the weapon.">
+      <FieldBlock label="Prompt Style" hint="Standard sits in a fixed spot on screen · Cinematic appears beside the weapon.">
         <Segmented
           value={config.UIStyle ?? 'standard'}
           onChange={(v) => update('UIStyle', v)}
