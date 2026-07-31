@@ -251,6 +251,12 @@ It applies a small, automatic patch to `ox_inventory`'s weapon module at startup
 
 That is the whole patch — the first block asks malisling whether to holster or keep the weapon in hand, the second lets it register per-weapon holster animations. Re-apply after any `ox_inventory` update.
 
+To stop the resource patching `ox_inventory` on its own — because you applied it yourself, or your host manages that file — put this in `server.cfg`:
+
+```cfg
+setr malisling:autopatch false
+```
+
 **My weapon doesn't show on my back.**
 Make sure `ox_inventory`'s weapon animation convar is enabled (`inventory:weaponanims 1`), and on qb that `qb-weapons`' weapon-draw animation is disabled. Check the F8 console for warnings.
 
