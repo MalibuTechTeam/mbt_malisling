@@ -1,10 +1,17 @@
-# install_ox_patch.ps1
-# Applies the mbt_malisling patch to ox_inventory, once.
-# Run with the server STOPPED, then restart.
+# install_ox_patch.ps1 — apply the ox_inventory patch by hand (Windows)
+#
+# The resource patches ox_inventory itself at startup. Run this only when that
+# failed — usually because the server process could not write to ox_inventory,
+# in which case running it as a user who CAN write fixes it. Run with the server
+# STOPPED, then restart.
+#
+# It will not help if ox_inventory was updated and moved the anchors: this looks
+# for the same two, and stops rather than guess. Patch by hand then (steps in the
+# README). install_ox_patch.sh is the Linux/macOS equivalent.
 #
 # Usage:
-#   .\install_ox_patch.ps1
-#   .\install_ox_patch.ps1 -OxPath "C:\server\resources\[ox]\ox_inventory"
+#   .\tools\install_ox_patch.ps1
+#   .\tools\install_ox_patch.ps1 -OxPath "C:\server\resources\[ox]\ox_inventory"
 
 param(
     [string]$OxPath = ""
@@ -13,6 +20,8 @@ param(
 $ErrorActionPreference = "Stop"
 $utf8      = New-Object System.Text.UTF8Encoding($false)
 $scriptDir = if ($MyInvocation.MyCommand.Path) { Split-Path -Parent $MyInvocation.MyCommand.Path } else { $PWD.Path }
+# This script lives in tools/; the patch fragments sit one level up in patches/.
+$resDir = Split-Path -Parent $scriptDir
 
 # --- Locate ox_inventory -----------------------------------------------------------
 if (-not $OxPath) {
@@ -24,7 +33,7 @@ if (-not $OxPath) {
     # 1) Read DefaultDest from deploy-to-server.ps1 if present. That file is a local
     #    dev helper and is NOT shipped, so this branch simply never runs for a server
     #    owner — they land on 2), which walks up from wherever this script was dropped.
-    $deployScript = Join-Path $scriptDir "deploy-to-server.ps1"
+    $deployScript = Join-Path $resDir "deploy-to-server.ps1"
     if (Test-Path -LiteralPath $deployScript) {
         $deployContent = Get-Content -LiteralPath $deployScript -Raw -ErrorAction SilentlyContinue
         if ($deployContent -match '\$DefaultDest\s*=\s*[''"]([^''"]+)[''"]') {
@@ -43,8 +52,9 @@ if (-not $OxPath) {
         }
     }
 
-    # 2) Also walk up from scriptDir (fallback if the script lives inside the server)
-    $d = $scriptDir
+    # 2) Also walk up from the resource root (the path a server owner actually has:
+    #    they dropped the whole resource into resources/ and ran this from tools/)
+    $d = $resDir
     for ($i = 0; $i -lt 10; $i++) {
         if ([string]::IsNullOrWhiteSpace($d)) { break }
         if ((Split-Path $d -Leaf) -eq "resources") { if (-not $searchRoots.Contains($d)) { $searchRoots.Add($d) }; break }
@@ -103,8 +113,8 @@ if (-not (Test-Path -LiteralPath $targetFile)) {
 }
 
 # --- Read patch files (kept separate) ----------------------------------------
-$hookFile   = Join-Path $scriptDir "patches\ox_hook.lua"
-$appendFile = Join-Path $scriptDir "patches\ox_append.lua"
+$hookFile   = Join-Path $resDir "patches\ox_hook.lua"
+$appendFile = Join-Path $resDir "patches\ox_append.lua"
 foreach ($f in @($hookFile, $appendFile)) {
     if (-not (Test-Path -LiteralPath $f)) {
         Write-Host "[ERROR] Patch file not found: $f" -ForegroundColor Red

@@ -91,7 +91,7 @@
     // Version guard — if ox changed these anchors, do NOT corrupt the file.
     if (!content.includes(INSERT_POINT) || content.lastIndexOf(RETURN_POINT) === -1) {
       warn('ox_inventory insertion point not found — unsupported or updated version. No changes made.');
-      warn('Update mbt_malisling or apply the patch manually (install_ox_patch.ps1).');
+      warn('Update mbt_malisling, or patch by hand — see the README (the tools/ installers look for these same anchors, so they will not help here).');
       report(false, 'unsupported ox_inventory version');
       return;
     }

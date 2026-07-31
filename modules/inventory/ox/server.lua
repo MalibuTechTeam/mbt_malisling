@@ -66,8 +66,8 @@ end)
 -- Hook inserts before `sleep = anim and anim[3] or 1200`; Weapon.Equip blocks until malisling
 -- writes malisling_holster_result, then equips or returns early (cancel = stay on sling).
 -- The patch is applied automatically by modules/ox_patch/installer.js (the Lua sandbox can't:
--- SaveResourceFile is cross-resource blocked, io.open(write) denied); install_ox_patch.ps1 is
--- the manual fallback. This function just reports whether the patch is present.
+-- SaveResourceFile is cross-resource blocked, io.open(write) denied); the tools/ installers
+-- are the manual fallback. This function just reports whether the patch is present.
 local function appendMalisling()
     local resourcePath = GetResourcePath('ox_inventory')
     if not resourcePath then return end

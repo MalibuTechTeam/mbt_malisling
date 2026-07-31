@@ -1,0 +1,27 @@
+# Shell scripts must keep LF endings. Checked out with CRLF on a Windows clone and
+# then copied to a Linux server, bash fails on the first line with a bad-interpreter
+# error — on the exact platform the script exists for.
+*.sh text eol=lf
+
+# Lua and the NUI sources are read by the FiveM runtime and by bundlers, both of
+# which are ending-agnostic; normalising them keeps diffs clean across machines.
+*.lua text
+*.js text
+*.ts text
+*.tsx text
+*.css text
+*.json text
+*.md text
+
+# PowerShell is Windows-side; CRLF is the native expectation there.
+*.ps1 text eol=crlf
+
+# Binary assets — never touch these.
+*.ytd binary
+*.ytyp binary
+*.ydr binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.ogg binary
+*.woff2 binary

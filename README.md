@@ -238,8 +238,21 @@ No. Without it the script runs DB-free; only the persistence features (placed ra
 **Does it modify ox_inventory?**
 It applies a small, automatic patch to `ox_inventory`'s weapon module at startup so the holster prompt can hook the equip/disarm flow. It is re-applied on every start, keeps a `.bak`, and refuses to touch the file if a future `ox_inventory` update moves the anchors it looks for — it fails loudly instead of corrupting anything. If it can't write (read-only or locked-down host), see below.
 
-**The patch failed. How do I apply it by hand?**
-`install_ox_patch.ps1` ships with the resource, but it is PowerShell — on a Linux server, patch the file directly. Only one file changes: **`ox_inventory/modules/weapon/client.lua`**.
+**The patch failed. How do I apply it manually?**
+Both manual installers ship in `tools/` — run the one for your server's OS:
+
+```bash
+# Linux / macOS
+chmod +x tools/install_ox_patch.sh && ./tools/install_ox_patch.sh
+```
+```powershell
+# Windows
+.\tools\install_ox_patch.ps1
+```
+
+Each finds `ox_inventory` on its own (or takes the path as an argument), keeps a `.bak`, and is safe to re-run — it restores its own backup first, so the patch is never applied twice. The usual reason to need them is a permissions one: the server process could not write to `ox_inventory`, and running as a user who can fixes it.
+
+If you would rather do it yourself, only one file changes: **`ox_inventory/modules/weapon/client.lua`**.
 
 1. Back it up.
 2. Paste the contents of `patches/ox_hook.lua` **immediately before** the line:
