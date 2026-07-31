@@ -385,7 +385,9 @@ export default function AdminDashboard() {
               <span className="mbt-ov__warn-ic"><Icon name="alert" size={15} /></span>
               <div>
                 <b>ox_inventory patch failed</b>
-                <p>{oxPatch}. Run <code>install_ox_patch.ps1</code>, then restart — the weapon-on-back holster flow needs it.</p>
+                {/* The bundled fallback is PowerShell, so pointing a Linux host at it
+                    alone is a dead end — the README carries the by-hand steps too. */}
+                <p>{oxPatch}. Run <code>install_ox_patch.ps1</code>, or apply it by hand (steps in the README), then restart — the weapon-on-back holster flow needs it.</p>
               </div>
             </div>
           ) : null}

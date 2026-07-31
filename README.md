@@ -236,7 +236,20 @@ Yes — the framework is auto-detected. Inventory is `ox_inventory` first, with 
 No. Without it the script runs DB-free; only the persistence features (placed racks, trunk storage, chain of custody, saved positions) are disabled, and everything else works.
 
 **Does it modify ox_inventory?**
-It applies a small, automatic patch to `ox_inventory`'s weapon module at startup so the holster prompt can hook the equip/disarm flow. It is re-applied on every start; a manual fallback script is included for locked-down hosts. (A future `ox_inventory` update touching that module may require a patch refresh.)
+It applies a small, automatic patch to `ox_inventory`'s weapon module at startup so the holster prompt can hook the equip/disarm flow. It is re-applied on every start, keeps a `.bak`, and refuses to touch the file if a future `ox_inventory` update moves the anchors it looks for — it fails loudly instead of corrupting anything. If it can't write (read-only or locked-down host), see below.
+
+**The patch failed. How do I apply it by hand?**
+`install_ox_patch.ps1` ships with the resource, but it is PowerShell — on a Linux server, patch the file directly. Only one file changes: **`ox_inventory/modules/weapon/client.lua`**.
+
+1. Back it up.
+2. Paste the contents of `patches/ox_hook.lua` **immediately before** the line:
+   ```lua
+   sleep = anim and anim[3] or 1200
+   ```
+3. Paste the contents of `patches/ox_append.lua` **immediately before the last** `return Weapon` in the file.
+4. Restart `ox_inventory`, then `mbt_malisling`.
+
+That is the whole patch — the first block asks malisling whether to holster or keep the weapon in hand, the second lets it register per-weapon holster animations. Re-apply after any `ox_inventory` update.
 
 **My weapon doesn't show on my back.**
 Make sure `ox_inventory`'s weapon animation convar is enabled (`inventory:weaponanims 1`), and on qb that `qb-weapons`' weapon-draw animation is disabled. Check the F8 console for warnings.
