@@ -101,6 +101,16 @@
   transition: color var(--mbt-dur-fast) var(--mbt-ease), background var(--mbt-dur-fast) var(--mbt-ease);
 }
 .mbt-rail__link:hover { color: var(--mbt-accent); background: var(--mbt-surface-2); }
+/* The real logo file, masked so it paints in currentColor and follows the hover like
+   the icon-set glyphs next to it (an <img> would stay white and sit dead in the row).
+   Slightly larger than the 15px icons: the mark reads lighter at the same box. */
+.mbt-rail__brandmark {
+  width: 17px; height: 17px;
+  background-color: currentColor;
+  mask-size: contain; -webkit-mask-size: contain;
+  mask-repeat: no-repeat; -webkit-mask-repeat: no-repeat;
+  mask-position: center; -webkit-mask-position: center;
+}
 
 .mbt-rail__group { font-size: 10px; font-weight: 600; letter-spacing: 0.12em; color: var(--mbt-text-lo); padding: 14px 8px 8px; }
 .mbt-rail__item {

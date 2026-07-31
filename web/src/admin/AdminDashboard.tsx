@@ -65,10 +65,12 @@ const CATEGORIES: Category[] = [
 
 // MalibuTech links in the rail. Brand constants, not server config — a server owner
 // tunes their server here, not who wrote the script.
-const BRAND_LINKS: { icon: IconName; href: string; title: string }[] = [
-  // 'logo' is the MBT mark from the icon set, not logo_mbt.svg — the file is a 168KB
-  // traced path that muddies at this size and can't take the hover tint.
-  { icon: 'logo',    href: 'https://malibutechteam.com/',                      title: 'MalibuTech — all our scripts' },
+// 'brand' renders the real logo file as a mask instead of an icon path: the MBT mark
+// is an interlocking M/T monogram that no 24px line glyph reproduces honestly, and
+// masking it keeps currentColor working so it still lights up on hover.
+const BRAND_LINKS: { icon: IconName | 'brand'; href: string; title: string }[] = [
+  { icon: 'brand',   href: 'https://malibutechteam.com/',                      title: 'MalibuTech — all our scripts' },
+  { icon: 'docs',    href: 'https://malibutechteam.com/docs',                  title: 'Documentation' },
   { icon: 'discord', href: 'https://discord.gg/TaDRKtfaQt',                    title: 'Discord — support and updates' },
   { icon: 'github',  href: 'https://github.com/MalibuTechTeam/mbt_malisling',  title: 'GitHub — source, issues, releases' },
 ]
@@ -238,7 +240,14 @@ export default function AdminDashboard() {
             {BRAND_LINKS.map((l) => (
               <a key={l.href} className="mbt-rail__link" href={l.href} target="_blank" rel="noreferrer"
                  title={l.title} aria-label={l.title}>
-                <Icon name={l.icon} size={15} />
+                {l.icon === 'brand' ? (
+                  <span className="mbt-rail__brandmark" style={{
+                    maskImage: `url(${import.meta.env.BASE_URL}logo_mbt.svg)`,
+                    WebkitMaskImage: `url(${import.meta.env.BASE_URL}logo_mbt.svg)`,
+                  }} />
+                ) : (
+                  <Icon name={l.icon} size={15} />
+                )}
               </a>
             ))}
           </div>
