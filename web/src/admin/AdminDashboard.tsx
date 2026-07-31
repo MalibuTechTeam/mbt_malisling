@@ -234,24 +234,6 @@ export default function AdminDashboard() {
             <div><b>MBT MALISLING</b></div>
           </div>
 
-          {/* target=_blank hands the URL to FiveM's own external-link confirmation
-              overlay — the only way out of CEF. */}
-          <div className="mbt-rail__links">
-            {BRAND_LINKS.map((l) => (
-              <a key={l.href} className="mbt-rail__link" href={l.href} target="_blank" rel="noreferrer"
-                 title={l.title} aria-label={l.title}>
-                {l.icon === 'brand' ? (
-                  <span className="mbt-rail__brandmark" style={{
-                    maskImage: `url(${import.meta.env.BASE_URL}logo_mbt.svg)`,
-                    WebkitMaskImage: `url(${import.meta.env.BASE_URL}logo_mbt.svg)`,
-                  }} />
-                ) : (
-                  <Icon name={l.icon} size={15} />
-                )}
-              </a>
-            ))}
-          </div>
-
           <div className="mbt-rail__group">Categories</div>
           {CATEGORIES.map((cat) => (
             <button
@@ -284,6 +266,26 @@ export default function AdminDashboard() {
           </button>
 
           <div className="mbt-rail__spacer" />
+
+          {/* Brand links sit with the utility block, not under the wordmark: the rail's
+              job is navigation, and nothing should stand between it and the categories.
+              target=_blank hands the URL to FiveM's own external-link confirmation
+              overlay — the only way out of CEF. */}
+          <div className="mbt-rail__links">
+            {BRAND_LINKS.map((l) => (
+              <a key={l.href} className="mbt-rail__link" href={l.href} target="_blank" rel="noreferrer"
+                 title={l.title} aria-label={l.title}>
+                {l.icon === 'brand' ? (
+                  <span className="mbt-rail__brandmark" style={{
+                    maskImage: `url(${import.meta.env.BASE_URL}logo_mbt.svg)`,
+                    WebkitMaskImage: `url(${import.meta.env.BASE_URL}logo_mbt.svg)`,
+                  }} />
+                ) : (
+                  <Icon name={l.icon} size={15} />
+                )}
+              </a>
+            ))}
+          </div>
 
           <button className="mbt-rail__item mbt-rail__exit" onClick={close}>
             <span className="ic">

@@ -89,11 +89,19 @@
 .mbt-rail__logo b { font-family: var(--mbt-font-display); font-size: 14px; font-weight: 700; color: var(--mbt-text-hi); letter-spacing: 0.02em; display: block; line-height: 1.1; }
 .mbt-rail__logo span { font-size: 8px; letter-spacing: 0.18em; color: var(--mbt-text-faint); display: block; }
 
-/* MalibuTech links — quiet by default (they're ours, not the admin's task) and
-   only light up on hover, so they never compete with the category rail. */
-.mbt-rail__links { display: flex; align-items: center; gap: 6px; padding: 0 4px; margin-top: -14px; }
+/* MalibuTech links — they live in the bottom utility block with Exit and the status
+   card, opened by a hairline. Quiet by default (they're ours, not the admin's task)
+   and only light up on hover, so they never compete with the category rail. */
+.mbt-rail__links {
+  display: flex; align-items: center;
+  justify-content: space-between;   /* spread to the rail's full width so the row reads
+                                       as a deliberate band, not four stray icons */
+  padding: 10px 6px 8px;
+  margin-top: 4px;
+  border-top: 1px solid var(--mbt-edge);
+}
 .mbt-rail__link {
-  width: 26px; height: 26px;
+  width: 26px; height: 26px;          /* ≥24px: WCAG 2.2 target size */
   display: grid; place-items: center;
   border-radius: var(--mbt-r-sm);
   color: var(--mbt-text-faint);
@@ -101,6 +109,12 @@
   transition: color var(--mbt-dur-fast) var(--mbt-ease), background var(--mbt-dur-fast) var(--mbt-ease);
 }
 .mbt-rail__link:hover { color: var(--mbt-accent); background: var(--mbt-surface-2); }
+/* Keyboard users get the same affordance as the mouse — hover alone leaves them blind. */
+.mbt-rail__link:focus-visible {
+  outline: none;
+  color: var(--mbt-accent);
+  box-shadow: 0 0 0 2px var(--mbt-accent-glow);
+}
 /* The real logo file, masked so it paints in currentColor and follows the hover like
    the icon-set glyphs next to it (an <img> would stay white and sit dead in the row).
    Slightly larger than the 15px icons: the mark reads lighter at the same box. */
