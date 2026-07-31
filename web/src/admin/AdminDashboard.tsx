@@ -70,7 +70,7 @@ const CATEGORIES: Category[] = [
 // masking it keeps currentColor working so it still lights up on hover.
 const BRAND_LINKS: { icon: IconName | 'brand'; href: string; title: string }[] = [
   { icon: 'brand',   href: 'https://malibutechteam.com/',                      title: 'MalibuTech — all our scripts' },
-  { icon: 'docs',    href: 'https://malibutechteam.com/docs',                  title: 'Documentation' },
+  { icon: 'docs',    href: 'https://malibutechteam.com/docs/mbt-malisling/introduction', title: 'Documentation' },
   { icon: 'discord', href: 'https://discord.gg/TaDRKtfaQt',                    title: 'Discord — support and updates' },
   { icon: 'github',  href: 'https://github.com/MalibuTechTeam/mbt_malisling',  title: 'GitHub — source, issues, releases' },
 ]
@@ -466,7 +466,9 @@ export default function AdminDashboard() {
             <span className="ic"><Icon name="help" size={15} /></span>
             <div>
               <b>LIVE APPLY</b>
-              <p>Saved changes apply live to all players. Keybinds and language stay in config.lua.</p>
+              {/* Answers the three things an owner actually wonders here, in order: does
+                  this hit everyone, must I restart, will it survive one. */}
+              <p>Saving reaches every player at once — no restart — and is stored in the database. Keybinds and language are set in config.lua.</p>
             </div>
           </div>
           </div>

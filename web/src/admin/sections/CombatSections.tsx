@@ -36,7 +36,7 @@ export function SuppressorSection({ config, update }: SectionProps) {
   return (
     <Section icon="flame" title="SUPPRESSOR HEAT" sub="Glows orange→red during sustained fire."
       action={<ToggleRow.Inline checked={!!s.Enabled} onChange={(v) => update('SuppressorHeat.Enabled', v)} />}>
-      <FieldBlock label="Render Mode" hint="Glow = no wall reflection · Light = real light · Particle = ptfx.">
+      <FieldBlock label="Render Mode" hint="Glow = no wall reflection · Light = lights the surroundings · Particle = heat haze.">
         <Segmented value={s.Mode ?? 'glow'} options={HEAT_MODES} onChange={(v) => update('SuppressorHeat.Mode', v)} />
       </FieldBlock>
       <Grid2>
@@ -120,7 +120,7 @@ export function WeightSection({ config, update }: SectionProps) {
       </FieldBlock>
       {isCustom && (
         <Grid2>
-          <FieldBlock label="Threshold" hint="No penalty up to N weapons." style={{ marginBottom: 0 }}>
+          <FieldBlock label="Threshold" hint="Weapons carried before the slowdown starts." style={{ marginBottom: 0 }}>
             <NumberInput min={0} max={20} step={1} value={String(w.Threshold ?? 2)}
               onChange={numUpdate(update, 'WeaponWeight.Threshold', 2, true)} />
           </FieldBlock>
