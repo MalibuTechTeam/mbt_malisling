@@ -113,6 +113,16 @@ const OV_CATS = ['Core', 'Handling', 'Interaction', 'Forensics', 'World'] as con
 
 const getPath = (obj: any, path: string) => path.split('.').reduce((o, k) => (o == null ? o : o[k]), obj)
 
+/** Open an external URL from inside the game.
+ *  A plain target=_blank does nothing in FiveM's CEF — there is no browser to open a tab
+ *  in. The `openUrl` native is the way out, and it raises FiveM's own "you are leaving"
+ *  confirmation. Falls back to window.open so the links still work in browser dev. */
+const openExternal = (url: string) => {
+  const invoke = (window as any).invokeNative
+  if (typeof invoke === 'function') invoke('openUrl', url)
+  else window.open(url, '_blank', 'noreferrer')
+}
+
 export default function AdminDashboard() {
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState('core')
@@ -296,12 +306,12 @@ export default function AdminDashboard() {
 
           {/* One card, two states: the version you run and whether it's current are the
               same fact about the same thing, so an update recolours this card instead of
-              stacking a second one. As a link, target=_blank hands the URL to FiveM's own
-              external-link overlay — the only way out of CEF. */}
+              stacking a second one. When it's a link the click goes through openExternal. */}
           {(() => {
             const Tag = updateInfo ? 'a' : 'div'
             const linkProps = updateInfo
-              ? { href: updateInfo.url, target: '_blank', rel: 'noreferrer',
+              ? { href: updateInfo.url,
+                  onClick: (e: React.MouseEvent) => { e.preventDefault(); openExternal(updateInfo.url) },
                   title: `${updateInfo.current} → ${updateInfo.latest} — open the release page` }
               : {}
             return (
@@ -321,11 +331,12 @@ export default function AdminDashboard() {
           })()}
 
           {/* MalibuTech links close the column: the quietest thing last, under the status
-              plate. target=_blank hands the URL to FiveM's own external-link confirmation
-              overlay — the only way out of CEF. */}
+              plate. Real hrefs so they read as links and carry a middle-click in dev, but
+              the click is handled by openExternal — see it for why. */}
           <div className="mbt-rail__links">
             {BRAND_LINKS.map((l) => (
-              <a key={l.href} className="mbt-rail__link" href={l.href} target="_blank" rel="noreferrer"
+              <a key={l.href} className="mbt-rail__link" href={l.href}
+                 onClick={(e) => { e.preventDefault(); openExternal(l.href) }}
                  title={l.title} aria-label={l.title}>
                 {l.icon === 'brand' ? (
                   <span className="mbt-rail__brandmark" style={{

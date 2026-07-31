@@ -198,12 +198,16 @@
    the click that leaves can never be the one that meant to save. Neutral at rest,
    faulty-tinted on approach: it discards nothing by itself, but it does end the session. */
 .mbt-admin__close {
-  position: absolute; top: 14px; right: 14px; z-index: 2;
+  position: absolute; top: 13px; right: 14px; z-index: 3;
   width: 28px; height: 28px;            /* ≥24px: WCAG 2.2 target size */
   display: grid; place-items: center;
-  border: 1px solid transparent; background: none; cursor: pointer;
+  cursor: pointer;
   border-radius: var(--mbt-r-sm);
-  color: var(--mbt-text-lo);
+  /* Carries its own surface at rest. Ghosted until hover it read as decoration against
+     the overview column and people looked for a way out. */
+  background: var(--mbt-surface-2);
+  border: 1px solid var(--mbt-edge-hi);
+  color: var(--mbt-text-mid);
   transition: color var(--mbt-dur-fast) var(--mbt-ease), background var(--mbt-dur-fast) var(--mbt-ease),
               border-color var(--mbt-dur-fast) var(--mbt-ease);
 }
@@ -476,7 +480,10 @@
 @keyframes mbt-head-in { from { opacity: 0; transform: translateX(8px); } to { opacity: 1; transform: translateX(0); } }
 
 /* ── Overview (optional right column) ──────────────────────────────────── */
-.mbt-admin__overview { width: 300px; flex-shrink: 0; border-left: 1px solid var(--mbt-edge); padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 18px; }
+/* Extra headroom on top: the close button is pinned to the panel corner over this
+   column, and this column scrolls — so the gauge has to start below it rather than
+   pass underneath it. */
+.mbt-admin__overview { width: 300px; flex-shrink: 0; border-left: 1px solid var(--mbt-edge); padding: 50px 20px 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 18px; }
 
 /* Active-features gauge — top block above FEATURE OVERVIEW (elevator pattern). */
 .mbt-ov__gauge { padding: 14px 15px; background: var(--mbt-surface-2); border: 1px solid var(--mbt-edge); border-radius: var(--mbt-r-md); }
