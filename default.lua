@@ -2,7 +2,7 @@
 -- mbt_malisling -- DEFAULT feature values (loaded BEFORE config.lua)
 --
 -- Factory defaults for every feature. These are what the admin dashboard starts
--- from; tune gameplay LIVE from the dashboard (/mbtsling), persisted to oxmysql,
+-- from; tune gameplay LIVE from the dashboard (/mbt_malisling), persisted to oxmysql,
 -- NOT by editing this file. Edit here only for baselines the dashboard can't
 -- reach (weapon-type maps, world Locations, asset/model names, keybinds, anim
 -- clips). To hard-override a default, re-declare it in config.lua (loaded after).
@@ -164,7 +164,7 @@ MBT.PropInfo           = {
         },
     },
     -- Bulky canister tools strapped vertically across the upper back (fire
-    -- extinguisher etc.) — values tuned in-game via the Positions editor (/mbtsling).
+    -- extinguisher etc.) — values tuned in-game via the Positions editor (/mbt_malisling).
     ["extinguisher"] = {
         ["Bone"]        = MBT.Bones["Back"],
         ["isPed"]       = false,

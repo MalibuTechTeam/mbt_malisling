@@ -57,7 +57,7 @@ end
 -- ── Prop-offset overrides (admin-tunable via /mbt_trunktune, DB-persisted) ────────
 -- Per-class/per-model placement, set in-world by an admin, broadcast live.
 -- Scope = 'class:<n>' or 'model:<name>'.
-local adminCommand = (MBT.Admin and MBT.Admin.Command) or 'mbtsling'
+local adminCommand = (MBT.Admin and MBT.Admin.Command) or GetCurrentResourceName()
 local adminPerm    = (MBT.Admin and MBT.Admin.Permission) or ('command.' .. adminCommand)
 local trunkOffsets = {}   -- [scope] = { Pos = {x,y,z}, Rot = {x,y,z} }
 

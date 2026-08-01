@@ -1,7 +1,7 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Admin config — server
 --
--- Powers the admin dashboard. On /mbtsling: ACE-check, send config snapshot. On
+-- Powers the admin dashboard. On /mbt_malisling: ACE-check, send config snapshot. On
 -- save: validate, apply live to MBT.* on every client (broadcast), persist.
 -- Built per-section so new sections plug in via snapshot()/apply.
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -13,7 +13,7 @@ local THROW_GROUPS    = {
     MG = `GROUP_MG`, SMG = `GROUP_SMG`, SHOTGUN = `GROUP_SHOTGUN`,
     STUNGUN = `GROUP_STUNGUN`, SNIPER = `GROUP_SNIPER`, HEAVY = `GROUP_HEAVY`,
 }
-local adminCommand    = (MBT.Admin and MBT.Admin.Command) or 'mbtsling'
+local adminCommand    = (MBT.Admin and MBT.Admin.Command) or GetCurrentResourceName()
 -- Default to the command's own ACE so a wildcard admin principal works with NO
 -- extra server.cfg lines — same as mbt_elevator.
 local adminPerm       = (MBT.Admin and MBT.Admin.Permission) or ('command.' .. adminCommand)

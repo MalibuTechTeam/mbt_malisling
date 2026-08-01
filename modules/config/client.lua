@@ -1,5 +1,5 @@
 -- ── Admin config — client ──
--- /mbtsling asks the server (ACE-checked) to open the dashboard; the server replies with
+-- /mbt_malisling asks the server (ACE-checked) to open the dashboard; the server replies with
 -- openAdmin + config snapshot, which we forward to the NUI. Saves via adminSave, closes via
 -- adminClose. applyConfig re-applies the live-broadcast changes.
 
@@ -9,6 +9,14 @@ local THROW_GROUPS = {
     MG = `GROUP_MG`, SMG = `GROUP_SMG`, SHOTGUN = `GROUP_SHOTGUN`,
     STUNGUN = `GROUP_STUNGUN`, SNIPER = `GROUP_SNIPER`, HEAVY = `GROUP_HEAVY`,
 }
+
+-- Suggestion so the command autocompletes. An owner opens this panel rarely; typing
+-- /mbt and picking it from the list is easier to recall months later than the exact
+-- name. Client-side — the chat resource only listens here.
+CreateThread(function()
+    local cmd = (MBT.Admin and MBT.Admin.Command) or GetCurrentResourceName()
+    TriggerEvent('chat:addSuggestion', '/' .. cmd, 'Open the MBT Malisling admin dashboard')
+end)
 
 -- The admin command is registered SERVER-side so its ACE auto-registers; the server pushes
 -- openAdmin to us. This optional keybind fires the same server-validated request path.

@@ -110,7 +110,7 @@ end)
 
 -- Gate for the /mbt_casingzone dev zone editor. Effect is client-only (a marker + a printed
 -- config line, no server write), so this is for tidiness: MBT.Debug builds or admins get it.
-local adminCommand = (MBT.Admin and MBT.Admin.Command) or 'mbtsling'
+local adminCommand = (MBT.Admin and MBT.Admin.Command) or GetCurrentResourceName()
 local adminPerm    = (MBT.Admin and MBT.Admin.Permission) or ('command.' .. adminCommand)
 lib.callback.register('mbt_malisling:casing:canTune', function(src)
     return (MBT.Debug == true) or IsPlayerAceAllowed(src, adminPerm)

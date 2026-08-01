@@ -5,7 +5,7 @@
 -- oxmysql is soft/feature-gated: without it the editor can't save; rest stays DB-free.
 -- ─────────────────────────────────────────────────────────────────────────────
 
-local adminCommand = (MBT.Admin and MBT.Admin.Command) or 'mbtsling'
+local adminCommand = (MBT.Admin and MBT.Admin.Command) or GetCurrentResourceName()
 local adminPerm    = (MBT.Admin and MBT.Admin.Permission) or ('command.' .. adminCommand)
 
 local WTYPES = { side = true, back = true, back2 = true, melee = true, melee2 = true, melee3 = true, extinguisher = true, sling = true }

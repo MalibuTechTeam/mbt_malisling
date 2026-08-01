@@ -3,7 +3,7 @@
 --
 -- Server-owner settings: admin access, framework interop, language, dev flags.
 -- Feature gameplay defaults live in default.lua and are tuned LIVE from the admin
--- dashboard (/mbtsling) — you don't edit them here. You CAN hard-override any
+-- dashboard (/mbt_malisling) — you don't edit them here. You CAN hard-override any
 -- default.lua value by re-declaring it below (this file loads after default.lua).
 -- ════════════════════════════════════════════════════════════════════════════
 
@@ -20,7 +20,10 @@ MBT.VersionCheck       = true
 
 -- ── Admin ─────────────────────────────────────────────────────────────────────
 MBT.Admin              = {
-    Command    = 'mbtsling',          -- chat command that opens the admin dashboard
+    -- Brand rule: the admin command IS the resource name. Nothing to remember beyond
+    -- the line already in your server.cfg, and two resources can never collide.
+    -- See patterns/admin-command-naming.md in the vault.
+    Command    = 'mbt_malisling',     -- chat command that opens the admin dashboard
     -- Optional keybind to open the dashboard (FiveM keymapping, rebindable by the
     -- player in Settings → Key Bindings). '' = unbound (command only). Server
     -- re-checks the ACE before opening, so binding a key grants nothing extra.

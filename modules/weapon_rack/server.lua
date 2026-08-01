@@ -34,7 +34,7 @@ end
 -- Runtime-placed racks — admin (/mbt_placerack) and player (inventory item). Merged
 -- into locById so stow/retrieve accept them; persisted in mbt_malisling_rack_placements
 -- (without oxmysql they reset on restart).
-local adminCommand = (MBT.Admin and MBT.Admin.Command) or 'mbtsling'
+local adminCommand = (MBT.Admin and MBT.Admin.Command) or GetCurrentResourceName()
 local adminPerm    = (MBT.Admin and MBT.Admin.Permission) or ('command.' .. adminCommand)
 local dynamicLocs  = {}   -- [id] = loc
 local dynSeq       = 0

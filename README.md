@@ -70,7 +70,7 @@ Free and open source — the discovery tier of the MBT weapon ecosystem.
 
 ### Admin & Configuration
 
-- **Live React dashboard** (`/mbtsling`) — a premium NUI control panel to toggle and tune every feature in real time, organized by category (Core, Handling, Interaction, Forensics, World), persisted to the database
+- **Live React dashboard** (`/mbt_malisling`) — a premium NUI control panel to toggle and tune every feature in real time, organized by category (Core, Handling, Interaction, Forensics, World), persisted to the database
 - **Two interface styles** — every on-screen prompt and HUD ships in **Standard** (fixed on screen) and **Cinematic** (filmic, anchored beside the weapon in the world). One switch in the dashboard changes all of them; nothing else about the script changes
 - **NUI Position Editor** — a live, in-world editor (orbit camera, preview prop, button controls) to set each weapon type's sling position **per type and per job**, saved to the database
 - **Dev tuning commands** — `/mbt_propedit`, `/mbt_racktune` and `/mbt_trunktune` print/copy ready-to-paste offset lines for fine placement (admin / debug only)
@@ -137,7 +137,7 @@ Frameworks: **ESX · QBCore · QBox · OX** (auto-detected).
 
 4. Restart your server, or run `ensure mbt_malisling` in the live console.
 
-5. Open the admin dashboard in-game with `/mbtsling` (admin only) and tune to taste.
+5. Open the admin dashboard in-game with `/mbt_malisling` (admin only) and tune to taste.
 
 ---
 
@@ -147,7 +147,7 @@ Configuration is split across two files plus the live dashboard:
 
 - **`default.lua`** — the complete default block for **every** feature (toggles, thresholds, animations, positions). Loaded first. Most values are meant to be tuned **live from the dashboard**, not by hand.
 - **`config.lua`** — thin server settings only: `Admin` (command + ACE permission), `QBWeapons`, `Language`, `Debug`, `Notification`, `ReduceMotion`, `VersionCheck`, and the Discord audit **webhooks**. Loaded after `default.lua`, so it can override any default.
-- **Dashboard** (`/mbtsling`) — toggles and tunes features at runtime; changes persist to the `mbt_malisling_config` database row and survive resource updates.
+- **Dashboard** (`/mbt_malisling`) — toggles and tunes features at runtime; changes persist to the `mbt_malisling_config` database row and survive resource updates.
 
 ```lua
 -- config.lua
@@ -155,8 +155,8 @@ MBT.Language = 'en'      -- 'en', 'it', 'fr'
 MBT.Debug    = false     -- debug logs + dev tuning commands
 
 MBT.Admin = {
-    Command    = 'mbtsling',
-    Permission = 'command.mbtsling',   -- ACE permission for the dashboard + placement
+    Command    = 'mbt_malisling',
+    Permission = 'command.mbt_malisling',   -- ACE permission for the dashboard + placement
 }
 ```
 
@@ -187,7 +187,7 @@ At startup the server asks the GitHub Releases API whether a newer version exist
 
 | Command | Access | Action |
 |---|---|---|
-| `/mbtsling` | Admin (ACE) | Open the live configuration dashboard |
+| `/mbt_malisling` | Admin (ACE) | Open the live configuration dashboard |
 | `/mbt_placerack` · `/mbt_removerack` | Admin (ACE) | Place / remove a runtime weapon rack |
 | `/mbt_rackcoords` | Anyone | Print a config line for a fixed rack at your position |
 | `/mbt_racktune` | Admin / Debug | Live-tune the per-type weapon offsets on a wall rack |
