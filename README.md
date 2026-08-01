@@ -10,17 +10,62 @@
   <img src="https://img.shields.io/badge/License-PolyForm%20Noncommercial%201.0.0-blue?style=for-the-badge" alt="PolyForm Noncommercial 1.0.0" />
 </p>
 
+<!-- SLOT IMMAGINE — hero.
+     Quando .github/release-assets/hero.png esiste, sostituisci l'src qui sotto con
+     ".github/release-assets/hero.png" e cancella questo commento.
+     L'URL attuale sta su un CDN CFX/Tebex che non controlliamo. -->
 <p align="center">
-  <img src="https://dunb17ur4ymx4.cloudfront.net/packages/images/280c2cbddfa31ba913a1345362fbaafbf6f570fd.png" alt="MBT Malisling" />
+  <img src="https://dunb17ur4ymx4.cloudfront.net/packages/images/280c2cbddfa31ba913a1345362fbaafbf6f570fd.png" alt="A player carrying a rifle slung across their back" />
 </p>
 
-**mbt_malisling** turns the weapon into a physical, visible object in the world. Guns ride on the player's back, hip, or a tactical sling; holstering plays gender-specific animations; weapons can jam, be thrown, dropped on death, inspected, named, marked with a serial, concealed under clothing, handed to another player, and stored on wall racks or in a vehicle trunk — all driven by a live React admin dashboard. Built for serious RP servers that want immersion and forensics without touching combat balance.
+<p align="center"><strong>Your weapon stops being an icon in a menu and becomes an object in the world.</strong></p>
 
-Free and open source — the discovery tier of the MBT weapon ecosystem.
+It rides on your back or your hip where everyone can see it. You can hide it under a jacket, hand it to someone, leave brass on the floor when you fire, and read the serial off a gun to find out whose hands it passed through. Free, for any ESX, QBCore, QBox, or OX server — and it does not touch your combat balance.
 
 ---
 
-## Features
+<!-- SLOT IMMAGINE — preview.
+     Decommenta questo blocco quando inspect.png e dashboard.png sono in
+     .github/release-assets/. Vedi il README lì dentro per cosa devono mostrare.
+
+## Preview
+
+<p align="center">
+  <img src=".github/release-assets/inspect.png" alt="The inspect overlay open in game, showing the weapon serial and its chain of custody" />
+</p>
+
+<p align="center"><em>Inspecting a weapon — the serial, and every player who has carried it.</em></p>
+
+<p align="center">
+  <img src=".github/release-assets/dashboard.png" alt="The admin dashboard open in game, with feature cards for one category" />
+</p>
+
+<p align="center"><em>Every feature is toggled and tuned from here, live, without touching a file.</em></p>
+-->
+
+## What players get
+
+- **The gun is on your body.** Rifle across the back, sidearm on the hip, blade at the belt — visible to everyone, in positions the server can tune. Drawing it plays a real holster animation instead of the weapon appearing in your hands.
+- **Hide it under your clothes.** A jacket conceals well, a light top conceals badly, a bare torso refuses. Walk around with a subtle tell that you are adjusting something at your belt.
+- **Weapons jam.** How often depends on the condition of the gun, and you clear it under pressure while someone is shooting back.
+- **Every weapon has a serial, and a memory.** Inspect one and you see its serial, its condition, the name engraved on it — and the list of players who have carried it before you.
+- **Firing leaves brass.** Casings stay on the ground, tied to the weapon that fired them. Someone can read a serial off one, or you can pick them up and clean the scene.
+- **Hand a weapon to another player.** They have to accept it. The transfer happens on the server, so nothing duplicates and nothing is lost.
+- **Store guns where guns go.** Wall racks, gun lockers, and vehicle trunks — the weapon is physically in there, with its serial and condition intact.
+- **Police can pat you down.** A badly concealed weapon is found instantly; a well-hidden one takes a search.
+
+## What server owners get
+
+- **It does not touch combat balance.** No recoil changes, no damage changes, no accuracy changes. Everything here is carry, identity, and consequence — so it drops into a server that already has its shooting tuned.
+- **Configure it in game, not in files.** A React dashboard (`/mbt_malisling`) toggles and tunes every feature at runtime. Changes persist to the database and survive the next update, because they do not live in the resource folder.
+- **Two interface styles, one switch.** Every prompt and HUD ships in **Standard** (fixed on screen) and **Cinematic** (anchored beside the weapon in the world). Nothing else about the script changes.
+- **Clients are never trusted.** Inventory, serials, ownership and transfers are all resolved server-side. A faked event gets nothing, and every inbound net event is rate-limited per player.
+- **One resource, four frameworks, two inventories.** ESX, QBCore, QBox and OX are auto-detected; `ox_inventory` is primary with a complete `qb-inventory` bridge.
+- **oxmysql is optional.** Without it the script runs DB-free and only the persistence features step aside. Nothing breaks.
+- **English, Italian and French included**, and adding a language is one file.
+
+<details>
+<summary><strong>Full feature list</strong> — every feature by system, for anyone implementing rather than evaluating</summary>
 
 ### Carry & Sling
 
@@ -75,18 +120,7 @@ Free and open source — the discovery tier of the MBT weapon ecosystem.
 - **NUI Position Editor** — a live, in-world editor (orbit camera, preview prop, button controls) to set each weapon type's sling position **per type and per job**, saved to the database
 - **Dev tuning commands** — `/mbt_propedit`, `/mbt_racktune` and `/mbt_trunktune` print/copy ready-to-paste offset lines for fine placement (admin / debug only)
 
-### Reliability & Security
-
-- **Multi-framework** — auto-detects ESX, QBCore, QBox, or OX
-- **Dual inventory** — `ox_inventory` (primary) with a full `qb-inventory` bridge fallback
-- **Server-authoritative** — inventory, serials, ownership and transfers are validated on the server; clients are never trusted
-- **Rate-limited net events** — every accepted NetEvent is throttled per server ID
-- **Strict-ready state bags** — replicated state (concealed, scope, flashlight) is written only by the server
-- **Self-managed persistence** — optional oxmysql tables are auto-created and feature-gated; without oxmysql the script runs DB-free (persistence features degrade gracefully)
-
-### Localization
-
-Built-in translations for **English, Italian, and French**. Add your own by creating a new file in the `locales/` folder.
+</details>
 
 ---
 
@@ -223,6 +257,21 @@ exports.mbt_malisling:ResetWeaponsOnBack()
 
 ---
 
+## Under the hood
+
+For anyone reading the code before trusting it on their server.
+
+- **Server-authoritative.** Inventory contents, serials, ownership and transfers are resolved from the server's own view. A client that claims to hold something it does not hold gets nothing.
+- **Per-event rate limiting** on every inbound net event, keyed per server ID.
+- **Serials are written only on safe transitions** — never while a weapon is being fired — because writing item metadata mid-fire triggers an inventory refresh that would visibly re-spawn the slung prop.
+- **Strict-ready state bags.** Replicated state (concealed, scope, flashlight) is written by the server only, so a client cannot declare itself concealed.
+- **Handoff and ammo transfer are atomic**, with rollback. Both sides consent, and a failure halfway leaves the item where it started rather than in neither inventory.
+- **Chain of custody lives outside the weapon's metadata**, deliberately: writing it on the equip path would re-trigger the inventory update above.
+- **Self-managed persistence.** The optional oxmysql tables are created on first run and prefixed `mbt_malisling_*`. Without oxmysql those features gate themselves off and the rest runs DB-free.
+- **The `ox_inventory` patch fails loudly.** It keeps a `.bak`, is idempotent, and refuses to write if a future update moves the anchors it looks for, rather than corrupting the file.
+
+---
+
 ## qb-inventory notes
 
 The `qb-inventory` bridge has full feature parity with `ox_inventory` on all load-bearing paths (stow/retrieve/transfer preserve the serial, no duplication). A few qb-specific notes:
@@ -289,18 +338,29 @@ Use the dashboard's **Position Editor** for body positions (per type and per job
 
 ---
 
-## Media
+## Credits
 
-- **Showcase:** [YouTube](https://www.youtube.com/watch?v=A5NDT_WTbo0)
-- **Cfx release thread:** [forum.cfx.re](https://forum.cfx.re/t/free-esx-ox-qb-mbt-malisling-attached-weapons-flashlights-jamming-weapon-drop-throw/5118366)
+Developed by the **Malibu Tech Team**.
+
+### Gianmarco — *DarkSideofTheCode*
+
+MalibuTech was founded with my brother Gianmarco. He was the scripter, and Malisling was his — the first commits are from January 2023, and he kept working on it through that June.
+
+Three of his decisions are still load-bearing in 2.0, after everything around them has been rewritten:
+
+**The jamming never polls.** He hung it on `CEventGunShotWhizzedBy`, a game event that only fires when a round passes close by. There is no thread asking "is he shooting yet" — the cost is zero until a shot is actually fired. It is still exactly where he put it.
+
+**`dropCurrentWeapon` is his.** He added it in June 2023 so other resources could make a player drop the gun in their hands. It is still in the export table above, unchanged, and it is what a surrender or arrest script calls today.
+
+**He built the resource to know male peds from female ones**, and gave every carry position a separate value for each — then left the two sets identical, with tuning the female offsets still on his list. The structure he left is the reason the Position Editor in this version can be per body, per weapon type, and per job at all.
+
+The code around all of it has been rewritten many times since. The shape of it is still his.
+
+`DarkSideofTheCode` was his name in the FiveM community. It stays on his work.
 
 ---
 
-## Credits
-
-Developed by **Malibu Tech Team**.
-
-In loving memory of **Gianmarco (DarkSideofTheCode)**, co-founder of MalibuTech. The original weapon-on-back work is his — this project only tries to improve it and carry it forward.
+Thanks to the FiveM community for continuous feedback and testing.
 
 ---
 
@@ -310,4 +370,12 @@ This project is licensed under the [PolyForm Noncommercial License 1.0.0](LICENS
 
 You are free to use and modify this software for **noncommercial purposes only** — personal use, hobby servers, research, and education. Any commercial use, redistribution for profit, or inclusion in paid products is prohibited without written permission from Malibu Tech Team.
 
-> Required Notice: Copyright Malibu Tech Team (https://github.com/MalibuTechTeam)
+---
+
+## Media
+
+- **Showcase:** [YouTube](https://www.youtube.com/watch?v=A5NDT_WTbo0)
+- **Cfx release thread:** [forum.cfx.re](https://forum.cfx.re/t/free-esx-ox-qb-mbt-malisling-attached-weapons-flashlights-jamming-weapon-drop-throw/5118366)
+- **Documentation:** [malibutechteam.com/docs](https://malibutechteam.com/docs/mbt-malisling/introduction)
+
+Copyright 2023-2026 MalibuTech.

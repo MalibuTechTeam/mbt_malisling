@@ -13,11 +13,6 @@ MBT = MBT or {}
 MBT.Debug              = false  -- dev logging; intentionally NOT exposed in the dashboard
 MBT.Language           = 'en'   -- read-only in the dashboard; set the server language here
 
--- One request to the GitHub Releases API at startup; shows an "Update available" badge
--- in the dashboard (and a console line) when a newer release exists. Set to false if you
--- don't want the server making outbound HTTP calls. Nothing else is sent — it's a plain GET.
-MBT.VersionCheck       = true
-
 -- ── Admin ─────────────────────────────────────────────────────────────────────
 MBT.Admin              = {
     -- Brand rule: the admin command IS the resource name. Nothing to remember beyond
@@ -64,11 +59,16 @@ MBT.ReduceMotion       = false
 
 -- One configurable sink: uncomment the preset for your notification resource. Called
 -- with { title?, description, type?, icon?, duration? } (also via MBT.NotifyLabel).
--- NOTE: mbt_malisling depends on ox_lib, so lib.notify is the natural default — leave
--- it uncommented to keep notifications working out of the box.
+-- Every preset ships commented on purpose — pick the one your server actually runs.
+-- ox_lib is already a dependency of this resource, so lib.notify is the safest choice
+-- if you have no preference. Until you uncomment one, notifications are silent.
 MBT.Notification       = function(data)
+
+    -- mbt_visual (our own notification system — not published yet):
+    -- exports.mbt_visual:notify({ title = data.title, description = data.description, type = data.type or 'inform', icon = data.icon, duration = data.duration or 5000 })
+
     -- ox_lib (required by this resource):
-    lib.notify(data)
+    -- lib.notify(data)
 
     -- Native GTA feed:
     -- BeginTextCommandThefeedPost('STRING')
@@ -80,9 +80,6 @@ MBT.Notification       = function(data)
 
     -- QBCore:
     -- QBCore.Functions.Notify(data.description or data.title, data.type or 'primary')
-
-    -- mbt_visual (our own notification system):
-    -- exports.mbt_visual:notify({ title = data.title, description = data.description, type = data.type or 'inform', icon = data.icon, duration = data.duration or 5000 })
 end
 
 -- ── Discord audit-log webhooks — SERVER-ONLY secrets ───────────────────────────
