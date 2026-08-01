@@ -105,6 +105,14 @@ Frameworks: **ESX · QBCore · QBox · OX** (auto-detected).
 
 ## Installation
 
+> ### ⚠️ Upgrading from 1.x? Replace the whole folder — do **not** keep your old `config.lua`
+>
+> The old `config.lua` opens with `MBT = {}`, and it is loaded **after** `default.lua`. Keeping it wipes every default the new version needs, and the script will not start.
+>
+> Configuration also moved. In 1.x everything lived in `config.lua`; now feature tuning lives in `default.lua` and is meant to be changed **live from the dashboard**, while `config.lua` holds only server settings (admin command, language, notifications, webhooks). **Your 1.x tuning will not carry over** — set it again from the dashboard, where it will persist to the database and survive future updates.
+>
+> Delete the old folder, drop in the new one, and re-apply your settings. There is no migration path: 2.0 is effectively a different script.
+
 1. Download or clone this repository into your server's `resources` folder.
 
 2. Add to your `server.cfg` (after your framework and inventory):
