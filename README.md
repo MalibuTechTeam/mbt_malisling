@@ -70,7 +70,7 @@ It rides on your back or your hip where everyone can see it. You can hide it und
 ### Carry & Sling
 
 - **Visual sling** — the weapon shows on the player's body in **6 configurable positions** (back, secondary back, hip/side, melee slots), attached per weapon type
-- **Tactical Sling prop** — optional realistic sling/rig prop with **multiple variants** and **per-job** assignment (e.g. police carry differently), positions tuned live in the dashboard
+- **Tactical Sling prop** — a strap/rig worn on the body, on by default: **three prop variants ship with the resource** and can be assigned **per job** (e.g. police carry differently), with positions tuned live in the dashboard
 - **Holster prompt** — drawing a sidearm shows a branded confirm prompt with **gender-specific holster animations** and synced holster/unholster sounds (including a blade sound for melee)
 - **Concealed Carry** — toggle to hide a weapon under clothing; server-authoritative, replicated via state bag. Clothing is evaluated (bare torso refuses, light tops conceal *poorly*, jackets conceal *well*) with subtle "adjust your belt" tells
 - **Low Ready** — a choreographed chest-carry stance
@@ -118,7 +118,7 @@ It rides on your back or your hip where everyone can see it. You can hide it und
 - **Live React dashboard** (`/mbt_malisling`) — a premium NUI control panel to toggle and tune every feature in real time, organized by category (Core, Handling, Interaction, Forensics, World), persisted to the database
 - **Two interface styles** — every on-screen prompt and HUD ships in **Standard** (fixed on screen) and **Cinematic** (filmic, anchored beside the weapon in the world). One switch in the dashboard changes all of them; nothing else about the script changes
 - **NUI Position Editor** — a live, in-world editor (orbit camera, preview prop, button controls) to set each weapon type's sling position **per type and per job**, saved to the database
-- **Dev tuning commands** — `/mbt_propedit`, `/mbt_racktune` and `/mbt_trunktune` print/copy ready-to-paste offset lines for fine placement (admin / debug only)
+- **Dev tuning commands** — `/mbt_racktune` and `/mbt_trunktune` print ready-to-paste offset lines for fine placement (admin / debug only)
 
 </details>
 
@@ -225,18 +225,40 @@ At startup the server asks the GitHub Releases API whether a newer version exist
 
 ---
 
+## Keybinds
+
+Every one of these is a FiveM keymapping, so a player can rebind it in **Settings → Key Bindings → FiveM**. The defaults live in each feature's block in `default.lua` as `Key`.
+
+| Key | Action |
+|---|---|
+| **I** *(hold)* | Inspect the held weapon |
+| **K** *(hold)* | Throw the held weapon (hold to charge, if enabled) |
+| **U** | Conceal / reveal the weapon under clothing |
+| **END** | Toggle the safety |
+| **INSERT** | Charge the weapon (rack the slide) |
+| **HOME** | Toggle low ready (chest carry) |
+| **G** | Hand your weapon to a nearby player |
+| **H** | Share ammo with a nearby player |
+| **Y** | Pat down a nearby person (job-gated) |
+
+Drawing a sidearm shows a confirm prompt: its two keys are set in `MBT.HolsterControls`.
+
 ## Commands
 
 | Command | Access | Action |
 |---|---|---|
 | `/mbt_malisling` | Admin (ACE) | Open the live configuration dashboard |
+| `/pose` · `/pose <n>` | Anyone | Cycle or pick a showcase pose. **Command only — no default key** |
+| `/weaponname` | Anyone | Engrave a name on the held weapon. **Command only — no default key** |
 | `/mbt_placerack` · `/mbt_removerack` | Admin (ACE) | Place / remove a runtime weapon rack |
+| `/mbt_rackcount` | Anyone | List the racks you have placed, and your limit |
+| `/mbt_clearmyracks` | Anyone | Remove all of your own empty placed racks |
 | `/mbt_rackcoords` | Anyone | Print a config line for a fixed rack at your position |
 | `/mbt_racktune` | Admin / Debug | Live-tune the per-type weapon offsets on a wall rack |
 | `/mbt_trunktune` | Near a stowed vehicle | Live-tune the trunk prop offset per vehicle class/model |
-| `/mbt_propedit` | Debug | Live-tune a weapon type's body position (prints a config line) |
+| `/mbt_casingzone` | Admin / Debug | Size a no-casing zone in-world (ranges, armories) and print a ready-to-paste `ExcludeZones` line |
 
-Holster confirm / cancel keys and feature keybinds are configurable in `default.lua` (per feature block).
+Every command name is configurable — each feature's block in `default.lua` has a `Command` field, and the dashboard's is `MBT.Admin.Command` in `config.lua`.
 
 ---
 
