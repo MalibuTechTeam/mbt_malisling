@@ -63,12 +63,13 @@ MBT.PropInfo           = {
         ["isPed"]       = false,
         ["RotOrder"]    = 2,
         ["FixedRot"]    = true,
+        -- male tuned in-world; female is still the original seed, not tuned.
         ["Pos"]         = {
-            ["male"]   = { ["x"] = 0.4, ["y"] = -0.18, ["z"] = 0.1 },
+            ["male"]   = { ["x"] = 0.2, ["y"] = -0.21, ["z"] = -0.055 },
             ["female"] = { ["x"] = 0.4, ["y"] = -0.18, ["z"] = 0.1 },
         },
         ["Rot"]         = {
-            ["male"]   = { ["x"] = 0.0, ["y"] = 155.0, ["z"] = 0.0 },
+            ["male"]   = { ["x"] = 0.0, ["y"] = 145.0, ["z"] = 0.0 },
             ["female"] = { ["x"] = 0.0, ["y"] = 155.0, ["z"] = 0.0 },
         },
         ["HolsterAnim"] = {
@@ -864,13 +865,12 @@ MBT.LowReady           = {
 -- server's own addons, making the script non-distributable. A prop only depends
 -- on the model shipped in stream/, so it works identically on every server.
 --
--- DISABLED by default until you ship a strap prop model. Steps:
---   1. Convert a sling model to a prop .ydr (+ .ytd) — see vault guide.
---   2. Drop it in this resource's stream/ folder.
---   3. Set Model below to the prop's name, tune Position with /mbt_slingpos,
---      then flip Enabled = true.
+-- On by default: three strap props ship in stream/belt/, and their offsets below are
+-- tuned. To add your own variant: convert the model to a prop .ydr (+ .ytd), drop it in
+-- stream/belt/, declare its archetype in mbt_m4_prop.ytyp, add a row to Variants, then
+-- place it with the dashboard's Position editor (it appears there as type 'sling:<id>').
 MBT.TacticalSling      = {
-    Enabled  = false,   -- toggle live from the admin dashboard (NUI), no restart needed
+    Enabled  = true,    -- toggle live from the admin dashboard (NUI), no restart needed
     -- Strap prop variants, shipped in stream/ and declared in mbt_m4_prop.ytyp. Add as many
     -- as you like — each one appears in the NUI's Variant dropdown automatically.
     --   id    = stored/selected value   model = prop model name   label = NUI text
@@ -896,8 +896,9 @@ MBT.PropInfo.sling = {
     ["isPed"]    = false,
     ["RotOrder"] = 2,
     ["FixedRot"] = true,
+    -- male tuned in-world; female is still the original seed, not tuned.
     ["Pos"] = {
-        ["male"]   = { ["x"] = 0.252, ["y"] = -0.028, ["z"] = -0.420 },
+        ["male"]   = { ["x"] = 0.200, ["y"] = -0.120, ["z"] = -0.115 },
         ["female"] = { ["x"] = 0.252, ["y"] = -0.028, ["z"] = -0.420 },
     },
     ["Rot"] = {
@@ -918,6 +919,21 @@ do
             Pos = { male = cv(s.Pos.male), female = cv(s.Pos.female) },
             Rot = { male = cv(s.Rot.male), female = cv(s.Rot.female) },
         }
+    end
+
+    -- Offsets tuned in-world for the shipped variants, applied over the seed above.
+    -- Guarded by `p`: removing a variant from Variants must not break startup.
+    local tuned = {
+        ['sling:normal'] = { Pos = { x = 0.175, y = -0.110, z = -0.135 } },
+        ['sling:m4']     = { Pos = { x = 0.185, y =  0.405, z = -0.055 },
+                             Rot = { x = 89.0,  y = 46.0,   z = -25.0  } },
+    }
+    for key, offset in pairs(tuned) do
+        local p = MBT.PropInfo[key]
+        if p then
+            if offset.Pos then p.Pos.male = offset.Pos end
+            if offset.Rot then p.Rot.male = offset.Rot end
+        end
     end
 end
 
