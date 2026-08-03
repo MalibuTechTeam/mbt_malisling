@@ -8,9 +8,18 @@ if not Utils.MbtResourceNameCheck('mbt_malisling') then return end
 local isReady = false
 playersToTrack = {}
 
--- Inventory and loadInventoryWeaponsData() are provided by modules/inventory/*/server.lua
-if not Inventory then
-    Utils.mbtWarn("mbt_malisling: No supported inventory found! Install ox_inventory >= 2.30.0 or qb-inventory.")
+-- Inventory and loadInventoryWeaponsData() come from modules/inventory/*/server.lua, which
+-- bail out when their inventory is not 'started' at the moment we load — a restart that
+-- leaves ox_inventory briefly in 'starting' takes both out. Without this guard the next
+-- line calls a nil global, and that error names nothing an owner can act on.
+-- Stop, don't return: modules loaded before this file call MBT.NetThrottle, defined below.
+if not Inventory or not loadInventoryWeaponsData then
+    Utils.Error(
+        "No supported inventory detected at startup. Install ox_inventory >= 2.30.0 or qb-inventory, " ..
+        "and make sure it is fully started BEFORE mbt_malisling — in server.cfg, ensure it first. " ..
+        "If it was already running, this usually means it was mid-restart: restart mbt_malisling on its own."
+    )
+    return StopResource(GetCurrentResourceName())
 end
 
 lib.callback.register('mbt_malisling:getWeapoConf', function(source)
