@@ -81,33 +81,19 @@ function Utils.isComponentAFlashlight(componentName)
     return componentName == "at_flashlight"
 end
 
----@param d number
+--- Jam chance (%) for a durability, read off MBT.Jamming.Chance: the LOWEST threshold
+--- the weapon still falls under wins. A weapon above every threshold never jams.
+---@param d number?  durability 0-100; nil (e.g. a qb item with no info.quality) = no jam
+---@return number chance  0-100
 local function getChance(d)
-    local prevKey = nil
-    local orderedPairs = function(t, compareFunc)
-        local keys = {}
-        for key, _ in pairs(t) do
-            table.insert(keys, key)
-        end
-        table.sort(keys, compareFunc)
-        local i = 0
-        return function()
-            i = i + 1
-            local key = keys[i]
-            if key then return key, t[key] end
-        end
-    end
-
-    -- Unknown durability (e.g. qb item with no info.quality) gives d = nil — guard
-    -- before the `nil > key` comparisons below.
     if type(d) ~= 'number' then return 0 end
-    for key in orderedPairs(MBT.Jamming["Chance"], function(a, b) return a > b end) do
-        if prevKey and d > key and d < prevKey then
-            return MBT.Jamming["Chance"][prevKey]
+    local chance, lowest = 0, nil
+    for key, value in pairs(MBT.Jamming["Chance"]) do
+        if d <= key and (not lowest or key < lowest) then
+            chance, lowest = value, key
         end
-        prevKey = key
     end
-    return 0
+    return chance
 end
 
 function Utils.getJammingChance(value)
