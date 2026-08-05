@@ -71,6 +71,9 @@ end)
 RegisterNetEvent('mbt_malisling:concealed:forceReveal', function(wtype)
     local src = source
     if not cfg.Enabled or type(wtype) ~= 'string' then return end
+    -- Each accepted call writes a replicated statebag, so an unthrottled one is a free
+    -- way to make the server broadcast to every client.
+    if not (MBT.NetThrottle and MBT.NetThrottle(src, 'forceReveal', 250)) then return end
     local state = Player(src).state.mbt_concealed
     if type(state) ~= 'table' or not state[wtype] then return end
     state[wtype] = nil

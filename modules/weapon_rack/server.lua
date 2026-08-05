@@ -455,6 +455,9 @@ end)
 --- Remove ALL the caller's own EMPTY placed racks (test/cleanup; racks with weapons must be emptied first).
 RegisterNetEvent('mbt_malisling:weaponRack:clearMine', function()
     local src = source
+    -- Scans every placed rack on the server, so it is not something to leave open to a
+    -- client that can call it in a loop.
+    if not (MBT.NetThrottle and MBT.NetThrottle(src, 'clearMine', 2000)) then return end
     local owner = identifierOf(src)
     if not owner then return end
     local ids = {}
