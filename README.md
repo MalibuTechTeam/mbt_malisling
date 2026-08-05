@@ -94,7 +94,7 @@ It rides on your back or your hip where everyone can see it. You can hide it und
 - **Weapon Condition HUD** — discrete condition pips (tier 1–5) shown in the weapon-status pill
 - **Custom Weapon Name** — engrave a personal name onto a weapon
 - **Showcase Poses** — synced presentation poses for group photos (late-join aware)
-- **Synced attachments & flashlight** — scope/suppressor/flashlight show on the slung prop, and the flashlight state stays in sync (and works on the back)
+- **Synced attachments & flashlight** — scope/suppressor/flashlight show on the slung prop, and the flashlight still lights the world from your back. Its saved state survives equip and relog (see *Known limitations* for the engine-level caveat)
 
 ### Interaction & Social
 
@@ -291,6 +291,18 @@ For anyone reading the code before trusting it on their server.
 - **Chain of custody lives outside the weapon's metadata**, deliberately: writing it on the equip path would re-trigger the inventory update above.
 - **Self-managed persistence.** The optional oxmysql tables are created on first run and prefixed `mbt_malisling_*`. Without oxmysql those features gate themselves off and the rest runs DB-free.
 - **The `ox_inventory` patch fails loudly.** It keeps a `.bak`, is idempotent, and refuses to write if a future update moves the anchors it looks for, rather than corrupting the file.
+
+---
+
+## Known limitations
+
+Written down rather than left for you to discover.
+
+**A slung weapon's flashlight follows the weapon in your hands.** Put a rifle with the flashlight component on your back while the light is on, then toggle the light on a *different* weapon, and the slung one changes with it.
+
+This is the engine, not the script: GTA ties a weapon object's flashlight rendering to a **single flashlight state on the ped**, so any `SetFlashLightEnabled` — from us or from any other resource — reaches every weapon object that ped owns, including props on the back. We tried re-asserting the light source per object, blocking the toggle control, monitoring and reverting the state, and drawing a custom light; each either broke the rendering, was bypassable, flickered, or left the physical lens flickering anyway because the engine draws it. Fixing it properly means replacing the whole flashlight system, which is more than this script should be. The flashlight's **saved state** across equip and relog is correct — it is only the live mirroring that bleeds.
+
+**On `qb-inventory`, prompts are a beat less immediate.** `ox_inventory` fires native events we hook directly; qb has no equivalent, so that bridge polls the inventory for changes. Everything works, but expect slightly less snappy holster prompts. **If you have the choice, pair this with `ox_inventory`.**
 
 ---
 
