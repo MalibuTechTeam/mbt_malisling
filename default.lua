@@ -750,14 +750,19 @@ MBT.ShellCasings       = {
 }
 
 -- ── Chain of Custody (Forensics) ──────────────────────────────────────────────
--- Each weapon remembers everyone who has carried it, stored in its ox/qb metadata
--- (so the chain travels with the gun on trades/pickups/loot). A new holder is
--- appended only when they EQUIP it (server-side), so it works the same on ox and
--- qb without inventory-swap hooks. Shown in the Inspect overlay.
+-- Each weapon remembers everyone who has carried it, in a SERVER-SIDE ledger keyed by
+-- serial — deliberately not in item metadata, because writing metadata on the equip path
+-- re-fires ox_inventory's updateInventory and re-spawns the slung prop mid-handling.
+-- A holder is appended when they equip it, so ox and qb behave the same. Shown in Inspect.
 MBT.ChainOfCustody     = {
     Enabled       = true,
     MaxEntries    = 10,      -- chain cap: origin is always kept + the most recent (MaxEntries-1)
     ShowInInspect = true,    -- show the chain in the weapon Inspect overlay (the holder's own weapon)
+    -- Days before an untouched serial's row is dropped at boot. This is the only table with
+    -- no natural delete path — a weapon can be destroyed or lost without telling us — so
+    -- without a cutoff the ledger only ever grows and is fully read into memory each start.
+    -- 0 disables pruning: keep every serial forever, and accept the growth.
+    PruneAfterDays = 180,
     -- A "police can read the chain off a dropped/other weapon" view is a future
     -- add-on (lands with Forensic Shell Casings) — not in this build.
 }

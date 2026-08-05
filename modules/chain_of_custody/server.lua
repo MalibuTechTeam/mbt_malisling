@@ -13,23 +13,42 @@ local hasDb   = GetResourceState('oxmysql') == 'started'
 local custody = {}   -- [serial] = { { name, id, at }, ... } (oldest first)
 
 if hasDb then
-    CreateThread(function()
-        -- executeSync (not fire-and-forget execute): the CREATE must COMMIT before
-        -- the SELECT below, or a fresh DB races (table-doesn't-exist on first boot).
-        exports.oxmysql:executeSync([[
-            CREATE TABLE IF NOT EXISTS mbt_malisling_custody (
-                serial VARCHAR(64) NOT NULL,
-                chain  LONGTEXT NOT NULL,
-                PRIMARY KEY (serial)
-            )
-        ]], {})
-        local rows = exports.oxmysql:executeSync('SELECT serial, chain FROM mbt_malisling_custody', {})
-        if rows then
-            for _, row in ipairs(rows) do
-                local ok, data = pcall(json.decode, row.chain)
-                if ok and type(data) == 'table' then custody[row.serial] = data end
+    -- Chained callbacks, not executeSync: each step must finish before the next (oxmysql
+    -- runs on a pool, so fire-and-forget races a fresh DB) but blocking the thread to get
+    -- that ordering costs a boot stall that grows with the table.
+    exports.oxmysql:execute([[
+        CREATE TABLE IF NOT EXISTS mbt_malisling_custody (
+            serial     VARCHAR(64) NOT NULL,
+            chain      LONGTEXT NOT NULL,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (serial)
+        )
+    ]], {}, function()
+        -- Tables created before updated_at existed. Errors harmlessly once it does.
+        exports.oxmysql:execute(
+            'ALTER TABLE mbt_malisling_custody ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
+            {}, function()
+            -- Prune before loading: this is the only table with no natural delete path, so
+            -- without it every serial ever issued is read into memory at every boot, forever.
+            local days = tonumber(MBT.ChainOfCustody.PruneAfterDays) or 0
+            local function load()
+                exports.oxmysql:execute('SELECT serial, chain FROM mbt_malisling_custody', {}, function(rows)
+                    if type(rows) ~= 'table' then return end
+                    for _, row in ipairs(rows) do
+                        local ok, data = pcall(json.decode, row.chain)
+                        if ok and type(data) == 'table' then custody[row.serial] = data end
+                    end
+                    Utils.mbtDebugger('chain_of_custody ~ loaded', #rows, 'serials from DB')
+                end)
             end
-        end
+            if days > 0 then
+                exports.oxmysql:execute(
+                    'DELETE FROM mbt_malisling_custody WHERE updated_at < (NOW() - INTERVAL ? DAY)',
+                    { days }, load)
+            else
+                load()
+            end
+        end)
     end)
 end
 
@@ -63,13 +82,12 @@ local function record(source, serial)
     persist(serial)
 end
 
---- Records the holder for each serialled weapon the player actually carries (called after
---- sling sync). Serials are read from the player's REAL server-side inventory, NOT from the
---- client payload — trusting client metadata would let a client append itself to any serial's
---- ledger. Serial-less legacy guns get a deferred EnsureSerial repair off the equip path.
+--- Records the holder for each serialled weapon the player actually carries. Serials are read
+--- from the player's REAL server-side inventory, NOT from the client payload — trusting client
+--- metadata would let a client append itself to any serial's ledger. Serial-less legacy guns
+--- get a deferred EnsureSerial repair off the equip path.
 ---@param source number
-function MBT.ChainOfCustody.RecordHolders(source)
-    if not MBT.ChainOfCustody.Enabled then return end   -- live on/off from the dashboard
+local function doRecord(source)
     local items = Inventory:GetInventoryItems(source)
     if type(items) ~= 'table' then return end
     local missing = nil
@@ -97,6 +115,27 @@ function MBT.ChainOfCustody.RecordHolders(source)
         end
     end)
 end
+
+local SETTLE_MS = 1500
+local settling  = {}   -- [source] = true while a record is scheduled
+
+--- Called on every sling sync, which is throttled at 100ms — up to ten times a second per
+--- player. The DB write is already guarded (`record` no-ops for an unchanged holder), but the
+--- inventory read behind it is not, and that is the real cost. Custody is a ledger, not live
+--- state: one read per settle window is enough, and it runs at the END of the window so it
+--- sees the state the player came to rest in rather than a frame mid-swap.
+---@param source number
+function MBT.ChainOfCustody.RecordHolders(source)
+    if not MBT.ChainOfCustody.Enabled then return end   -- live on/off from the dashboard
+    if settling[source] then return end
+    settling[source] = true
+    SetTimeout(SETTLE_MS, function()
+        settling[source] = nil
+        if GetPlayerName(source) then doRecord(source) end
+    end)
+end
+
+AddEventHandler('playerDropped', function() settling[source] = nil end)
 
 --- Inspect overlay → fetch a weapon's chain by serial.
 lib.callback.register('mbt_malisling:getCustody', function(_, serial)
