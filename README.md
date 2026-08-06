@@ -10,12 +10,8 @@
   <img src="https://img.shields.io/badge/License-PolyForm%20Noncommercial%201.0.0-blue?style=for-the-badge" alt="PolyForm Noncommercial 1.0.0" />
 </p>
 
-<!-- SLOT IMMAGINE — hero.
-     Quando .github/release-assets/hero.png esiste, sostituisci l'src qui sotto con
-     ".github/release-assets/hero.png" e cancella questo commento.
-     L'URL attuale sta su un CDN CFX/Tebex che non controlliamo. -->
 <p align="center">
-  <img src="https://dunb17ur4ymx4.cloudfront.net/packages/images/280c2cbddfa31ba913a1345362fbaafbf6f570fd.png" alt="A player carrying a rifle slung across their back" />
+  <img src=".github/release-assets/hero.jpg" alt="A player carrying a rifle slung across their back on a carrier deck" />
 </p>
 
 <p align="center"><strong>Your weapon stops being an icon in a menu and becomes an object in the world.</strong></p>
@@ -24,24 +20,21 @@ It rides on your back or your hip where everyone can see it. You can hide it und
 
 ---
 
-<!-- SLOT IMMAGINE — preview.
-     Decommenta questo blocco quando inspect.png e dashboard.png sono in
-     .github/release-assets/. Vedi il README lì dentro per cosa devono mostrare.
-
 ## Preview
 
 <p align="center">
-  <img src=".github/release-assets/inspect.png" alt="The inspect overlay open in game, showing the weapon serial and its chain of custody" />
+  <img src=".github/release-assets/inspect.jpg" alt="The inspect overlay open in game, showing the weapon serial, its condition and its chain of custody" />
 </p>
 
 <p align="center"><em>Inspecting a weapon — the serial, and every player who has carried it.</em></p>
 
 <p align="center">
-  <img src=".github/release-assets/dashboard.png" alt="The admin dashboard open in game, with feature cards for one category" />
+  <img src=".github/release-assets/dashboard.jpg" alt="The admin dashboard open in game, showing the Handling category and the live feature overview" />
 </p>
 
 <p align="center"><em>Every feature is toggled and tuned from here, live, without touching a file.</em></p>
--->
+
+---
 
 ## What players get
 

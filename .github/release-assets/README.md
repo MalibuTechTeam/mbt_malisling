@@ -1,25 +1,37 @@
 # Release assets
 
-Immagini referenziate dal README principale. Metti qui i file **con questi nomi esatti**:
+Immagini usate dal README principale, estratte dal master del video showcase
+(`Sequenza 01_3.mxf`, ProRes 4K) con ffmpeg.
 
-| File | Cosa deve mostrare | Da dove |
+| File | Timecode | Cosa mostra |
 |---|---|---|
-| `hero.png` | Il personaggio con l'arma in spalla, di tre quarti. È la prima cosa che si vede sulla pagina GitHub. | Frame dalla **clip 01** o **clip 02** del video |
-| `inspect.png` | L'overlay di ispezione aperto, con serial e chain of custody **leggibili**. | Frame dalla **clip 08** |
-| `dashboard.png` | La dashboard admin aperta su una categoria, non su una pagina vuota. | Frame dalla **clip 12** |
+| `hero.jpg` | 0:20 | Fucile in spalla sul ponte della portaerei, card EQUIPPED |
+| `inspect.jpg` | 1:14 | Card di ispezione: serial, condizione, catena di possesso |
+| `dashboard.jpg` | 1:20 | Dashboard admin, pagina Handling + riepilogo feature |
 
-Poi apri `README.md` e **decommenta** i due blocchi marcati
-`<!-- SLOT IMMAGINE -->` — sono già scritti, basta togliere `<!--` e `-->`.
+## Come rigenerarle
 
-- Nel blocco **hero**: sostituisci l'URL cloudfront con `.github/release-assets/hero.png`.
-- Nel blocco **preview**: dopo aver tolto i marcatori, aggiungi una riga `---` in fondo
-  alla sezione (non è dentro il commento di proposito: `--->` rompe il parser HTML).
+```bash
+ffmpeg -y -ss 20   -i "master.mxf" -frames:v 1 -vf scale=1920:-2 -q:v 3 hero.jpg
+ffmpeg -y -ss 74.5 -i "master.mxf" -frames:v 1 -vf scale=1920:-2 -q:v 3 inspect.jpg
+ffmpeg -y -ss 80   -i "master.mxf" -frames:v 1 -vf scale=1920:-2 -q:v 3 dashboard.jpg
+```
 
-## Note
+**JPEG e non PNG**: gli stessi tre fotogrammi in PNG pesavano 25 MB contro 700 KB, per
+una differenza che a schermo non si vede. Un PNG ha senso per la UI a tinte piatte,
+non per un frame di gioco.
 
-- **PNG**, larghezza 1600-2000px. GitHub scala da solo.
-- **Niente HUD del server, niente chat, niente nickname** nel frame.
-- Il testo dell'overlay deve essere leggibile **alla larghezza a cui GitHub lo mostra**
-  (~900px su desktop). Se devi strizzare gli occhi nel PNG originale, sulla pagina
-  sparisce.
-- Non usare URL esterni: il CDN CFX/Tebex attuale non è nostro e può sparire.
+**1920px di larghezza**: GitHub mostra il README a circa 900px, quindi 1920 copre gli
+schermi a densità doppia senza sprecare banda.
+
+## ⚠️ `inspect.jpg` contiene un refuso
+
+Nella catena di possesso si legge **"Jhon Black"** invece di "John". Viene dal
+personaggio di test usato durante le riprese, ed è l'immagine più guardata delle tre
+perché documenta la feature che distingue lo script.
+
+Per rifarla serve una cattura in gioco con un nome pulito, poi:
+
+```bash
+ffmpeg -y -i cattura.png -vf scale=1920:-2 -q:v 3 inspect.jpg
+```
