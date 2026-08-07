@@ -24,30 +24,40 @@ if hasDb then
             PRIMARY KEY (serial)
         )
     ]], {}, function()
-        -- Tables created before updated_at existed. Errors harmlessly once it does.
-        exports.oxmysql:execute(
-            'ALTER TABLE mbt_malisling_custody ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
-            {}, function()
-            -- Prune before loading: this is the only table with no natural delete path, so
-            -- without it every serial ever issued is read into memory at every boot, forever.
-            local days = tonumber(MBT.ChainOfCustody.PruneAfterDays) or 0
-            local function load()
-                exports.oxmysql:execute('SELECT serial, chain FROM mbt_malisling_custody', {}, function(rows)
-                    if type(rows) ~= 'table' then return end
-                    for _, row in ipairs(rows) do
-                        local ok, data = pcall(json.decode, row.chain)
-                        if ok and type(data) == 'table' then custody[row.serial] = data end
-                    end
-                    Utils.mbtDebugger('chain_of_custody ~ loaded', #rows, 'serials from DB')
-                end)
-            end
-            if days > 0 then
-                exports.oxmysql:execute(
-                    'DELETE FROM mbt_malisling_custody WHERE updated_at < (NOW() - INTERVAL ? DAY)',
-                    { days }, load)
-            else
-                load()
-            end
+        -- Prune before loading: this is the only table with no natural delete path, so
+        -- without it every serial ever issued is read into memory at every boot, forever.
+        local days = tonumber(MBT.ChainOfCustody.PruneAfterDays) or 0
+        local function load()
+            exports.oxmysql:execute('SELECT serial, chain FROM mbt_malisling_custody', {}, function(rows)
+                if type(rows) ~= 'table' then return end
+                for _, row in ipairs(rows) do
+                    local ok, data = pcall(json.decode, row.chain)
+                    if ok and type(data) == 'table' then custody[row.serial] = data end
+                end
+                Utils.mbtDebugger('chain_of_custody ~ loaded', #rows, 'serials from DB')
+            end)
+        end
+        local function prune()
+            if days <= 0 then return load() end
+            exports.oxmysql:execute(
+                'DELETE FROM mbt_malisling_custody WHERE updated_at < (NOW() - INTERVAL ? DAY)',
+                { days }, load)
+        end
+
+        -- Ask before altering. A table created by an older build has no updated_at, but the
+        -- CREATE above already includes it, so firing the ALTER blind fails on every start
+        -- for everyone and prints a red oxmysql error for a non-problem.
+        exports.oxmysql:execute([[
+            SELECT COUNT(*) AS n FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME   = 'mbt_malisling_custody'
+              AND COLUMN_NAME  = 'updated_at'
+        ]], {}, function(rows)
+            local has = type(rows) == 'table' and rows[1] and tonumber(rows[1].n) or 0
+            if has > 0 then return prune() end
+            exports.oxmysql:execute(
+                'ALTER TABLE mbt_malisling_custody ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
+                {}, prune)
         end)
     end)
 end

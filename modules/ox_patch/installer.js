@@ -114,7 +114,12 @@
     try {
       fs.writeFileSync(target, patched, 'utf8');
     } catch (e) {
-      warn(`Failed to write ox_inventory (${e.message}). Read-only filesystem? Apply the patch manually or enable write access.`);
+      // Say where the manual installers are: this fires on hosts that block fs writes,
+      // where the owner cannot fix the cause and needs the alternative, not a diagnosis.
+      warn(`Failed to write ox_inventory (${e.message}).`);
+      warn('The holster prompt needs that patch. Run the installer for your OS from this');
+      warn('resource\'s tools/ folder — tools/install_ox_patch.sh or tools/install_ox_patch.ps1');
+      warn('— then restart ox_inventory. Set `setr malisling:autopatch false` to stop retrying.');
       report(false, 'read-only filesystem / write blocked');
       return;
     }
