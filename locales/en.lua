@@ -4,6 +4,8 @@ RegisterLocale('en', {
     ['jam_jammed_desc']         = 'Your weapon has jammed! Check its state!',
     ['jam_unjammed_title']      = 'Unjammed!',
     ['jam_unjammed_desc']       = 'You have unjammed your weapon!',
+    ['inspect_blocked_jam_title'] = 'Weapon jammed',
+    ['inspect_blocked_jam_desc']  = 'Clear the jam before inspecting.',
 
     -- Notifications: throw
     ['throw_not_allowed_title'] = 'Ops!',

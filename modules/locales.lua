@@ -309,6 +309,12 @@ MBT.Labels             = {
         ["type"]     = "error",
         ["icon"]     = "fa-solid fa-triangle-exclamation",
     },
+    ["inspect_blocked_jam"] = {
+        ["titleKey"] = "inspect_blocked_jam_title",
+        ["descKey"]  = "inspect_blocked_jam_desc",
+        ["type"]     = "error",
+        ["icon"]     = "fa-solid fa-triangle-exclamation",
+    },
     ["has_unjammed"] = {
         ["titleKey"] = "jam_unjammed_title",
         ["descKey"]  = "jam_unjammed_desc",

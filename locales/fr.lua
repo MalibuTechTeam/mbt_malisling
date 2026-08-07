@@ -4,6 +4,8 @@ RegisterLocale('fr', {
     ['jam_jammed_desc']         = 'Votre arme s\'est enrayée ! Vérifiez son état !',
     ['jam_unjammed_title']      = 'Désenrayée !',
     ['jam_unjammed_desc']       = 'Vous avez désenrayé votre arme !',
+    ['inspect_blocked_jam_title'] = 'Arme enrayée',
+    ['inspect_blocked_jam_desc']  = 'Désenrayez l\'arme avant de l\'inspecter.',
 
     -- Notifications: throw
     ['throw_not_allowed_title'] = 'Oups !',

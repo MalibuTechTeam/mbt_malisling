@@ -88,6 +88,13 @@ local function startInspect()
     if not cfg.Enabled then return end
     if inspecting then return end
     if cache.vehicle then return end
+    -- Jammed: the jam loop re-plays its own anim every 800ms, so inspecting on top
+    -- of it puts two TaskPlayAnim on the same ped and they fight. Clear the jam first.
+    -- Reported by a Qbox server owner right after 2.0.1.
+    if LocalPlayer.state.JammedState then
+        MBT.NotifyLabel('inspect_blocked_jam')
+        return
+    end
     local has, weaponHash = GetCurrentPedWeapon(cache.ped, true)
     if not has or weaponHash == `WEAPON_UNARMED` then return end
     if not currentWeapon then return end  -- need inventory data to show anything
@@ -119,12 +126,15 @@ local function startInspect()
     end
     TriggerServerEvent('mbt_malisling:syncInspect', 'start')
 
-    -- Auto-cancel: leave inspect the moment it stops making sense.
+    -- Auto-cancel: leave inspect the moment it stops making sense. This is also the
+    -- only way out when the inspect key collides with the inventory key: the
+    -- inventory takes NUI focus on key-down, so the key-up never reaches the game
+    -- and '-mbtInspect' never fires.
     CreateThread(function()
         while inspecting do
             local h, wh = GetCurrentPedWeapon(cache.ped, true)
             if not h or wh == `WEAPON_UNARMED` or cache.vehicle
-                or IsPedShooting(cache.ped) then
+                or IsPedShooting(cache.ped) or LocalPlayer.state.JammedState then
                 stopInspect()
                 break
             end

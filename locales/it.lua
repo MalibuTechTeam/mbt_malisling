@@ -4,6 +4,8 @@ RegisterLocale('it', {
     ['jam_jammed_desc']         = 'La tua arma si è inceppata! Controlla il suo stato!',
     ['jam_unjammed_title']      = 'Disinceppata!',
     ['jam_unjammed_desc']       = 'Hai disinceppato la tua arma!',
+    ['inspect_blocked_jam_title'] = 'Arma inceppata',
+    ['inspect_blocked_jam_desc']  = 'Disinceppa l\'arma prima di ispezionarla.',
 
     -- Notifications: throw
     ['throw_not_allowed_title'] = 'Ops!',
