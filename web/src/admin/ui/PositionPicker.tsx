@@ -9,11 +9,14 @@ interface Props {
   onChange: (v: string) => void
 }
 
-const OPTIONS = [
+// `soon` options are inert teasers — the live drag-to-place HUD editor behind
+// "Custom" ships in v2.1; the button is shown (so the capability is visible) but
+// disabled until then.
+const OPTIONS: { value: string; label: string; soon?: boolean }[] = [
   { value: 'bottom-center', label: 'Bottom Center' },
   { value: 'top-center',    label: 'Top Center' },
   { value: 'bottom-right',  label: 'Bottom Right' },
-  { value: 'custom',        label: 'Custom' },
+  { value: 'custom',        label: 'Custom', soon: true },
 ]
 
 export function PositionPicker({ value, onChange }: Props) {
@@ -23,10 +26,14 @@ export function PositionPicker({ value, onChange }: Props) {
         <button
           key={o.value}
           type="button"
-          className={`mbt-pospick__btn${value === o.value ? ' is-on' : ''}`}
-          onClick={() => onChange(o.value)}
+          disabled={o.soon}
+          aria-disabled={o.soon || undefined}
+          title={o.soon ? 'Live drag-to-place HUD editor — coming soon' : undefined}
+          className={`mbt-pospick__btn${value === o.value && !o.soon ? ' is-on' : ''}${o.soon ? ' is-soon' : ''}`}
+          onClick={() => { if (!o.soon) onChange(o.value) }}
         >
           {o.label}
+          {o.soon && <span className="mbt-pospick__soon">coming soon</span>}
         </button>
       ))}
     </div>

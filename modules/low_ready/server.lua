@@ -1,18 +1,17 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Low Ready — server
---
 -- Broadcasts a player's low-ready toggle to nearby players so they re-place the
--- slung prop they hold for that player. Distance-based, rate-limited. Mirrors
--- weapon_inspect/server.lua.
+-- slung prop. Distance-based, rate-limited. Mirrors weapon_inspect/server.lua.
 -- ─────────────────────────────────────────────────────────────────────────────
 
-if not MBT.LowReady or not MBT.LowReady.Enabled then return end
+if not MBT.LowReady then return end   -- always register; Enabled is live-checked in the handler
 
 local maxDist  = 60.0  -- slung props are visible far; keep generous
 local lastSync = {}
 
 RegisterNetEvent('mbt_malisling:syncLowReady', function(propType, chest)
     local src = source
+    if not MBT.LowReady.Enabled then return end   -- live on/off from the dashboard
     if type(propType) ~= 'string' then return end
 
     -- Rate limit the toggle key.

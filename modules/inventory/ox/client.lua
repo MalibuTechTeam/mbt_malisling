@@ -43,13 +43,19 @@ AddEventHandler('mbt_malisling:holster_request', function(data)
     SendNUIMessage({ action = 'showHolster', data = {
         weaponLabel = data.weaponLabel,
         position    = MBT.UI and MBT.UI.Position or 'bottom-center',
+        style       = MBT.UIStyle or 'standard',
         confirm     = { label = MBT.HolsterControls["Confirm"]["Label"], display = 'RMB' },
         cancel      = { label = MBT.HolsterControls["Cancel"]["Label"],  display = 'BACKSPACE' },
         locale      = buildNuiLocale(),
     }})
 
+    -- Cinematic: float the prompt next to the hand (botz-style) via the shared anchor.
+    if MBT.UIStyle == 'cinematic' then
+        MBT.Anchor.Start('holster', function() return MBT.Anchor.HandPos(0.2) end)
+    end
     local deadline = GetGameTimer() + 16000
     while holsterState == true and GetGameTimer() < deadline do Wait(50) end
+    MBT.Anchor.Stop()
     if holsterState == true then holsterState = 'cancelled' end
 
     SendNUIMessage({ action = 'hideHolster' })

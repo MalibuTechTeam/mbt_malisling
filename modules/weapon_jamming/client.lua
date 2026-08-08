@@ -36,6 +36,7 @@ local function unjamMinigame()
             total       = total,
             key         = unjamCfg["Display"],
             locale      = buildNuiLocale(),
+            style       = MBT.UIStyle or 'standard',
         }
     })
 
@@ -75,16 +76,14 @@ local function jammedAnim()
     lib.requestAnimDict(jamAnim["Dict"])
     while isJammed do
         TaskPlayAnim(cache.ped, jamAnim["Dict"], jamAnim["Anim"], 2.0, 2.0, 750, 48, 0.0, false, false, false)
-        DisablePlayerFiring(cache.playerId, true)
-        DisableControlAction(0, 25, true)
-        Wait(800)
+        Wait(800)   -- the fire-block is enforced every frame by disableFiring(); no need to repeat it here
     end
     ClearPedTasks(cache.ped)
     RemoveAnimDict(jamAnim["Dict"])
 end
 
 AddStateBagChangeHandler('JammedState', nil, function(bagName, key, value)
-    if value == nil or not type(value) == "boolean" then return end
+    if type(value) ~= "boolean" then return end
     isJammed = value
     Utils.mbtDebugger("isJammed has been set to ", isJammed)
     if isJammed then MBT.NotifyLabel("has_jammed") end
@@ -126,11 +125,15 @@ AddEventHandler("CEventGunShotWhizzedBy", function(entities, eventEntity, args)
             Utils.durabilityToTier(currentWeapon.metadata.durability))
 
         local shouldJam
+        local source
         if override ~= nil then
             shouldJam = override and true or false
+            source    = 'bridge override'
         else
             shouldJam = Utils.getJammingChance(currentWeapon.metadata.durability)
+            source    = 'base durability chance'
         end
+        Utils.mbtDebugger("WeaponJamming ~ shouldJam:", shouldJam, "| source:", source)
 
         if shouldJam then
             jammed = GetGameTimer()

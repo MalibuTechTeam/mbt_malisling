@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useNuiEvent } from '../utils/useNuiEvent'
 import { makeT, type Locale } from '../utils/i18n'
 import './InspectUI.css'
+import { CinematicCard, type CinematicRow, type CinematicCustody } from './CinematicCard'
 
 interface InspectShow {
   Serial?: boolean
@@ -23,6 +24,26 @@ interface InspectData {
   custody?: CustodyEntry[]   // chain of custody (oldest first), optional
   show?: InspectShow
   locale?: Locale
+  style?: 'standard' | 'cinematic'
+  companionRows?: CinematicRow[]   // extra rows from the paid companion (proficiency…)
+}
+
+type CustodyRow = { c: CustodyEntry; i: number } | { gap: number }
+
+/** Collapse a long chain to origin + "+N earlier" + the most recent 3, so the ledger
+ *  never grows unbounded no matter how many holders a weapon has had. */
+function collapseCustody(chain: CustodyEntry[]): CustodyRow[] {
+  const last = chain.length - 1
+  const TAIL = 3
+  const rows: CustodyRow[] = []
+  if (chain.length <= TAIL + 2) {
+    chain.forEach((c, i) => rows.push({ c, i }))
+  } else {
+    rows.push({ c: chain[0], i: 0 })
+    rows.push({ gap: chain.length - 1 - TAIL })
+    for (let i = chain.length - TAIL; i <= last; i++) rows.push({ c: chain[i], i })
+  }
+  return rows
 }
 
 function Row({ label, value, tone }: { label: string; value: string; tone?: Tone }) {
@@ -38,8 +59,10 @@ export default function InspectUI() {
   const [visible, setVisible] = useState(false)
   const [exiting, setExiting] = useState(false)
   const [data, setData] = useState<InspectData | null>(null)
+  const hideTimer = useRef<number | null>(null)
 
   useNuiEvent<InspectData>('showInspect', (incoming) => {
+    if (hideTimer.current) { clearTimeout(hideTimer.current); hideTimer.current = null }
     setData(incoming)
     setExiting(false)
     setVisible(true)
@@ -47,8 +70,13 @@ export default function InspectUI() {
 
   useNuiEvent('hideInspect', () => {
     setExiting(true)
-    setTimeout(() => { setVisible(false); setExiting(false) }, 300)
+    if (hideTimer.current) clearTimeout(hideTimer.current)
+    hideTimer.current = window.setTimeout(() => {
+      setVisible(false); setExiting(false); hideTimer.current = null
+    }, 300)
   })
+
+  useEffect(() => () => { if (hideTimer.current) clearTimeout(hideTimer.current) }, [])
 
   if (!visible || !data) return null
 
@@ -60,6 +88,42 @@ export default function InspectUI() {
   // gun is actually empty. Empty (exact 0) → faulty; vague labels stay neutral.
   const ammoTone: Tone | undefined =
     typeof data.ammo === 'number' ? (data.ammo > 0 ? 'accent' : 'bad') : undefined
+
+  // Cinematic style: the shared filmic card anchored to the weapon (serial /
+  // condition / ammo rows + a compact custody ledger below).
+  if (data.style === 'cinematic') {
+    const rows: CinematicRow[] = []
+    if (show.Serial) rows.push({ label: t('inspect_serial', 'Serial'), value: data.serial ?? '—' })
+    if (show.Condition) rows.push({ label: t('inspect_condition', 'Condition'), value: data.condition ?? '—', tone: data.conditionTone })
+    if (show.Ammo) rows.push({ label: t('inspect_ammo', 'Ammo'), value: data.ammo != null ? String(data.ammo) : '—', tone: ammoTone })
+    if (data.companionRows) rows.push(...data.companionRows)
+
+    let custody: CinematicCustody | undefined
+    if (Array.isArray(data.custody) && data.custody.length > 0) {
+      const chain = data.custody
+      const last = chain.length - 1
+      custody = {
+        title: t('inspect_custody', 'Chain of Custody'),
+        count: chain.length,
+        items: collapseCustody(chain).map((r) =>
+          'gap' in r
+            ? { gap: t('custody_more', '+%d earlier').replace('%d', String(r.gap)) }
+            : { name: r.c.name, tag: r.i === 0 ? t('custody_origin', 'origin') : (r.i === last ? t('custody_now', 'current') : undefined) }
+        ),
+      }
+    }
+
+    return (
+      <CinematicCard
+        overline={t('inspect_title', 'Inspecting')}
+        title={weaponName}
+        anchor="inspect"
+        exiting={exiting}
+        rows={rows}
+        custody={custody}
+      />
+    )
+  }
 
   return (
     <div className={`insp-overlay ${exiting ? 'insp-exit' : 'insp-enter'}`}>
@@ -78,21 +142,14 @@ export default function InspectUI() {
           {show.Ammo && (
             <Row label={t('inspect_ammo', 'Ammo')} value={data.ammo != null ? String(data.ammo) : '—'} tone={ammoTone} />
           )}
+          {Array.isArray(data.companionRows) && data.companionRows.map((r, i) => (
+            <Row key={`cr-${i}`} label={r.label} value={r.value} tone={r.tone} />
+          ))}
         </div>
         {Array.isArray(data.custody) && data.custody.length > 0 && (() => {
           const chain = data.custody!
           const last = chain.length - 1
-          // Collapse a long chain: origin + "+N earlier" + the most recent 3, so the
-          // card never grows unbounded no matter how many holders a weapon has had.
-          const TAIL = 3
-          const rows: ({ c: CustodyEntry; i: number } | { gap: number })[] = []
-          if (chain.length <= TAIL + 2) {
-            chain.forEach((c, i) => rows.push({ c, i }))
-          } else {
-            rows.push({ c: chain[0], i: 0 })
-            rows.push({ gap: chain.length - 1 - TAIL })
-            for (let i = chain.length - TAIL; i <= last; i++) rows.push({ c: chain[i], i })
-          }
+          const rows = collapseCustody(chain)
           return (
             <div className="insp-custody">
               <span className="insp-custody-title">

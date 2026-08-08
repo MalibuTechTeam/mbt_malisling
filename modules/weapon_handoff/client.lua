@@ -1,11 +1,8 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Physical Weapon Handoff — client
---
--- GIVER: press the handoff key while holding a weapon near another player — the
--- closest player in reach gets the offer. RECEIVER: a key-driven NUI prompt
--- (E accept / BACKSPACE decline, no mouse focus). On accept both peds turn to
--- face each other and play a synced give/take gesture while the server moves
--- the item. The receiver can optionally take the weapon straight into hand.
+-- GIVER: press the key while holding a weapon near another player (closest in
+-- reach gets the offer). RECEIVER: key-driven NUI prompt (E accept / BACKSPACE
+-- decline). On accept both peds face each other + play a synced give/take gesture.
 -- ─────────────────────────────────────────────────────────────────────────────
 
 if not MBT.Handoff then return end
@@ -53,10 +50,19 @@ local function closePrompt(accept)
     SendNUIMessage({ action = 'hideHandoff', data = {} })
     if accept == nil then return end   -- expired/cancelled: no response to send
     local res = lib.callback.await('mbt_malisling:handoff:respond', false, accept)
-    if accept and res and res.ok and not res.declined then
-        if cfg.EquipOnAccept and res.equipSlot
-            and GetResourceState('ox_inventory') == 'started' then
-            exports.ox_inventory:useSlot(res.equipSlot)
+    if accept and res and res.ok and not res.declined and cfg.EquipOnAccept then
+        if GetResourceState('ox_inventory') == 'started' and res.equipSlot then
+            exports.ox_inventory:useSlot(res.equipSlot)                  -- ox
+        elseif GetResourceState('qb-inventory') == 'started' and res.name
+            and PlayerData and PlayerData.items then
+            -- qb: find the just-received weapon by name(+serial) and use it.
+            for _, it in pairs(PlayerData.items) do
+                if it.name and it.name:upper() == res.name
+                    and (not res.serial or (it.info and it.info.serie == res.serial)) then
+                    TriggerServerEvent('qb-inventory:server:useItem', it)
+                    break
+                end
+            end
         end
     end
 end
@@ -71,6 +77,7 @@ RegisterNetEvent('mbt_malisling:handoff:incoming', function(data)
         weapon   = data.weapon,
         label    = data.label,
         serial   = data.serial,
+        style    = MBT.UIStyle or 'standard',
     } })
     CreateThread(function()
         local deadline = GetGameTimer() + (data.timeoutMs or 8000)

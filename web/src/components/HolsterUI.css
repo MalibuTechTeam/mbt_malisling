@@ -1,7 +1,8 @@
 /* HolsterUI — premium 2-row holster prompt. Borrows the mbt_emote_menu pill
    recipe (accent corner glow + surface gradient + inset highlight + accent-
    tinted edge) so it reads as a crafted MBT component, not a flat tooltip.
-   Row 1: icon chip + context. Row 2: the two action hints. */
+   Row 1: icon chip + context. Row 2: the two action hints.
+   The 'cinematic' UIStyle uses <CinematicCard> instead (see CinematicCard.css). */
 
 .holster-pill {
   position: fixed;

@@ -59,7 +59,24 @@
   transform-origin: top center;
   animation: mbt-select-in var(--mbt-dur) var(--mbt-ease);
   scrollbar-width: thin;
-  scrollbar-color: var(--mbt-surface-3) transparent;
+  scrollbar-color: var(--mbt-edge-hi) transparent;
+}
+
+/* Reskin the WebKit (CEF) scrollbar to match the dark menu — the default chromium bar
+   looks out of place against the surface. */
+.mbt-select2__menu::-webkit-scrollbar {
+  width: 10px;
+}
+.mbt-select2__menu::-webkit-scrollbar-track {
+  background: transparent;
+}
+.mbt-select2__menu::-webkit-scrollbar-thumb {
+  background: var(--mbt-edge-hi);
+  border-radius: 8px;
+  border: 3px solid var(--mbt-surface-3);   /* track-coloured inset → slim, padded thumb */
+}
+.mbt-select2__menu::-webkit-scrollbar-thumb:hover {
+  background: rgba(var(--mbt-accent-rgb), 0.5);
 }
 @keyframes mbt-select-in {
   from {

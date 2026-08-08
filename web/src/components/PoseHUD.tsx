@@ -14,6 +14,7 @@ interface PoseData {
   index: number   // 1-based
   total: number
   locale?: Locale
+  style?: 'standard' | 'cinematic'
 }
 
 export default function PoseHUD() {
@@ -29,7 +30,7 @@ export default function PoseHUD() {
   const dots = Array.from({ length: data.total }, (_, i) => i + 1)
 
   return (
-    <div className="pose-hud">
+    <div className={`pose-hud${data.style === 'cinematic' ? ' cine-chip' : ''}`}>
       <div className="pose-hud__top">
         <span className="pose-hud__ic">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

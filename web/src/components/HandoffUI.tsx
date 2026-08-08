@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useNuiEvent } from '../utils/useNuiEvent'
 import { makeT, type Locale } from '../utils/i18n'
 import './HandoffUI.css'
@@ -9,14 +9,17 @@ interface HandoffData {
   label?: string         // engraved custom name, if any
   serial?: string
   locale?: Locale
+  style?: 'standard' | 'cinematic'
 }
 
 export default function HandoffUI() {
   const [visible, setVisible] = useState(false)
   const [exiting, setExiting] = useState(false)
   const [data,    setData]    = useState<HandoffData | null>(null)
+  const hideTimer = useRef<number | null>(null)
 
   useNuiEvent<HandoffData>('showHandoff', (incoming) => {
+    if (hideTimer.current) { clearTimeout(hideTimer.current); hideTimer.current = null }
     setData(incoming)
     setExiting(false)
     setVisible(true)
@@ -24,8 +27,11 @@ export default function HandoffUI() {
 
   useNuiEvent('hideHandoff', () => {
     setExiting(true)
-    setTimeout(() => { setVisible(false); setExiting(false) }, 250)
+    if (hideTimer.current) clearTimeout(hideTimer.current)
+    hideTimer.current = window.setTimeout(() => { setVisible(false); setExiting(false); hideTimer.current = null }, 250)
   })
+
+  useEffect(() => () => { if (hideTimer.current) clearTimeout(hideTimer.current) }, [])
 
   if (!visible || !data) return null
 
@@ -33,7 +39,7 @@ export default function HandoffUI() {
   const weaponName = data.label || (data.weapon || 'WEAPON').replace('WEAPON_', '')
 
   return (
-    <div className={`hof-pill ${exiting ? 'hof-exit' : 'hof-enter'}`}>
+    <div className={`hof-pill${data.style === 'cinematic' ? ' cine-chip' : ''} ${exiting ? 'hof-exit' : 'hof-enter'}`}>
       <span className="hof-top">
         <span className="hof-ic">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

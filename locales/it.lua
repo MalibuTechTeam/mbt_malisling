@@ -4,6 +4,8 @@ RegisterLocale('it', {
     ['jam_jammed_desc']         = 'La tua arma si è inceppata! Controlla il suo stato!',
     ['jam_unjammed_title']      = 'Disinceppata!',
     ['jam_unjammed_desc']       = 'Hai disinceppato la tua arma!',
+    ['inspect_blocked_jam_title'] = 'Arma inceppata',
+    ['inspect_blocked_jam_desc']  = 'Disinceppa l\'arma prima di ispezionarla.',
 
     -- Notifications: throw
     ['throw_not_allowed_title'] = 'Ops!',
@@ -88,7 +90,6 @@ RegisterLocale('it', {
     ['rack_hint_fast']          = 'Veloce',
     ['rack_hint_place']         = 'Piazza',
     ['rack_hint_cancel']        = 'Annulla',
-    ['rack_place_hint']         = 'SINISTRA/DESTRA ruota ~y~·~s~ SHIFT veloce ~y~·~s~ E piazza ~y~·~s~ BACKSPACE annulla',
     ['rack_placed_title']       = 'Rastrelliera',
     ['rack_placed_desc']        = 'Rastrelliera installata.',
     ['rack_picked_up_title']    = 'Rastrelliera',
@@ -220,22 +221,4 @@ RegisterLocale('it', {
     ['ammo_low']                = 'Quasi vuoto',
     ['ammo_empty']              = 'Vuoto',
     ['ammo_unknown']            = '—',
-
-    -- NUI: admin config panel
-    ['cfg_title']               = 'Configurazione MBT',
-    ['cfg_general']             = 'Generale',
-    ['cfg_debug']               = 'Modalità debug',
-    ['cfg_drop_death']          = 'Lascia arma alla morte',
-    ['cfg_enable_sling']        = 'Abilita arma a tracolla',
-    ['cfg_enable_flashlight']   = 'Abilita torcia',
-    ['cfg_interface']           = 'Interfaccia',
-    ['cfg_holster_position']    = 'Posizione interfaccia',
-    ['cfg_jamming']             = 'Inceppamento arma',
-    ['cfg_enabled']             = 'Abilitato',
-    ['cfg_cooldown']            = 'Cooldown (secondi)',
-    ['cfg_unjam_presses']       = 'Pressioni per disinceppare',
-    ['cfg_throw']               = 'Lancio arma',
-    ['cfg_throw_key']           = 'Tasto di lancio',
-    ['cfg_cancel']              = 'Annulla',
-    ['cfg_save']                = 'Salva e applica',
 })

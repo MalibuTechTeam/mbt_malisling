@@ -56,9 +56,9 @@
   height: 6px;
   border-radius: 50%;
   background: var(--mbt-faulty);
-  animation: jam-blink 1s infinite;
+  animation: jam-blink 1.4s ease-in-out infinite;
 }
-@keyframes jam-blink { 50% { opacity: 0.3; } }
+@keyframes jam-blink { 50% { opacity: 0.45; } }
 
 .jam-wn {
   font-size: 11px;
@@ -93,7 +93,83 @@
   box-shadow: 0 0 8px rgba(var(--mbt-accent-rgb), 0.4);
 }
 
+/* ── Cinematic theme (MBT.UIStyle = 'cinematic') — same bottom-centre spot, kept
+   compact so a jam mid-fight never obstructs. Filmic look: no box, a faulty tick,
+   display type. Fixed (NOT anchored — it's a combat alert, not a reveal). ── */
+.jam-pill.is-cinematic {
+  /* Same premium recipe, faulty-tinted: accent(red) bleed + dark surface, a gradient
+     glowing hairline (::before), inset highlight, faint red halo, deep shadow.
+     Stays compact bottom-centre so a jam mid-fight never obstructs. */
+  background:
+    linear-gradient(180deg, rgba(var(--mbt-faulty-rgb), 0.08), transparent 45%),
+    linear-gradient(180deg, rgba(20, 13, 13, 0.90), rgba(11, 8, 8, 0.93));
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 3px;
+  box-shadow:
+    0 12px 30px rgba(0, 0, 0, 0.55),
+    0 0 18px rgba(var(--mbt-faulty-rgb), 0.10),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  min-width: 0;
+}
+.jam-pill.is-cinematic::before {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; top: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent,
+    rgba(var(--mbt-faulty-rgb), 0.85) 25%, rgba(var(--mbt-faulty-rgb), 0.85) 75%, transparent);
+  box-shadow: 0 0 11px rgba(var(--mbt-faulty-rgb), 0.55);
+  animation: jamc-glow 3s ease-in-out 0.5s infinite;
+  will-change: opacity;   /* breathe via opacity, not box-shadow (compositor-only in CEF) */
+}
+/* One-shot "power-on" shimmer: a light band sweeps the hairline once on open. */
+.jam-pill.is-cinematic::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 45%; height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.85), rgba(var(--mbt-faulty-rgb), 0.9), transparent);
+  filter: blur(0.5px);
+  opacity: 0;
+  pointer-events: none;
+  animation: jamc-shimmer 0.85s var(--mbt-ease) 0.16s;
+}
+.jam-pill.is-cinematic .jam-chip {
+  background: transparent;
+  padding: 0;
+  font-family: var(--mbt-font-display);
+  font-size: 12px;
+  letter-spacing: 0.12em;
+}
+.jam-pill.is-cinematic .jam-wn { font-family: var(--mbt-font-mono); }
+.jam-pill.is-cinematic .jam-pip--on { box-shadow: 0 0 8px rgba(var(--mbt-accent-rgb), 0.55); }
+
+/* Premium enter/exit: unfold from the top hairline (clip-path) + fade; exit collapses. */
+.jam-pill.is-cinematic.jam-enter { animation: jamc-in var(--mbt-dur-slow) var(--mbt-ease) forwards; }
+.jam-pill.is-cinematic.jam-exit  { animation: jamc-out var(--mbt-dur) var(--mbt-ease-exit) forwards; }
+
+@keyframes jamc-in {
+  0%   { opacity: 0; clip-path: inset(0 0 100% 0); transform: var(--pos-transform) translateY(-2px); }
+  55%  { opacity: 1; }
+  100% { opacity: 1; clip-path: inset(0 0 0 0); transform: var(--pos-transform) translateY(0); }
+}
+@keyframes jamc-out {
+  0%   { opacity: 1; clip-path: inset(0 0 0 0); transform: var(--pos-transform) translateY(0); }
+  100% { opacity: 0; clip-path: inset(0 0 60% 0); transform: var(--pos-transform) translateY(-2px); }
+}
+@keyframes jamc-glow {
+  0%, 100% { opacity: 0.6; }
+  50%      { opacity: 1; }
+}
+@keyframes jamc-shimmer {
+  0%   { opacity: 0; transform: translateX(-40%); }
+  25%  { opacity: 1; }
+  100% { opacity: 0; transform: translateX(180%); }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .jam-enter, .jam-exit { animation: none; }
+  .jam-enter, .jam-exit,
+  .jam-pill.is-cinematic.jam-enter, .jam-pill.is-cinematic.jam-exit,
+  .jam-pill.is-cinematic::before, .jam-pill.is-cinematic::after { animation: none; }
   .jam-chip-dot { animation: none; }
 }

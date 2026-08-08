@@ -1,16 +1,15 @@
 -- ─────────────────────────────────────────────────────────────────────────────
--- Charge Weapon — server
---
--- Broadcasts a charge to nearby players so they see the anim + hear the sound on
--- the source ped. Distance-based, rate-limited. Mirrors weapon_inspect/server.lua.
+-- Charge Weapon — server. Broadcasts a charge to nearby players (anim + sound on
+-- source ped). Distance-based, rate-limited. Mirrors weapon_inspect/server.lua.
 -- ─────────────────────────────────────────────────────────────────────────────
 
-if not MBT.ChargeWeapon or not MBT.ChargeWeapon.Enabled then return end
+if not MBT.ChargeWeapon then return end   -- always register; Enabled is live-checked in the handler
 
 local maxDist  = (MBT.ChargeWeapon.MaxDistance or 20.0) + 5.0
 local lastSync = {}
 
 RegisterNetEvent('mbt_malisling:syncCharge', function()
+    if not MBT.ChargeWeapon.Enabled then return end   -- live on/off from the dashboard
     local src = source
 
     local now = GetGameTimer()

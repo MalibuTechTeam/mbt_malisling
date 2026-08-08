@@ -4,6 +4,8 @@ RegisterLocale('fr', {
     ['jam_jammed_desc']         = 'Votre arme s\'est enrayée ! Vérifiez son état !',
     ['jam_unjammed_title']      = 'Désenrayée !',
     ['jam_unjammed_desc']       = 'Vous avez désenrayé votre arme !',
+    ['inspect_blocked_jam_title'] = 'Arme enrayée',
+    ['inspect_blocked_jam_desc']  = 'Désenrayez l\'arme avant de l\'inspecter.',
 
     -- Notifications: throw
     ['throw_not_allowed_title'] = 'Oups !',
@@ -88,7 +90,6 @@ RegisterLocale('fr', {
     ['rack_hint_fast']          = 'Rapide',
     ['rack_hint_place']         = 'Placer',
     ['rack_hint_cancel']        = 'Annuler',
-    ['rack_place_hint']         = 'GAUCHE/DROITE tourner ~y~·~s~ SHIFT rapide ~y~·~s~ E placer ~y~·~s~ RETOUR annuler',
     ['rack_placed_title']       = 'Râtelier',
     ['rack_placed_desc']        = 'Râtelier installé.',
     ['rack_picked_up_title']    = 'Râtelier',
@@ -220,22 +221,4 @@ RegisterLocale('fr', {
     ['ammo_low']                = 'Presque vide',
     ['ammo_empty']              = 'Vide',
     ['ammo_unknown']            = '—',
-
-    -- NUI: admin config panel
-    ['cfg_title']               = 'Configuration MBT',
-    ['cfg_general']             = 'Général',
-    ['cfg_debug']               = 'Mode débogage',
-    ['cfg_drop_death']          = 'Lâcher l\'arme à la mort',
-    ['cfg_enable_sling']        = 'Activer le port à l\'épaule',
-    ['cfg_enable_flashlight']   = 'Activer la lampe torche',
-    ['cfg_interface']           = 'Interface',
-    ['cfg_holster_position']    = 'Position de l\'interface',
-    ['cfg_jamming']             = 'Enrayement d\'arme',
-    ['cfg_enabled']             = 'Activé',
-    ['cfg_cooldown']            = 'Délai (secondes)',
-    ['cfg_unjam_presses']       = 'Appuis pour désenrayer',
-    ['cfg_throw']               = 'Lancer d\'arme',
-    ['cfg_throw_key']           = 'Touche de lancer',
-    ['cfg_cancel']              = 'Annuler',
-    ['cfg_save']                = 'Enregistrer et appliquer',
 })

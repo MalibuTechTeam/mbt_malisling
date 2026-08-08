@@ -1,26 +1,12 @@
--- ─────────────────────────────────────────────────────────────────────────────
--- Weapon Drop Logging — server
---
--- Logs weapon drops to a Discord webhook: who, weapon, serial, coords, timestamp.
--- Hooked into WeaponDropServer.Create, which covers the
--- "active" drop paths: DEATH-drop, THROW, and the manual dropCurrentWeapon export.
---
--- NOT covered (by design): the native ox_inventory drag-drop (dragging a weapon
--- out of the inventory UI). That never reaches our server Create — it's a pure ox
--- drop we only intercept client-side to render the prop — and ox_inventory already
--- logs its own drops, so logging it here would duplicate ox's audit trail.
---
--- Exposes MBT.LogWeaponDrop(src, item, coords) — called from weapon_drop/server.
--- ─────────────────────────────────────────────────────────────────────────────
+-- ── Weapon Drop Logging — server ──
+-- Logs weapon drops to a Discord webhook via WeaponDropServer.Create, covering the active
+-- paths: DEATH-drop, THROW, manual dropCurrentWeapon. NOT native ox drag-drop (by design:
+-- it never reaches our Create, and ox already logs its own drops).
+-- Exposes MBT.LogWeaponDrop(src, item, coords).
 
 MBT = MBT or {}
 
---- Fire-and-forget log of a weapon drop.
---- Reads MBT.WeaponDrop.Logging fresh each call so the admin menu's live-apply
---- (which rewrites MBT.*) takes effect without a restart.
----@param src number          dropping player's server id
----@param item table          the inventory item ({ name, metadata = { serial, label, ... } })
----@param coords vector3      where it landed
+--- Fire-and-forget log of a weapon drop; reads MBT.WeaponDrop.Logging fresh each call so the admin menu's live-apply takes effect without a restart.
 function MBT.LogWeaponDrop(src, item, coords)
     local cfg = (MBT.WeaponDrop or {}).Logging or {}
     if not cfg.Enabled then return end

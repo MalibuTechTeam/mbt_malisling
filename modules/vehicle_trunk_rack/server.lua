@@ -1,16 +1,10 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Vehicle Trunk Weapon Rack — server
---
--- Stow a long gun into a vehicle's trunk and retrieve it later. Persistence is a
--- single self-managed oxmysql table (mbt_vehicle_trunk), keyed by plate, so a
--- racked weapon survives resource/server restarts and vehicle despawn — no item
--- loss. The weapon never lives in an inventory stash: its data
--- {name,count,metadata} is held in our table and re-minted into the player's
--- inventory on retrieve via the framework-agnostic Inventory bridge (ox + qb).
---
--- oxmysql is a SOFT, feature-gated dependency: without it this module disables
--- itself and the rest of the script stays DB-free. Every handler also early-exits
--- on cfg.Enabled so the admin menu can toggle it live.
+-- Stow/retrieve a long gun in a trunk. Persistence: oxmysql table mbt_malisling_trunk
+-- keyed by plate, so a rack survives restarts + despawn (no item loss). The weapon never
+-- lives in a stash — {name,count,metadata} is held here and re-minted on retrieve via the
+-- Inventory bridge (ox + qb). oxmysql is a SOFT feature-gated dep; without it this module
+-- disables itself. Handlers early-exit on cfg.Enabled so the admin menu can toggle it live.
 -- ─────────────────────────────────────────────────────────────────────────────
 
 if not MBT.VehicleTrunkRack then return end
@@ -28,13 +22,13 @@ local function ensureSchema()
         return
     end
     exports.oxmysql:execute([[
-        CREATE TABLE IF NOT EXISTS mbt_vehicle_trunk (
+        CREATE TABLE IF NOT EXISTS mbt_malisling_trunk (
             plate VARCHAR(12) NOT NULL PRIMARY KEY,
             data LONGTEXT NOT NULL,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         )
     ]], {}, function()
-        exports.oxmysql:execute('SELECT plate, data FROM mbt_vehicle_trunk', {}, function(rows)
+        exports.oxmysql:execute('SELECT plate, data FROM mbt_malisling_trunk', {}, function(rows)
             if type(rows) == 'table' then
                 for _, row in ipairs(rows) do
                     local ok, list = pcall(json.decode, row.data)
@@ -52,18 +46,18 @@ local function saveRack(plate)
     local list = racks[plate]
     if not list or #list == 0 then
         racks[plate] = nil
-        exports.oxmysql:execute('DELETE FROM mbt_vehicle_trunk WHERE plate = ?', { plate })
+        exports.oxmysql:execute('DELETE FROM mbt_malisling_trunk WHERE plate = ?', { plate })
     else
         exports.oxmysql:execute(
-            'INSERT INTO mbt_vehicle_trunk (plate, data) VALUES (?, ?) ON DUPLICATE KEY UPDATE data = VALUES(data)',
+            'INSERT INTO mbt_malisling_trunk (plate, data) VALUES (?, ?) ON DUPLICATE KEY UPDATE data = VALUES(data)',
             { plate, json.encode(list) })
     end
 end
 
 -- ── Prop-offset overrides (admin-tunable via /mbt_trunktune, DB-persisted) ────────
--- Per-class (or per-model) prop placement, set in-world by an admin and broadcast
--- live to every client. Scope = 'class:<n>' or 'model:<name>'.
-local adminCommand = (MBT.Admin and MBT.Admin.Command) or 'mbtconfig'
+-- Per-class/per-model placement, set in-world by an admin, broadcast live.
+-- Scope = 'class:<n>' or 'model:<name>'.
+local adminCommand = (MBT.Admin and MBT.Admin.Command) or GetCurrentResourceName()
 local adminPerm    = (MBT.Admin and MBT.Admin.Permission) or ('command.' .. adminCommand)
 local trunkOffsets = {}   -- [scope] = { Pos = {x,y,z}, Rot = {x,y,z} }
 
@@ -75,9 +69,8 @@ local function validOffset(d)
     end
     return true
 end
--- Trunk rotation is a raw Euler offset on the vehicle boot bone; large pitch+roll
--- gimbal-locks it. Constrain pitch/roll to ±45°, keep yaw free. Runs on every save AND
--- on load, so any corrupt rotation an earlier build persisted is scrubbed automatically.
+-- Raw Euler offset on the boot bone; large pitch+roll gimbal-locks it. Constrain
+-- pitch/roll to ±45°, keep yaw free. Runs on save + load (scrubs old corrupt rotation).
 local TRUNK_MAX_TILT = 45.0
 local function clampN(n, lo, hi)
     n = tonumber(n) or 0.0
@@ -106,12 +99,12 @@ end
 local function ensureOffsetSchema()
     if not hasDb() then return end
     exports.oxmysql:execute([[
-        CREATE TABLE IF NOT EXISTS mbt_trunk_offsets (
+        CREATE TABLE IF NOT EXISTS mbt_malisling_trunk_offsets (
             scope VARCHAR(48) NOT NULL PRIMARY KEY,
             data LONGTEXT NOT NULL
         )
     ]], {}, function()
-        exports.oxmysql:execute('SELECT scope, data FROM mbt_trunk_offsets', {}, function(rows)
+        exports.oxmysql:execute('SELECT scope, data FROM mbt_malisling_trunk_offsets', {}, function(rows)
             if type(rows) ~= 'table' then return end
             for _, row in ipairs(rows) do
                 local ok, d = pcall(json.decode, row.data)
@@ -136,7 +129,7 @@ RegisterNetEvent('mbt_malisling:trunkOffset:save', function(payload)
     trunkOffsets[payload.scope] = d
     if hasDb() then
         exports.oxmysql:execute(
-            'INSERT INTO mbt_trunk_offsets (scope, data) VALUES (?, ?) ON DUPLICATE KEY UPDATE data = VALUES(data)',
+            'INSERT INTO mbt_malisling_trunk_offsets (scope, data) VALUES (?, ?) ON DUPLICATE KEY UPDATE data = VALUES(data)',
             { payload.scope, json.encode(d) })
     end
     TriggerClientEvent('mbt_malisling:trunkOffset:apply', -1, { scope = payload.scope, data = d })
@@ -148,7 +141,7 @@ RegisterNetEvent('mbt_malisling:trunkOffset:reset', function(payload)
     if type(payload) ~= 'table' or not validScope(payload.scope) then return end
     trunkOffsets[payload.scope] = nil
     if hasDb() then
-        exports.oxmysql:execute('DELETE FROM mbt_trunk_offsets WHERE scope = ?', { payload.scope })
+        exports.oxmysql:execute('DELETE FROM mbt_malisling_trunk_offsets WHERE scope = ?', { payload.scope })
     end
     TriggerClientEvent('mbt_malisling:trunkOffset:apply', -1, { scope = payload.scope, data = false })
 end)
@@ -163,22 +156,20 @@ local function vehPlate(veh)
     return p
 end
 
-local function weaponType(name)
-    local w = MBT.WeaponsInfo and MBT.WeaponsInfo.Weapons and MBT.WeaponsInfo.Weapons[name]
-    return w and w.type
-end
+local weaponType = Utils.weaponType
 
---- Access control: occupants always allowed (reliable server-side). Non-occupants
---- respect the lock. GetVehicleDoorLockStatus may be client-only on some builds; if
---- it can't read a status server-side it returns 0 and we allow (the client also
---- pre-checks). 2/3/4 = locked.
-local function isAccessible(ped, veh)
+--- Access control. Outside access uses the vehicle LOCK status; GetVehicleDoorLockStatus
+--- isn't reliable on every FXServer build, so we DENY on a read failure (no fail-open
+--- letting a thief drain a locked trunk). Locked statuses block, 0/1 allow. Owners can
+--- override with cfg.CanAccessOutside(src, veh, plate) -> bool.
+local function isAccessible(src, ped, veh, plate)
     if GetVehiclePedIsIn(ped, false) == veh then return true end
-    -- pcall: GetVehicleDoorLockStatus is client-side on some builds; if it isn't
-    -- callable server-side we allow (the client also pre-gates). 2/3/4 = locked.
+    if type(cfg.CanAccessOutside) == 'function' then
+        return cfg.CanAccessOutside(src, veh, plate) == true
+    end
     local ok, lock = pcall(GetVehicleDoorLockStatus, veh)
-    if ok and (lock == 2 or lock == 3 or lock == 4) then return false end
-    return true
+    if not ok or type(lock) ~= 'number' then return false end   -- can't verify → deny (no fail-open)
+    return not (lock == 2 or lock == 3 or lock == 4 or lock == 7 or lock == 8 or lock == 10)
 end
 
 --- Publish the render-only rack (weapon + type, no metadata) to the vehicle bag.
@@ -203,9 +194,9 @@ local function guard(src, data)
     local ped = GetPlayerPed(src)
     if not ped or ped == 0 then return end
     if #(GetEntityCoords(ped) - GetEntityCoords(veh)) > (cfg.InteractionDistance or 2.5) + 2.5 then return end
-    if not isAccessible(ped, veh) then return veh, ped, nil, 'trunk_locked' end
     local plate = vehPlate(veh)
     if not plate then return veh, ped, nil, 'trunk_no_plate' end
+    if not isAccessible(src, ped, veh, plate) then return veh, ped, nil, 'trunk_locked' end
     return veh, ped, plate
 end
 
@@ -245,17 +236,18 @@ lib.callback.register('mbt_malisling:trunkRack:retrieve', function(src, data)
     local entry = index and racks[plate][index]
     if not entry then return { ok = false } end
 
-    -- Only remove from the rack after the item is back in the inventory.
+    -- Claim the entry BEFORE the AddItem yield, else two simultaneous retrieves both read
+    -- it and both get the weapon (dupe). Remove first; give it back if AddItem fails.
+    table.remove(racks[plate], index)
     if not Inventory:AddItem(src, entry.name, entry.count, entry.metadata) then
+        table.insert(racks[plate], index, entry)
         return { ok = false, reason = 'trunk_inv_full' }
     end
-    table.remove(racks[plate], index)
     saveRack(plate)
     publish(veh, plate)
 
-    -- Optional equip-on-retrieve: ox uses the returned slot (useSlot); qb finds the
-    -- weapon client-side and triggers its normal use-weapon flow. We just return the
-    -- identifiers the client needs.
+    -- Optional equip-on-retrieve: ox uses the returned slot, qb finds the weapon
+    -- client-side. Just return the identifiers the client needs.
     local serial = entry.metadata and entry.metadata.serial
     local equipSlot
     if GetResourceState('ox_inventory') == 'started' then

@@ -1,44 +1,38 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Admin config — server
 --
--- Powers the admin dashboard (modules/admin NUI). On /mbtconfig the server ACE-
--- checks the player and sends a full config snapshot; on save it validates,
--- applies live to MBT.* on every client (broadcast), and persists the runtime-safe
--- fields to runtime_config.json so they survive a restart.
---
--- Built per-section so new sections plug in by extending snapshot()/applyGeneral
--- etc. Phase 1 wires the General section end-to-end; more sections follow.
+-- Powers the admin dashboard. On /mbt_malisling: ACE-check, send config snapshot. On
+-- save: validate, apply live to MBT.* on every client (broadcast), persist.
+-- Built per-section so new sections plug in via snapshot()/apply.
 -- ─────────────────────────────────────────────────────────────────────────────
 
-local CONFIG_FILE     = 'data/runtime_config.json'
 local VALID_POSITIONS = { ['bottom-center'] = true, ['top-center'] = true, ['bottom-right'] = true, ['custom'] = true }
--- Throw groups are keyed by weapon-group HASH in config; the menu edits them by a
--- stable name. This maps menu name → group hash for round-tripping Allowed flags.
+-- Maps menu name → group hash: config keys throw groups by HASH, the menu by name.
 local THROW_GROUPS    = {
     MELEE = `GROUP_MELEE`, PISTOL = `GROUP_PISTOL`, RIFLE = `GROUP_RIFLE`,
     MG = `GROUP_MG`, SMG = `GROUP_SMG`, SHOTGUN = `GROUP_SHOTGUN`,
     STUNGUN = `GROUP_STUNGUN`, SNIPER = `GROUP_SNIPER`, HEAVY = `GROUP_HEAVY`,
 }
-local adminCommand    = (MBT.Admin and MBT.Admin.Command) or 'mbtconfig'
--- Default to the command's own ACE so a server with the usual
--- `add_ace group.admin command.* allow` (or a wildcard admin principal) works
--- with NO extra server.cfg lines — same as mbt_elevator.
+local adminCommand    = (MBT.Admin and MBT.Admin.Command) or GetCurrentResourceName()
+-- Default to the command's own ACE so a wildcard admin principal works with NO
+-- extra server.cfg lines — same as mbt_elevator.
 local adminPerm       = (MBT.Admin and MBT.Admin.Permission) or ('command.' .. adminCommand)
 
--- ox_inventory auto-patch outcome (set by modules/ox_patch/installer.js via a
--- server-local event). 'ok' = patched/present · '<reason>' = failed · nil = n/a
--- (qb-inventory / ox not found → the JS never reports). Surfaced in the sidebar.
+-- ox_inventory auto-patch outcome (set by ox_patch/installer.js, server-local event).
+-- 'ok' = patched · '<reason>' = failed · nil = n/a. Surfaced in the sidebar.
 local oxPatchStatus = nil
 
 local function b(v) return v and true or false end
 local function num(v, default) if type(v) == 'number' then return v end return default end
 
--- ── Snapshot: the config the dashboard reads (full state, incl. overview flags) ──
+-- ── Snapshot: full config the dashboard reads (incl. overview flags) ──
 local function snapshot()
     local S, D = MBT.Sounds or {}, MBT.WeaponDrop or {}
-    local DD, DL = D.Despawn or {}, D.Logging or {}
+    local DD = D.Despawn or {}   -- Logging.Webhook is a server-only secret set in config.lua; not in the snapshot
     local J, SH = MBT.Jamming or {}, MBT.SuppressorHeat or {}
     local SF, CH, WW = MBT.Safety or {}, MBT.ChargeWeapon or {}, MBT.WeaponWeight or {}
+    local LR  = MBT.LowReady or {}
+    local lrt = LR.Types or {}
     local IN, WN = MBT.Inspect or {}, MBT.WeaponName or {}
     local SP, ND, VH, TS = MBT.ShowcasePoses or {}, MBT.NoDrawZones or {}, MBT.VehicleHiding or {}, MBT.TacticalSling or {}
     local VTR = MBT.VehicleTrunkRack or {}
@@ -50,7 +44,6 @@ local function snapshot()
     local CCY = MBT.ConcealedCarry or {}
     local cct = CCY.Tell or {}
     local PD = MBT.PatDown or {}
-    local pdl = PD.Logging or {}
     local AS = MBT.AmmoSharing or {}
     local vat = VTR.AllowedTypes or {}
     local war = WR.AllowedTypes or {}
@@ -60,12 +53,16 @@ local function snapshot()
     for name, hash in pairs(THROW_GROUPS) do
         throwGroups[name] = b(thg[hash] and thg[hash].Allowed)
     end
+    -- Strap variant options for the NUI dropdown (id + label only; model names stay Lua-side).
+    local slingVariants = {}
+    for _, v in ipairs(TS.Variants or {}) do slingVariants[#slingVariants + 1] = { id = v.id, label = v.label or v.id } end
     return {
         -- General (editable). Debug is intentionally NOT exposed (dev flag → config.lua).
         EnableSling       = b(MBT.EnableSling),
         EnableFlashlight  = b(MBT.EnableFlashlight),
         DropWeaponOnDeath = b(MBT.DropWeaponOnDeath),
         UIPosition        = MBT.UI.Position,
+        UIStyle           = MBT.UIStyle or 'standard',
         Language          = MBT.Language,            -- read-only in the UI
         -- Holster & Sounds
         Sounds = {
@@ -78,7 +75,6 @@ local function snapshot()
             WeaponModelProp = b(D.WeaponModelProp),
             OxTargetPickup  = b(D.OxTargetPickup),
             Despawn = { Enabled = b(DD.Enabled), Seconds = num(DD.Seconds, 300), BlinkLastSec = num(DD.BlinkLastSec, 10) },
-            Logging = { Enabled = b(DL.Enabled), Webhook = DL.Webhook or '' },
         },
         -- Combat / RP
         Jamming = {
@@ -113,6 +109,10 @@ local function snapshot()
             PerWeapon  = num(WW.PerWeapon, 0.03),
             MaxPenalty = num(WW.MaxPenalty, 0.18),
         },
+        LowReady = {
+            Enabled = b(LR.Enabled),
+            Types   = { back = b(lrt.back), back2 = b(lrt.back2) },
+        },
         -- Interaction
         Inspect = {
             Enabled     = b(IN.Enabled),
@@ -136,6 +136,10 @@ local function snapshot()
         Throw = {
             Enabled = b(TH.Enabled),
             Groups  = throwGroups,
+            Charge  = { Enabled       = b(TH.Charge and TH.Charge.Enabled),
+                        ChargeMs      = num(TH.Charge and TH.Charge.ChargeMs, 900),
+                        MaxMultiplier = num(TH.Charge and TH.Charge.MaxMultiplier, 1.25),
+                        ShowUI        = b(TH.Charge and TH.Charge.ShowUI) },
         },
         ChainOfCustody = {
             Enabled       = b(CC.Enabled),
@@ -166,8 +170,6 @@ local function snapshot()
             InteractionDistance = num(WR.InteractionDistance, 2.0),
             EquipOnRetrieve     = b(WR.EquipOnRetrieve),
             AllowedTypes        = { back = b(war['back']), back2 = b(war['back2']), side = b(war['side']) },
-            Logging             = { Enabled = b(WR.Logging and WR.Logging.Enabled),
-                                    Webhook = (WR.Logging and WR.Logging.Webhook) or '' },
             Placement           = {
                 Enabled      = b(WR.Placement and WR.Placement.Enabled),
                 MaxPerPlayer = num(WR.Placement and WR.Placement.MaxPerPlayer, 2),
@@ -175,7 +177,13 @@ local function snapshot()
                 Access       = (WR.Placement and WR.Placement.Access) == 'owner' and 'owner' or 'everyone',
             },
         },
-        TacticalSling = { Enabled = b(TS.Enabled) },
+        TacticalSling = {
+            Enabled        = b(TS.Enabled),
+            DefaultVariant = TS.DefaultVariant or 'normal',
+            Variants       = slingVariants,
+            JobVariants    = TS.JobVariants or {},
+            Types          = { back = b(TS.Types and TS.Types.back), back2 = b(TS.Types and TS.Types.back2) },
+        },
         ShellCasings = {
             Enabled       = b(SC.Enabled),
             Chance        = num(SC.Chance, 0.5),
@@ -211,7 +219,6 @@ local function snapshot()
             CuffedBypass   = b(PD.CuffedBypass),
             ShowAmmo       = b(PD.ShowAmmo),
             MaxDistance    = num(PD.MaxDistance, 2.0),
-            Logging        = { Enabled = b(pdl.Enabled), Webhook = pdl.Webhook or '' },
         },
         AmmoSharing = {
             Enabled     = b(AS.Enabled),
@@ -221,7 +228,7 @@ local function snapshot()
     }
 end
 
--- ── Validate only the runtime-safe (editable) fields ─────────────────────────────
+-- ── Validate the runtime-safe (editable) fields ──
 local function validate(d)
     if type(d) ~= 'table' then return false end
     -- General
@@ -229,6 +236,7 @@ local function validate(d)
     if type(d.EnableFlashlight) ~= 'boolean' then return false end
     if type(d.DropWeaponOnDeath) ~= 'boolean' then return false end
     if type(d.UIPosition) ~= 'string' or not VALID_POSITIONS[d.UIPosition] then return false end
+    if d.UIStyle ~= 'standard' and d.UIStyle ~= 'cinematic' then return false end
     -- Sounds
     if type(d.Sounds) ~= 'table' then return false end
     if type(d.Sounds.Enabled) ~= 'boolean' then return false end
@@ -242,9 +250,6 @@ local function validate(d)
     if type(dd) ~= 'table' or type(dd.Enabled) ~= 'boolean' then return false end
     if type(dd.Seconds) ~= 'number' or dd.Seconds < 5 or dd.Seconds > 3600 then return false end
     if type(dd.BlinkLastSec) ~= 'number' or dd.BlinkLastSec < 0 or dd.BlinkLastSec > 60 then return false end
-    local dl = d.WeaponDrop.Logging
-    if type(dl) ~= 'table' or type(dl.Enabled) ~= 'boolean' then return false end
-    if type(dl.Webhook) ~= 'string' or #dl.Webhook > 300 then return false end
     -- Jamming
     local j = d.Jamming
     if type(j) ~= 'table' or type(j.Enabled) ~= 'boolean' then return false end
@@ -277,6 +282,10 @@ local function validate(d)
     if type(ww.Threshold) ~= 'number' or ww.Threshold < 0 or ww.Threshold > 20 then return false end
     if type(ww.PerWeapon) ~= 'number' or ww.PerWeapon < 0 or ww.PerWeapon > 1 then return false end
     if type(ww.MaxPenalty) ~= 'number' or ww.MaxPenalty < 0 or ww.MaxPenalty > 0.9 then return false end
+    -- Low Ready
+    local lr = d.LowReady
+    if type(lr) ~= 'table' or type(lr.Enabled) ~= 'boolean' then return false end
+    if type(lr.Types) ~= 'table' then return false end
     -- Inspect
     local ins = d.Inspect
     if type(ins) ~= 'table' or type(ins.Enabled) ~= 'boolean' then return false end
@@ -300,6 +309,9 @@ local function validate(d)
     for name in pairs(THROW_GROUPS) do
         if type(th.Groups[name]) ~= 'boolean' then return false end
     end
+    if type(th.Charge) ~= 'table' or type(th.Charge.Enabled) ~= 'boolean' or type(th.Charge.ShowUI) ~= 'boolean' then return false end
+    if type(th.Charge.ChargeMs) ~= 'number' or th.Charge.ChargeMs < 200 or th.Charge.ChargeMs > 3000 then return false end
+    if type(th.Charge.MaxMultiplier) ~= 'number' or th.Charge.MaxMultiplier < 1.0 or th.Charge.MaxMultiplier > 3.0 then return false end
     -- Chain of Custody
     local cc = d.ChainOfCustody
     if type(cc) ~= 'table' or type(cc.Enabled) ~= 'boolean' or type(cc.ShowInInspect) ~= 'boolean' then return false end
@@ -329,8 +341,6 @@ local function validate(d)
     if type(wr.AllowedTypes) ~= 'table'
         or type(wr.AllowedTypes.back) ~= 'boolean' or type(wr.AllowedTypes.back2) ~= 'boolean'
         or type(wr.AllowedTypes.side) ~= 'boolean' then return false end
-    if type(wr.Logging) ~= 'table' or type(wr.Logging.Enabled) ~= 'boolean' then return false end
-    if type(wr.Logging.Webhook) ~= 'string' or #wr.Logging.Webhook > 300 then return false end
     local wrp = wr.Placement
     if type(wrp) ~= 'table' or type(wrp.Enabled) ~= 'boolean' or type(wrp.AllowPickup) ~= 'boolean' then return false end
     if type(wrp.MaxPerPlayer) ~= 'number' or wrp.MaxPerPlayer < 1 or wrp.MaxPerPlayer > 20 then return false end
@@ -338,6 +348,23 @@ local function validate(d)
     -- Tactical Sling
     local ts = d.TacticalSling
     if type(ts) ~= 'table' or type(ts.Enabled) ~= 'boolean' then return false end
+    if ts.DefaultVariant ~= nil and type(ts.DefaultVariant) ~= 'string' then return false end
+    if ts.JobVariants ~= nil then
+        if type(ts.JobVariants) ~= 'table' then return false end
+        local n = 0
+        for k, v in pairs(ts.JobVariants) do
+            n = n + 1
+            if n > 64 or type(k) ~= 'string' or #k > 48 or type(v) ~= 'string' or #v > 48 then return false end
+        end
+    end
+    if ts.Types ~= nil then
+        if type(ts.Types) ~= 'table' then return false end
+        local n = 0
+        for k, v in pairs(ts.Types) do
+            n = n + 1
+            if n > 32 or type(k) ~= 'string' or #k > 32 or type(v) ~= 'boolean' then return false end
+        end
+    end
     -- Shell Casings
     local sc = d.ShellCasings
     if type(sc) ~= 'table' or type(sc.Enabled) ~= 'boolean' or type(sc.AllowCollect) ~= 'boolean' then return false end
@@ -366,8 +393,6 @@ local function validate(d)
     if type(pd) ~= 'table' or type(pd.Enabled) ~= 'boolean' or type(pd.RequireConsent) ~= 'boolean'
         or type(pd.CuffedBypass) ~= 'boolean' or type(pd.ShowAmmo) ~= 'boolean' then return false end
     if type(pd.MaxDistance) ~= 'number' or pd.MaxDistance < 1 or pd.MaxDistance > 10 then return false end
-    if type(pd.Logging) ~= 'table' or type(pd.Logging.Enabled) ~= 'boolean' then return false end
-    if type(pd.Logging.Webhook) ~= 'string' or #pd.Logging.Webhook > 300 then return false end
     -- Ammo Sharing
     local as = d.AmmoSharing
     if type(as) ~= 'table' or type(as.Enabled) ~= 'boolean' then return false end
@@ -376,12 +401,13 @@ local function validate(d)
     return true
 end
 
--- ── Apply the editable fields to MBT.* (server side) ─────────────────────────────
+-- ── Apply the editable fields to MBT.* (server side) ──
 local function applyToMBT(d)
     MBT.EnableSling       = d.EnableSling
     MBT.EnableFlashlight  = d.EnableFlashlight
     MBT.DropWeaponOnDeath = d.DropWeaponOnDeath
     MBT.UI.Position       = d.UIPosition
+    MBT.UIStyle           = d.UIStyle
     MBT.Sounds.Enabled     = d.Sounds.Enabled
     MBT.Sounds.MaxDistance = d.Sounds.MaxDistance
     MBT.Sounds.Volume      = d.Sounds.Volume
@@ -390,8 +416,7 @@ local function applyToMBT(d)
     MBT.WeaponDrop.Despawn.Enabled     = d.WeaponDrop.Despawn.Enabled
     MBT.WeaponDrop.Despawn.Seconds     = d.WeaponDrop.Despawn.Seconds
     MBT.WeaponDrop.Despawn.BlinkLastSec= d.WeaponDrop.Despawn.BlinkLastSec
-    MBT.WeaponDrop.Logging.Enabled     = d.WeaponDrop.Logging.Enabled
-    MBT.WeaponDrop.Logging.Webhook     = d.WeaponDrop.Logging.Webhook
+    -- WeaponDrop.Logging is server-only (config.lua) — never touched from the dashboard
     -- Combat / RP
     MBT.Jamming.Enabled          = d.Jamming.Enabled
     MBT.Jamming.Cooldown         = d.Jamming.Cooldown
@@ -415,6 +440,8 @@ local function applyToMBT(d)
     MBT.WeaponWeight.Threshold  = d.WeaponWeight.Threshold
     MBT.WeaponWeight.PerWeapon  = d.WeaponWeight.PerWeapon
     MBT.WeaponWeight.MaxPenalty = d.WeaponWeight.MaxPenalty
+    MBT.LowReady.Enabled = d.LowReady.Enabled
+    MBT.LowReady.Types   = { ['back'] = d.LowReady.Types.back and true or false, ['back2'] = d.LowReady.Types.back2 and true or false }
     -- Interaction
     MBT.Inspect.Enabled        = d.Inspect.Enabled
     MBT.Inspect.MaxDistance    = d.Inspect.MaxDistance
@@ -434,6 +461,13 @@ local function applyToMBT(d)
         if MBT.Throw.Groups[hash] then
             MBT.Throw.Groups[hash].Allowed = d.Throw.Groups[name]
         end
+    end
+    if d.Throw.Charge then
+        MBT.Throw.Charge = MBT.Throw.Charge or {}
+        MBT.Throw.Charge.Enabled       = d.Throw.Charge.Enabled
+        MBT.Throw.Charge.ChargeMs      = d.Throw.Charge.ChargeMs
+        MBT.Throw.Charge.MaxMultiplier = d.Throw.Charge.MaxMultiplier
+        MBT.Throw.Charge.ShowUI        = d.Throw.Charge.ShowUI
     end
     if MBT.ChainOfCustody then
         MBT.ChainOfCustody.Enabled       = d.ChainOfCustody.Enabled
@@ -467,9 +501,6 @@ local function applyToMBT(d)
             ['back2'] = d.WeaponRack.AllowedTypes.back2,
             ['side']  = d.WeaponRack.AllowedTypes.side,
         }
-        MBT.WeaponRack.Logging = MBT.WeaponRack.Logging or {}
-        MBT.WeaponRack.Logging.Enabled = d.WeaponRack.Logging.Enabled
-        MBT.WeaponRack.Logging.Webhook = d.WeaponRack.Logging.Webhook
         MBT.WeaponRack.Placement = MBT.WeaponRack.Placement or {}
         MBT.WeaponRack.Placement.Enabled      = d.WeaponRack.Placement.Enabled
         MBT.WeaponRack.Placement.MaxPerPlayer = d.WeaponRack.Placement.MaxPerPlayer
@@ -477,6 +508,17 @@ local function applyToMBT(d)
         MBT.WeaponRack.Placement.Access       = d.WeaponRack.Placement.Access
     end
     MBT.TacticalSling.Enabled = d.TacticalSling.Enabled
+    if d.TacticalSling.DefaultVariant then MBT.TacticalSling.DefaultVariant = d.TacticalSling.DefaultVariant end
+    if d.TacticalSling.JobVariants then
+        local jv = {}
+        for job, vid in pairs(d.TacticalSling.JobVariants) do
+            if type(job) == 'string' and type(vid) == 'string' and vid ~= '' then jv[job] = vid end
+        end
+        MBT.TacticalSling.JobVariants = jv
+    end
+    if d.TacticalSling.Types then
+        MBT.TacticalSling.Types = { ['back'] = d.TacticalSling.Types.back and true or false, ['back2'] = d.TacticalSling.Types.back2 and true or false }
+    end
     if MBT.ShellCasings then
         MBT.ShellCasings.Enabled       = d.ShellCasings.Enabled
         MBT.ShellCasings.Chance        = d.ShellCasings.Chance
@@ -510,9 +552,6 @@ local function applyToMBT(d)
         MBT.PatDown.CuffedBypass   = d.PatDown.CuffedBypass
         MBT.PatDown.ShowAmmo       = d.PatDown.ShowAmmo
         MBT.PatDown.MaxDistance    = d.PatDown.MaxDistance
-        MBT.PatDown.Logging = MBT.PatDown.Logging or {}
-        MBT.PatDown.Logging.Enabled = d.PatDown.Logging.Enabled
-        MBT.PatDown.Logging.Webhook = d.PatDown.Logging.Webhook
     end
     if MBT.AmmoSharing then
         MBT.AmmoSharing.Enabled     = d.AmmoSharing.Enabled
@@ -525,11 +564,11 @@ end
 local function persistable(d)
     return {
         EnableSling = d.EnableSling, EnableFlashlight = d.EnableFlashlight,
-        DropWeaponOnDeath = d.DropWeaponOnDeath, UIPosition = d.UIPosition,
+        DropWeaponOnDeath = d.DropWeaponOnDeath, UIPosition = d.UIPosition, UIStyle = d.UIStyle,
         Sounds = { Enabled = d.Sounds.Enabled, MaxDistance = d.Sounds.MaxDistance, Volume = d.Sounds.Volume },
         WeaponDrop = {
             WeaponModelProp = d.WeaponDrop.WeaponModelProp, OxTargetPickup = d.WeaponDrop.OxTargetPickup,
-            Despawn = d.WeaponDrop.Despawn, Logging = d.WeaponDrop.Logging,
+            Despawn = d.WeaponDrop.Despawn,
         },
         Jamming = d.Jamming,
         SuppressorHeat = d.SuppressorHeat,
@@ -537,6 +576,7 @@ local function persistable(d)
         ConditionHUD = d.ConditionHUD,
         ChargeWeapon = d.ChargeWeapon,
         WeaponWeight = d.WeaponWeight,
+        LowReady = d.LowReady,
         Inspect = d.Inspect,
         WeaponName = d.WeaponName,
         ShowcasePoses = d.ShowcasePoses,
@@ -556,11 +596,7 @@ local function persistable(d)
     }
 end
 
---- Deep-merge SAVED values onto the live template: only keys present in the
---- template are read from the file (type-checked); anything missing — e.g. a
---- feature block added after the file was saved — keeps its config.lua default.
---- Schema auto-migration: an older runtime_config can never wipe the whole
---- saved state again, it just gains the new defaults.
+--- Deep-merge SAVED values onto the live template: only template keys are read (type-checked), missing ones keep their config.lua default — so an older saved config auto-migrates to new defaults, never wiping state.
 local function mergeKnown(template, saved)
     if type(saved) ~= 'table' then return template end
     local out = {}
@@ -577,36 +613,84 @@ local function mergeKnown(template, saved)
     return out
 end
 
-local function loadRuntimeConfig()
-    local raw = LoadResourceFile(GetCurrentResourceName(), CONFIG_FILE)
-    if not raw then return end
-    local ok, data = pcall(json.decode, raw)
+-- ── Persistence: one self-managed oxmysql row (mbt_malisling_config / 'dashboard').
+-- DB-canonical: oxmysql is guaranteed (ox/qb inventory depend on it) and a DB row
+-- survives resource-folder replacement on update, unlike a JSON file. No migration /
+-- fallback (pre-release). Auto-created on start; no .sql to import.
+local DB_ROW = 'dashboard'
+local function hasDb() return GetResourceState('oxmysql') == 'started' end
+
+-- Apply a saved JSON config string over the live snapshot, validate, then apply.
+local function applySaved(raw)
+    local ok, data = pcall(json.decode, raw or '')
     if not ok or type(data) ~= 'table' then
-        Utils.mbtWarn('runtime_config.json unreadable, ignoring')
+        Utils.mbtWarn('config ~ saved row unreadable, keeping config.lua defaults')
         return
     end
-    -- Merge over the current live snapshot (config.lua defaults + any feature
-    -- blocks the file predates), then validate the COMPLETE result.
+    -- Merge over the live snapshot (defaults fill blocks the saved row predates), then
+    -- validate the COMPLETE result.
     local merged = mergeKnown(snapshot(), data)
     if not validate(merged) then
-        Utils.mbtWarn('runtime_config.json failed validation after merge, ignoring')
+        Utils.mbtWarn('config ~ saved row failed validation after merge, keeping defaults')
         return
     end
     applyToMBT(merged)
-    Utils.mbtDebugger('Runtime config loaded from', CONFIG_FILE)
+    Utils.mbtDebugger('config: loaded from database (mbt_malisling_config)')
+end
+
+local function loadRuntimeConfig()
+    CreateThread(function()
+        -- Load-order: oxmysql can start a beat after us. Wait up to ~10s, else fall
+        -- back to config.lua defaults (no persistence).
+        local tries = 0
+        while not hasDb() and tries < 40 do Wait(250); tries = tries + 1 end
+        if not hasDb() then
+            Utils.mbtWarn('config ~ oxmysql not started; using config.lua defaults (config will NOT persist)')
+            return
+        end
+        exports.oxmysql:execute([[
+            CREATE TABLE IF NOT EXISTS mbt_malisling_config (
+                id VARCHAR(64) NOT NULL,
+                value LONGTEXT NOT NULL,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                PRIMARY KEY (id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        ]], {}, function()
+            Utils.mbtDebugger('config ~ mbt_malisling_config table ready (oxmysql)')
+            exports.oxmysql:execute('SELECT value FROM mbt_malisling_config WHERE id = ?', { DB_ROW }, function(rows)
+                local row = rows and rows[1]
+                if row and row.value then
+                    applySaved(row.value)
+                else
+                    Utils.mbtDebugger('config: no saved row yet — using default.lua defaults')
+                end
+            end)
+        end)
+    end)
 end
 
 --- Send the dashboard to an authorized admin.
 local function openFor(src)
+    -- Non-critical integration warnings → chips in the dashboard overview. Providers
+    -- are registered at runtime by the bridges. pcall so a faulty one can't block the
+    -- dashboard.
+    local warnings = {}
+    for _, provider in ipairs(MBT.IntegrationWarnings or {}) do
+        local ok, w = pcall(provider)
+        if ok and w then warnings[#warnings + 1] = w end
+    end
+
     TriggerClientEvent('mbt_malisling:openAdmin', src, {
-        config  = snapshot(),
-        version = GetResourceMetadata(GetCurrentResourceName(), 'version', 0) or 'v2',
-        oxPatch = oxPatchStatus or false,   -- 'ok' | failure reason | false (n/a) → sidebar status
+        config   = snapshot(),
+        version  = GetResourceMetadata(GetCurrentResourceName(), 'version', 0) or 'v2',
+        update   = MBT.UpdateInfo,          -- {current, latest, url} when a newer release exists, else nil
+        oxPatch  = oxPatchStatus or false,   -- 'ok' | reason | false → sidebar status
+        warnings = warnings,
     })
 end
 
--- Command registered SERVER-side (like mbt_elevator) so FiveM auto-registers its
--- ACE — a wildcard admin principal then works with no extra server.cfg lines.
+-- Registered SERVER-side (like mbt_elevator) so FiveM auto-registers its ACE — a
+-- wildcard admin principal then works with no extra server.cfg lines.
 RegisterCommand(adminCommand, function(source)
     if source == 0 then return end  -- console
     if IsPlayerAceAllowed(source, adminPerm) then
@@ -622,9 +706,8 @@ RegisterNetEvent('mbt_malisling:requestConfig', function()
     if IsPlayerAceAllowed(src, adminPerm) then openFor(src) end
 end)
 
--- ox_inventory auto-patch outcome from the JS patcher (server-local event, not a
--- net event → clients cannot spoof it). Stored and shown in the dashboard sidebar
--- to admins (openFor includes it in the openAdmin payload).
+-- ox_inventory auto-patch outcome from the JS patcher. Server-local event (not a net
+-- event) → clients cannot spoof it. Shown in the dashboard sidebar.
 AddEventHandler('mbt_malisling:oxPatchResult', function(ok, reason)
     if ok then oxPatchStatus = 'ok' return end
     oxPatchStatus = (type(reason) == 'string' and reason ~= '') and reason or 'see server console'
@@ -638,14 +721,22 @@ RegisterNetEvent('mbt_malisling:adminSave', function(data)
         return
     end
     applyToMBT(data)
-    SaveResourceFile(GetCurrentResourceName(), CONFIG_FILE, json.encode(persistable(data)), -1)
-    TriggerClientEvent('mbt_malisling:applyConfig', -1, persistable(data))
+    local payload = persistable(data)
+    if hasDb() then
+        -- Single-row upsert. DB is canonical → no dual-write drift.
+        exports.oxmysql:execute(
+            'INSERT INTO mbt_malisling_config (id, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)',
+            { DB_ROW, json.encode(payload) }
+        )
+    else
+        Utils.mbtWarn('config ~ oxmysql not started; save applied live but NOT persisted')
+    end
+    TriggerClientEvent('mbt_malisling:applyConfig', -1, payload)   -- no secrets in payload (webhooks live in config.lua)
     Utils.mbtDebugger('Admin config saved by player', src)
 end)
 
--- Clients fetch the current live config when they (re)initialise, so a resource
--- restart or a fresh join picks up runtime_config without needing a save. Returns
--- the editable snapshot the client's applyConfig handler consumes.
+-- Clients fetch the live config on (re)init so a restart or fresh join picks it up
+-- without needing a save. Returns the editable snapshot applyConfig consumes.
 lib.callback.register('mbt_malisling:getRuntimeConfig', function()
     return persistable(snapshot())
 end)

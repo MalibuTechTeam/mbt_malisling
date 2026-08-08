@@ -1,10 +1,7 @@
 -- ─────────────────────────────────────────────────────────────────────────────
--- Ammo Sharing — client
---
--- Press the share key while holding a weapon near another player to offer them a
--- portion of your ammo. The receiver gets a key-driven prompt (reuses the
--- Handoff pill NUI) and, on accept, both play a synced give/take gesture while
--- the server moves the ammo item. Mirrors the weapon-handoff flow.
+-- Ammo Sharing — client. Mirrors the weapon-handoff flow but moves an ammo item.
+-- Press the key near another player to offer ammo; receiver gets a key-driven
+-- prompt (reuses the Handoff pill NUI), accept plays a synced give/take gesture.
 -- ─────────────────────────────────────────────────────────────────────────────
 
 if not MBT.AmmoSharing then return end
@@ -39,7 +36,7 @@ local function pickAmount(target, weapon, have)
     if amount < 1 then amount = math.min(1, have) end
 
     SendNUIMessage({ action = 'showAmmoPicker', data = {
-        locale = buildNuiLocale(), amount = amount, max = have,
+        locale = buildNuiLocale(), amount = amount, max = have, style = MBT.UIStyle or 'standard',
     } })
     CreateThread(function()
         while picking do
@@ -101,6 +98,7 @@ RegisterNetEvent('mbt_malisling:ammo:incoming', function(data)
         weapon   = 'AMMO',
         -- Reuse the Handoff pill's bold slot for the rounds line.
         label    = ('%d× %s'):format(data.amount or 0, Translate('ammo_rounds')),
+        style    = MBT.UIStyle or 'standard',
     } })
     CreateThread(function()
         local deadline = GetGameTimer() + (data.timeoutMs or 8000)

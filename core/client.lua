@@ -27,7 +27,6 @@ local weaponObjectiveSpawned = {}
 local isReady = false
 local hasRegistered = false
 local propInfoTable = Utils.tableDeepCopy(MBT.PropInfo)
-local playerSex
 
 -- Last polled value of IsFlashLightOn(ped). We can't trust a synchronous read in the
 -- ox_inventory:currentWeapon(nil) unequip handler because GTA's holster transition clears
@@ -64,9 +63,7 @@ function deleteAllWeapons()
     end
 end
 
---- True when the weapon should STAY visible inside this vehicle (roofless: bikes,
---- quads, buggies, convertibles with the top down). Enclosed vehicles return false
---- so the prop is hidden to avoid the barrel clipping through the roof.
+--- True when the weapon stays visible inside this vehicle (roofless: bikes, quads, buggies, convertibles); enclosed vehicles return false so the prop can't clip through the roof.
 ---@param veh number
 ---@return boolean
 local function isOpenVehicle(veh)
@@ -87,7 +84,7 @@ end
 -- duplicate props — after riding an open vehicle where we left them visible).
 local hiddenForVehicle = false
 
---- Check when player enter/exit a vehicle, remove weapon objects when enter to avoid weird behaviors caused by props interpenetration and attachments disappears
+--- On vehicle enter, remove weapon objects (props clip/break otherwise); on exit, re-sync if we hid anything.
 ---@param value number|boolean  vehicle entity when entering, false when exiting
 local function onVehicleCheck(value)
     if value then
@@ -114,7 +111,7 @@ local function onVehicleCheck(value)
     end
 end
 
---- Check when player change ped, remove weapon objects when enter to avoid weird behaviors caused by props interpenetration and attachments disappears
+--- On ped change, remove weapon objects then re-check inventory: stale attachments on the old ped clip/break otherwise.
 local function onPedChange()
     deleteAllWeapons()
     local playerToTrack = playersToTrack[cache.serverId]
@@ -129,15 +126,16 @@ local function onPedChange()
     TriggerServerEvent("mbt_malisling:checkInventory")
 end
 
---- Fire server event for sync
 ---@param data table
 local function syncSling(data)
     TriggerServerEvent("mbt_malisling:syncSling", data)
 end
 
----Apply attachments on weapon object
+---Apply attachments on weapon object.
 ---@param data table
+---@return boolean appliedFlashlight  true only if a flashlight component was actually given to the object
 local function applyAttachments(data)
+    local appliedFlashlight = false
     if data and not Utils.isTableEmpty(data) then
         Utils.mbtDebugger(data.metadata)
         local components = data.metadata.components
@@ -159,6 +157,10 @@ local function applyAttachments(data)
                         lib.requestModel(compModel)
                         GiveWeaponComponentToWeaponObject(data.weaponObj, component)
                         SetModelAsNoLongerNeeded(compModel)
+                        -- Track whether this object really accepted a flashlight: the slung
+                        -- prop's light source must only be enabled for weapons that actually
+                        -- have one, otherwise stale flashlightState glows the wrong prop.
+                        if Utils.isComponentAFlashlight(componentName) then appliedFlashlight = true end
                     end
                 end
 
@@ -167,9 +169,11 @@ local function applyAttachments(data)
             end
         end
     end
+    return appliedFlashlight
 end
 
----Afaik, seems that there is like a "shadow zone" where the player is detected as in scope by the server handler but on client its not truly existing yet, so, waiting if player enter or left our scope and return the outcome
+---Scope "shadow zone": server marks the player in-scope before the client ped truly exists.
+---Wait until the player resolves (return true) or leaves our scope (return false).
 ---@param data table
 ---@return boolean
 local function waitingForTargetPlayerPed(data)
@@ -207,18 +211,14 @@ local function getAttachInfo(data)
     return MBT.PropInfo[data.Type]
 end
 
---- Resolved back/sling attach info for a prop type, with job overrides applied
---- (propInfoTable is rebuilt by sendAnimations per the local player's job/group).
---- Exposed as a global so sibling client modules (e.g. low_ready) can re-attach a
---- slung prop to its canonical back position without duplicating the job lookup.
+--- Resolved back/sling attach info for a prop type, job overrides applied; global so sibling modules (e.g. low_ready) can re-attach a slung prop without duplicating the job lookup.
 ---@param propType string
 ---@return table?
 function GetResolvedPropInfo(propType)
     return propInfoTable[propType]
 end
 
---- The slung-prop entity currently tracked for the local player at this type, or
---- nil. (playersToTrack[serverId][type] is the weapon object handle when slung.)
+--- The slung-prop entity tracked for the local player at this type, or nil (playersToTrack[serverId][type] is the weapon object handle when slung).
 ---@param propType string
 ---@return number?
 function GetLocalSlungProp(propType)
@@ -267,8 +267,27 @@ function Init()
     isReady = false
     equippedWeapon = {}
 
+    -- A restart wipes equippedWeapon, but a weapon already in the player's hands stays
+    -- there — and ox only fires currentWeapon on a CHANGE, so nothing re-announces it.
+    -- The holster branch would then hit the "no weapon was equipped" guard and skip the
+    -- re-sling entirely: the gun goes away and never reappears on the back. Seed from the
+    -- live inventory state instead. qb has no such export (its bridge polls and re-fires
+    -- currentWeapon by itself), so the pcall simply no-ops there.
+    local ok, held = pcall(function() return exports.ox_inventory:getCurrentWeapon() end)
+    if ok and type(held) == 'table' and held.name then
+        local md = held.metadata or {}
+        equippedWeapon.name       = held.name
+        equippedWeapon.slot       = held.slot
+        equippedWeapon.components = md.components
+        equippedWeapon.serial     = md.serial
+    end
+
     MBT.WeaponsInfo = lib.callback.await('mbt_malisling:getWeapoConf', false)
     Utils.mbtDebugger("Init ~ has been fired!!!")
+
+    -- Load DB-persisted prop-position overrides into MBT.PropInfo/CustomPropPosition BEFORE
+    -- the first sendAnimations rebuild, so saved editor positions survive a resource restart.
+    if MBT.SyncSavedPropPositions then MBT.SyncSavedPropPositions() end
 
     local tempPlayers = GetActivePlayers()
     local activePlayers = {}
@@ -328,7 +347,18 @@ function Init()
                 equippedWeapon["serial"] = data.metadata.serial;
             end
 
-            if data.metadata.flashlightState then SetFlashLightEnabled(cache.ped, true); end
+            -- Scope the ped-global flashlight to the weapon now in hand: enable it only
+            -- when THIS weapon actually has a flashlight component AND its saved state was
+            -- on; otherwise explicitly clear it. SetFlashLightEnabled is ped-global, so
+            -- without the else the previous weapon's torch carries over to the next weapon
+            -- (and leaks into the saved state at unequip → wrong prop glows).
+            local eqComponents = data.metadata and data.metadata.components
+            local eqHasFlashlight = (eqComponents and Utils.containsValue(eqComponents, "at_flashlight")) and true or false
+            if MBT.EnableFlashlight and eqHasFlashlight and data.metadata and data.metadata.flashlightState == true then
+                SetFlashLightEnabled(cache.ped, true)
+            else
+                SetFlashLightEnabled(cache.ped, false)
+            end
             -- NOTE: previously here lived a polling thread that ran `while IsPedArmed(ped, 7) do`,
             -- but `IsPedArmed` returns 0/1 (integer) and in Lua 0 is truthy, so the loop never
             -- exited — every equip leaked another thread, and the 250ms polling lag caused stale
@@ -406,6 +436,12 @@ function Init()
 
                 local playerWeapons = Inventory:Search('slots', knownWeaponNames)
 
+                -- Never re-sling the weapon currently in hand. On qb the equip
+                -- transition can fire itemCount (item leaves the grid) while the
+                -- ped is now armed; without this guard the re-search would spawn a
+                -- slung prop for the held weapon (regression: it stays on the back).
+                local _, heldHash = GetCurrentPedWeapon(cache.ped, 1)
+
                 if playerWeapons then
                     local pWeapons = {}
 
@@ -413,7 +449,7 @@ function Init()
 
                         for _, v in pairs(data) do
 
-                            if v.count and v.count > 0 then
+                            if v.count and v.count > 0 and joaat(v.name) ~= heldHash then
 
                                 if MBT.WeaponsInfo["Weapons"][v.name]?.type == weaponType then
 
@@ -526,8 +562,12 @@ end)
 AddEventHandler('onResourceStop', function(resourceName)
     if (GetCurrentResourceName() ~= resourceName) then return end
     for i=1, #weaponObjectiveSpawned do
-        if DoesEntityExist(weaponObjectiveSpawned[i]) then
-            DeleteEntity(weaponObjectiveSpawned[i])
+        local e = weaponObjectiveSpawned[i]
+        -- Only delete OUR weapon OBJECTS (type 3). Entity handles get recycled by the engine,
+        -- so a stale handle left in this registry can point at a ped/vehicle (e.g. an MLO ped)
+        -- by now — deleting that is what made interior peds drop on restart.
+        if e and DoesEntityExist(e) and GetEntityType(e) == 3 then
+            DeleteEntity(e)
         end
     end
 end)
@@ -559,18 +599,21 @@ AddEventHandler("mbt_malisling:syncDeletion", function(data)
 
             if type(playerToTrack[wType]) == "number" then
                 DeleteObject(playerToTrack[wType])
-                local containsObj, index = Utils.containsValue(playersToTrack, playerToTrack[wType])
-
-                if containsObj then table.remove(playersToTrack, index) end
+                -- Remove the handle from the SPAWN registry (not playersToTrack — that map isn't an
+                -- array, so containsValue's #-scan never found it and the registry leaked). Matches
+                -- the correct paths in deleteAllWeapons and syncScope.
+                local containsObj, index = Utils.containsValue(weaponObjectiveSpawned, playerToTrack[wType])
+                if containsObj then table.remove(weaponObjectiveSpawned, index) end
             end
             playerToTrack[wType] = false
         end
     else
         if type(playerToTrack[weaponType]) == "number" then
             DeleteObject(playerToTrack[weaponType])
-            local containsObj, index = Utils.containsValue(playersToTrack, playerToTrack[weaponType])
+            -- Same fix as the "all" path: clean the spawn registry, not playersToTrack.
+            local containsObj, index = Utils.containsValue(weaponObjectiveSpawned, playerToTrack[weaponType])
             if containsObj then
-                table.remove(playersToTrack, index)
+                table.remove(weaponObjectiveSpawned, index)
             end
         end
         playerToTrack[weaponType] = false
@@ -584,6 +627,7 @@ AddEventHandler("mbt_malisling:checkWeaponProps", function(t)
     if type(t) ~= "table" then return end
     if Utils.isTableEmpty(t) then Utils.mbtDebugger("checkWeaponProps ~ Table is empty!") return end
     local playerWeapons = {}
+    local _, heldHash = GetCurrentPedWeapon(cache.ped, 1)  -- weapon in hand → not slung
 
     Utils.mbtDebugger("checkWeaponProps ~ Starting iterating inventory weapons!")
 
@@ -592,7 +636,11 @@ AddEventHandler("mbt_malisling:checkWeaponProps", function(t)
             local weaponType = MBT.WeaponsInfo["Weapons"][weaponData.name]?.type
             Utils.mbtDebugger("checkWeaponProps ~ weaponType ", weaponData.name, weaponType	)
 
-            if not playerWeapons[weaponType] then
+            -- Skip the drawn weapon: it's in hand, not on the back. A full re-sync
+            -- (e.g. a conceal reveal fires checkInventory) would otherwise spawn a
+            -- back prop while the player is holding it.
+            local drawn = heldHash and heldHash ~= `WEAPON_UNARMED` and joaat(weaponData.name) == heldHash
+            if not drawn and not playerWeapons[weaponType] then
                 weaponData.type = weaponType
                 playerWeapons[weaponType] = weaponData
             end
@@ -688,15 +736,36 @@ AddEventHandler('mbt_malisling:syncSling', function (data)
             and not (MBT.IsTypeConcealed and MBT.IsTypeConcealed(data.playerSource, weaponType))
             and (playersToTrack[data.playerSource][weaponType] == false or playersToTrack[data.playerSource][weaponType] == nil) then
             Utils.mbtDebugger("syncSling ~ Check passed, creating weapon object!")
+            -- Reserve the slot SYNCHRONOUSLY before the async CreateWeaponObject below.
+            -- Two near-simultaneous syncSling for the same type (e.g. at restart the
+            -- snapshot-poll updateInventory AND the server checkInventory both fire)
+            -- would otherwise both pass the false/nil guard during the ~500ms create
+            -- window, spawn two props, and orphan the first (it stays on the back
+            -- after equip deletes the tracked one). The sentinel makes the loser skip.
+            playersToTrack[data.playerSource][weaponType] = true
             local attachInfo = getAttachInfo({
                 Job = playerJob,
                 Type = weaponType
             })
+            -- Low Ready guard (opaque hook, no-op without the module): if the LOCAL player has
+            -- this type in chest carry, spawn it on the chest directly so a re-sling after a
+            -- draw doesn't snap back→chest. Gated to the local player (the stance is local state).
+            if targetPlayerId == PlayerId() and MBT.GetLowReadyOverride then
+                attachInfo = MBT.GetLowReadyOverride(weaponType) or attachInfo
+            end
             local boneIndex = GetPedBoneIndex(playerPed, attachInfo["Bone"])
             weaponData.weaponHash = joaat(weaponData.name)
-            lib.requestWeaponAsset(weaponData.weaponHash, 1000, 31, 1)
+            -- Streaming can exceed 1s under load (restart/asset spikes). pcall so a slow
+            -- stream doesn't throw a red error and wedge the reserved slot — release it
+            -- and skip this type; a later sync retries once streaming frees up.
+            if not pcall(lib.requestWeaponAsset, weaponData.weaponHash, 5000, 31, 1) then
+                Utils.mbtDebugger("syncSling ~ weapon asset failed to stream for ", weaponData.name)
+                playersToTrack[data.playerSource][weaponType] = false
+                goto continue
+            end
             weaponData.weaponObj = CreateWeaponObject(weaponData.weaponHash, 50, playerCoords.x, playerCoords.y, playerCoords.z, true, 1.0, 0)
             RequestWeaponHighDetailModel(weaponData.weaponObj)
+            RemoveWeaponAsset(weaponData.weaponHash)   -- object keeps its model; the asset was never freed (streaming-memory leak)
 
             local deadline = GetGameTimer() + 500
             while not DoesEntityExist(weaponData.weaponObj) and GetGameTimer() < deadline do
@@ -705,25 +774,50 @@ AddEventHandler('mbt_malisling:syncSling', function (data)
 
             if not DoesEntityExist(weaponData.weaponObj) then
                 Utils.mbtDebugger("syncSling ~ Weapon object failed to create for ", weaponData.name)
+                playersToTrack[data.playerSource][weaponType] = false   -- release reservation
             else
                 Utils.mbtDebugger("syncSling ~ Weapon object created! ", weaponData.name, playerPed, boneIndex, attachInfo["Pos"][pedSex]["x"], attachInfo["Pos"][pedSex]["y"], attachInfo["Pos"][pedSex]["z"])
-                applyAttachments(weaponData)
-                local desiredFlashlight = weaponData.metadata and weaponData.metadata.flashlightState and true or false
+                -- Hide it for the whole spawn window. CreateWeaponObject drops a physics-enabled
+                -- weapon at the player's feet, and it stays loose there — falling, tumbling —
+                -- through the component pass and the flashlight Wait below (up to ~550ms) until
+                -- the attach snaps it to the bone. That tumble is what you see on a restart.
+                -- The visibility tick can't reveal it early: the slot still holds the boolean
+                -- sentinel, and that loop only touches number handles.
+                SetEntityVisible(weaponData.weaponObj, false, 0)
+                local hasObjFlashlight = applyAttachments(weaponData)
+                -- Light the slung prop only when it ACTUALLY received a flashlight component
+                -- AND the saved state says it was on. The component check prevents a weapon
+                -- with stale/leaked flashlightState (but no torch) from glowing. NOTE: once a
+                -- flashlight-component prop is lit, GTA couples it to the ped's global
+                -- flashlight emitter, so it also lights when the player toggles the HELD
+                -- weapon's torch — that is an engine limitation we accept (documented).
+                local desiredFlashlight = MBT.EnableFlashlight and hasObjFlashlight
+                    and weaponData.metadata and weaponData.metadata.flashlightState == true or false
                 SetCreateWeaponObjectLightSource(weaponData.weaponObj, desiredFlashlight)
-                -- CRITICAL: do not remove this Wait. The engine needs one tick to commit the
-                -- light-source flag onto the weapon object before AttachEntityToEntity is
-                -- called, otherwise the attachment pass resets the flag and the slung prop
-                -- never renders its flashlight. Regression of fa34b9a (the polling loop that
-                -- replaced the original Wait(50) didn't preserve this side-effect).
+                -- CRITICAL: keep this Wait. The engine needs a tick to commit the light-source
+                -- flag before AttachEntityToEntity, or the attach pass resets it and the slung
+                -- prop never renders its flashlight.
                 Wait(50)
-                AttachEntityToEntity(weaponData.weaponObj, playerPed, boneIndex, attachInfo["Pos"][pedSex]["x"], attachInfo["Pos"][pedSex]["y"], attachInfo["Pos"][pedSex]["z"], attachInfo["Rot"][pedSex]["x"], attachInfo["Rot"][pedSex]["y"], attachInfo["Rot"][pedSex]["z"], true, true, false, attachInfo["isPed"], attachInfo["RotOrder"], attachInfo["FixedRot"])
+                -- Force Pos/Rot to FLOATS: an integer rotation argument makes AttachEntityToEntity
+                -- IGNORE the rotation (the NUI's React sliders send integers that reach here as
+                -- Lua ints, leaving the prop stuck at its default pose). +0.0 guarantees a float.
+                local P, R = attachInfo["Pos"][pedSex], attachInfo["Rot"][pedSex]
+                AttachEntityToEntity(weaponData.weaponObj, playerPed, boneIndex,
+                    P.x + 0.0, P.y + 0.0, P.z + 0.0, R.x + 0.0, R.y + 0.0, R.z + 0.0,
+                    true, true, false, attachInfo["isPed"], attachInfo["RotOrder"], attachInfo["FixedRot"])
                 SetEntityCompletelyDisableCollision(weaponData.weaponObj, false, true)
+                -- In place at last — reveal it, matching whatever the owner is doing on both
+                -- channels: hidden (noclip) and faded out (relog/multichar fade the ped to 0
+                -- while we re-spawn its weapons, and the sync tick would flash them meanwhile).
+                SetEntityVisible(weaponData.weaponObj, IsEntityVisible(playerPed), 0)
+                Utils.syncPropAlpha(weaponData.weaponObj, GetEntityAlpha(playerPed))
                 SetFlashLightKeepOnWhileMoving(true)
                 Utils.mbtDebugger("syncSling ~ Apply attachments to weapon obj!")
                 playersToTrack[data.playerSource][weaponType] = weaponData.weaponObj
                 weaponObjectiveSpawned[#weaponObjectiveSpawned+1] = weaponData.weaponObj
             end
         end
+        ::continue::
     end
 
     playersToTrack[data.playerSource]["waiting"] = nil
@@ -745,16 +839,20 @@ CreateThread(function()
     end
 end)
 
--- ── Slung prop visibility sync ────────────────────────────────────────────────
--- Keeps each tracked weapon prop's visibility in sync with its owner ped. When a
--- ped is made invisible by a third-party script (admin noclip being the common
--- case), the weapon props attached to it would otherwise stay visible and appear
--- to float in mid-air. Covers the local player and every tracked remote player
--- (handles networked noclip). The vehicle path deletes props rather than hiding
--- them, so the `type(v) == "number"` check naturally skips those entries.
+-- ── Slung prop visibility + alpha sync ────────────────────────────────────────
+-- Keeps each tracked weapon prop in sync with its owner ped on BOTH channels a
+-- third-party script can use to hide someone:
+--   * visibility flag — admin noclip is the common case (SetEntityVisible)
+--   * alpha           — multichar switch / relog fade the ped to 0 for ~2s while
+--                       the right outfit is applied (SetEntityAlpha)
+-- They're independent: a ped at alpha 0 still reports IsEntityVisible() == true,
+-- so syncing visibility alone left the props hanging in mid-air during a relog.
+-- Covers the local player and every tracked remote player. The vehicle path
+-- deletes props rather than hiding them, so `type(v) == "number"` skips those.
 CreateThread(function()
     while true do
         Wait(500)
+        local mc = GetEntityCoords(cache.ped)
         for serverId, props in pairs(playersToTrack) do
             local ped
             if serverId == cache.serverId then
@@ -763,12 +861,18 @@ CreateThread(function()
                 local plyr = GetPlayerFromServerId(serverId)
                 ped = (plyr and plyr ~= -1) and GetPlayerPed(plyr) or nil
             end
-            if ped and ped ~= 0 and DoesEntityExist(ped) then
+            -- Distance-cull: a far ped's slung props aren't visible to us anyway, so skip the
+            -- visibility sync (work scales with NEARBY peds, not every tracked one). Local always runs.
+            if ped and ped ~= 0 and DoesEntityExist(ped)
+               and (serverId == cache.serverId or #(mc - GetEntityCoords(ped)) < 80.0) then
                 local pedVisible = IsEntityVisible(ped)
+                local pedAlpha   = GetEntityAlpha(ped)
                 for _, v in pairs(props) do
-                    if type(v) == "number" and DoesEntityExist(v)
-                       and IsEntityVisible(v) ~= pedVisible then
-                        SetEntityVisible(v, pedVisible, 0)
+                    if type(v) == "number" and DoesEntityExist(v) then
+                        if IsEntityVisible(v) ~= pedVisible then
+                            SetEntityVisible(v, pedVisible, 0)
+                        end
+                        Utils.syncPropAlpha(v, pedAlpha)
                     end
                 end
             end

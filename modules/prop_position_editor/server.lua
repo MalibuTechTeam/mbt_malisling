@@ -1,18 +1,16 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Weapon-Prop Position Editor — server
---
--- Persists per-type (and per-job) weapon-prop attach offsets in a dedicated
--- oxmysql table (mbt_weapon_positions), overriding the config.lua defaults.
--- Admin-only (ACE), validated server-side, broadcast live to all clients.
---
--- oxmysql is soft/feature-gated: without it the editor can't save and the rest
--- of the script stays DB-free. This is the 2nd documented exception to "no DB".
+-- Persists per-type (+ per-job) prop attach offsets in oxmysql (mbt_malisling_positions),
+-- overriding config.lua defaults. Admin-only (ACE), validated server-side, broadcast live.
+-- oxmysql is soft/feature-gated: without it the editor can't save; rest stays DB-free.
 -- ─────────────────────────────────────────────────────────────────────────────
 
-local adminCommand = (MBT.Admin and MBT.Admin.Command) or 'mbtconfig'
+local adminCommand = (MBT.Admin and MBT.Admin.Command) or GetCurrentResourceName()
 local adminPerm    = (MBT.Admin and MBT.Admin.Permission) or ('command.' .. adminCommand)
 
-local WTYPES = { side = true, back = true, back2 = true, melee = true, melee2 = true, melee3 = true, extinguisher = true }
+local WTYPES = { side = true, back = true, back2 = true, melee = true, melee2 = true, melee3 = true, extinguisher = true, sling = true }
+-- Valid wtypes = the base set + per-variant sling virtual types 'sling:<id>'.
+local function validWtype(w) return WTYPES[w] == true or (type(w) == 'string' and w:match('^sling:[%w%-_]+$') ~= nil) end
 local BONES  = { [24816] = true, [24818] = true, [57005] = true, [36029] = true,
                  [58271] = true, [51826] = true, [11816] = true, [23553] = true }
 
@@ -20,6 +18,20 @@ local BONES  = { [24816] = true, [24818] = true, [57005] = true, [36029] = true,
 local CONFIG_DEFAULTS = json.decode(json.encode(MBT.PropInfo or {}))
 
 local function hasDb() return GetResourceState('oxmysql') == 'started' end
+
+-- DB overrides mirrored in memory so a client joining AFTER load can fetch them on init.
+-- The propPos:apply broadcast only reaches connected clients → without this, saved
+-- positions revert to config defaults on every restart.
+local saved = {}   -- [scope.."\0"..wtype] = { scope = ..., wtype = ..., data = ... }
+local function savedKey(scope, wtype) return scope .. '\0' .. wtype end
+local function rememberSaved(scope, wtype, data)
+    saved[savedKey(scope, wtype)] = { scope = scope, wtype = wtype, data = data }
+end
+lib.callback.register('mbt_malisling:getPropPositions', function()
+    local out = {}
+    for _, row in pairs(saved) do out[#out + 1] = row end
+    return out
+end)
 
 -- ── Validation ───────────────────────────────────────────────────────────────
 local function isVec(v, lo, hi)
@@ -79,19 +91,24 @@ local function ensureSchema()
         return
     end
     exports.oxmysql:execute([[
-        CREATE TABLE IF NOT EXISTS mbt_weapon_positions (
+        CREATE TABLE IF NOT EXISTS mbt_malisling_positions (
             scope VARCHAR(48) NOT NULL,
-            wtype VARCHAR(16) NOT NULL,
+            wtype VARCHAR(48) NOT NULL,
             data  LONGTEXT NOT NULL,
             PRIMARY KEY (scope, wtype)
         )
     ]], {}, function()
-        exports.oxmysql:execute('SELECT scope, wtype, data FROM mbt_weapon_positions', {}, function(rows)
+        -- Widen wtype for tables created before per-variant sling wtypes (was VARCHAR(16)
+        -- → long variant ids truncated). Idempotent.
+        exports.oxmysql:execute('ALTER TABLE mbt_malisling_positions MODIFY COLUMN wtype VARCHAR(48) NOT NULL', {})
+        exports.oxmysql:execute('SELECT scope, wtype, data FROM mbt_malisling_positions', {}, function(rows)
             if type(rows) ~= 'table' then return end
             for _, row in ipairs(rows) do
                 local ok, data = pcall(json.decode, row.data)
-                if ok and WTYPES[row.wtype] and validData(data) then
-                    applyServer(row.scope, row.wtype, sanitize(data))
+                if ok and validWtype(row.wtype) and validData(data) then
+                    local clean = sanitize(data)
+                    applyServer(row.scope, row.wtype, clean)
+                    rememberSaved(row.scope, row.wtype, clean)
                 end
             end
             Utils.mbtDebugger('prop_position_editor ~ loaded', #rows, 'position rows from DB')
@@ -102,17 +119,18 @@ end
 -- ── NUI/admin events (ACE-checked) ───────────────────────────────────────────
 RegisterNetEvent('mbt_malisling:propPos:save', function(payload)
     local src = source
-    if not IsPlayerAceAllowed(src, adminPerm) then return end
-    if type(payload) ~= 'table' then return end
+    if not IsPlayerAceAllowed(src, adminPerm) then Utils.mbtWarn('propPos:save ~ ACE denied for', src); return end
+    if type(payload) ~= 'table' then Utils.mbtWarn('propPos:save ~ payload not a table'); return end
     local scope, wtype, data = payload.scope, payload.wtype, payload.data
-    if type(scope) ~= 'string' or scope == '' or not WTYPES[wtype] or not validData(data) then
-        Utils.mbtWarn('propPos:save ~ invalid payload from', src); return
-    end
+    if type(scope) ~= 'string' or not scope:match('^[%w_%-]+$') or #scope > 48 then Utils.mbtWarn('propPos:save ~ bad scope:', tostring(scope)); return end
+    if not validWtype(wtype) then Utils.mbtWarn('propPos:save ~ bad wtype:', tostring(wtype)); return end
+    if not validData(data) then Utils.mbtWarn('propPos:save ~ validData FAILED; data=', json.encode(data)); return end
     data = sanitize(data)
     applyServer(scope, wtype, data)
+    rememberSaved(scope, wtype, data)
     if hasDb() then
         exports.oxmysql:execute(
-            'INSERT INTO mbt_weapon_positions (scope, wtype, data) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE data = VALUES(data)',
+            'INSERT INTO mbt_malisling_positions (scope, wtype, data) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE data = VALUES(data)',
             { scope, wtype, json.encode(data) })
     end
     TriggerClientEvent('mbt_malisling:propPos:apply', -1, { scope = scope, wtype = wtype, data = data })
@@ -124,13 +142,14 @@ RegisterNetEvent('mbt_malisling:propPos:reset', function(payload)
     if not IsPlayerAceAllowed(src, adminPerm) then return end
     if type(payload) ~= 'table' then return end
     local scope, wtype = payload.scope, payload.wtype
-    if type(scope) ~= 'string' or scope == '' or not WTYPES[wtype] then return end
+    if type(scope) ~= 'string' or not scope:match('^[%w_%-]+$') or #scope > 48 or not validWtype(wtype) then return end
     resetServer(scope, wtype)
+    saved[savedKey(scope, wtype)] = nil
     if hasDb() then
-        exports.oxmysql:execute('DELETE FROM mbt_weapon_positions WHERE scope = ? AND wtype = ?', { scope, wtype })
+        exports.oxmysql:execute('DELETE FROM mbt_malisling_positions WHERE scope = ? AND wtype = ?', { scope, wtype })
     end
-    -- For default scope send the restored config default; for a job scope send a
-    -- remove signal (clients drop the override and fall back to their default).
+    -- default scope → send the restored config default; job scope → send a remove
+    -- signal (clients drop the override and fall back to default).
     local out = (scope == 'default') and MBT.PropInfo[wtype] or false
     TriggerClientEvent('mbt_malisling:propPos:apply', -1, { scope = scope, wtype = wtype, data = out })
     Utils.mbtDebugger('propPos reset by', src, scope, wtype)

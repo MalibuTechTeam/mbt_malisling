@@ -9,45 +9,43 @@ jobs:
   create-release:
     name: Build and Create Tagged release
     runs-on: ubuntu-latest
-    permissions: write-all
+    permissions:
+      contents: write
 
     steps:
       - name: Install archive tools
         run: sudo apt install zip
 
       - name: Checkout source code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
           ref: ${{ github.event.repository.default_branch }}
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v2.2.2
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          version: 8.1.1
+          bun-version: latest
 
-      - name: Get variables
-        id: get_vars
-        run: |
-          echo '::set-output name=SHORT_SHA::$(git rev-parse --short HEAD)'
-          echo '::set-output name=DATE::$(date +'%D')'
+      - name: Install web dependencies
+        run: cd web && bun install
+
+      - name: Build NUI
+        run: cd web && bun run build
 
       - name: Bump manifest version
         run: node .github/actions/bump-manifest-version.js
         env:
           TGT_RELEASE_VERSION: ${{ github.ref_name }}
-      
+
       - name: Push manifest change
-        uses: EndBug/add-and-commit@v8
+        uses: EndBug/add-and-commit@v9
         with:
           add: fxmanifest.lua
           push: true
           author_name: Manifest Bumper
           author_email: 41898282+github-actions[bot]@users.noreply.github.com
           message: "chore: bump manifest version to ${{ github.ref_name }}"
-
-      - name: Check github.ref_name   
-        run: echo ${{ github.ref_name }}
 
       - name: Update tag ref
         uses: EndBug/latest-tag@latest
@@ -56,9 +54,11 @@ jobs:
 
       - name: Bundle files
         run: |
-          mkdir -p ./temp/mbt_malisling
-          cp ./{README.md,config.lua,fxmanifest.lua,utils.lua} ./temp/mbt_malisling
-          cp -r ./{client,server,data} ./temp/mbt_malisling
+          mkdir -p ./temp/mbt_malisling/web
+          cp ./{README.md,LICENSE.md,config.lua,default.lua,fxmanifest.lua} ./temp/mbt_malisling
+          cp -r ./{core,modules,locales,data,stream,patches,tools} ./temp/mbt_malisling
+          chmod +x ./temp/mbt_malisling/tools/*.sh
+          cp -r ./web/dist ./temp/mbt_malisling/web/dist
           cd ./temp && zip -r ../mbt_malisling.zip ./mbt_malisling
 
       - name: Create Release
@@ -66,29 +66,10 @@ jobs:
         id: auto_release
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          title: "${{ env.RELEASE_VERSION }}"
+          title: "${{ github.ref_name }}"
           prerelease: false
           files: mbt_malisling.zip
 
         env:
           CI: false
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          
-      - name: Get current date
-        if: inputs.releaseVersion == ''
-        id: date
-        uses: Kaven-Universe/github-action-current-date-time@v1
-        with:
-          format: "DD-MM-YYYY"
-
-      - name: Post announcement on Discord
-        continue-on-error: true
-        env:
-          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
-          DISCORD_USERNAME: "MaliBot"
-          DISCORD_AVATAR:  "https://i.imgur.com/FYYQGIF.png"
-          DISCORD_EMBEDS : '[{"title": "MBT Malisling[${{ github.ref_name }} - ${{ inputs.releaseVersion || steps.date.outputs.time }}]", "description": "**Changelog:**\n\n- ${{github.event.head_commit.message}}", "color": 13975696,"footer": {"text": "© Malibú Tech", "icon_url": "https://i.imgur.com/CebOcN3.png"},"image": {"url": "https://camo.githubusercontent.com/d57538c79f76ff58214a357ddbcb59c56e4832eb6235b3dc409b367fb2c9ef72/68747470733a2f2f692e696d6775722e636f6d2f5954377453696d2e706e67"}}]'
-        uses: Ilshidur/action-discord@0.3.2
-        with: 
-          args: |
-            <@&897197423502450772>

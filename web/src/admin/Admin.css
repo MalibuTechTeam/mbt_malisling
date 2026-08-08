@@ -83,8 +83,47 @@
 }
 .mbt-rail__logo { display: flex; align-items: center; gap: 9px; padding: 0 4px 22px; }
 .mbt-rail__logo .ic { color: var(--mbt-accent); display: grid; place-items: center; }
+/* Logo frame height matched to the two-line text lockup (title + subtitle) so the
+   mark and wordmark read as one unit; vertically centered by the flex row above. */
+.mbt-rail__logo .ic img { height: 34px; width: auto; display: block; }
 .mbt-rail__logo b { font-family: var(--mbt-font-display); font-size: 14px; font-weight: 700; color: var(--mbt-text-hi); letter-spacing: 0.02em; display: block; line-height: 1.1; }
 .mbt-rail__logo span { font-size: 8px; letter-spacing: 0.18em; color: var(--mbt-text-faint); display: block; }
+
+/* MalibuTech links — they live in the bottom utility block with Exit and the status
+   card, opened by a hairline. Quiet by default (they're ours, not the admin's task)
+   and only light up on hover, so they never compete with the category rail. */
+.mbt-rail__links {
+  display: flex; align-items: center;
+  justify-content: space-between;   /* spread to the rail's full width so the row reads
+                                       as a deliberate band, not four stray icons */
+  padding: 8px 6px 0;
+  margin-top: 8px;
+}
+.mbt-rail__link {
+  width: 26px; height: 26px;          /* ≥24px: WCAG 2.2 target size */
+  display: grid; place-items: center;
+  border-radius: var(--mbt-r-sm);
+  color: var(--mbt-text-faint);
+  background: transparent;
+  transition: color var(--mbt-dur-fast) var(--mbt-ease), background var(--mbt-dur-fast) var(--mbt-ease);
+}
+.mbt-rail__link:hover { color: var(--mbt-accent); background: var(--mbt-surface-2); }
+/* Keyboard users get the same affordance as the mouse — hover alone leaves them blind. */
+.mbt-rail__link:focus-visible {
+  outline: none;
+  color: var(--mbt-accent);
+  box-shadow: 0 0 0 2px var(--mbt-accent-glow);
+}
+/* The real logo file, masked so it paints in currentColor and follows the hover like
+   the icon-set glyphs next to it (an <img> would stay white and sit dead in the row).
+   Slightly larger than the 15px icons: the mark reads lighter at the same box. */
+.mbt-rail__brandmark {
+  width: 17px; height: 17px;
+  background-color: currentColor;
+  mask-size: contain; -webkit-mask-size: contain;
+  mask-repeat: no-repeat; -webkit-mask-repeat: no-repeat;
+  mask-position: center; -webkit-mask-position: center;
+}
 
 .mbt-rail__group { font-size: 10px; font-weight: 600; letter-spacing: 0.12em; color: var(--mbt-text-lo); padding: 14px 8px 8px; }
 .mbt-rail__item {
@@ -94,6 +133,8 @@
   transition: color var(--mbt-dur) var(--mbt-ease), background var(--mbt-dur) var(--mbt-ease);
 }
 .mbt-rail__item:hover { background: var(--mbt-surface-3); color: var(--mbt-text-mid); }
+/* Press feedback — every other control has one; transform is compositor-cheap. */
+.mbt-rail__item:active { transform: scale(0.985); }
 .mbt-rail__item:focus-visible { outline: 2px solid var(--mbt-accent-glow); outline-offset: -2px; }
 .mbt-rail__item.is-active { background: var(--mbt-accent-soft); color: var(--mbt-text-hi); }
 .mbt-rail__item.is-active::before {
@@ -116,15 +157,104 @@
   background: var(--mbt-surface-2); border: 1px solid var(--mbt-edge-lo);
   border-radius: var(--mbt-r-pill); padding: 1px 7px;
 }
-/* Reserved category (e.g. Forensics) — visible but inert until it ships. */
-.mbt-rail__item.is-soon { opacity: 0.4; cursor: default; pointer-events: none; }
+/* Reserved category (e.g. Forensics) — visible but inert until it ships. Muted via
+   color (not a blanket opacity:0.4, which dropped the label below AA contrast). */
+.mbt-rail__item.is-soon { cursor: default; pointer-events: none; }
+.mbt-rail__item.is-soon .mbt-rail__label,
+.mbt-rail__item.is-soon .mbt-rail__hint,
+.mbt-rail__item.is-soon .ic { color: var(--mbt-text-faint); }
 
 .mbt-rail__spacer { flex: 1; }
 .mbt-rail__status { display: flex; align-items: center; gap: 9px; padding: 11px; margin-top: 8px; background: var(--mbt-surface-2); border: 1px solid var(--mbt-edge); border-radius: var(--mbt-r-md); }
 .mbt-rail__status .sdot { width: 7px; height: 7px; border-radius: 50%; background: var(--mbt-operational); box-shadow: 0 0 8px var(--mbt-operational); }
 .mbt-rail__status b { font-size: 11px; font-weight: 600; color: var(--mbt-text-mid); display: block; }
-.mbt-rail__status small { font-size: 10px; color: var(--mbt-text-faint); }
+.mbt-rail__status small { font-size: 10px; color: var(--mbt-text-lo); }
 .mbt-rail__status .ver { margin-left: auto; font-family: var(--mbt-font-mono); font-size: 9px; color: var(--mbt-text-faint); }
+
+/* Update-available state of the SAME status card (no second card: the version you run
+   and whether it's current are one fact). Amber = informational, not an error — the
+   dot stays green because the resource is still running fine. Becomes a link to the
+   release page, so it also gets a hover. */
+.mbt-rail__status.has-update {
+  background: rgba(var(--mbt-hacked-rgb), 0.10);
+  border-color: rgba(var(--mbt-hacked-rgb), 0.30);
+  text-decoration: none; cursor: pointer;
+  transition: background var(--mbt-dur-fast) var(--mbt-ease), border-color var(--mbt-dur-fast) var(--mbt-ease);
+}
+.mbt-rail__status.has-update:hover { background: rgba(var(--mbt-hacked-rgb), 0.17); border-color: rgba(var(--mbt-hacked-rgb), 0.45); }
+/* The headline carries the signal (amber + a pulsing dot); the version chip keeps showing
+   what you RUN — tinting that amber would read as "this is the new one". */
+.mbt-rail__status.has-update b { color: var(--mbt-hacked); }
+.mbt-rail__status.has-update .sdot {
+  background: var(--mbt-hacked);
+  box-shadow: 0 0 8px var(--mbt-hacked);
+  animation: mbt-update-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes mbt-update-pulse { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .mbt-rail__status.has-update .sdot { animation: none; } }
+
+/* Close — the panel's own top-right corner, a full column away from Save & Apply so
+   the click that leaves can never be the one that meant to save. Neutral at rest,
+   faulty-tinted on approach: it discards nothing by itself, but it does end the session. */
+.mbt-admin__close {
+  position: absolute; top: 13px; right: 14px; z-index: 3;
+  width: 28px; height: 28px;            /* ≥24px: WCAG 2.2 target size */
+  display: grid; place-items: center;
+  cursor: pointer;
+  border-radius: var(--mbt-r-sm);
+  /* Carries its own surface at rest. Ghosted until hover it read as decoration against
+     the overview column and people looked for a way out. */
+  background: var(--mbt-surface-2);
+  border: 1px solid var(--mbt-edge-hi);
+  color: var(--mbt-text-mid);
+  transition: color var(--mbt-dur-fast) var(--mbt-ease), background var(--mbt-dur-fast) var(--mbt-ease),
+              border-color var(--mbt-dur-fast) var(--mbt-ease);
+}
+.mbt-admin__close:hover {
+  color: var(--mbt-faulty);
+  background: rgba(var(--mbt-faulty-rgb), 0.10);
+  border-color: rgba(var(--mbt-faulty-rgb), 0.25);
+}
+.mbt-admin__close:focus-visible { outline: none; color: var(--mbt-faulty); box-shadow: 0 0 0 2px rgba(var(--mbt-faulty-rgb), 0.35); }
+.mbt-admin__close:active { transform: scale(0.94); }
+
+/* Unsaved-changes gate. Covers the whole panel — the decision is blocking by design,
+   because the alternative is silently throwing away a tuning session. */
+.mbt-admin__confirm {
+  position: absolute; inset: 0; z-index: 40;
+  display: grid; place-items: center;
+  background: rgba(0, 0, 0, 0.55);
+  border-radius: inherit;
+  animation: mbt-confirm-in var(--mbt-dur-fast) var(--mbt-ease);
+}
+.mbt-admin__confirm-card {
+  width: 340px; max-width: calc(100% - 48px);
+  padding: 18px;
+  background: var(--mbt-surface-2);
+  border: 1px solid var(--mbt-edge-hi);
+  border-radius: var(--mbt-r-lg);
+  box-shadow: var(--mbt-shadow-overlay);
+  animation: mbt-confirm-card-in var(--mbt-dur) var(--mbt-ease);
+}
+.mbt-admin__confirm-card b {
+  display: block; margin-bottom: 6px;
+  font-family: var(--mbt-font-display); font-size: 13px; font-weight: 600;
+  color: var(--mbt-text-hi);
+}
+.mbt-admin__confirm-card p { font-size: 12px; line-height: 1.55; color: var(--mbt-text-lo); }
+.mbt-admin__confirm-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+.mbt-btn-ghost.is-danger { color: var(--mbt-faulty); }
+.mbt-btn-ghost.is-danger:hover { background: rgba(var(--mbt-faulty-rgb), 0.10); border-color: rgba(var(--mbt-faulty-rgb), 0.28); }
+
+@keyframes mbt-confirm-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes mbt-confirm-card-in {
+  from { opacity: 0; transform: translateY(6px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mbt-admin__confirm, .mbt-admin__confirm-card { animation: none; }
+}
 
 /* ── Center ────────────────────────────────────────────────────────────── */
 /* scrollbar-gutter:stable reserves the bar's width so the grid never reflows
@@ -159,15 +289,24 @@
    a card fills the row height cleanly (content at the top). Cards with fillable
    content — e.g. the INTERFACE position grid — grow to use the space. The
    per-category height-pairing order keeps row-mates similar so the fill is even. */
+/* Card layout = equal-height 2-column grid. align-items:stretch makes the two cards
+   in a row the same height — clean, aligned rows (the brand prefers this orderly look
+   over ragged masonry). The per-category card order height-pairs row-mates so the
+   stretch fill is even. ~850px collapses to 1 column. */
 .mbt-admin__sections {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
   gap: 14px;
   align-items: stretch;
-  /* Top-aligned: cards flow down from the header (conventional for a settings
-     page). Light pages (World) leave empty space below — that reads as honest
-     "few features here", and keeps the cards visually anchored to the title. */
   align-content: start;
+}
+
+/* A stacked group — two or more sections sharing one grid cell, laid out
+   vertically. Used when two short cards should equal-height a taller neighbour. */
+.mbt-admin__section-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
 /* Stagger the cards on category switch — they cascade in rather than popping
@@ -177,6 +316,7 @@
 .mbt-admin__sections > .mbt-section:nth-child(3) { animation-delay: 90ms; }
 .mbt-admin__sections > .mbt-section:nth-child(4) { animation-delay: 135ms; }
 .mbt-admin__sections > .mbt-section:nth-child(5) { animation-delay: 180ms; }
+.mbt-admin__sections > .mbt-admin__section-stack { animation-delay: 225ms; }
 
 /* Section panel chrome — the kit's .mbt-section is bare (it was wrapped by a
    card in elevator). Give it the card surface + border here. */
@@ -185,12 +325,13 @@
   border: 1px solid var(--mbt-edge);
   border-radius: var(--mbt-r-md);
   margin: 0;
-  transition: border-color var(--mbt-dur) var(--mbt-ease),
-              box-shadow var(--mbt-dur) var(--mbt-ease);
+  transition: border-color var(--mbt-dur) var(--mbt-ease);
 }
 .mbt-admin__center .mbt-section:hover {
+  /* Border + a 1px inset highlight only — the previous 18px blurred drop-shadow
+     repainted over the live game on every pointer move across the card grid (FPS). */
   border-color: var(--mbt-edge-hi);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03), 0 6px 18px rgba(0, 0, 0, 0.22);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 .mbt-admin__center .mbt-section--wide { grid-column: 1 / -1; }
 
@@ -214,6 +355,17 @@
 .mbt-pospick__btn.is-on {
   background: var(--mbt-accent-soft); border-color: rgba(var(--mbt-accent-rgb), 0.4); color: var(--mbt-text-hi);
 }
+/* Reserved option (Custom → live drag editor, ships v2.1). Inert teaser: muted via
+   text-faint (not opacity, keeps it above AA), no hover/press, "2.1" badge. */
+.mbt-pospick__btn.is-soon { position: relative; cursor: not-allowed; color: var(--mbt-text-faint); }
+.mbt-pospick__btn.is-soon:hover { color: var(--mbt-text-faint); border-color: var(--mbt-edge); }
+.mbt-pospick__btn.is-soon:active { transform: none; }
+.mbt-pospick__soon {
+  position: absolute; top: 6px; right: 7px; white-space: nowrap;
+  font-family: var(--mbt-font-mono); font-size: 8px; font-weight: 700; letter-spacing: 0.04em;
+  text-transform: uppercase; color: var(--mbt-text-faint); background: var(--mbt-surface-3);
+  border: 1px solid var(--mbt-edge-lo); border-radius: var(--mbt-r-pill); padding: 1px 6px;
+}
 
 .mbt-admin__center .mbt-section__ic {
   width: 30px; height: 30px; flex-shrink: 0; display: grid; place-items: center;
@@ -232,11 +384,61 @@
 /* Nested number pair: align the two NumberInputs to the bottom of the row. */
 .mbt-admin__center .mbt-card-grid--2 .mbt-card-grid--2 { align-items: end; margin-bottom: 0; }
 
+/* Dependent controls: a control gated on a parent toggle dims + stops responding.
+   The native `disabled` on the input handles AT/focus; this is the visual cue. */
+.mbt-setting.is-disabled,
+.mbt-field.is-disabled { opacity: 0.4; transition: opacity 0.15s ease; }
+.mbt-setting.is-disabled,
+.mbt-field.is-disabled .mbt-num,
+.mbt-field.is-disabled .mbt-toggle { pointer-events: none; }
+
+/* Live preview panel — a reusable "what players see" sample that turns otherwise-empty
+   card space into something useful (Inspect overlay, Shell-casing evidence, …). Grows
+   (flex:1) to fill the card height and centres its content so it reads as a deliberate panel. */
+.mbt-prev {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 13px;
+  border: 1px solid var(--mbt-border, rgba(255,255,255,0.08));
+  border-radius: var(--mbt-r-sm, 8px);
+  background:
+    radial-gradient(120% 80% at 50% 0%, rgba(var(--mbt-accent-rgb, 0,230,118), 0.04), transparent 70%),
+    var(--mbt-surface-soft, rgba(255,255,255,0.02));
+  padding: 18px 16px;
+}
+.mbt-prev__hero { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
+.mbt-prev__ic {
+  color: var(--mbt-accent, #00e676);
+  display: grid; place-items: center;
+  width: 40px; height: 40px;
+  border-radius: 11px;
+  background: var(--mbt-accent-soft, rgba(0,230,118,0.08));
+  border: 1px solid rgba(var(--mbt-accent-rgb, 0,230,118), 0.25);
+}
+.mbt-prev__title {
+  font: 600 15px/1.1 var(--mbt-font-display, system-ui, sans-serif);
+  color: var(--mbt-text-hi, #eef2f3); letter-spacing: -0.01em;
+}
+.mbt-prev__tag {
+  font: 600 9px/1 var(--mbt-font-display, system-ui, sans-serif);
+  letter-spacing: 0.2em; color: var(--mbt-text-lo, #8a9196);
+}
+.mbt-prev__div { height: 1px; background: var(--mbt-border, rgba(255,255,255,0.08)); margin: 0 2px; }
+.mbt-prev__rows { display: flex; flex-direction: column; gap: 9px; }
+.mbt-prev__row { display: flex; justify-content: space-between; align-items: baseline; font-size: 12.5px; }
+.mbt-prev__row > span { color: var(--mbt-text-lo, #8a9196); }
+.mbt-prev__row > b { color: var(--mbt-text-hi, #eef2f3); font-weight: 600; font-variant-numeric: tabular-nums; }
+.mbt-prev__row > b.is-warn { color: var(--mbt-warn, #f5a623); }
+.mbt-prev__empty { font-size: 12px; color: var(--mbt-text-lo, #8a9196); font-style: italic; text-align: center; }
+
 .mbt-btn-ghost, .mbt-btn-primary {
   display: flex; align-items: center; gap: 7px; height: 38px; padding: 0 16px;
   border-radius: var(--mbt-r-md); font-size: 12.5px; font-weight: 600; cursor: pointer;
   transition: background var(--mbt-dur) var(--mbt-ease),
               border-color var(--mbt-dur) var(--mbt-ease),
+              box-shadow var(--mbt-dur) var(--mbt-ease),
               color var(--mbt-dur) var(--mbt-ease),
               transform var(--mbt-dur-fast) var(--mbt-ease);
 }
@@ -244,7 +446,12 @@
 .mbt-btn-ghost:hover { color: var(--mbt-text-hi); border-color: var(--mbt-edge-hi); }
 .mbt-btn-ghost:active { transform: translateY(1px); }
 .mbt-btn-primary { background: var(--mbt-accent); border: none; color: var(--mbt-surface-base); font-family: var(--mbt-font-display); }
-.mbt-btn-primary:hover { background: var(--mbt-accent-deep); }
+/* Contained accent glow on hover — reads as "primed to save" vs the old flat darken.
+   Single button only (not full-screen), so cheap over the game. */
+.mbt-btn-primary:not(:disabled):hover {
+  background: var(--mbt-accent-deep);
+  box-shadow: 0 0 0 1px rgba(var(--mbt-accent-rgb), 0.35), 0 3px 14px rgba(var(--mbt-accent-rgb), 0.28);
+}
 .mbt-btn-primary:not(:disabled):active { transform: translateY(1px); }
 .mbt-btn-primary:disabled { background: var(--mbt-surface-3); color: var(--mbt-text-faint); cursor: not-allowed; }
 .mbt-btn-ghost:focus-visible, .mbt-btn-primary:focus-visible {
@@ -266,9 +473,33 @@
   font-size: 11.5px; font-weight: 600; color: var(--mbt-hacked);
 }
 .mbt-admin__dirty i { width: 7px; height: 7px; border-radius: 50%; background: var(--mbt-hacked); box-shadow: 0 0 8px rgba(var(--mbt-hacked-rgb), 0.5); }
+/* Slide the dirty indicator + Discard in from the right so Save's reposition reads
+   as a smooth shift instead of a hard pop the instant a value changes. */
+.mbt-admin__dirty,
+.mbt-admin__head .mbt-btn-ghost { animation: mbt-head-in var(--mbt-dur) var(--mbt-ease); }
+@keyframes mbt-head-in { from { opacity: 0; transform: translateX(8px); } to { opacity: 1; transform: translateX(0); } }
 
 /* ── Overview (optional right column) ──────────────────────────────────── */
-.mbt-admin__overview { width: 300px; flex-shrink: 0; border-left: 1px solid var(--mbt-edge); padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 18px; }
+/* Header outside the scroll, body inside it. The close button is pinned to the panel
+   corner over this column, so the title has to hold its line while the list moves —
+   a sticky header can't do it here either, because the panel's gradient means an
+   opaque strip would show as a patch. */
+.mbt-admin__overview { width: 300px; flex-shrink: 0; border-left: 1px solid var(--mbt-edge); padding: 13px 0 0; overflow: hidden; display: flex; flex-direction: column; }
+.mbt-ov__head {
+  flex: none;
+  display: flex; align-items: center; gap: 7px;
+  height: 28px;                  /* the close button's height — one shared line */
+  padding: 0 52px 0 20px;        /* right pad clears the button */
+  font-family: var(--mbt-font-body);
+  font-size: 10px; font-weight: 600; letter-spacing: 0.12em;
+  color: var(--mbt-text-faint);
+  white-space: nowrap;
+}
+.mbt-ov__body {
+  flex: 1; min-height: 0; overflow-y: auto;
+  padding: 18px 20px 20px;
+  display: flex; flex-direction: column; gap: 18px;
+}
 
 /* Active-features gauge — top block above FEATURE OVERVIEW (elevator pattern). */
 .mbt-ov__gauge { padding: 14px 15px; background: var(--mbt-surface-2); border: 1px solid var(--mbt-edge); border-radius: var(--mbt-r-md); }
@@ -316,11 +547,17 @@
 .mbt-ov__warn b { display: block; margin-bottom: 3px; font-family: var(--mbt-font-display); font-size: 12px; font-weight: 700; color: var(--mbt-faulty); }
 .mbt-ov__warn p { font-size: 11.5px; line-height: 1.45; color: var(--mbt-text-mid); }
 .mbt-ov__warn code { font-family: var(--mbt-font-mono); font-size: 10.5px; color: var(--mbt-text-hi); }
-/* Healthy-state counterpart — subtle one-liner, not a full banner. */
-.mbt-ov__ok { display: flex; align-items: center; gap: 7px; padding: 8px 11px; font-size: 11px; font-weight: 600; color: var(--mbt-operational); background: rgba(var(--mbt-operational-rgb), 0.08); border: 1px solid rgba(var(--mbt-operational-rgb), 0.22); border-radius: var(--mbt-r-md); }
+/* Non-critical integration warning — discreet chip in the overview. Wears the
+   HACKED/amber status hue on the icon + border; message text stays readable
+   (text-mid), never the brand accent. Shown only when a warning is present. */
+.mbt-ov__warn-chip { display: flex; gap: 8px; padding: 9px 10px; margin-bottom: 12px; color: var(--mbt-hacked); background: rgba(var(--mbt-hacked-rgb), 0.08); border: 1px solid rgba(var(--mbt-hacked-rgb), 0.24); border-radius: var(--mbt-r-md); }
+.mbt-ov__warn-chip svg { flex-shrink: 0; margin-top: 1px; }
+.mbt-ov__warn-chip span { font-size: 10.5px; font-weight: 500; line-height: 1.4; color: var(--mbt-text-mid); }
 
-.mbt-ov__tip { display: flex; gap: 10px; padding: 13px; background: var(--mbt-accent-soft); border: 1px solid rgba(var(--mbt-accent-rgb), 0.2); border-radius: var(--mbt-r-md); }
-.mbt-ov__tip .ic { color: var(--mbt-accent); flex-shrink: 0; }
+/* LIVE APPLY — a PASSIVE helper note, so it stays NEUTRAL (no accent). The vivid
+   accent is reserved for the one primary action (Save), focus, and the active rail. */
+.mbt-ov__tip { display: flex; gap: 10px; padding: 13px; background: var(--mbt-surface-2); border: 1px solid var(--mbt-edge); border-radius: var(--mbt-r-md); }
+.mbt-ov__tip .ic { color: var(--mbt-text-lo); flex-shrink: 0; }
 .mbt-ov__tip b { font-family: var(--mbt-font-display); font-size: 11px; font-weight: 700; color: var(--mbt-text-hi); letter-spacing: 0.06em; display: block; margin-bottom: 3px; }
 .mbt-ov__tip p { font-size: 11.5px; line-height: 1.5; color: var(--mbt-text-lo); }
 
@@ -353,76 +590,15 @@
   .mbt-admin-overlay.is-editing .mbt-admin { animation: none; opacity: 0; }
 }
 
-/* ── Rail promo item (paid companion) ─────────────────────────────────────── */
-.mbt-rail__promo .ic { color: var(--mbt-accent); }
-.mbt-rail__count.is-get,
-.mbt-rail__count.is-on {
-  color: var(--mbt-accent);
-  background: var(--mbt-accent-soft);
-  border-color: rgba(var(--mbt-accent-rgb), 0.3);
-}
-
-/* ── mbt_shooting upsell / status page ────────────────────────────────────── */
-.mbt-shoot { display: flex; flex-direction: column; gap: 16px; grid-column: 1 / -1; }
-.mbt-shoot__hero {
-  display: flex; flex-direction: column; align-items: flex-start; gap: 10px;
-  padding: 22px;
-  background:
-    radial-gradient(130% 150% at 100% 0%, rgba(var(--mbt-accent-rgb), 0.10), transparent 55%),
-    var(--mbt-surface-2);
-  border: 1px solid var(--mbt-edge-hi); border-radius: var(--mbt-r-lg);
-}
-.mbt-shoot__hero.is-connected {
-  background:
-    radial-gradient(130% 150% at 100% 0%, rgba(var(--mbt-accent-rgb), 0.18), transparent 55%),
-    var(--mbt-surface-2);
-  border-color: rgba(var(--mbt-accent-rgb), 0.35);
-}
-.mbt-shoot__badge {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 3px 9px; border-radius: var(--mbt-r-pill);
-  background: var(--mbt-accent-soft); border: 1px solid rgba(var(--mbt-accent-rgb), 0.3);
-  color: var(--mbt-accent);
-  font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
-}
-.mbt-shoot__title { font-family: var(--mbt-font-display); font-size: 24px; font-weight: 700; color: var(--mbt-text-hi); letter-spacing: -0.01em; }
-.mbt-shoot__sub { max-width: 660px; font-size: 13px; line-height: 1.5; color: var(--mbt-text-lo); }
-.mbt-shoot__hero .mbt-btn-primary { margin-top: 4px; }
-
-.mbt-shoot__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 10px; }
-.mbt-shoot__card {
-  display: flex; align-items: flex-start; gap: 11px; padding: 13px 14px;
-  background: var(--mbt-surface-1); border: 1px solid var(--mbt-edge); border-radius: var(--mbt-r-md);
-}
-.mbt-shoot__card.is-locked { opacity: 0.82; }
-.mbt-shoot__card.is-active { border-color: rgba(var(--mbt-accent-rgb), 0.3); }
-.mbt-shoot__ic {
-  display: grid; place-items: center; width: 30px; height: 30px; flex-shrink: 0;
-  background: var(--mbt-surface-3); border: 1px solid var(--mbt-edge); border-radius: var(--mbt-r-sm);
-  color: var(--mbt-accent);
-}
-.mbt-shoot__cardtx { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
-.mbt-shoot__cardtitle {
-  display: flex; align-items: center; gap: 8px;
-  font-family: var(--mbt-font-display); font-size: 13px; font-weight: 600; color: var(--mbt-text-hi);
-}
-.mbt-shoot__tag {
-  flex-shrink: 0; padding: 1px 6px; border-radius: var(--mbt-r-pill);
-  font-size: 9px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
-  color: var(--mbt-text-faint); background: var(--mbt-surface-3); border: 1px solid var(--mbt-edge);
-}
-.mbt-shoot__card.is-active .mbt-shoot__tag {
-  color: var(--mbt-accent); background: var(--mbt-accent-soft); border-color: rgba(var(--mbt-accent-rgb), 0.25);
-}
-.mbt-shoot__carddesc { font-size: 11.5px; line-height: 1.4; color: var(--mbt-text-lo); }
-
 .mbt-pe {
   position: fixed; right: 24px; top: 50%; transform: translateY(-50%);
   width: 300px; z-index: 10000; pointer-events: auto;
   display: flex; flex-direction: column; gap: 12px; padding: 16px;
   background: var(--mbt-surface-panel-gradient);   /* shared panel treatment */
   border: 1px solid var(--mbt-edge-hi); border-radius: var(--mbt-r-lg);
-  box-shadow: var(--mbt-shadow-panel);
+  /* Flatter than --mbt-shadow-panel (44/96px blur): this card floats over the LIVE
+     game during in-world editing, so a big blurred shadow is an expensive repaint. */
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5);
   font-family: var(--mbt-font-body); color: var(--mbt-text-mid);
   /* Emerges from its home edge (right) rather than fading from nowhere. The
      keyframe carries translateY(-50%) so vertical centering is preserved. */

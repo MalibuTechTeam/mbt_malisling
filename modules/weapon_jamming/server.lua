@@ -1,10 +1,11 @@
-if not MBT.Jamming["Enabled"] then return end
+if not MBT.Jamming then return end   -- always register; Enabled is live-checked in the handler
 
 local _jamCooldown = {}
 local JAM_RATE_MS  = 1000
 
 RegisterNetEvent("mbt_malisling:setWeaponJammed")
 AddEventHandler("mbt_malisling:setWeaponJammed", function(slot, jammed)
+    if not MBT.Jamming.Enabled then return end   -- live on/off from the dashboard
     local src = source
     if not src or src < 1 then return end
     if type(slot) ~= "number" or type(jammed) ~= "boolean" then return end

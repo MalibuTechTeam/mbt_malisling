@@ -99,3 +99,23 @@
     --mbt-pulse:    0.01ms;
   }
 }
+
+/* Manual reduced-motion (FiveM CEF often doesn't expose the OS prefers-reduced-motion
+   setting). Toggled by the client via the `mbt-reduce-motion` class on <html> from the
+   MBT.ReduceMotion config. Collapses the duration tokens AND nukes any remaining
+   hardcoded/looping animations & transitions so motion-sensitive players get a still UI. */
+:root.mbt-reduce-motion {
+  --mbt-dur-fast: 0.01ms;
+  --mbt-dur:      0.01ms;
+  --mbt-dur-slow: 0.01ms;
+  --mbt-dur-car:  0.01ms;
+  --mbt-pulse:    0.01ms;
+}
+:root.mbt-reduce-motion *,
+:root.mbt-reduce-motion *::before,
+:root.mbt-reduce-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}

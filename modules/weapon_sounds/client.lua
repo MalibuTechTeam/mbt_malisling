@@ -5,8 +5,7 @@ local function resolveFile(action, weaponType)
     return (tbl and (tbl[weaponType] or tbl.default)) or action
 end
 
--- Read Enabled/Volume fresh each call so the admin menu's live-apply takes
--- effect without a restart (cfg is not cached in an upvalue).
+-- Read Enabled/Volume fresh each call (not cached) so live-apply works without a restart.
 local function playSound(file)
     if not MBT.Sounds.Enabled then return end
     SendNUIMessage({ action = 'playHolsterSound', data = { file = file, volume = MBT.Sounds.Volume or 0.4 } })

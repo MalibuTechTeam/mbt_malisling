@@ -1,12 +1,9 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Forensic Shell Casings — server
---
--- In-memory registry of shell casings left by gunfire, keyed by id and linked to
--- the firing weapon's SERIAL. Ephemeral by design: global cap (FIFO) + expiry —
--- no DB. The shot event comes from the firing client (coords + weapon); the
--- CHANCE roll, throttle and serial resolution happen HERE (never trust the
--- client for outcomes). Examine reveals weapon family + masked serial + age;
--- collect removes the casing (scene cleaning).
+-- In-memory casing registry keyed by id, linked to the firing weapon's SERIAL.
+-- Ephemeral: global FIFO cap + expiry, no DB. Client reports the shot (coords +
+-- weapon); CHANCE roll, throttle and serial resolution happen HERE (never trust
+-- client for outcomes). Examine reveals weapon family + masked serial + age.
 -- ─────────────────────────────────────────────────────────────────────────────
 
 if not MBT.ShellCasings then return end
@@ -17,11 +14,19 @@ local order    = {}    -- insertion order (FIFO cap)
 local seq      = 0
 local lastShot = {}    -- [src] = GetGameTimer() (throttle)
 
-local function finite(n) return type(n) == 'number' and n == n and n > -1e6 and n < 1e6 end
+local finite     = Utils.finite
+local weaponType = Utils.weaponType
 
-local function weaponType(name)
-    local w = MBT.WeaponsInfo and MBT.WeaponsInfo.Weapons and MBT.WeaponsInfo.Weapons[name]
-    return w and w.type
+--- True if (x,y,z) is inside any configured no-casing zone (ranges/armories). 3D sphere.
+local function inExcludeZone(x, y, z)
+    local zones = cfg.ExcludeZones
+    if type(zones) ~= 'table' then return false end
+    local at = vec3(x, y, z)
+    for i = 1, #zones do
+        local zn = zones[i]
+        if zn and zn.coords and #(at - zn.coords) <= (zn.radius or 20.0) then return true end
+    end
+    return false
 end
 
 local function removeCasing(id)
@@ -40,23 +45,11 @@ local function makeRoom()
     end
 end
 
---- Serial of the shooter's current weapon, resolved server-side when the
---- inventory allows it (ox); falls back to the client-reported value.
-local function resolveSerial(src, clientSerial)
-    if GetResourceState('ox_inventory') == 'started' then
-        local ok, w = pcall(function() return exports.ox_inventory:GetCurrentWeapon(src) end)
-        if ok and type(w) == 'table' and w.metadata and w.metadata.serial then
-            return w.metadata.serial
-        end
-    end
-    if type(clientSerial) == 'string' and #clientSerial <= 24 then return clientSerial end
-    return nil
-end
-
 RegisterNetEvent('mbt_malisling:casing:shot', function(p)
     local src = source
     if not cfg.Enabled or type(p) ~= 'table' then return end
     if not (finite(p.x) and finite(p.y) and finite(p.z)) then return end
+    if inExcludeZone(p.x, p.y, p.z) then return end   -- ranges/armories: no forensic casings
 
     local now = GetGameTimer()
     if lastShot[src] and (now - lastShot[src]) < (cfg.MinIntervalMs or 1200) then return end
@@ -67,8 +60,20 @@ RegisterNetEvent('mbt_malisling:casing:shot', function(p)
     if not ped or ped == 0 then return end
     if #(GetEntityCoords(ped) - vec3(p.x, p.y, p.z)) > 10.0 then return end
 
-    if type(p.weapon) ~= 'string' or p.weapon:sub(1, 7) ~= 'WEAPON_' then return end
-    local wtype = weaponType(p.weapon)
+    -- Resolve the shooter's ACTUAL held weapon server-side (ox) so a scripted client can't forge
+    -- evidence (wrong weapon family / someone else's serial). qb has no server-side resolver, so
+    -- there it falls back to the client-reported value (best effort, documented limitation).
+    local weapon, serial = p.weapon, nil
+    if GetResourceState('ox_inventory') == 'started' then
+        local ok, w = pcall(function() return exports.ox_inventory:GetCurrentWeapon(src) end)
+        if ok and type(w) == 'table' and type(w.name) == 'string' then
+            weapon, serial = w.name, (w.metadata and w.metadata.serial)
+        end
+    end
+    if not serial and type(p.serial) == 'string' and #p.serial <= 24 then serial = p.serial end
+
+    if type(weapon) ~= 'string' or weapon:sub(1, 7) ~= 'WEAPON_' then return end
+    local wtype = weaponType(weapon)
     if not wtype or (cfg.ExcludeTypes and cfg.ExcludeTypes[wtype]) then return end
 
     -- Server-side roll: the client only reports the shot.
@@ -79,8 +84,7 @@ RegisterNetEvent('mbt_malisling:casing:shot', function(p)
     local id = ('c%d_%d'):format(os.time(), seq)
     casings[id] = {
         id = id, x = p.x, y = p.y, z = p.z,
-        weapon = p.weapon, wtype = wtype,
-        serial = resolveSerial(src, p.serial),
+        weapon = weapon, wtype = wtype, serial = serial,
         at = os.time(),
     }
     order[#order + 1] = id
@@ -102,6 +106,14 @@ lib.callback.register('mbt_malisling:casing:getNearby', function(src)
         end
     end
     return out
+end)
+
+-- Gate for the /mbt_casingzone dev zone editor. Effect is client-only (a marker + a printed
+-- config line, no server write), so this is for tidiness: MBT.Debug builds or admins get it.
+local adminCommand = (MBT.Admin and MBT.Admin.Command) or GetCurrentResourceName()
+local adminPerm    = (MBT.Admin and MBT.Admin.Permission) or ('command.' .. adminCommand)
+lib.callback.register('mbt_malisling:casing:canTune', function(src)
+    return (MBT.Debug == true) or IsPlayerAceAllowed(src, adminPerm)
 end)
 
 local function canExamine(src)

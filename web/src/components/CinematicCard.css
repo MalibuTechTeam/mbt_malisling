@@ -1,0 +1,141 @@
+/* CinematicCard — shared filmic overlay for the 'cinematic' UI style (MBT.UIStyle).
+   Accent tick + overline + display name + hairline, then data rows (inspect) or
+   action keys (holster). World-anchored near the weapon (the Lua side projects the
+   point each frame and sets left/top imperatively). */
+
+.holcine {
+  position: fixed;
+  z-index: 9999;
+  display: flex;
+  gap: 14px;
+  align-items: stretch;
+  pointer-events: none;
+  font-family: var(--mbt-font-body);
+}
+
+/* World-anchored: left/top set imperatively each frame; off-screen (`-9999px`) until
+   the first frame; floats up-right of the anchor so it sits just above the weapon. */
+.holcine-anchored {
+  position: fixed;
+  left: -9999px; top: 0; bottom: auto; right: auto;
+  transform: translate(14px, -120%);
+  --pos-transform: translate(14px, -120%);
+}
+
+.holcine-tick {
+  width: 3px;
+  border-radius: 2px;
+  background: var(--mbt-accent);
+  box-shadow: 0 0 12px rgba(var(--mbt-accent-rgb), 0.55);
+  transform-origin: bottom;
+}
+.holcine-over {
+  font-family: var(--mbt-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--mbt-accent);
+  margin-bottom: 5px;
+}
+.holcine-name {
+  font-family: var(--mbt-font-display);
+  font-size: 34px;
+  line-height: 0.95;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--mbt-text-hi);
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.6);
+}
+.holcine-line {
+  height: 1px;
+  width: 180px;
+  margin: 9px 0;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.5), transparent);
+}
+.holcine-keys {
+  font-size: 12px;
+  color: var(--mbt-text-lo);
+}
+.holcine-keys .mbt-kc { margin-right: 4px; }
+.holcine-sep { opacity: 0.5; margin: 0 8px; }
+
+/* Data rows (inspect): uppercase label left, mono value right, tone-coloured value. */
+.holcine-rows { display: flex; flex-direction: column; gap: 3px; }
+.holcine-row { display: flex; gap: 18px; justify-content: space-between; align-items: center; }
+.holcine-row-l {
+  font-family: var(--mbt-font-mono);
+  font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--mbt-text-lo);
+}
+.holcine-row-v { font-family: var(--mbt-font-mono); font-size: 13px; color: var(--mbt-text-hi); }
+.holcine-row-v.is-accent { color: var(--mbt-accent); }
+.holcine-row-v.is-good   { color: var(--mbt-operational); }
+.holcine-row-v.is-warn   { color: var(--mbt-hacked); }
+.holcine-row-v.is-bad    { color: var(--mbt-faulty); }
+
+/* Chain of Custody — compact filmic ledger under the data rows. Collapse (origin +
+   "+N earlier" + last 3) is done upstream in InspectUI; this just renders the list. */
+.holcine-custody { margin-top: 10px; max-width: 210px; }
+.holcine-custody-title {
+  display: flex; align-items: center; gap: 6px;
+  font-family: var(--mbt-font-mono);
+  font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--mbt-text-lo);
+  margin-bottom: 6px;
+}
+.holcine-custody-count {
+  font-size: 8px; line-height: 1;
+  padding: 2px 5px; border-radius: 2px;
+  background: rgba(var(--mbt-accent-rgb), 0.14);
+  color: var(--mbt-accent);
+}
+.holcine-custody-list { display: flex; flex-direction: column; gap: 3px; }
+.holcine-custody-entry { display: flex; align-items: center; gap: 7px; }
+.holcine-custody-dot {
+  width: 4px; height: 4px; flex: none; border-radius: 50%;
+  background: var(--mbt-accent);
+  box-shadow: 0 0 6px rgba(var(--mbt-accent-rgb), 0.5);
+}
+.holcine-custody-name {
+  font-family: var(--mbt-font-mono); font-size: 11px;
+  color: var(--mbt-text-hi);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.holcine-custody-tag {
+  font-family: var(--mbt-font-mono);
+  font-size: 8px; letter-spacing: 0.08em; text-transform: uppercase;
+  padding: 1px 5px; border-radius: 2px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--mbt-text-lo);
+}
+.holcine-custody-gap {
+  padding-left: 11px;
+  font-family: var(--mbt-font-mono); font-size: 9px; font-style: italic;
+  color: var(--mbt-text-faint);
+}
+
+/* Coordinated one-shot reveal (`both` holds the end state after playing). */
+.holcine-enter .holcine-tick { animation: holcine-tick var(--mbt-dur-slow) var(--mbt-ease) both; }
+.holcine-enter .holcine-over { animation: holcine-fade var(--mbt-dur)      var(--mbt-ease) both; }
+.holcine-enter .holcine-name { animation: holcine-name var(--mbt-dur-slow) var(--mbt-ease) 40ms both; }
+.holcine-enter .holcine-line { animation: holcine-line var(--mbt-dur-slow) var(--mbt-ease) 120ms both; }
+.holcine-enter .holcine-rows { animation: holcine-fade var(--mbt-dur)      var(--mbt-ease) 150ms both; }
+.holcine-enter .holcine-keys { animation: holcine-fade var(--mbt-dur)      var(--mbt-ease) 160ms both; }
+.holcine-enter .holcine-custody { animation: holcine-fade var(--mbt-dur)   var(--mbt-ease) 200ms both; }
+.holcine-exit { animation: holcine-out var(--mbt-dur-fast) var(--mbt-ease-exit) forwards; }
+
+@keyframes holcine-tick { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@keyframes holcine-name {
+  from { opacity: 0; clip-path: inset(0 100% 0 0); }
+  to   { opacity: 1; clip-path: inset(0 0 0 0); }
+}
+@keyframes holcine-line { from { width: 0; } to { width: 180px; } }
+@keyframes holcine-fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes holcine-out {
+  from { opacity: 1; transform: var(--pos-transform, translateX(-50%)); }
+  to   { opacity: 0; transform: var(--pos-transform, translateX(-50%)) translateY(6px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .holcine-enter *, .holcine-exit { animation: none !important; }
+}

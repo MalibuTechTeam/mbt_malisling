@@ -1,6 +1,6 @@
--- mbt_malisling: aggiorna Items[name].anim con le animazioni custom del sling.
--- Triggered come evento locale da core/client.lua di mbt_malisling.
--- Deve girare in questo contesto per accedere alla tabella Items di ox_inventory.
+-- mbt_malisling: updates Items[name].anim with the sling's custom animations.
+-- Fired as a local event from mbt_malisling's core/client.lua.
+-- Must run in this context to reach ox_inventory's Items table.
 AddEventHandler('mbt_malisling:sendAnim', function(data)
     if not data or not data.WeaponData or not data.HolsterData then return end
     local wInfo = data.WeaponData['Weapons']

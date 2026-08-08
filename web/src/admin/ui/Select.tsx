@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Icon } from "./Icon";
 import "./Select.css";
 
@@ -36,7 +36,10 @@ export function Select({
   const btnRef = useRef<HTMLButtonElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
 
-  const baseId = id || "mbt-select";
+  // Unique fallback id so multiple Selects without an explicit id don't collide on
+  // aria-controls / option ids (the old "mbt-select" constant duplicated them).
+  const autoId = useId();
+  const baseId = id || autoId;
   const listId = `${baseId}-list`;
   const optId = (i: number) => `${baseId}-opt-${i}`;
   const selectedIndex = Math.max(
@@ -93,11 +96,11 @@ export function Select({
         break;
       case "ArrowDown":
         e.preventDefault();
-        setActiveIndex((i) => (i + 1) % options.length);
+        if (options.length) setActiveIndex((i) => (i + 1) % options.length);
         break;
       case "ArrowUp":
         e.preventDefault();
-        setActiveIndex((i) => (i - 1 + options.length) % options.length);
+        if (options.length) setActiveIndex((i) => (i - 1 + options.length) % options.length);
         break;
       case "Home":
         e.preventDefault();
@@ -105,7 +108,7 @@ export function Select({
         break;
       case "End":
         e.preventDefault();
-        setActiveIndex(options.length - 1);
+        if (options.length) setActiveIndex(options.length - 1);
         break;
       case "Enter":
       case " ":

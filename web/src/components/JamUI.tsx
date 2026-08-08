@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useNuiEvent } from '../utils/useNuiEvent'
 import { makeT, type Locale } from '../utils/i18n'
 import './JamUI.css'
@@ -9,6 +9,7 @@ interface JamData {
   total: number
   key: string
   locale?: Locale
+  style?: 'standard' | 'cinematic'
 }
 
 export default function JamUI() {
@@ -16,8 +17,10 @@ export default function JamUI() {
   const [exiting,  setExiting]  = useState(false)
   const [data,     setData]     = useState<JamData | null>(null)
   const [progress, setProgress] = useState(0)
+  const hideTimer = useRef<number | null>(null)
 
   useNuiEvent<JamData>('showJam', (incoming) => {
+    if (hideTimer.current) { clearTimeout(hideTimer.current); hideTimer.current = null }
     setData(incoming)
     setProgress(0)
     setExiting(false)
@@ -30,8 +33,13 @@ export default function JamUI() {
 
   useNuiEvent('hideJam', () => {
     setExiting(true)
-    setTimeout(() => { setVisible(false); setExiting(false) }, 300)
+    if (hideTimer.current) clearTimeout(hideTimer.current)
+    hideTimer.current = window.setTimeout(() => {
+      setVisible(false); setExiting(false); hideTimer.current = null
+    }, 300)
   })
+
+  useEffect(() => () => { if (hideTimer.current) clearTimeout(hideTimer.current) }, [])
 
   if (!visible || !data) return null
 
@@ -40,7 +48,7 @@ export default function JamUI() {
   const dots = Array.from({ length: data.total }, (_, i) => i < progress)
 
   return (
-    <div className={`jam-pill ${exiting ? 'jam-exit' : 'jam-enter'}`}>
+    <div className={`jam-pill${data.style === 'cinematic' ? ' is-cinematic' : ''} ${exiting ? 'jam-exit' : 'jam-enter'}`}>
       <div className="jam-top">
         <span className="jam-chip"><span className="jam-chip-dot" />{t('jam_status', 'JAMMED')}</span>
         <span className="jam-wn">{weaponName}</span>

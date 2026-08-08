@@ -21,6 +21,7 @@ export interface NumberInputProps {
   className?: string;
   placeholder?: string;
   ariaLabel?: string;
+  disabled?: boolean;
 }
 
 export function NumberInput({
@@ -32,8 +33,10 @@ export function NumberInput({
   className = "mbt-input",
   placeholder,
   ariaLabel,
+  disabled,
 }: NumberInputProps) {
   const bump = (dir: 1 | -1) => {
+    if (disabled) return;
     const cur = parseFloat(String(value));
     const base = Number.isNaN(cur) ? 0 : cur;
     const decimals = (String(step).split(".")[1] || "").length;
@@ -44,7 +47,7 @@ export function NumberInput({
   };
 
   return (
-    <div className="mbt-num">
+    <div className={`mbt-num${disabled ? " is-disabled" : ""}`}>
       <input
         type="number"
         className={className}
@@ -54,6 +57,7 @@ export function NumberInput({
         max={max}
         placeholder={placeholder}
         aria-label={ariaLabel}
+        disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
       />
       <div className="mbt-num__btns" aria-hidden="true">
@@ -61,6 +65,7 @@ export function NumberInput({
           type="button"
           className="mbt-num__btn"
           tabIndex={-1}
+          disabled={disabled}
           onClick={() => bump(1)}
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
@@ -71,6 +76,7 @@ export function NumberInput({
           type="button"
           className="mbt-num__btn"
           tabIndex={-1}
+          disabled={disabled}
           onClick={() => bump(-1)}
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">

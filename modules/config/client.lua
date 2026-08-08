@@ -1,11 +1,7 @@
--- ─────────────────────────────────────────────────────────────────────────────
--- Admin config — client
---
--- /mbtconfig asks the server (ACE-checked) to open the admin dashboard. The
--- server replies with openAdmin + the config snapshot, which we forward to the
--- NUI and give it focus. The dashboard saves via the adminSave NUI callback and
--- closes via adminClose. applyConfig re-applies the live-broadcast changes.
--- ─────────────────────────────────────────────────────────────────────────────
+-- ── Admin config — client ──
+-- /mbt_malisling asks the server (ACE-checked) to open the dashboard; the server replies with
+-- openAdmin + config snapshot, which we forward to the NUI. Saves via adminSave, closes via
+-- adminClose. applyConfig re-applies the live-broadcast changes.
 
 -- Throw groups are keyed by group hash in config but by name over the wire.
 local THROW_GROUPS = {
@@ -14,39 +10,74 @@ local THROW_GROUPS = {
     STUNGUN = `GROUP_STUNGUN`, SNIPER = `GROUP_SNIPER`, HEAVY = `GROUP_HEAVY`,
 }
 
--- The /mbtconfig command is registered SERVER-side (modules/config/server.lua)
--- so its ACE auto-registers. The server pushes openAdmin straight to us.
+-- Suggestion so the command autocompletes. An owner opens this panel rarely; typing
+-- /mbt and picking it from the list is easier to recall months later than the exact
+-- name. Client-side — the chat resource only listens here.
+CreateThread(function()
+    local cmd = (MBT.Admin and MBT.Admin.Command) or GetCurrentResourceName()
+    TriggerEvent('chat:addSuggestion', '/' .. cmd, 'Open the MBT Malisling admin dashboard')
+end)
+
+-- The admin command is registered SERVER-side so its ACE auto-registers; the server pushes
+-- openAdmin to us. This optional keybind fires the same server-validated request path.
+if MBT.Admin and type(MBT.Admin.Key) == 'string' and MBT.Admin.Key ~= '' then
+    RegisterCommand('mbt_malisling:openAdmin', function()
+        TriggerServerEvent('mbt_malisling:requestConfig')   -- server re-checks ACE
+    end, false)
+    RegisterKeyMapping('mbt_malisling:openAdmin', '[MBT] Open admin dashboard', 'keyboard', MBT.Admin.Key)
+end
+
+local dashboardOpen = false
+
+--- Shut the dashboard from the GAME side (death, resource stop) rather than the
+--- user clicking Exit. Focus is released here because the NUI's game-initiated
+--- close path deliberately skips the adminClose callback.
+local function forceCloseAdmin()
+    if not dashboardOpen then return end
+    dashboardOpen = false
+    SetNuiFocus(false, false)
+    SendNUIMessage({ action = 'closeAdmin', data = {} })
+end
+
 RegisterNetEvent('mbt_malisling:openAdmin', function(payload)
-    -- Companion presence is client-side (the bridge is registered locally), so we
-    -- stamp it onto the server's snapshot here for the menu's mbt_shooting panel.
-    payload = payload or {}
-    payload.companion = MBT.ShootingBridge and MBT.ShootingBridge.IsConnected() or false
-    SendNUIMessage({ action = 'openAdmin', data = payload })
+    SendNUIMessage({ action = 'openAdmin', data = payload or {} })
     SetNuiFocus(true, true)
+    dashboardOpen = true
+    -- Watcher lives only as long as the panel does (no idle thread when closed).
+    -- Dying with the dashboard up otherwise leaves it on screen holding NUI focus
+    -- straight through the respawn, with the player unable to click anything.
+    CreateThread(function()
+        while dashboardOpen do
+            Wait(500)
+            if IsEntityDead(cache.ped) then forceCloseAdmin() break end
+        end
+    end)
+end)
+
+-- Stopping the resource with the panel open would strand the cursor: the NUI is
+-- destroyed but the focus it held is not. Matters most on dev restarts.
+AddEventHandler('onResourceStop', function(resource)
+    if resource == GetCurrentResourceName() and dashboardOpen then
+        SetNuiFocus(false, false)
+    end
 end)
 
 RegisterNUICallback('adminSave', function(data, cb)
-    -- Keep NUI focus: the panel stays open after save (shows a confirmation pill).
+    -- Keep NUI focus: the panel stays open after save (confirmation pill).
     TriggerServerEvent('mbt_malisling:adminSave', data)
     cb({})
 end)
 
--- "Get mbt_shooting" CTA from the admin menu's companion page → surface the store
--- link in-game (CEF can't open an external browser). Edit the URL to your Tebex.
-RegisterNUICallback('shootingLink', function(_, cb)
-    lib.notify({
-        title = 'mbt_shooting',
-        description = 'Get the combat add-on → malibutech.tebex.io',
-        type = 'inform',
-        duration = 8000,
-    })
+RegisterNUICallback('adminClose', function(_, cb)
+    dashboardOpen = false
+    SetNuiFocus(false, false)
     cb({})
 end)
 
-
-RegisterNUICallback('adminClose', function(_, cb)
-    SetNuiFocus(false, false)
-    cb({})
+-- NUI pulls this on mount for reduced-motion (CEF often can't read the OS
+-- prefers-reduced-motion setting). config.lua-driven; no focus needed.
+RegisterNUICallback('getReduceMotion', function(_, cb)
+    cb({ on = MBT.ReduceMotion and true or false })
 end)
 
 -- Server-driven localized notification (shared by config + other modules).
@@ -61,6 +92,7 @@ local function applyConfig(d)
     MBT.EnableFlashlight  = d.EnableFlashlight
     MBT.DropWeaponOnDeath = d.DropWeaponOnDeath
     if MBT.UI then MBT.UI.Position = d.UIPosition end
+    if d.UIStyle then MBT.UIStyle = d.UIStyle end
     if d.Sounds and MBT.Sounds then
         MBT.Sounds.Enabled     = d.Sounds.Enabled
         MBT.Sounds.MaxDistance = d.Sounds.MaxDistance
@@ -74,10 +106,7 @@ local function applyConfig(d)
             MBT.WeaponDrop.Despawn.Seconds      = d.WeaponDrop.Despawn.Seconds
             MBT.WeaponDrop.Despawn.BlinkLastSec = d.WeaponDrop.Despawn.BlinkLastSec
         end
-        if d.WeaponDrop.Logging and MBT.WeaponDrop.Logging then
-            MBT.WeaponDrop.Logging.Enabled = d.WeaponDrop.Logging.Enabled
-            MBT.WeaponDrop.Logging.Webhook = d.WeaponDrop.Logging.Webhook
-        end
+        -- WeaponDrop.Logging is server-only (config.lua); the client never fires webhooks.
     end
     if d.Jamming and MBT.Jamming then
         MBT.Jamming.Enabled  = d.Jamming.Enabled
@@ -98,6 +127,13 @@ local function applyConfig(d)
     end
     if d.WeaponWeight and MBT.WeaponWeight then
         for k, v in pairs(d.WeaponWeight) do MBT.WeaponWeight[k] = v end
+    end
+    if d.LowReady and MBT.LowReady then
+        MBT.LowReady.Enabled = d.LowReady.Enabled
+        if d.LowReady.Types then
+            MBT.LowReady.Types = { ['back'] = d.LowReady.Types.back and true or false,
+                                   ['back2'] = d.LowReady.Types.back2 and true or false }
+        end
     end
     -- Interaction
     if d.Inspect and MBT.Inspect then
@@ -126,6 +162,13 @@ local function applyConfig(d)
                     MBT.Throw.Groups[hash].Allowed = d.Throw.Groups[name]
                 end
             end
+        end
+        if d.Throw.Charge then
+            MBT.Throw.Charge = MBT.Throw.Charge or {}
+            MBT.Throw.Charge.Enabled       = d.Throw.Charge.Enabled
+            MBT.Throw.Charge.ChargeMs      = d.Throw.Charge.ChargeMs
+            MBT.Throw.Charge.MaxMultiplier = d.Throw.Charge.MaxMultiplier
+            MBT.Throw.Charge.ShowUI        = d.Throw.Charge.ShowUI
         end
     end
     -- World
@@ -171,7 +214,26 @@ local function applyConfig(d)
         end
     end
     if d.TacticalSling and MBT.TacticalSling then
+        local oldVariant = MBT.TacticalSling.DefaultVariant
+        local oldJV = json.encode(MBT.TacticalSling.JobVariants or {})
         MBT.TacticalSling.Enabled = d.TacticalSling.Enabled
+        if d.TacticalSling.DefaultVariant then MBT.TacticalSling.DefaultVariant = d.TacticalSling.DefaultVariant end
+        if d.TacticalSling.JobVariants then
+            local jv = {}
+            for job, vid in pairs(d.TacticalSling.JobVariants) do
+                if type(job) == 'string' and type(vid) == 'string' and vid ~= '' then jv[job] = vid end
+            end
+            MBT.TacticalSling.JobVariants = jv
+        end
+        if d.TacticalSling.Types then
+            MBT.TacticalSling.Types = { ['back'] = d.TacticalSling.Types.back and true or false, ['back2'] = d.TacticalSling.Types.back2 and true or false }
+        end
+        -- Enabled/Types handled live by the strap loop; a Variant change needs a respawn to swap
+        -- the model — only when it actually changed (no flicker on unrelated saves).
+        if (oldVariant ~= MBT.TacticalSling.DefaultVariant
+            or oldJV ~= json.encode(MBT.TacticalSling.JobVariants or {})) and MBT.RefreshSling then
+            MBT.RefreshSling()
+        end
     end
     if d.ShellCasings and MBT.ShellCasings then
         MBT.ShellCasings.Enabled      = d.ShellCasings.Enabled
@@ -210,7 +272,7 @@ end
 RegisterNetEvent('mbt_malisling:applyConfig', applyConfig)
 
 -- On (re)start / fresh join, pull the current live config so this client matches
--- runtime_config.json without needing a save. Retries until the server answers.
+-- the saved runtime config without needing a save.
 CreateThread(function()
     local data = lib.callback.await('mbt_malisling:getRuntimeConfig', false)
     if data then applyConfig(data) end

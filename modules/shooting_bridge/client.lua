@@ -1,23 +1,13 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Shooting Bridge (opaque integration socket) — client
---
--- malisling exposes an OPAQUE extension surface that a companion combat resource
--- can plug into. malisling never names that resource and ships ZERO of its logic:
--- the bridge is a set of no-op dispatch points. Without a registered bridge,
--- everything here is inert and malisling runs exactly as a standalone script.
---
--- How it works (separate resources = separate Lua VMs, so the companion cannot
--- write MBT.* directly):
---   1. The companion calls  exports.mbt_malisling:RegisterShootingBridge(resName)
---      once at start, passing ITS OWN resource name.
---   2. malisling stores that name and, at each lifecycle point, calls the
---      companion's matching export:  exports[resName]:OnX(...)  — pcall-guarded.
---   3. MBT.ShootingBridge is malisling's local dispatcher (always defined here).
---      Other malisling modules call MBT.ShootingBridge.OnX(...); it forwards to
---      the registered companion, or no-ops.
---
--- The GitHub source therefore reveals only empty hooks — nothing about what the
--- companion does.
+-- An OPAQUE extension surface for a companion combat resource. malisling never
+-- names it and ships ZERO of its logic — these are no-op dispatch points; without
+-- a registered bridge everything is inert and malisling runs standalone.
+-- Separate resources = separate Lua VMs (no direct MBT.* writes), so:
+--   1. companion calls exports.mbt_malisling:RegisterShootingBridge(itsOwnName) once.
+--   2. at each lifecycle point malisling calls exports[name]:OnX(...) (pcall-guarded).
+--   3. MBT.ShootingBridge is the local dispatcher modules call; forwards or no-ops.
+-- The GitHub source thus reveals only empty hooks.
 -- ─────────────────────────────────────────────────────────────────────────────
 
 local bridgeResource          -- resource name registered by the companion (or nil)
@@ -27,8 +17,7 @@ AddEventHandler('ox_inventory:currentWeapon', function(data)
     currentWeapon = data
 end)
 
---- Call a hook export on the registered companion resource, guarded so a faulty
---- or missing hook can never break malisling. Returns the hook's result, or nil.
+--- Call a hook export on the registered companion resource, guarded so a faulty or missing hook can never break malisling; returns the hook's result, or nil.
 ---@param hook string
 ---@return any
 local function callBridge(hook, ...)
@@ -57,13 +46,31 @@ MBT.ShootingBridge = {
     end,
 
     --- Let the companion decide whether the weapon jams on this shot. Returns:
-    ---   true  → force jam · false → force no jam · nil → companion has no opinion
-    --- (malisling falls back to its base durability-chance logic).
+    ---   true → force jam · false → force no jam · nil → no opinion
+    --- (nil falls back to malisling's base durability-chance logic).
     ---@param weaponHash number
     ---@param conditionTier integer?  1..5
     ---@return boolean?
     OnJamCheck = function(weaponHash, conditionTier)
         return callBridge('OnJamCheck', weaponHash, conditionTier)
+    end,
+
+    --- Ask the companion for a draw-speed multiplier (Quick Draw skill) for the weapon
+    --- about to be drawn. Clamped defensively to 0.3-1.0 so a buggy or malicious companion
+    --- can never warp draw timing to near-zero or beyond normal.
+    ---@param weaponType string  malisling prop type (side/back/...)
+    ---@param weaponHash number
+    ---@return number?  <1.0 = faster · nil = no change (companion has no opinion)
+    OnDrawSpeedRequest = function(weaponType, weaponHash)
+        local raw  = callBridge('OnDrawSpeedRequest', weaponType, weaponHash)
+        local mult = raw
+        if type(mult) ~= 'number' then mult = nil
+        else
+            if mult < 0.3 then mult = 0.3 end
+            if mult > 1.0 then mult = 1.0 end
+        end
+        Utils.mbtDebugger('ShootingBridge OnDrawSpeedRequest ~ weaponType:', weaponType, '| raw:', raw, '| clamped:', mult)
+        return mult
     end,
 
     ---@param weaponType string  malisling prop type (side/back/...)
@@ -76,9 +83,17 @@ MBT.ShootingBridge = {
         callBridge('OnUnholster', weaponType)
     end,
 
-    --- True when a companion combat resource has registered and is running. Used
-    --- by the admin menu to flip its "mbt_shooting" panel from upsell to connected.
-    --- (Reveals only that a companion exists — never any of its logic.)
+    --- Weapon inspect: ask the companion for extra data rows to APPEND to malisling's
+    --- own inspect card (proficiency / familiarity / heat / jam risk...). One themed,
+    --- anchored card renders everything — no separate overlay. nil = no extra rows.
+    ---@param baseData table  {name, serial, condition, conditionTone, ammo, custody?}
+    ---@return table[]?  {label, value, tone?}[]
+    OnInspectRows = function(baseData)
+        local rows = callBridge('OnInspectRows', baseData)
+        return type(rows) == 'table' and rows or nil
+    end,
+
+    --- True when a companion has registered and is running, without exposing its logic.
     ---@return boolean
     IsConnected = function()
         return bridgeResource ~= nil and GetResourceState(bridgeResource) == 'started'
@@ -90,10 +105,9 @@ MBT.ShootingBridge = {
 AddEventHandler('mbt_malisling:onHolster',   function(weaponType) MBT.ShootingBridge.OnHolster(weaponType) end)
 AddEventHandler('mbt_malisling:onUnholster', function(weaponType) MBT.ShootingBridge.OnUnholster(weaponType) end)
 
--- Fired-shot detection. malisling OWNS CEventGunShotWhizzedBy; the companion
--- subscribes through the bridge, never to the game event directly. Decoupled
--- from the jamming feature so OnWeaponFired fires even if jamming is disabled.
--- IsPedShooting guards against nearby players' shots whizzing by.
+-- Fired-shot detection. malisling OWNS CEventGunShotWhizzedBy; companion subscribes
+-- via the bridge, not the event. Decoupled from jamming so OnWeaponFired fires even
+-- when jamming is off. IsPedShooting guards against nearby players' shots.
 AddEventHandler('CEventGunShotWhizzedBy', function()
     if not bridgeResource then return end
     if not currentWeapon then return end
@@ -111,15 +125,40 @@ end)
 
 -- ── Data exports malisling exposes to the companion ──────────────────────────
 
+--- Companion-driven clearing animation. Loops the configured jam-clear anim on the
+--- local ped while active (flag 48 = upper-body + secondary, so the player keeps
+--- moving/looking). The companion's malfunction pipeline suppresses malisling's base
+--- jam (OnJamCheck=false) and thus its animation — this gives it back the hands-on
+--- gesture. Networked implicitly: a task anim on the owned player ped replicates to
+--- nearby players. No-op if the Jamming feature block (and its anim) isn't present.
+---@param active boolean
+local _clearingAnim = false
+exports('PlayClearingAnim', function(active)
+    if not active then _clearingAnim = false return end
+    if _clearingAnim then return end
+    local a = MBT.Jamming and MBT.Jamming.Animation
+    if not a or not a.Dict or not a.Anim then return end
+    _clearingAnim = true
+    CreateThread(function()
+        lib.requestAnimDict(a.Dict)
+        while _clearingAnim do
+            if not IsEntityPlayingAnim(cache.ped, a.Dict, a.Anim, 3) then
+                TaskPlayAnim(cache.ped, a.Dict, a.Anim, 2.0, 2.0, 750, 48, 0.0, false, false, false)
+            end
+            Wait(500)
+        end
+        ClearPedSecondaryTask(cache.ped)
+        RemoveAnimDict(a.Dict)
+    end)
+end)
+
 --- Serial of the held weapon (from ox_inventory metadata), or nil.
 ---@return string?
 exports('GetWeaponSerial', function()
     return currentWeapon and currentWeapon.metadata and currentWeapon.metadata.serial or nil
 end)
 
---- Condition tier 1-5 (5 = pristine) for a serial. Currently resolves the HELD
---- weapon (the combat use case); pass no serial, or the held weapon's serial.
---- Arbitrary-serial lookup is a server concern — added if the companion needs it.
+--- Condition tier 1-5 (5 = pristine) for a serial; only resolves the HELD weapon (the combat case), so pass no serial or the held weapon's serial. Arbitrary-serial lookup is a server concern.
 ---@param serial string?
 ---@return integer?
 exports('GetWeaponCondition', function(serial)

@@ -1,19 +1,12 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Concealed Carry — client
---
--- Toggle concealment of holstered small weapons, clothing-aware:
---   • Clothing check on component 11 (top/jacket): bare-torso blocklist → refused;
---     light tops → quality 'poor'; anything else → 'good'. Config overrides win.
---   • The keybind sends a REQUEST; the server validates and publishes the
---     replicated statebag. Prop teardown/respawn reuses the existing core flows
---     (syncDeletion / checkInventory) — and the core's spawn guard reads
---     MBT.IsTypeConcealed (defined here) to keep concealed props from spawning.
---   • Waistband-adjust TELL: random rolls, boosted after sprint/jump, networked
---     naturally (the carrier plays it) → visible only to nearby players.
---   • Changing clothes re-checks (with a grace period for staged outfit scripts)
---     and force-reveals when concealment is no longer possible.
--- A weapon IN HAND is visible by nature: concealment only covers the holstered
--- prop, so the "drawn while concealed" race can't exist.
+-- Clothing-aware concealment of holstered small weapons. Keybind sends a REQUEST;
+-- server validates + publishes the replicated statebag. Clothing check on comp 11:
+-- bare-torso → refused, light tops → 'poor', else 'good' (config overrides win).
+-- Prop teardown/respawn reuses core flows (syncDeletion / checkInventory); the
+-- core spawn guard reads MBT.IsTypeConcealed (defined here). Tell = waistband
+-- adjust, carrier-played so it networks naturally. A drawn weapon is visible by
+-- nature, so concealment only covers the holstered prop (no "drawn-concealed" race).
 -- ─────────────────────────────────────────────────────────────────────────────
 
 if not MBT.ConcealedCarry then return end
@@ -24,10 +17,7 @@ local myState   = nil    -- { [wtype] = quality } mirror of our own statebag
 local lastTop   = nil    -- component 11 drawable at last check
 local boostTill = 0      -- tell-chance boost window after sprint/jump
 
--- ── Predicate consumed by the core prop-spawn guard ────────────────────────────
----@param serverId number
----@param wtype string
----@return boolean
+-- Predicate consumed by the core prop-spawn guard.
 function MBT.IsTypeConcealed(serverId, wtype)
     if not cfg.Enabled then return false end
     local st = Player(serverId) and Player(serverId).state.mbt_concealed
@@ -67,8 +57,7 @@ local function toggleBlocked()
     return false
 end
 
---- The concealable type the player can act on right now: a currently concealed
---- one first (so the key always un-conceals), else one with a slung prop.
+--- The concealable type to act on now: a currently concealed one first (so the key always un-conceals), else one with a slung prop.
 local function actionableType()
     if type(myState) == 'table' then
         for wtype in pairs(myState) do return wtype end
@@ -77,10 +66,6 @@ local function actionableType()
         if GetLocalSlungProp and GetLocalSlungProp(wtype) then return wtype end
     end
     return nil
-end
-
-local function applyState(newState)
-    myState = (type(newState) == 'table' and next(newState)) and newState or nil
 end
 
 -- ── Toggle ───────────────────────────────────────────────────────────────────────
@@ -111,12 +96,11 @@ local function toggleConcealed()
         myState = myState or {}
         myState[wtype] = res.quality
         lastTop = select(2, clothingQuality())
-        -- Tear the slung prop down everywhere through the existing deletion flow.
+        -- Tear down the slung prop everywhere via the existing deletion flow.
         TriggerServerEvent('mbt_malisling:syncDeletion', wtype)
         MBT.NotifyLabel('concealed_on')
     else
         if myState then myState[wtype] = nil; if not next(myState) then myState = nil end end
-        -- Respawn through the existing re-sync flow.
         TriggerServerEvent('mbt_malisling:checkInventory')
         MBT.NotifyLabel('concealed_off')
     end
@@ -203,20 +187,22 @@ CreateThread(function()
     end
 end)
 
--- ── Debug: why is my outfit evaluated this way? ───────────────────────────────────
-RegisterCommand('mbt_concealdebug', function()
-    local q, d = clothingQuality()
-    local sex = pedSex()
-    local st  = 'none'
-    if myState then
-        for wtype, qq in pairs(myState) do st = ('%s=%s'):format(wtype, qq) break end
-    end
-    print(('[mbt_malisling] conceal debug ~ model=%s sex=%s | top(comp 11) drawable=%d texture=%d | evaluated quality=%s | active state=%s')
-        :format(GetEntityModel(cache.ped), sex, d,
-            GetPedTextureVariation(cache.ped, 11), q, st))
-    lib.notify({ type = 'inform', title = 'Conceal debug',
-        description = ('top %d → %s (state: %s) — full line in F8'):format(d, q, st) })
-end, false)
+-- ── Debug: why is my outfit evaluated this way? (Debug builds only) ───────────────
+if MBT.Debug then
+    RegisterCommand('mbt_concealdebug', function()
+        local q, d = clothingQuality()
+        local sex = pedSex()
+        local st  = 'none'
+        if myState then
+            for wtype, qq in pairs(myState) do st = ('%s=%s'):format(wtype, qq) break end
+        end
+        Utils.mbtDebugger(('conceal debug ~ model=%s sex=%s | top(comp 11) drawable=%d texture=%d | evaluated quality=%s | active state=%s')
+            :format(GetEntityModel(cache.ped), sex, d,
+                GetPedTextureVariation(cache.ped, 11), q, st))
+        lib.notify({ type = 'inform', title = 'Conceal debug',
+            description = ('top %d → %s (state: %s) — full line in F8'):format(d, q, st) })
+    end, false)
+end
 
 AddEventHandler('onResourceStop', function(res)
     if res == GetCurrentResourceName() and myState then

@@ -4,8 +4,8 @@
 -- Toggle the safety on the held firearm. With safety ON the weapon cannot fire
 -- (DisablePlayerFiring every frame) and a SAFE/FIRE indicator shows the state; a
 -- metallic click plays on toggle. State is tracked per weapon (by serial) so each
--- gun remembers its own safety. Purely RP — combat logic lives in mbt_shooting,
--- which reads the state via the 'mbt_weaponSafety' statebag or IsWeaponSafetyOn().
+-- gun remembers its own safety. Purely RP — combat logic lives in a companion combat
+-- resource, which reads the state via the 'mbt_weaponSafety' statebag or IsWeaponSafetyOn().
 -- ─────────────────────────────────────────────────────────────────────────────
 
 -- Load if the feature block exists; Enabled is checked at use time so the admin
@@ -58,7 +58,7 @@ local function setSafety(on)
     else
         globalSafety = on
     end
-    -- Expose to mbt_shooting / other resources.
+    -- Expose to a companion combat resource / other resources.
     LocalPlayer.state:set('mbt_weaponSafety', on, true)
 end
 
@@ -84,8 +84,7 @@ local function condTier()
     return Utils.durabilityToTier(md and md.durability)
 end
 
---- Push the combined pill. `safetyState` = 'safe'|'fire'|nil (nil = safety segment
---- hidden). The condition segment is resolved here from config + durability.
+--- Push the combined pill; `safetyState` = 'safe'|'fire'|nil (nil hides the safety segment), condition segment resolved here from config + durability.
 local function sendStatus(safetyState)
     local cond = condTier()
     if safetyState == nil and cond == nil then
@@ -97,6 +96,7 @@ local function sendStatus(safetyState)
     lastSafetySent, lastCondSent, hudShown = safetyState, cond, true
     SendNUIMessage({ action = 'showWeaponStatus', data = {
         safety = safetyState, condition = cond, locale = buildNuiLocale(),
+        style = MBT.UIStyle or 'standard',
     } })
 end
 
@@ -105,8 +105,7 @@ local function hideStatus()
     lastSafetySent, lastCondSent = nil, nil
 end
 
---- Short "work the safety" gesture: a truncated, slowed pistol-reload partial.
---- TaskPlayAnim only — never touches ammo. Cosmetic, fire-and-forget.
+--- Short "work the safety" gesture: a truncated, slowed pistol-reload partial; TaskPlayAnim only, never touches ammo, cosmetic and fire-and-forget.
 local function playToggleAnim()
     local a = cfg.Animation
     if not a or not a.Enabled then return end
@@ -146,7 +145,7 @@ CreateThread(function()
                 DisablePlayerFiring(cache.playerId, true)
                 DisableControlAction(0, 24, true)   -- INPUT_ATTACK
                 DisableControlAction(0, 257, true)  -- INPUT_ATTACK2
-                -- Attentional-blindness cue (Gemini): pulse the indicator the moment
+                -- Attentional-blindness cue: pulse the indicator the moment
                 -- the player tries to fire on safe, so they don't have to be staring
                 -- at the top-centre pill to notice.
                 if IsDisabledControlJustPressed(0, 24) then

@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useNuiEvent } from '../utils/useNuiEvent'
 import { makeT, type Locale } from '../utils/i18n'
 import './WeaponStatusUI.css'
@@ -18,23 +18,38 @@ interface StatusData {
   safety?: Safety | null
   condition?: number | null   // durability tier 1-5 (5 = pristine)
   locale?: Locale
+  style?: 'standard' | 'cinematic'
 }
 
 const PIPS = [1, 2, 3, 4, 5]
 
 export default function WeaponStatusUI() {
   const [visible, setVisible] = useState(false)
+  const [exiting, setExiting] = useState(false)
   const [data, setData] = useState<StatusData | null>(null)
   const [pulse, setPulse] = useState(false)
   const pulseTimer = useRef<number | null>(null)
+  const hideTimer = useRef<number | null>(null)
 
-  useNuiEvent<StatusData>('showWeaponStatus', (d) => { setData(d); setVisible(true) })
-  useNuiEvent('hideWeaponStatus', () => setVisible(false))
+  useNuiEvent<StatusData>('showWeaponStatus', (d) => {
+    if (hideTimer.current) { clearTimeout(hideTimer.current); hideTimer.current = null }
+    setData(d); setExiting(false); setVisible(true)
+  })
+  useNuiEvent('hideWeaponStatus', () => {
+    setExiting(true)
+    if (hideTimer.current) clearTimeout(hideTimer.current)
+    hideTimer.current = window.setTimeout(() => { setVisible(false); setExiting(false); hideTimer.current = null }, 220)
+  })
   useNuiEvent('weaponStatusPulse', () => {
     setPulse(true)
     if (pulseTimer.current) window.clearTimeout(pulseTimer.current)
     pulseTimer.current = window.setTimeout(() => setPulse(false), 380)
   })
+
+  useEffect(() => () => {
+    if (pulseTimer.current) clearTimeout(pulseTimer.current)
+    if (hideTimer.current) clearTimeout(hideTimer.current)
+  }, [])
 
   if (!visible || !data) return null
 
@@ -45,7 +60,7 @@ export default function WeaponStatusUI() {
   const tone = tier == null ? null : tier >= 4 ? 'good' : tier === 3 ? 'warn' : 'bad'
 
   return (
-    <div className="ws-pill">
+    <div className={`ws-pill${data.style === 'cinematic' ? ' is-cinematic' : ''} ${exiting ? 'ws-exit' : 'ws-enter'}`}>
       {safety && (
         <span className={`ws-safety ws-safety--${safety}${pulse ? ' is-pulse' : ''}`}>
           {safety === 'safe' ? (

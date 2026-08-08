@@ -1,14 +1,8 @@
--- ─────────────────────────────────────────────────────────────────────────────
--- Weapon drop — client
---
--- ox path: listens to ox_inventory:createDrop (fires for EVERY drop — native
---   drag-drop, death, throw), asks the server whether the drop holds a weapon,
---   and if so renders the weapon model via CreateWeaponObject + ox_target, and
---   hides ox's own bag prop. Native walk-in pickup keeps working.
---
--- qb path (fallback): spawns malisling's own ground-drop prop from the server's
---   GroundDrop broadcast; loot hands the item straight back.
--- ─────────────────────────────────────────────────────────────────────────────
+-- ── Weapon drop — client ──
+-- ox path: on ox_inventory:createDrop (every drop), ask the server if it holds a weapon,
+--   render the weapon model via CreateWeaponObject + ox_target, hide ox's bag prop.
+-- qb path (fallback): spawn malisling's own ground-drop prop from the server broadcast;
+--   loot hands the item straight back.
 
 local isOx = GetResourceState('ox_inventory') == 'started'
 local CurrentWeapon = {}
@@ -17,14 +11,10 @@ AddEventHandler('ox_inventory:currentWeapon', function(currentWeapon)
     CurrentWeapon = currentWeapon or {}
 end)
 
--- ── Despawn timer (shared) ──────────────────────────────────────────────────────
--- Starts a per-drop timer that blinks the prop in the final seconds, then calls
--- onExpire(). Cancelled by setting drops[dropId] = nil before it fires (the loop
--- checks the prop still exists). Used by both the ox and qb paths.
----@param dropId string|number
----@param prop number              the rendered weapon prop entity
----@param stillValid fun():boolean returns false once the drop was removed otherwise
----@param onExpire fun()           called when the timer runs out
+-- ── Despawn timer (shared) ──
+-- Per-drop timer that blinks the prop in the final seconds, then calls onExpire().
+-- Cancelled by clearing the drop before it fires (loop checks stillValid + prop exists).
+---@param stillValid fun():boolean false once the drop was removed
 local function startDespawnTimer(dropId, prop, stillValid, onExpire)
     local cfg = (MBT.WeaponDrop or {}).Despawn
     if not cfg or not cfg.Enabled or not prop then return end
@@ -34,7 +24,7 @@ local function startDespawnTimer(dropId, prop, stillValid, onExpire)
         local elapsed = 0
         while elapsed < total do
             if not stillValid() or not DoesEntityExist(prop) then return end
-            -- Blink window: toggle visibility roughly twice a second.
+            -- Blink window: toggle visibility ~twice a second.
             if blink > 0 and (total - elapsed) <= blink then
                 SetEntityVisible(prop, (math.floor(elapsed / 250) % 2) == 0, false)
                 Wait(250); elapsed = elapsed + 250
@@ -49,7 +39,7 @@ local function startDespawnTimer(dropId, prop, stillValid, onExpire)
     end)
 end
 
--- ── Drop-on-death (shared) ─────────────────────────────────────────────────────
+-- ── Drop-on-death (shared) ──
 if MBT.DropWeaponOnDeath then
     AddEventHandler('gameEventTriggered', function(event, data)
         if event ~= 'CEventNetworkEntityDamage' then return end
@@ -65,8 +55,8 @@ if MBT.DropWeaponOnDeath then
     end)
 end
 
--- ── Manual drop (export, shared) ───────────────────────────────────────────────
-function dropCurrentWeapon()
+-- ── Manual drop (reached from outside via the export below, not as a global) ──
+local function dropCurrentWeapon()
     if not CurrentWeapon or not CurrentWeapon.hash or not CurrentWeapon.slot then return end
 
     local playerPed = cache.ped
@@ -76,12 +66,12 @@ function dropCurrentWeapon()
     local currentWeapon = Utils.tableDeepCopy(CurrentWeapon)
     lib.requestModel(weaponModel)
     equippedWeapon.dropped = true
-    -- Temporary physics object: let it fall and settle so we know where the
-    -- weapon lands, then hand those coords to the server.
+    -- Temporary physics object: let it fall and settle so we know where it lands, then send those coords.
     local weaponObj = CreateObject(weaponModel, bonePos.x, bonePos.y, bonePos.z, true, true, true)
     ActivatePhysics(weaponObj)
     TriggerEvent("ox_inventory:disarm", true)
-    while IsEntityInAir(weaponObj) do Wait(100) end
+    local airDeadline = GetGameTimer() + 3000   -- never block forever (dropped over water/off-map)
+    while IsEntityInAir(weaponObj) and GetGameTimer() < airDeadline do Wait(100) end
     local deadline = GetGameTimer() + 800
     repeat
         Wait(50)
@@ -100,19 +90,17 @@ end
 exports('dropCurrentWeapon', dropCurrentWeapon)
 
 if isOx then
-    -- ═══ OX PATH ═══════════════════════════════════════════════════════════════
-    -- coords    = where the weapon prop + ox_target zone sit (scattered when drops
-    --             cluster, so neither props nor zones overlap).
+    -- ═══ OX PATH ═══
+    -- coords    = where prop + ox_target zone sit (scattered when drops cluster, so neither overlap).
     -- bagCoords = the ORIGINAL drop coords where ox spawns its bag prop (un-scattered).
     local weaponDrops = {}  -- [dropId] = { prop, coords, bagCoords }
     local bagModel = joaat(GetConvar('inventory:dropmodel', 'prop_med_bag_01b'))
 
-    --- Hide EVERY ox bag prop at a drop spot (not just the closest one). Clustered
-    --- drops stack multiple bags at ~the same point; GetClosestObjectOfType only ever
-    --- returns one, so the others stayed visible + collidable and hijacked the native
-    --- walk-in pickup → wrong drop opened. GetGamePool enumerates them all.
+    --- Hide EVERY ox bag prop at a drop spot (GetGamePool, not GetClosestObjectOfType): clustered drops stack multiple bags at ~one point, and a leftover visible+collidable bag hijacks the walk-in pickup → wrong drop opened.
     local function hideBagsNear(coords)
         if not coords then return end
+        -- Pool scan only worth it when close enough to see the bag; skip for far drops.
+        if #(GetEntityCoords(cache.ped) - coords) > 30.0 then return end
         for _, obj in ipairs(GetGamePool('CObject')) do
             if GetEntityModel(obj) == bagModel and IsEntityVisible(obj)
                 and #(GetEntityCoords(obj) - coords) < 1.5 then
@@ -144,10 +132,7 @@ if isOx then
         weaponDrops[dropId] = nil
     end
 
-    --- (Re)build the weapon models for a drop from its current hash list, ring-
-    --- spread around the drop's zone. Deletes any previous models first — used both
-    --- on first render and on refresh (ox adds a 2nd weapon to an EXISTING drop
-    --- without re-firing createDrop, so the rendered set can go stale).
+    --- (Re)build the weapon models for a drop, ring-spread around its zone, deleting previous models first — needed on refresh since ox adds a 2nd weapon to an EXISTING drop without re-firing createDrop, so the rendered set can go stale.
     local function buildProps(dropId, hashes)
         local d = weaponDrops[dropId]
         if not d then return end
@@ -164,15 +149,13 @@ if isOx then
             end
             lib.requestWeaponAsset(weaponHash, 1000, 31, 1)
             local obj = CreateWeaponObject(weaponHash, 50, d.coords.x + sx, d.coords.y + sy, d.coords.z, true, 1.0, 0)
+            RemoveWeaponAsset(weaponHash)   -- object keeps its model; release the asset
             if obj and DoesEntityExist(obj) then
                 PlaceObjectOnGroundProperly(obj)
                 FreezeEntityPosition(obj, true)
-                -- Collision COMPLETELY off (incl. raycast): the interaction is a
-                -- coords-based ox_target sphere, so the props must be transparent to
-                -- the targeting raycast — otherwise a prop intercepts the eye (no
-                -- options) and the sphere behind it can't be selected. Clustered
-                -- props made this reliably break. Also lets the player walk onto
-                -- the drop for the native walk-in pickup.
+                -- Collision COMPLETELY off (incl. raycast): interaction is a coords-based ox_target
+                -- sphere, so props must be transparent to the targeting raycast — else a prop
+                -- intercepts the eye and the sphere can't be selected. Also enables walk-in pickup.
                 SetEntityCollision(obj, false, false)
                 d.props[#d.props + 1] = obj
             end
@@ -180,9 +163,8 @@ if isOx then
         d.count = n
         if #d.props > 0 then hideBagsNear(d.bagCoords) end
 
-        -- (Re)start the despawn timer on the current anchor prop. A generation token
-        -- retires the previous timer (whose anchor we just deleted) so a rebuild
-        -- doesn't kill the despawn or leave two timers running.
+        -- (Re)start the despawn timer on the current anchor prop. A generation token retires
+        -- the previous timer so a rebuild doesn't kill the despawn or leave two timers running.
         d.gen = (d.gen or 0) + 1
         local myGen = d.gen
         if d.props[1] then
@@ -192,14 +174,13 @@ if isOx then
         end
     end
 
-    --- Render a drop that may hold MORE THAN ONE weapon (ox can add weapons to an
-    --- existing drop). One model per weapon, ring-spread; a single pickup zone.
+    --- Render a drop that may hold MORE THAN ONE weapon. One model per weapon, ring-spread; one zone.
     local function spawnWeaponDropProp(dropId, coords, hashes)
         if weaponDrops[dropId] then return end
         if type(hashes) ~= 'table' or #hashes == 0 then return end
 
         local cfg = MBT.WeaponDrop or {}
-        -- Both features off → leave the drop fully native; malisling does nothing.
+        -- Both features off → leave the drop fully native.
         if not cfg.WeaponModelProp and not cfg.OxTargetPickup then return end
 
         local ox, oy = clusterOffset(coords)
@@ -213,7 +194,7 @@ if isOx then
 
         -- (buildProps already started the despawn timer, gen-guarded.)
         if cfg.OxTargetPickup then
-            Target.AddZone(dropId, weaponDrops[dropId].coords, 1.0, {
+            Target.AddZone(dropId, weaponDrops[dropId].coords, 1.5, {
                 name     = 'mbt_wdrop_' .. dropId,
                 icon     = 'fa-solid fa-hand',
                 label    = Translate('pickup_weapon'),
@@ -225,9 +206,8 @@ if isOx then
         end
     end
 
-    -- Refresh: ox doesn't re-fire createDrop when a weapon is ADDED to an existing
-    -- drop, so re-query nearby drops' contents and rebuild their models when the
-    -- weapon count changed. Light: only drops within 8m, every 1.5s.
+    -- Refresh: ox doesn't re-fire createDrop when a weapon is ADDED to an existing drop,
+    -- so re-query nearby drops and rebuild their models on count change. Only within 8m, every 1.5s.
     CreateThread(function()
         while true do
             Wait(1500)
@@ -250,9 +230,8 @@ if isOx then
         if not dropId or type(dropData) ~= 'table' or not dropData.coords then return end
         local coords = dropData.coords
         CreateThread(function()
-            -- CustomDrop creates the drop with items already in it, and the
-            -- native drag-drop also has the item swapped in by the time
-            -- createDrop reaches us. No wait needed before the callback.
+            -- Items are already in the drop by the time createDrop reaches us
+            -- (CustomDrop and native drag-drop both), so no wait before the callback.
             local hashes = lib.callback.await('mbt_malisling:checkWeaponDrop', false, dropId)
             if type(hashes) == 'table' and #hashes > 0 then
                 spawnWeaponDropProp(dropId, coords, hashes)
@@ -264,44 +243,34 @@ if isOx then
         removeWeaponDropProp(dropId)
     end)
 
-    -- Hide ox's own bag prop for weapon drops so only the weapon model shows.
-    -- ox spawns the bag when the player nears the drop; this loop finds it and
-    -- makes it invisible + non-collidable (so ox_target's raycast hits the
-    -- weapon prop, not the invisible bag).
+    -- Hide ox's bag prop so only the weapon model shows. ox spawns the bag when the player nears;
+    -- we make it invisible + non-collidable (so ox_target's raycast hits the weapon, not the bag).
+    -- TARGETED GetClosestObjectOfType per bag spot is far cheaper than a full pool scan, so we poll
+    -- fast (50ms) and catch the bag the instant it spawns — killing the "stock bag" flash. Re-hides on respawn.
     CreateThread(function()
         while true do
             local sleep = 1000
             if next(weaponDrops) then
                 local pcoords = GetEntityCoords(cache.ped)
-                -- Collect the bag spots in range, then run ONE pool scan (GetGamePool
-                -- is heavy — never per-drop-per-frame). Throttled to 300ms.
-                local spots, near = {}, false
+                local near = false
                 for _, d in pairs(weaponDrops) do
                     if d.props and #d.props > 0 and d.bagCoords and #(pcoords - d.coords) < 30.0 then
                         near = true
-                        spots[#spots + 1] = d.bagCoords
-                    end
-                end
-                if near then
-                    sleep = 300
-                    for _, obj in ipairs(GetGamePool('CObject')) do
-                        if GetEntityModel(obj) == bagModel and IsEntityVisible(obj) then
-                            for i = 1, #spots do
-                                if #(GetEntityCoords(obj) - spots[i]) < 1.5 then
-                                    SetEntityVisible(obj, false, 0)
-                                    SetEntityCollision(obj, false, false)
-                                    break
-                                end
-                            end
+                        local s = d.bagCoords
+                        local bag = GetClosestObjectOfType(s.x, s.y, s.z, 1.5, bagModel, false, false, false)
+                        if bag ~= 0 and IsEntityVisible(bag) then
+                            SetEntityVisible(bag, false, 0)
+                            SetEntityCollision(bag, false, false)
                         end
                     end
                 end
+                if near then sleep = 50 end
             end
             Wait(sleep)
         end
     end)
 else
-    -- ═══ QB PATH (fallback) ════════════════════════════════════════════════════
+    -- ═══ QB PATH (fallback) ═══
     local groundProps = {}  -- [dropId] = entity
 
     local function spawnGroundDrop(dropId, coords, weaponHash)
@@ -309,6 +278,7 @@ else
 
         lib.requestWeaponAsset(weaponHash, 1000, 31, 1)
         local obj = CreateWeaponObject(weaponHash, 50, coords.x, coords.y, coords.z, true, 1.0, 0)
+        RemoveWeaponAsset(weaponHash)   -- object keeps its model; release the asset
         if not obj or not DoesEntityExist(obj) then return end
 
         PlaceObjectOnGroundProperly(obj)
@@ -317,7 +287,7 @@ else
         local propCoords = GetEntityCoords(obj)
         groundProps[dropId] = obj
 
-        Target.AddZone(dropId, propCoords, 1.0, {
+        Target.AddZone(dropId, propCoords, 1.5, {
             name     = 'mbt_wdrop_' .. dropId,
             icon     = 'fa-solid fa-hand',
             label    = Translate('pickup_weapon'),
@@ -328,9 +298,8 @@ else
             end,
         })
 
-        -- Despawn timer: the whole qb drop is ours, so tell the server to drop it
-        -- for everyone (server broadcasts removeGroundDrop). The local prop is
-        -- removed by that broadcast; here we just trigger expiry.
+        -- Despawn timer: the whole qb drop is ours, so tell the server to drop it for
+        -- everyone (it broadcasts removeGroundDrop, which removes the local prop).
         startDespawnTimer(dropId, obj,
             function() return groundProps[dropId] ~= nil end,
             function() TriggerServerEvent('mbt_malisling:despawnGroundDrop', dropId) end)

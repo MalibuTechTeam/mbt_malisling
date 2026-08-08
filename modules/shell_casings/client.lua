@@ -1,14 +1,8 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Forensic Shell Casings — client
---
--- Two halves:
---   • SHOOTER: while armed, each shot (throttled) reports the landing spot +
---     weapon to the server, which rolls the chance and registers the casing.
---     GTA's own ejected-brass particle already covers the firing visual.
---   • WORLD: a light poll pulls nearby casing positions; each one gets a subtle
---     ground glint (or a physical prop when cfg.Prop is set) and an ox_target
---     sphere ([E]/[G] fallback) to Examine (EvidenceUI card: weapon, masked
---     serial, age) or Collect (scene cleaning).
+-- SHOOTER half: throttled shots report landing spot + weapon to the server.
+-- WORLD half: poll nearby casings, render glint/prop + ox_target ([E]/[G] fallback)
+-- to Examine (EvidenceUI: weapon, masked serial, age) or Collect (scene cleaning).
 -- ─────────────────────────────────────────────────────────────────────────────
 
 if not MBT.ShellCasings then return end
@@ -37,7 +31,7 @@ CreateThread(function()
         if cfg.Enabled then
             local armed, hash = GetCurrentPedWeapon(cache.ped, true)
             if armed and hash ~= `WEAPON_UNARMED` then
-                sleep = 0
+                sleep = 50   -- poll for shots while a gun is out; 50ms catches IsPedShooting without a per-frame spin
                 if IsPedShooting(cache.ped) then
                     local now = GetGameTimer()
                     if (now - lastSent) >= (cfg.MinIntervalMs or 1200) then
@@ -87,6 +81,7 @@ local function examineCasing(id)
         weapon = data.weapon,
         serial = data.serial,        -- already masked server-side; nil = hidden
         agoMin = data.agoMin,
+        style  = MBT.UIStyle or 'standard',
     } })
 end
 
@@ -102,7 +97,6 @@ end
 local function collectCasing(id)
     if busy then return end
     busy = true
-    -- Bend down and pick it up.
     if DoesAnimDictExist('pickup_object') then
         lib.requestAnimDict('pickup_object')
         TaskPlayAnim(cache.ped, 'pickup_object', 'pickup_low', 4.0, -4.0, 800, 49, 0.0, false, false, false)
@@ -239,6 +233,52 @@ if not hasTarget then
         end
     end)
 end
+
+-- Dev helper: /mbt_casingzone — capture an ExcludeZone line for MBT.ShellCasings.ExcludeZones
+-- (a range/armory where no forensic casings spawn). Admin/Debug only (gated server-side): opens
+-- a live editor — a ground footprint marker at your spot, ↑/↓ to size the radius (walk to the
+-- edge to gauge it), ENTER copies the line, BACKSPACE exits.
+local casingZoneEditing = false
+
+local function copyCasingZone(c, radius)
+    local line = ('{ coords = vec3(%.2f, %.2f, %.2f), radius = %.1f },'):format(c.x, c.y, c.z, radius)
+    Utils.mbtDebugger('Casing exclude zone -> paste into MBT.ShellCasings.ExcludeZones:\n' .. line)
+    if lib.setClipboard then lib.setClipboard(line) end
+    lib.notify({ type = 'success', title = 'Shell Casings',
+        description = ('Zone (r=%.0f) copied to clipboard + printed to F8.'):format(radius) })
+end
+
+RegisterCommand('mbt_casingzone', function()
+    if casingZoneEditing then return end
+    if not lib.callback.await('mbt_malisling:casing:canTune', false) then
+        lib.notify({ type = 'error', title = 'Shell Casings', description = '/mbt_casingzone is admin/debug only.' })
+        return
+    end
+    local center = GetEntityCoords(cache.ped)
+    casingZoneEditing = true
+    local radius = 20.0
+    CreateThread(function()
+        while casingZoneEditing do
+            Wait(0)
+            for _, c in ipairs({ 172, 173, 21, 191, 177 }) do DisableControlAction(0, c, true) end
+            local step = IsDisabledControlPressed(0, 21) and 2.0 or 0.5
+            if IsDisabledControlPressed(0, 172) then radius = math.min(200.0, radius + step)       -- ↑ grow
+            elseif IsDisabledControlPressed(0, 173) then radius = math.max(1.0, radius - step) end  -- ↓ shrink
+            -- Ground footprint (the zone is a 3D sphere server-side; the cylinder shows the area).
+            DrawMarker(1, center.x, center.y, center.z - 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                radius * 2.0, radius * 2.0, 4.0, 218, 165, 32, 90, false, false, 2, false, nil, nil, false)
+            SetTextFont(4); SetTextScale(0.42, 0.42); SetTextColour(255, 255, 255, 255); SetTextCentre(true)
+            SetTextEntry('STRING')
+            AddTextComponentString(('CASING ZONE   radius %.1f m    ~y~UP/DOWN~s~ resize · SHIFT fast · ENTER copy · BKSP exit'):format(radius))
+            DrawText(0.5, 0.86)
+            if IsDisabledControlJustPressed(0, 191) then       -- ENTER → copy the tuned line
+                copyCasingZone(center, radius)
+            elseif IsDisabledControlJustPressed(0, 177) then   -- BACKSPACE → exit
+                casingZoneEditing = false
+            end
+        end
+    end)
+end, false)
 
 AddEventHandler('onResourceStop', function(res)
     if res ~= GetCurrentResourceName() then return end

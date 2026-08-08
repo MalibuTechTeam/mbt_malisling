@@ -1,12 +1,9 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Physical Weapon Handoff — server
---
--- Hand-to-hand weapon transfer between two nearby players. The giver offers the
--- weapon they're HOLDING; the receiver accepts or declines. On accept the item
--- moves atomically (RemoveItem giver → AddItem receiver, with rollback) carrying
--- its full metadata — serial, condition and custom name travel with the gun, and
--- Chain of Custody records the new holder when they equip it. One pending offer
--- per receiver; offers expire. All checks server-side.
+-- Giver offers the weapon they're HOLDING; receiver accepts/declines. On accept
+-- the item moves atomically (RemoveItem→AddItem, with rollback) carrying full
+-- metadata (serial/condition/name). One pending offer per receiver; offers
+-- expire. All checks server-side.
 -- ─────────────────────────────────────────────────────────────────────────────
 
 if not MBT.Handoff then return end
@@ -18,10 +15,13 @@ local lastUse = {}   -- [src] = GetGameTimer() (rate limit)
 local function maxDist() return (cfg.MaxDistance or 2.5) + 2.0 end
 
 --- The item in the giver's slot, only if it's still the weapon they offered.
-local function slotWeapon(src, slot, name)
+local function slotWeapon(src, slot, name, serial)
     local item = Inventory:GetSlot(src, slot)
     if not item or item.name ~= name then return nil end
     if type(item.name) ~= 'string' or item.name:sub(1, 7) ~= 'WEAPON_' then return nil end
+    -- Anti bait-and-switch: if the offer carried a serial, the slot must STILL hold
+    -- that exact weapon (else a giver swaps a same-name gun with a different serial).
+    if serial ~= nil and (not item.metadata or item.metadata.serial ~= serial) then return nil end
     return item
 end
 
@@ -51,6 +51,7 @@ RegisterNetEvent('mbt_malisling:handoff:offer', function(data)
 
     pending[target] = {
         from = src, slot = slot, name = item.name, count = item.count,
+        serial = item.metadata and item.metadata.serial,
         expires = now + (cfg.RequestTimeoutMs or 8000),
     }
     local md = item.metadata or {}
@@ -85,14 +86,13 @@ lib.callback.register('mbt_malisling:handoff:respond', function(src, accept)
         TriggerClientEvent('mbt_malisling:handoff:result', giver, 'handoff_failed')
         return { ok = false }
     end
-    local item = slotWeapon(giver, offer.slot, offer.name)
+    local item = slotWeapon(giver, offer.slot, offer.name, offer.serial)
     if not item then
         TriggerClientEvent('mbt_malisling:handoff:result', giver, 'handoff_failed')
         return { ok = false }
     end
 
-    -- Forensic backbone: a weapon changing hands always gets a serial first
-    -- (safe transition — the item is being moved anyway).
+    -- Forensic backbone: a weapon changing hands always gets a serial first.
     if MBT.EnsureSerial then MBT.EnsureSerial(giver, item) end
 
     -- Atomic move with rollback: the weapon must never vanish.
@@ -112,7 +112,8 @@ lib.callback.register('mbt_malisling:handoff:respond', function(src, accept)
     TriggerClientEvent('mbt_malisling:handoff:anim', src,   { role = 'take', other = giver })
     TriggerClientEvent('mbt_malisling:handoff:result', giver, 'handoff_done')
 
-    -- Optional equip-on-accept (ox): hand the receiver the exact slot to use.
+    -- Optional equip-on-accept. ox: hand the receiver the exact slot to useSlot.
+    -- qb: return name+serial so the client can find the item and use it.
     local equipSlot
     if cfg.EquipOnAccept and GetResourceState('ox_inventory') == 'started' then
         local ok2, s = pcall(function()
@@ -121,7 +122,7 @@ lib.callback.register('mbt_malisling:handoff:respond', function(src, accept)
         end)
         if ok2 then equipSlot = s end
     end
-    return { ok = true, equipSlot = equipSlot }
+    return { ok = true, equipSlot = equipSlot, name = item.name, serial = meta and meta.serial }
 end)
 
 -- ── Expiry sweep ─────────────────────────────────────────────────────────────────

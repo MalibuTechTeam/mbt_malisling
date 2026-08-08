@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useNuiEvent } from '../utils/useNuiEvent'
 import { makeT, type Locale } from '../utils/i18n'
 import './RackPickerUI.css'
@@ -14,6 +14,7 @@ interface RackPickerData {
   weapons: RackWeapon[]
   index: number                     // 1-based selection (Lua side)
   locale?: Locale
+  style?: 'standard' | 'cinematic'
 }
 
 export default function RackPickerUI() {
@@ -21,8 +22,10 @@ export default function RackPickerUI() {
   const [exiting, setExiting] = useState(false)
   const [data,    setData]    = useState<RackPickerData | null>(null)
   const [index,   setIndex]   = useState(1)
+  const hideTimer = useRef<number | null>(null)
 
   useNuiEvent<RackPickerData>('showRackPicker', (incoming) => {
+    if (hideTimer.current) { clearTimeout(hideTimer.current); hideTimer.current = null }
     setData(incoming)
     setIndex(incoming.index ?? 1)
     setExiting(false)
@@ -33,8 +36,13 @@ export default function RackPickerUI() {
 
   useNuiEvent('hideRackPicker', () => {
     setExiting(true)
-    setTimeout(() => { setVisible(false); setExiting(false) }, 250)
+    if (hideTimer.current) clearTimeout(hideTimer.current)
+    hideTimer.current = window.setTimeout(() => {
+      setVisible(false); setExiting(false); hideTimer.current = null
+    }, 250)
   })
+
+  useEffect(() => () => { if (hideTimer.current) clearTimeout(hideTimer.current) }, [])
 
   if (!visible || !data) return null
 
@@ -42,7 +50,7 @@ export default function RackPickerUI() {
 
   return (
     <div className={`rkp-overlay ${exiting ? 'rkp-exit' : 'rkp-enter'}`}>
-      <div className="rkp-card">
+      <div className={`rkp-card${data.style === 'cinematic' ? ' cine-chip' : ''}`}>
         <div className="rkp-header">
           <span className="rkp-label">{t('rack_picker_title', 'WEAPON RACK')}</span>
           <span className="rkp-count">{index}/{data.weapons.length}</span>
@@ -50,7 +58,7 @@ export default function RackPickerUI() {
 
         <div className="rkp-list">
           {data.weapons.map((w, i) => (
-            <div className={`rkp-entry${i + 1 === index ? ' rkp-entry--sel' : ''}`} key={i}>
+            <div className={`rkp-entry${i + 1 === index ? ' rkp-entry--sel' : ''}`} key={w.serial ?? `${w.name}-${i}`}>
               <span className="rkp-marker" />
               <span className="rkp-info">
                 <span className="rkp-name">{w.name.replace('WEAPON_', '')}</span>

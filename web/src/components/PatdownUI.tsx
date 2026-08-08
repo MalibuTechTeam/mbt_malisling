@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useNuiEvent } from '../utils/useNuiEvent'
 import { makeT, type Locale } from '../utils/i18n'
 import './PatdownUI.css'
@@ -10,8 +10,8 @@ interface Finding {
   quality?: 'good' | 'poor'
 }
 
-interface PromptData { officer?: string; locale?: Locale }
-interface ResultData { findings: Finding[]; locale?: Locale }
+interface PromptData { officer?: string; locale?: Locale; style?: 'standard' | 'cinematic' }
+interface ResultData { findings: Finding[]; locale?: Locale; style?: 'standard' | 'cinematic' }
 
 function statusText(t: (k: string, f: string) => string, f: Finding): string {
   if (f.status === 'concealed') {
@@ -30,22 +30,38 @@ export default function PatdownUI() {
   // Result card (officer)
   const [result, setResult]   = useState<ResultData | null>(null)
   const [rExit,  setRExit]    = useState(false)
+  const pTimer = useRef<number | null>(null)   // prompt hide
+  const rTimer = useRef<number | null>(null)   // result auto-hide
 
-  useNuiEvent<PromptData>('showPatdownPrompt', (d) => { setPrompt(d); setPExit(false) })
+  useNuiEvent<PromptData>('showPatdownPrompt', (d) => {
+    if (pTimer.current) { clearTimeout(pTimer.current); pTimer.current = null }
+    setPrompt(d); setPExit(false)
+  })
   useNuiEvent('hidePatdownPrompt', () => {
-    setPExit(true); setTimeout(() => { setPrompt(null); setPExit(false) }, 220)
+    setPExit(true)
+    if (pTimer.current) clearTimeout(pTimer.current)
+    pTimer.current = window.setTimeout(() => { setPrompt(null); setPExit(false); pTimer.current = null }, 220)
   })
   useNuiEvent<ResultData>('showPatdownResult', (d) => {
+    if (rTimer.current) clearTimeout(rTimer.current)
     setResult(d); setRExit(false)
-    setTimeout(() => { setRExit(true); setTimeout(() => { setResult(null); setRExit(false) }, 300) }, 6500)
+    rTimer.current = window.setTimeout(() => {
+      setRExit(true)
+      rTimer.current = window.setTimeout(() => { setResult(null); setRExit(false); rTimer.current = null }, 300)
+    }, 6500)
   })
+
+  useEffect(() => () => {
+    if (pTimer.current) clearTimeout(pTimer.current)
+    if (rTimer.current) clearTimeout(rTimer.current)
+  }, [])
 
   return (
     <>
       {prompt && (() => {
         const t = makeT(prompt.locale)
         return (
-          <div className={`ptd-pill ${pExit ? 'ptd-exit' : 'ptd-enter'}`}>
+          <div className={`ptd-pill${prompt.style === 'cinematic' ? ' cine-chip' : ''} ${pExit ? 'ptd-exit' : 'ptd-enter'}`}>
             <span className="ptd-top">
               <span className="ptd-ic">
                 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -72,7 +88,7 @@ export default function PatdownUI() {
         const t = makeT(result.locale)
         return (
           <div className={`ptd-card-wrap ${rExit ? 'ptd-exit' : 'ptd-enter'}`}>
-            <div className="ptd-card">
+            <div className={`ptd-card${result.style === 'cinematic' ? ' cine-chip' : ''}`}>
               <div className="ptd-header">
                 <span className="ptd-label">{t('patdown_result', 'PAT-DOWN')}</span>
                 <span className="ptd-count">{result.findings.length}</span>

@@ -7,11 +7,7 @@ interface NuiMessageData<T = any> {
 
 type NuiHandlerSignature<T> = (data: T) => void;
 
-/**
- * A hook that manages event listeners for receiving data from the client scripts
- * @param action The specific `action` that should invoke this handler
- * @param handler The callback function that will handle the data received
- */
+/** Subscribe to a NUI message `action`; `handler` runs with its data payload. */
 export const useNuiEvent = <T = any>(action: string, handler: (data: T) => void) => {
   const savedHandler = useRef<NuiHandlerSignature<T> | undefined>(undefined);
 
@@ -24,8 +20,10 @@ export const useNuiEvent = <T = any>(action: string, handler: (data: T) => void)
       const { action: eventAction, data } = event.data;
 
       if (savedHandler.current && eventAction === action) {
-        // Fallback to event.data if data is undefined (handling flat structure from Lua)
-        savedHandler.current((data || event.data) as T);
+        // Only fall back to the flat message when `data` is genuinely absent —
+        // `data === undefined`. A plain `data || ...` would discard valid falsy
+        // payloads from Lua (false / 0 / "") and pass the whole message instead.
+        savedHandler.current((data === undefined ? event.data : data) as T);
       }
     };
 

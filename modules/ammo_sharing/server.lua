@@ -1,10 +1,7 @@
 -- ─────────────────────────────────────────────────────────────────────────────
--- Ammo Sharing — server
---
--- Hand a portion of your ammo to a nearby player. Same offer/consent/transfer
--- shape as the weapon handoff, but moves an ammo item (resolved from the held
--- weapon's ox ammo name, or the giver's largest ammo stack). Atomic with
--- rollback; the receiver consents first. All validation server-side.
+-- Ammo Sharing — server. Same offer/consent/transfer shape as weapon handoff,
+-- but moves an ammo item (resolved from the held weapon's ox ammo name, or the
+-- giver's largest ammo stack). Atomic with rollback; all validation server-side.
 -- ─────────────────────────────────────────────────────────────────────────────
 
 if not MBT.AmmoSharing then return end
@@ -15,23 +12,24 @@ local lastUse = {}
 
 local function maxDist() return (cfg.MaxDistance or 2.5) + 2.0 end
 
---- Resolve the ammo item to share: the held weapon's ox ammo item if the giver
---- has it, else their largest ammo stack. Returns name, available count.
+--- Resolve the ammo item for the held weapon via getAmmoItemName, else the giver's largest 'ammo'-prefixed stack. Returns (itemName, availableCount).
 local function resolveAmmo(src, heldWeapon)
     local items = Inventory:GetInventoryItems(src)
     if type(items) ~= 'table' then return nil end
 
-    -- Preferred: the held weapon's ammo item name (ox data field 'ammoname').
-    local prefer
-    local w = heldWeapon and MBT.WeaponsInfo and MBT.WeaponsInfo.Weapons and MBT.WeaponsInfo.Weapons[heldWeapon]
-    if w then prefer = w.ammoname or w.ammoName end
+    local prefer = (getAmmoItemName and heldWeapon) and getAmmoItemName(heldWeapon) or nil
+    local preferLc = prefer and prefer:lower() or nil
 
     local bestName, bestCount = nil, 0
     for _, item in pairs(items) do
-        if type(item) == 'table' and type(item.name) == 'string'
-            and item.name:sub(1, 4) == 'ammo' and (item.count or 0) > 0 then
-            if prefer and item.name == prefer then return item.name, item.count end
-            if item.count > bestCount then bestName, bestCount = item.name, item.count end
+        if type(item) == 'table' and type(item.name) == 'string' and (item.count or 0) > 0 then
+            local nm = item.name
+            -- Exact match on the weapon's ammo item (case-insensitive).
+            if preferLc and nm:lower() == preferLc then return nm, item.count end
+            -- Fallback heuristic: any 'ammo'-prefixed item (ox), pick the biggest.
+            if nm:sub(1, 4):lower() == 'ammo' and item.count > bestCount then
+                bestName, bestCount = nm, item.count
+            end
         end
     end
     if bestName then return bestName, bestCount end
@@ -130,4 +128,11 @@ AddEventHandler('playerDropped', function()
     if not s then return end
     lastUse[s] = nil
     pending[s] = nil
+    -- The giver may have dropped while an offer they made is still pending under the TARGET's key.
+    for target, offer in pairs(pending) do
+        if offer.from == s then
+            pending[target] = nil
+            TriggerClientEvent('mbt_malisling:ammo:expired', target)
+        end
+    end
 end)

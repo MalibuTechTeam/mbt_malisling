@@ -30,7 +30,9 @@
 .mbt-toggle__thumb {
   width: 16px;
   height: 16px;
-  background: var(--mbt-text-lo);
+  /* Off-thumb at text-mid (not text-lo) so an inactive toggle reads as "off",
+     not "disabled". */
+  background: var(--mbt-text-mid);
   border-radius: var(--mbt-r-pill);
   transition:
     transform var(--mbt-dur) var(--mbt-ease),

@@ -24,6 +24,7 @@
 }
 
 .evd-card {
+  position: relative;             /* anchors the .cine-chip hairline in cinematic style */
   width: 200px;
   background: var(--mbt-surface-2);
   border: 1px solid var(--mbt-edge-hi);

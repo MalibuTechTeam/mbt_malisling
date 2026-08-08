@@ -1,14 +1,8 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Vehicle Trunk Weapon Rack — client
---
--- Realistic stow/retrieve of a long gun in a vehicle's trunk:
---   • ox_target option on the boot (bone-limited), gated to on-foot + long gun.
---   • Boot physically opens, a "place/take" anim plays, the weapon prop appears
---     racked in the trunk (synced to everyone via the vehicle statebag), boot shuts.
--- Persistence + validation are server-authoritative (server.lua). This file only
--- drives the interaction, animation, and renders the synced props.
---
--- ox_target is a soft dependency; without it a proximity [E] prompt is used.
+-- Stow/retrieve a long gun in a vehicle trunk: boot opens, anim plays, the prop
+-- renders racked (synced via the vehicle statebag), boot shuts. Persistence +
+-- validation are server-authoritative. ox_target soft dep; else proximity [E].
 -- ─────────────────────────────────────────────────────────────────────────────
 
 if not MBT.VehicleTrunkRack then return end
@@ -16,11 +10,9 @@ if not MBT.VehicleTrunkRack then return end
 local cfg = MBT.VehicleTrunkRack
 local DEFAULT_OFFSET = { Pos = { x = 0.0, y = -0.10, z = -0.30 }, Rot = { x = 0.0, y = 0.0, z = 0.0 } }
 
--- Trunk rotation is a raw Euler offset on the vehicle boot bone (rotOrder=2). Large
--- pitch+roll combinations gimbal-lock the orientation (yaw stops responding, entRot
--- snaps to -90,0,0). A weapon laid in a trunk never needs more than a gentle tilt, so
--- we constrain pitch/roll to ±TRUNK_MAX_TILT and keep yaw free. This also scrubs any
--- corrupt rotation an earlier build may have persisted (clamped on load + save).
+-- Trunk rotation is a raw Euler offset on the boot bone; large pitch+roll gimbal-locks
+-- it. Constrain pitch/roll to ±TRUNK_MAX_TILT, keep yaw free. Runs on load + save, so
+-- corrupt rotation from an earlier build is scrubbed too.
 local TRUNK_MAX_TILT = 45.0
 local function clampN(n, lo, hi)
     n = tonumber(n) or 0.0
@@ -44,6 +36,8 @@ end
 local CurrentWeapon = {}
 local busy          = false
 local rackedProps   = {}  -- [veh] = { [index] = propEntity }
+local tedit         = nil -- live trunk-offset editor state — declared here (above the
+                          -- auto-render thread) so it can tell which vehicle is being tuned.
 
 AddEventHandler('ox_inventory:currentWeapon', function(w) CurrentWeapon = w or {} end)
 
@@ -73,12 +67,9 @@ local function bootBone(veh)
 end
 
 -- ── ox_inventory trunk parity ────────────────────────────────────────────────
--- ox_inventory keeps per-model flags that decide WHICH door is the storage:
---   Storage[hash] == 3       → "trunk in the hood" (front, e.g. the Adder) → door 4
---   Storage[hash] == 0 or 1  → no trunk storage
---   otherwise (nil)          → normal rear boot                            → door 5
--- We load ox_inventory's own data file so our open/close + proximity match it
--- exactly. Feature-gated: without ox_inventory we fall back to the door-5 heuristic.
+-- Load ox_inventory's vehicle data so our open/close + proximity match it exactly.
+-- Storage[hash]: 3 = hood trunk (front, e.g. Adder) → door 4; 0/1 = no trunk;
+-- nil = normal rear boot → door 5. Feature-gated: without ox we use the door-5 heuristic.
 local oxStorage = nil
 CreateThread(function()
     if GetResourceState('ox_inventory') ~= 'started' then return end
@@ -93,9 +84,8 @@ local function hoodTrunk(veh)
     return oxStorage ~= nil and oxStorage[GetEntityModel(veh)] == 3
 end
 
---- Boot door(s) for this vehicle, ox_inventory-faithful: hood-trunk models (Adder
---- etc.) use the front door 4, vans (class 12) the rear doors {2,3}, everything else
---- the boot door 5 — falling back to the rear doors if the boot door isn't valid.
+--- Boot door(s), ox_inventory-faithful: hood trunks → door 4, vans (class 12) →
+--- {2,3}, else boot door 5 (falling back to rear doors if door 5 isn't valid).
 local function bootDoorList(veh)
     if hoodTrunk(veh) then return { 4 } end
     if GetVehicleClass(veh) == 12 then return { 2, 3 } end
@@ -103,10 +93,7 @@ local function bootDoorList(veh)
     return { 2, 3 }
 end
 
---- Local-space offset from the vehicle origin to the storage opening — front for hood
---- trunks, rear otherwise. Used as the prop BASE on models with no 'boot' bone (so the
---- weapon sits in the opening instead of dead-centre/under the car), and in world space
---- as the editor's proximity + camera anchor.
+--- Local-space offset from vehicle origin to the storage opening (front for hood trunks, rear otherwise); prop BASE on models with no 'boot' bone, plus editor proximity/cam anchor.
 local function trunkAnchorLocal(veh)
     local mn, mx = GetModelDimensions(GetEntityModel(veh))
     local fy = hoodTrunk(veh) and 1.0 or 0.0   -- max.y = front of the model, min.y = rear
@@ -141,8 +128,7 @@ local function playAnim(dict, name, ms, flag)
     ClearPedTasks(cache.ped)
 end
 
---- Positioned anim (TaskPlayAnimAdvanced) at the ped's current spot — ox uses this for
---- the 'return_case'/'trevor_action' close gesture; plain TaskPlayAnim doesn't show it.
+--- Positioned anim (TaskPlayAnimAdvanced) at the ped's spot — needed for the close gesture (return_case/trevor_action), which plain TaskPlayAnim doesn't show.
 local function playAnimAdvanced(dict, name, ms)
     ms = ms or 1000
     if not dict or dict == '' or not name or name == '' or not DoesAnimDictExist(dict) then Wait(ms); return end
@@ -197,15 +183,17 @@ local function retrieveIndex(veh, index)
     end)
     busy = false
     if res and res.ok then
-        -- Equip straight into hand when enabled; otherwise the weapon stays in inventory.
+        -- Equip into hand when enabled; otherwise it stays in inventory.
         if cfg.EquipOnRetrieve then
             if GetResourceState('ox_inventory') == 'started' and res.equipSlot then
-                exports.ox_inventory:useSlot(res.equipSlot)                  -- ox: equip the slot
+                exports.ox_inventory:useSlot(res.equipSlot)
             elseif GetResourceState('qb-inventory') == 'started' and res.name
                 and PlayerData and PlayerData.items then
                 -- qb: trigger the normal use-weapon flow (avoids desync vs raw GiveWeaponToPed)
                 for _, it in pairs(PlayerData.items) do
-                    if it.name == res.name and (not res.serial or (it.info and it.info.serie == res.serial)) then
+                    -- qb item names are lowercase; res.name is canonical UPPER.
+                    if it.name and it.name:upper() == res.name
+                        and (not res.serial or (it.info and it.info.serie == res.serial)) then
                         TriggerServerEvent('qb-inventory:server:useItem', it)
                         break
                     end
@@ -224,7 +212,6 @@ local function doRetrieve(veh)
         retrieveIndex(veh, 1)
         return
     end
-    -- More than one racked: let the player pick which.
     local options = {}
     for i, e in ipairs(list) do
         options[#options + 1] = {
@@ -237,10 +224,9 @@ local function doRetrieve(veh)
     lib.showContext('mbt_trunk_pick')
 end
 
--- ── Statebag-driven rack: render the props ONLY while the boot is OPEN ─────────
--- The weapon is only visible with the trunk open (realistic, and it sidesteps
--- per-vehicle offset perfection — a closed sedan trunk hides it anyway). rackedData
--- mirrors the bag; a loop spawns/despawns the props as the boot opens/closes.
+-- ── Statebag-driven rack: render props ONLY while the boot is OPEN ─────────────
+-- Weapon visible only with the trunk open (realistic + sidesteps per-vehicle offset
+-- perfection). rackedData mirrors the bag; a loop spawns/despawns as the boot toggles.
 local rackedData = {}   -- [veh] = list of { weapon, wtype }
 
 local function clearProps(veh)
@@ -261,8 +247,7 @@ end
 -- Live dev tuner state (/mbt_trunktune) — overrides the offset for one vehicle.
 local tuning = nil   -- { veh, class, off }
 
---- Offset for this vehicle: live tuner > per-MODEL > per-class > default.
---- Per-model is the precise tier (each vehicle exact), tuned with /mbt_trunktune.
+--- Offset for this vehicle: live tuner > per-MODEL (the precise tier, tuned with /mbt_trunktune) > per-class > default.
 local function offsetFor(veh)
     if tuning and tuning.veh == veh then return tuning.off end
     local po = cfg.PropOffset or {}
@@ -272,11 +257,10 @@ local function offsetFor(veh)
         or po.Default or DEFAULT_OFFSET)
 end
 
---- Anchor on the 'boot' bone — it sits at the trunk, so the prop is VISIBLE and easy
---- to tune there (body-space bone 0 placed it inside/under the car = invisible). The
---- boot bone is the lid, so its open height varies per vehicle → tune per MODEL with
---- /mbt_trunktune. The slide while the lid swings is avoided by only rendering once the
---- boot is FULLY open (see bootIsOpen). bone 0 fallback for vehicles with no boot bone.
+--- Anchor on the 'boot' bone so the prop is visible (bone 0 placed it under the car).
+--- The boot bone is the lid → open height varies per vehicle, so tune per MODEL with
+--- /mbt_trunktune; render only when fully open (bootIsOpen) to avoid the swing slide.
+--- Falls back to bone 0 for vehicles with no boot bone.
 local function anchorFor(veh)
     local off = offsetFor(veh)
     local bone = GetEntityBoneIndexByName(veh, 'boot')
@@ -302,15 +286,14 @@ local function renderRack(veh)
         if hash and hash ~= 0 then
             lib.requestWeaponAsset(hash, 1000, 31, 1)
             local obj = CreateWeaponObject(hash, 50, 0.0, 0.0, 0.0, true, 1.0, 0)
+            RemoveWeaponAsset(hash)   -- the object keeps its model; don't leave the asset resident
             if obj and DoesEntityExist(obj) then
                 SetEntityCollision(obj, false, false)
                 AttachEntityToEntity(obj, veh, bone,
                     ox, oy, oz + (i - 1) * 0.08,   -- stack multiples
                     rot.x, rot.y, rot.z,
-                    -- isPed=FALSE: the target is a VEHICLE (not a ped). The ped editor
-                    -- needed isPed=true because it attaches to a PED; on a vehicle bone
-                    -- isPed=true is wrong and breaks placement — this path always worked
-                    -- with false.
+                    -- isPed=FALSE: target is a VEHICLE (the ped editor needs true; on a
+                    -- vehicle bone true breaks placement — this path works with false).
                     false, false, false, false, 2, true)
                 props[i] = obj
             end
@@ -334,15 +317,25 @@ end)
 CreateThread(function()
     while true do
         Wait(300)
-        for veh, list in pairs(rackedData) do
-            if not DoesEntityExist(veh) then
-                clearProps(veh); rackedData[veh] = nil
-            else
-                local r = rackedProps[veh]
-                if bootIsOpen(veh) then
-                    if not r or r.count ~= #list then renderRack(veh) end
-                elseif r then
-                    clearProps(veh)
+        if next(rackedData) then
+            local pc = GetEntityCoords(cache.ped)
+            for veh, list in pairs(rackedData) do
+                if not DoesEntityExist(veh) then
+                    clearProps(veh); rackedData[veh] = nil
+                elseif #(pc - GetEntityCoords(veh)) > 20.0 then
+                    -- Far trunk: skip the door-angle math entirely (just ensure props are cleared).
+                    if rackedProps[veh] then clearProps(veh) end
+                elseif tedit and tedit.veh == veh then
+                    -- Being tuned in the editor (it renders its own preview) → hide the real
+                    -- stowed props so the weapon doesn't duplicate.
+                    if rackedProps[veh] then clearProps(veh) end
+                else
+                    local r = rackedProps[veh]
+                    if bootIsOpen(veh) then
+                        if not r or r.count ~= #list then renderRack(veh) end
+                    elseif r then
+                        clearProps(veh)
+                    end
                 end
             end
         end
@@ -412,23 +405,19 @@ RegisterNUICallback('trunkOffsets:reset', function(data, cb)
 end)
 
 -- ── Trunk live editor (admin NUI) ─────────────────────────────────────────────
--- Same UX as the weapon-prop editor: the dashboard collapses, an orbit camera
--- frames the open trunk, and a preview weapon rides the boot bone while the admin
--- nudges the offset live. Targets the CLOSEST vehicle (its real scale → precise).
--- Spawns its own preview weapon, so you can tune an empty vehicle too. Save writes
--- the per-model or per-class override through the ACE-checked offset event.
-local tedit = nil   -- { veh, model, class, off, prop, cam, orbit }
+-- Orbit camera frames the open trunk; a preview weapon rides the boot bone while the
+-- admin nudges the offset live. Targets the CLOSEST vehicle, spawns its own preview
+-- (so an empty vehicle works too). Save writes per-model/per-class via the ACE event.
+-- (tedit is declared near the top so the auto-render thread can see it.)
 
 local TEDIT_WEAPON = 'WEAPON_CARBINERIFLE'
 
 local function teditAttach()
     if not tedit or not tedit.veh or not DoesEntityExist(tedit.veh) then return end
 
-    -- THE REAL FIX (Codex): a reused CreateWeaponObject does NOT reliably take a new
-    -- attach rotation — re-attaching the same prop leaves the rotation stuck. The working
-    -- /mbt_trunktune path (renderRack) DELETES + RECREATES the weapon object on every
-    -- change, which is why its rotation works. So we do the same here: rebuild the
-    -- preview prop on every live update. (isPed stays true — the command works with it.)
+    -- A reused CreateWeaponObject won't reliably take a new attach rotation, so rebuild
+    -- the preview prop on every update — same as renderRack (delete + recreate), which is
+    -- why its rotation works.
     if tedit.prop and DoesEntityExist(tedit.prop) then DeleteEntity(tedit.prop) end
     local hash = joaat(TEDIT_WEAPON)
     lib.requestWeaponAsset(hash, 1000, 31, 1)
@@ -447,7 +436,7 @@ local function teditAttach()
     local o = tedit.off
     AttachEntityToEntity(prop, tedit.veh, bone,
         bx + o.Pos.x, by + o.Pos.y, bz + o.Pos.z, o.Rot.x, o.Rot.y, o.Rot.z,
-        false, false, false, false, 2, true)   -- isPed=FALSE (vehicle target, like the command)
+        false, false, false, false, 2, true)   -- isPed=FALSE (vehicle target)
 end
 
 local function teditUpdateCam()
@@ -472,7 +461,7 @@ local function teditStop()
         DestroyCam(tedit.cam, false)
     end
     tedit = nil
-    SetEntityVisible(cache.ped, true, false)   -- restore the editor's ped
+    SetEntityVisible(cache.ped, true, false)
     if veh and DoesEntityExist(veh) then shutBoot(veh) end
 end
 
@@ -488,15 +477,13 @@ RegisterNUICallback('trunkEdit:start', function(_, cb)
         cb({ ok = false, reason = 'no_vehicle' }); return
     end
 
-    -- (1) Be standing AT the storage opening — front for hood trunks (the Adder),
-    -- rear otherwise — using ox_inventory's own anchor + a small margin over its 1.5m.
+    -- (1) Must be standing AT the storage opening (ox's own anchor + small margin).
     if #(pcoords - trunkAnchor(veh)) > ((cfg.InteractionDistance or 2.5) + 0.5) then
         cb({ ok = false, reason = 'not_at_trunk' }); return
     end
 
-    -- (2) Open the boot and WAIT until it's actually open — you can't place a weapon
-    -- in a closed trunk. This is the real "does it have a usable trunk" test, so it
-    -- covers vehicles with no boot at all (e.g. bikes): they simply never open.
+    -- (2) Open the boot and WAIT until it's open — also the real "has a usable trunk"
+    -- test, so vehicles with no boot (e.g. bikes) simply never open.
     openBoot(veh)
     local deadline = GetGameTimer() + 1500
     while not bootIsOpen(veh) and GetGameTimer() < deadline do Wait(50) end
@@ -511,14 +498,12 @@ RegisterNUICallback('trunkEdit:start', function(_, cb)
     local off = { Pos = { x = b.Pos.x, y = b.Pos.y, z = b.Pos.z },
                   Rot = { x = b.Rot.x, y = b.Rot.y, z = b.Rot.z } }
 
-    -- Hide the editor's own ped so it never stands between the camera and the trunk
-    -- (you're standing AT the opening, so otherwise you'd block your own view).
+    -- Hide the editor's ped so it doesn't block the camera's view of the trunk.
     SetEntityVisible(cache.ped, false, false)
 
-    -- Default camera: stand OUTSIDE the storage opening looking straight in — BEHIND the
-    -- car for a rear boot, in FRONT for a hood trunk. Derived from the vehicle's real
-    -- forward vector: the old heading±180 math had a sign mismatch with the orbit's
-    -- sin/cos, so the camera only framed the trunk when the car happened to point north.
+    -- Default camera: outside the opening looking in (behind for rear boot, front for
+    -- hood trunk). Derived from the forward vector — heading±180 had a sign mismatch with
+    -- the orbit sin/cos so it only framed the trunk when the car pointed north.
     local fwd = GetEntityForwardVector(veh)
     local dx, dy = fwd.x, fwd.y
     if not hoodTrunk(veh) then dx, dy = -dx, -dy end   -- rear boot → camera behind the car
@@ -530,6 +515,7 @@ RegisterNUICallback('trunkEdit:start', function(_, cb)
         orbit = { yaw = camYaw, pitch = -15.0, dist = 2.6 },
     }
     teditAttach()
+    clearProps(veh)   -- drop real stowed props; the editor shows its own preview (no dup)
     teditUpdateCam()
     RenderScriptCams(true, false, 0, true, true)
 
@@ -557,7 +543,7 @@ RegisterNUICallback('trunkEdit:cam', function(d, cb)
     if tedit and tedit.cam and type(d) == 'table' then
         local orb = tedit.orbit
         -- Absolute values from the NUI sliders (clamped).
-        if d.yaw   ~= nil then orb.yaw   = tonumber(d.yaw) % 360 end
+        if d.yaw   ~= nil then orb.yaw   = (tonumber(d.yaw) or orb.yaw) % 360 end
         if d.pitch ~= nil then orb.pitch = math.max(-80.0, math.min(80.0, tonumber(d.pitch) or orb.pitch)) end
         if d.dist  ~= nil then orb.dist  = math.max(1.0, math.min(6.0, tonumber(d.dist) or orb.dist)) end
         teditUpdateCam()
@@ -567,9 +553,8 @@ end)
 
 RegisterNUICallback('trunkEdit:reset', function(_, cb)
     if tedit then
-        -- Revert to the last SAVED offset (or the open-time offset if nothing saved yet),
-        -- NOT the hardcoded stock default. To clear an override entirely, use the per-scope
-        -- Reset in the Trunk Positions list.
+        -- Revert to the last SAVED offset (or open-time offset), NOT the stock default.
+        -- To clear an override entirely, use the per-scope Reset in the Trunk Positions list.
         tedit.off = safeTrunkOffset(tedit.savedOff)
         teditAttach()
         cb(tedit.off)
@@ -630,8 +615,7 @@ if GetResourceState('ox_target') == 'started' then
             onSelect = function(data) doRetrieve(data.entity) end,
         },
         {
-            -- Open/close the boot so you can actually SEE the racked weapons
-            -- (props render only while the trunk is open).
+            -- Open/close the boot to SEE the racked weapons (props render only while open).
             name        = 'mbt_trunk_view',
             icon        = 'fa-solid fa-eye',
             label       = Translate('trunk_view'),
@@ -681,11 +665,10 @@ else
     end)
 end
 
--- ── Dev tuner: /mbt_trunktune — dial the prop offset live, print the config line ─
--- Stand near a vehicle that has a stowed weapon, run the command. Arrows move,
--- Q/E rotate, SHIFT = bigger step, ENTER prints the per-MODEL config line (paste
--- under PropOffset.ByModel for pixel-perfect placement), BACKSPACE exits. Because
--- you tune with the trunk OPEN, the value bakes in the real open-lid position.
+-- ── Dev tuner: /mbt_trunktune — dial the prop offset live ─────────────────────
+-- Stand near a vehicle with a stowed weapon. Arrows move, Q/E rotate, SHIFT = big step,
+-- ENTER saves per-MODEL, G saves per-CLASS, BACKSPACE exits. Tuned with the trunk OPEN,
+-- so the value bakes in the real open-lid position.
 RegisterCommand('mbt_trunktune', function()
     if tuning then return end
     local veh = lib.getClosestVehicle(GetEntityCoords(cache.ped), 6.0, false)

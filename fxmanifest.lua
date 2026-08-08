@@ -3,29 +3,29 @@ game 'gta5'
 lua54 'yes'
 
 name 'mbt_malisling'
-author 'Malibù Tech Team'
-version      '1.1.4'
+author 'Malibu Tech Team'
+version      '2.0.1'
 repository 'https://github.com/MalibuTechTeam/mbt_malisling'
 description 'Weapon on back with various features'
-
-ui_page 'web/dist/index.html'
 
 dependencies {
     '/onesync',
     'ox_lib',
-    -- ox_inventory and qb-inventory are soft dependencies: detected at runtime
 }
 
 shared_scripts {
     '@ox_lib/init.lua',
-    'config.lua',
+    'default.lua',               
+    'config.lua',                 
+    'modules/utils/logger.lua',  
     'modules/locales.lua',
     'locales/*.lua',
 }
 
 server_scripts {
-    'modules/ox_patch/installer.js',   -- auto-applies the ox_inventory patch (cross-platform, no shell)
+    'modules/ox_patch/installer.js',
     'modules/utils/server.lua',
+    'modules/version/server.lua',
     'modules/weapon_sounds/server.lua',
     'modules/bridge/esx/server.lua',
     'modules/bridge/ox/server.lua',
@@ -60,6 +60,7 @@ server_scripts {
 
 client_scripts {
     'modules/utils/client.lua',
+    'modules/anchor/client.lua',
     'modules/shooting_bridge/client.lua',
     'modules/target/client.lua',
     'modules/weapon_sounds/client.lua',
@@ -92,24 +93,28 @@ client_scripts {
     'modules/ammo_sharing/client.lua',
     'modules/prop_position_editor/client.lua',
     'modules/no_draw_zones/client.lua',
-    'modules/prop_editor/client.lua',
 }
+
+ui_page 'web/dist/index.html'
 
 files {
     'data/*.lua',
     'web/dist/index.html',
     'web/dist/assets/**',
+    'web/dist/*.svg',          
+    'web/dist/*.png',           
     'web/dist/sounds/*.ogg',
 }
 
--- Tactical Sling clothing asset lives in the dedicated mbt_sling_clothing
--- resource (mixing clothing stream + script/ui_page here is unreliable).
+-- Tactical Sling strap props (mbt_belt_prop_a / _b) ship in stream/belt/ and are declared
+-- in mbt_m4_prop.ytyp; register the archetypes so CreateObject can spawn them.
+data_file 'DLC_ITYP_REQUEST' 'stream/belt/mbt_m4_prop.ytyp'
 
 -- Supported inventories (soft dependencies — detected at runtime):
 --   ox_inventory  >= 2.30.0
 --   qb-inventory  (any modern version)
 --
 -- oxmysql: soft dependency, used ONLY by the Vehicle Trunk Weapon Rack for
--- persistence (table mbt_vehicle_trunk). Detected at runtime — if oxmysql isn't
+-- persistence (table mbt_malisling_trunk). Detected at runtime — if oxmysql isn't
 -- started that feature disables itself and the rest of the script stays DB-free.
 -- This is the one documented exception to the "no database" rule.

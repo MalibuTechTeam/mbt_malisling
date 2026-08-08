@@ -1,12 +1,10 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Custom Weapon Name — server
---
--- Validates permission + sanitizes the name, then writes metadata.label on the
--- weapon in the given slot via the Inventory abstraction (works on ox and qb).
--- Permission model and limits are config-driven (MBT.WeaponName).
+-- Validates permission + sanitizes, then writes metadata.label on the slot's weapon
+-- via the Inventory abstraction (ox + qb). Permission/limits config-driven.
 -- ─────────────────────────────────────────────────────────────────────────────
 
--- Load if the block exists; Enabled checked at use time (live-apply via menu).
+-- Enabled checked at use time (live-apply via menu).
 if not MBT.WeaponName then return end
 
 local cfg = MBT.WeaponName
@@ -29,8 +27,8 @@ end
 --- Trim, strip control chars/newlines, clamp length. Returns nil if empty.
 local function sanitize(name)
     if type(name) ~= 'string' then return nil end
-    name = name:gsub('[%c]', '')          -- control chars + newlines
-    name = name:gsub('^%s+', ''):gsub('%s+$', '')  -- trim
+    name = name:gsub('[%c]', '')                    -- strip control chars + newlines
+    name = name:gsub('^%s+', ''):gsub('%s+$', '')   -- trim
     if name == '' then return nil end
     local max = cfg.MaxLength or 24
     if #name > max then name = name:sub(1, max) end

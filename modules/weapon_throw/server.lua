@@ -11,8 +11,7 @@ RegisterNetEvent("mbt_malisling:createWeaponDrop", function(data)
 
     local coords = vector3(data.Coords.x, data.Coords.y, data.Coords.z)
 
-    -- Sanity check: a thrown/dropped weapon must land near the player. Stops a
-    -- spoofed Coords from planting a drop anywhere on the map.
+    -- Must land near the player: stops spoofed Coords planting a drop anywhere.
     local ped = GetPlayerPed(src)
     if not ped or ped == 0 then return end
     if #(GetEntityCoords(ped) - coords) > 50.0 then return end

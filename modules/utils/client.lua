@@ -1,77 +1,33 @@
 Utils = {}
 
-local _resName = GetCurrentResourceName()
-
-local function _prettyTable(t, indent)
-    indent = indent or 1
-    local pad = string.rep("  ", indent)
-    local lines = {}
-    for k, v in pairs(t) do
-        local key = type(k) == "number" and ("[" .. k .. "]") or tostring(k)
-        if type(v) == "table" then
-            lines[#lines+1] = pad .. key .. " = " .. _prettyTable(v, indent + 1)
-        else
-            lines[#lines+1] = pad .. key .. " = " .. tostring(v)
-        end
-    end
-    return "{\n" .. table.concat(lines, ",\n") .. "\n" .. string.rep("  ", indent - 1) .. "}"
-end
-
-local function _serialize(v)
-    if type(v) == "table" then return _prettyTable(v) end
-    return tostring(v)
-end
-
-local function _callerLoc(level)
-    local info = debug.getinfo(level, "Sl")
-    if not info then return "?" end
-    local src = info.short_src:gsub("^@@?[^/\\]+[/\\]", "")
-    return src .. ":" .. (info.currentline or "?")
-end
-
----@param ... any
-function Utils.mbtDebugger(...)
-    if not MBT.Debug then return end
-    local parts = {}
-    for i = 1, select("#", ...) do
-        parts[i] = _serialize(select(i, ...))
-    end
-    print(("^2[%s]^7 ^3%s^7 >> %s^0"):format(_resName, _callerLoc(2), table.concat(parts, " ")))
-end
-
----@param ... any
-function Utils.mbtWarn(...)
-    local parts = {}
-    for i = 1, select("#", ...) do
-        parts[i] = _serialize(select(i, ...))
-    end
-    print(("^2[%s] ^8[WARN]^7 ^3%s^7 >> %s^0"):format(_resName, _callerLoc(2), table.concat(parts, " ")))
-end
+-- Logging — canonical logger lives in modules/utils/logger.lua (shared_script,
+-- loaded first). Aliased onto Utils so existing call sites keep working.
+Utils.Debug = MBTLog.Debug
+Utils.Info  = MBTLog.Info
+Utils.Warn  = MBTLog.Warn
+Utils.Error = MBTLog.Error
+Utils.mbtDebugger = MBTLog.Debug   -- back-compat alias (lowercase, malisling call sites)
+Utils.mbtWarn     = MBTLog.Warn    -- back-compat alias
 
 ---@param s string
 ---@return boolean
 function Utils.isWeapon(s)
-    return string.sub(s, 1, 7) == "WEAPON_"
+    -- Case-insensitive: qb-inventory item names are lowercase; ox/GTA/MBT uppercase.
+    return type(s) == "string" and string.upper(string.sub(s, 1, 7)) == "WEAPON_"
 end
 
----@param t table
----@return integer
-function Utils.getTableLength(t)
-    local count = 0
-    for _ in pairs(t) do count = count + 1 end
-    return count
+---Weapon type ('side'/'back'/'back2'/'melee'…) for a canonical WEAPON_ name, or nil.
+---@param name string?
+---@return string?
+function Utils.weaponType(name)
+    local w = name and MBT.WeaponsInfo and MBT.WeaponsInfo.Weapons and MBT.WeaponsInfo.Weapons[name]
+    return w and w.type
 end
 
----@param t table
----@return boolean
 function Utils.isTableEmpty(t)
     return next(t) == nil
 end
 
----@param array table
----@param value any
----@return boolean
----@return integer
 function Utils.containsValue(array, value)
     for i=1, #array do
         if array[i] == value then
@@ -81,8 +37,21 @@ function Utils.containsValue(array, value)
     return false, -1
 end
 
----@param t table
----@return table
+--- Match an attached prop's alpha to the ped wearing it. A ped's alpha does NOT
+--- propagate to attached entities, so a script that fades a ped out (multichar
+--- switch and relog commonly hold it at 0 for ~2s) leaves our props hanging in
+--- mid-air. Any alpha is honoured, not just 0/255, so partial fades work too.
+---@param prop number
+---@param pedAlpha number  0-255, from GetEntityAlpha on the owner ped
+function Utils.syncPropAlpha(prop, pedAlpha)
+    if GetEntityAlpha(prop) == pedAlpha then return end
+    if pedAlpha < 255 then
+        SetEntityAlpha(prop, pedAlpha, false)
+    else
+        ResetEntityAlpha(prop)   -- cleaner than SetEntityAlpha(255): clears the override outright
+    end
+end
+
 function Utils.tableDeepCopy(t)
     local copy = {}
 
@@ -96,13 +65,8 @@ function Utils.tableDeepCopy(t)
     return copy
 end
 
----@param ped number
----@param weaponHash any
----@param compList any
----@return boolean
 function Utils.weaponHasFlashlight(ped, weaponHash, compList)
-    -- Defensive: on some holster/disarm transitions the weapon name is nil before
-    -- the next currentWeapon update — joaat(nil) would hard-error.
+    -- Defensive: weapon name can be nil mid holster/disarm transition — joaat(nil) hard-errors.
     if not weaponHash or type(compList) ~= 'table' then return false end
     local hash = (type(weaponHash) == 'number') and weaponHash or joaat(weaponHash)
     local hasFlash = false
@@ -113,40 +77,25 @@ function Utils.weaponHasFlashlight(ped, weaponHash, compList)
     return hasFlash == 1
 end
 
----@param componentName any
----@return boolean
 function Utils.isComponentAFlashlight(componentName)
     return componentName == "at_flashlight"
 end
 
----@param d number
+--- Jam chance (%) for a durability, read off MBT.Jamming.Chance: the LOWEST threshold
+--- the weapon still falls under wins. A weapon above every threshold never jams.
+---@param d number?  durability 0-100; nil (e.g. a qb item with no info.quality) = no jam
+---@return number chance  0-100
 local function getChance(d)
-    local prevKey = nil
-    local orderedPairs = function(t, compareFunc)
-        local keys = {}
-        for key, _ in pairs(t) do
-            table.insert(keys, key)
-        end
-        table.sort(keys, compareFunc)
-        local i = 0
-        return function()
-            i = i + 1
-            local key = keys[i]
-            if key then return key, t[key] end
+    if type(d) ~= 'number' then return 0 end
+    local chance, lowest = 0, nil
+    for key, value in pairs(MBT.Jamming["Chance"]) do
+        if d <= key and (not lowest or key < lowest) then
+            chance, lowest = value, key
         end
     end
-
-    for key in orderedPairs(MBT.Jamming["Chance"], function(a, b) return a > b end) do
-        if prevKey and d > key and d < prevKey then
-            return MBT.Jamming["Chance"][prevKey]
-        end
-        prevKey = key
-    end
-    return 0
+    return chance
 end
 
----@param value any
----@return unknown
 function Utils.getJammingChance(value)
     local chance = getChance(value)
     math.randomseed(GetGameTimer() * math.random(30568, 90214))
@@ -155,10 +104,7 @@ function Utils.getJammingChance(value)
     return random < chance
 end
 
---- Map a weapon's durability (0-100) to a discrete condition tier 1-5
---- (5 = pristine, 1 = damaged). Single source of truth for the shooting bridge
---- export GetWeaponCondition and any condition HUD. Derived on read — no second
---- metadata field to keep in sync with durability.
+--- Durability (0-100) -> condition tier 1-5 (5 = pristine); single source of truth for the shooting-bridge export GetWeaponCondition, derived on read, not stored.
 ---@param durability number?
 ---@return integer? tier  1..5, or nil if durability is unknown
 function Utils.durabilityToTier(durability)

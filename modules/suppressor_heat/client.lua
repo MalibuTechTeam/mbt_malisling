@@ -1,19 +1,12 @@
 -- ─────────────────────────────────────────────────────────────────────────────
--- Suppressor Heat Glow
---
--- The suppressor heats up during sustained fire and visibly glows orange -> red,
--- then cools down over a few seconds. Purely visual, no combat impact (combat
--- mechanics belong to mbt_shooting).
---
--- Heat only accumulates while the weapon is in hand (that is when you fire it),
--- but the glow keeps rendering — and cooling — on the matching slung prop after
--- you holster, which reads as more realistic than the glow snapping off. We draw
--- the glow at the prop's gun_muzzle world position: a plain draw call, unaffected
--- by the engine quirks that make slung-weapon *flashlight* attachment unreliable.
+-- Suppressor Heat Glow — the suppressor glows orange→red under sustained fire and
+-- cools over a few seconds. Visual only. Heat accrues only while the gun is in hand;
+-- the glow then keeps rendering + cooling on the matching slung prop after holster,
+-- drawn at the prop's gun_muzzle world position (a plain draw call) to sidestep the
+-- engine quirks that make slung-weapon *flashlight* attachment unreliable.
 -- ─────────────────────────────────────────────────────────────────────────────
 
--- Load if the feature block exists; Enabled is checked in the loop so the admin
--- menu can toggle it live (cfg is the live MBT.SuppressorHeat table).
+-- Enabled is read inside the loop so the dashboard can toggle it live.
 if not MBT.SuppressorHeat then return end
 
 local cfg = MBT.SuppressorHeat
@@ -25,10 +18,22 @@ local suppHash        = 0   -- weapon hash whose suppressor currently holds the 
 local lastClip        = nil -- clip ammo last frame, to detect shots fired
 local suppressorComps = {}
 
---- Collect every suppressor component hash from the weapon data malisling
---- loaded at runtime (ox_inventory's data/weapons.lua → MBT.WeaponsInfo).
---- Suppressors are tagged type='muzzle'; key-name match is a fallback.
----@return boolean ok  true if at least one suppressor component was found
+-- External heat drive (companion combat resource, via export). When fresh, it takes
+-- precedence over the internal ammo-based heat and glows ANY held weapon's muzzle —
+-- not just suppressed ones — so a paid overheat system is the single source of truth.
+local extHeat01 = 0.0   -- 0..1 normalised heat pushed by the companion
+local extHeatAt = 0     -- GetGameTimer() of the last push (freshness gate)
+
+--- Companion drives the muzzle glow with its own heat (0..1). Overrides the internal
+--- suppressor heat while fresh; works on any weapon in hand.
+---@param t number  0..1
+exports('SetMuzzleHeat', function(t)
+    extHeat01 = math.max(0.0, math.min(tonumber(t) or 0.0, 1.0))
+    extHeatAt = GetGameTimer()
+end)
+
+--- Collect every suppressor component hash from MBT.WeaponsInfo (type='muzzle', or a 'supp' key-name fallback); returns true if at least one was found.
+---@return boolean ok
 local function buildSuppressorList()
     local comps = MBT.WeaponsInfo and MBT.WeaponsInfo.Components
     if not comps then return false end
@@ -53,8 +58,7 @@ local function heldWeaponHasSuppressor(weaponHash)
         return false
     end
     for i = 1, #suppressorComps do
-        -- HasPedGotWeaponComponent returns a boolean on modern FiveM (and 1/0 on
-        -- older builds) — accept both, never compare strictly against 1.
+        -- HasPedGotWeaponComponent is boolean on modern FiveM, 1/0 on older — accept both.
         local r = HasPedGotWeaponComponent(cache.ped, weaponHash, suppressorComps[i])
         if r == true or r == 1 then
             return true
@@ -70,17 +74,9 @@ local function heatT()
 end
 
 -- ── Glow target entity ──────────────────────────────────────────────────────────
---- The entity to glow on: the weapon in hand if armed, otherwise the matching
---- slung prop on the player's back so the suppressor keeps glowing and visibly
---- cools after holstering (more realistic than snapping off).
----
---- The slung prop is one of the local player's CreateWeaponObject entities tracked
---- by core/client.lua in playersToTrack[cache.serverId][slot]; we match it by model
---- (GetEntityModel == GetWeapontypeModel) so it works on any slot. Drawing on its
---- gun_muzzle bone is just a world-space draw call — unlike the slung-flashlight
---- attach, it isn't affected by the engine quirks the header warns about.
+--- The held weapon if armed, else the matching slung prop (matched by model) so the glow survives holstering.
 ---@param weaponHash number  hash of the (possibly holstered) suppressed weapon
----@return number entity  0 if neither held nor slung prop is available
+---@return number entity  0 if neither is available
 local function glowEntity(weaponHash)
     local held = GetCurrentPedWeaponEntityIndex(cache.ped)
     if held and held ~= 0 and DoesEntityExist(held) then
@@ -101,9 +97,7 @@ local function glowEntity(weaponHash)
     return 0
 end
 
---- World position of the given weapon entity's muzzle (no hand fallback: snapping
---- to the hand bone when the entity is gone is exactly what caused the holster
---- flicker). Returns nil when the entity is invalid so callers can skip drawing.
+--- World position of the weapon entity's muzzle, or nil if the entity is gone (no hand-bone fallback — that snap-to-hand caused the holster flicker).
 ---@param entity number
 ---@return vector3?
 local function muzzlePos(entity)
@@ -154,9 +148,7 @@ local function stopGlow()
     end
 end
 
---- Start / maintain the looped heat-glow particle on the weapon's muzzle.
---- Tints orange -> red and scales with heat. Works on the held weapon or, once
---- holstered, the matching slung prop (entity resolved by the caller).
+--- Start / maintain the looped heat-glow particle on the muzzle, tinting orange -> red and scaling with heat; works on the held weapon or, once holstered, the matching slung prop (entity resolved by the caller).
 ---@param weaponEntity number
 local function updateGlow(weaponEntity)
     if not weaponEntity or weaponEntity == 0 or not DoesEntityExist(weaponEntity) then
@@ -214,6 +206,30 @@ CreateThread(function()
     end
 
     while true do
+        -- Companion-driven glow (paid overheat): if a combat resource pushed heat
+        -- recently, it OWNS the glow — on ANY held weapon's muzzle, bypassing both the
+        -- suppressor/ammo path AND malisling's own suppressor toggle (shooting gates it
+        -- on its side). Single source of truth, no double-count.
+        if (GetGameTimer() - extHeatAt) < 600 then
+            local eHas, eHash = GetCurrentPedWeapon(cache.ped, true)
+            if eHas and eHash ~= 0 and eHash ~= `WEAPON_UNARMED` then
+                heat = extHeat01 * cfg.MaxHeat
+                if heat >= cfg.WarmThreshold then
+                    local entity = GetCurrentPedWeaponEntityIndex(cache.ped)
+                    if entity ~= 0 and DoesEntityExist(entity) then
+                        if cfg.Mode == 'particle' then updateGlow(entity)
+                        elseif cfg.Mode == 'light' then renderLight(entity)
+                        else renderGlowSphere(entity) end
+                    else stopGlow() end
+                else
+                    stopGlow()
+                end
+                lastClip = nil
+                Wait(0)
+                goto continue
+            end
+        end
+
         if not cfg.Enabled then
             if heat > 0 then heat = 0 end
             stopGlow()
@@ -223,9 +239,8 @@ CreateThread(function()
         local has, weaponHash = GetCurrentPedWeapon(cache.ped, true)
         local armed = has and weaponHash ~= 0 and weaponHash ~= `WEAPON_UNARMED`
 
-        -- Cold-on-swap: drawing a DIFFERENT weapon than the last armed one resets
-        -- heat. Holstering (going unarmed) does NOT — the suppressor stays hot and
-        -- keeps cooling on the back. Re-drawing the same still-hot weapon keeps it.
+        -- Cold-on-swap: drawing a DIFFERENT weapon resets heat; holstering does not
+        -- (it stays hot, cooling on the back). Re-drawing the same hot weapon keeps it.
         if armed then
             if weaponHash ~= lastArmedHash then
                 if weaponHash ~= suppHash then heat = 0 end
@@ -246,17 +261,14 @@ CreateThread(function()
         else
             local dt = GetFrameTime()
 
-            -- Detect shots via clip-ammo decrement: IsPedShooting is true for too
-            -- few frames per shot to accumulate heat reliably. Each round fired
-            -- adds a fixed amount of heat. Only while the gun is in hand.
+            -- Detect shots by clip-ammo decrement (IsPedShooting is too brief per shot
+            -- to count reliably); each round adds fixed heat. Only while in hand.
             if heldSupp then
                 local _, clip = GetAmmoInClip(cache.ped, weaponHash)
                 if lastClip and clip and clip < lastClip then
                     local shots = lastClip - clip
-                    -- Only small per-tick drops are gunfire. A whole-magazine drop
-                    -- (holster / unequip / reload glitch) is implausible as fire and
-                    -- would otherwise spike heat and light the suppressor on the back
-                    -- without a shot being fired — ignore it.
+                    -- Only small per-tick drops are gunfire; a whole-magazine drop
+                    -- (holster/unequip/reload) isn't a burst of fire — ignore it.
                     if shots <= (cfg.MaxShotsPerTick or 4) then
                         heat = math.min(cfg.MaxHeat, heat + shots * cfg.HeatPerShot)
                         lastShotTime = GetGameTimer()
@@ -269,9 +281,8 @@ CreateThread(function()
                 heat = math.max(0, heat - cfg.DecayRate * dt)
             end
 
-            -- Render on the held weapon, or on the matching slung prop once holstered
-            -- (glowEntity resolves both). No render when no valid entity exists, so
-            -- the glow never snaps to a fallback position — that was the flicker.
+            -- glowEntity resolves held weapon or slung prop; no entity → no render
+            -- (never snap to a fallback position — that was the flicker).
             if heat >= cfg.WarmThreshold then
                 local entity = glowEntity(suppHash ~= 0 and suppHash or weaponHash)
                 if entity ~= 0 then
@@ -290,7 +301,9 @@ CreateThread(function()
             end
 
             if heat <= 0 then suppHash = 0 end
-            Wait(0)
+            -- Per-frame while the glow is drawn or a gun is in hand (a draw-call glow flickers if
+            -- not redrawn every frame); throttle only the invisible cooling tail. Decay is dt-based.
+            if heldSupp or heat >= (cfg.WarmThreshold or 35) then Wait(0) else Wait(20) end
         end
         ::continue::
     end

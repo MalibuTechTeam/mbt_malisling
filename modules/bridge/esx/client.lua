@@ -9,9 +9,8 @@ RegisterNetEvent('esx:playerLoaded')
 AddEventHandler('esx:playerLoaded', function(xPlayer)
     ESX.PlayerLoaded = true
     PlayerData = xPlayer
-    -- For fast multichar (no loading screen between switches), esx:loadingScreenOff
-    -- does not re-fire, so Init() would never run for the second character.
-    -- isInitialized was reset by esx:onPlayerLogout, so this is safe to call here.
+    -- Fast multichar: esx:loadingScreenOff doesn't re-fire, so Init() runs here for
+    -- the 2nd character. isInitialized was reset by esx:onPlayerLogout, so this is safe.
     if not isInitialized then
         isInitialized = true
         Init()

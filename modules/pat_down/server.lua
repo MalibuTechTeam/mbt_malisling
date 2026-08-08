@@ -1,12 +1,9 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Pat-down (LEO frisk) — server
---
--- An allowed-job officer frisks a nearby person. The TRUTH comes from here: the
--- server reads the target's inventory weapons and, for each, derives how it was
--- carried — visible / concealed (poor|good) / back-carried — from the concealment
--- statebag and the weapon type. The target consents (unless cuffed + bypass).
--- This is NOT an inventory search: only weapons + carry status + serial leave the
--- server. Every completed frisk → optional Discord audit webhook.
+-- TRUTH lives here: server reads the target's inventory weapons and derives carry
+-- status (visible / concealed poor|good / back) from the concealment statebag and
+-- weapon type. Target consents unless cuffed + bypass. NOT an inventory search:
+-- only weapons + carry status + serial leave the server. Optional Discord audit.
 -- ─────────────────────────────────────────────────────────────────────────────
 
 if not MBT.PatDown then return end
@@ -55,8 +52,7 @@ local function frisk(target)
     return out
 end
 
---- Worst (longest) search time among the findings — a well-hidden gun makes the
---- whole frisk take longer; a poorly-hidden / visible one is quick.
+--- Worst (longest) search time among the findings: a well-hidden gun makes the frisk take longer, a poorly-hidden or visible one is quick.
 local function searchMs(findings)
     local ms = cfg.SearchMsPoor or 600
     for _, f in ipairs(findings) do
@@ -110,12 +106,17 @@ RegisterNetEvent('mbt_malisling:patdown:request', function(targetServerId)
         return
     end
 
-    -- Cuffed targets can be frisked without consent (config); otherwise ask.
-    -- IsPedCuffed may be client-only on some builds → pcall-guard, default false.
+    -- Cuffed targets skip consent (config). IsPedCuffed reads the TARGET's ped state
+    -- (client-influenced server-side) so prefer a trusted cfg.IsRestrained(src); fall
+    -- back to the native only when it isn't provided.
     local cuffed = false
     if cfg.CuffedBypass then
-        local ok, c = pcall(IsPedCuffed, pedB)
-        cuffed = ok and c == true
+        if type(cfg.IsRestrained) == 'function' then
+            cuffed = cfg.IsRestrained(target) == true
+        else
+            local ok, c = pcall(IsPedCuffed, pedB)
+            cuffed = ok and c == true
+        end
     end
     if cfg.RequireConsent and not cuffed then
         pending[target] = { officer = officer, expires = now + (cfg.RequestTimeoutMs or 8000) }
@@ -177,4 +178,11 @@ AddEventHandler('playerDropped', function()
     if not s then return end
     lastUse[s] = nil
     pending[s] = nil
+    -- The officer may have dropped while their request is still pending under the TARGET's key.
+    for target, offer in pairs(pending) do
+        if offer.officer == s then
+            pending[target] = nil
+            TriggerClientEvent('mbt_malisling:patdown:expired', target)
+        end
+    end
 end)

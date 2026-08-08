@@ -1,11 +1,25 @@
-lib.versionCheck('MalibuTechTeam/mbt_malisling')
+-- Refuse to run under a renamed folder (anti clone-and-rebrand). core/server.lua registers
+-- the script's server callbacks, so bailing here leaves the whole resource inert on a rename.
+if not Utils.MbtResourceNameCheck('mbt_malisling') then return end
+
+-- Version check lives in modules/version/server.lua: it also feeds the dashboard badge,
+-- which lib.versionCheck can't do (console-only, result not exposed).
 
 local isReady = false
 playersToTrack = {}
 
--- Inventory and loadInventoryWeaponsData() are provided by modules/inventory/*/server.lua
-if not Inventory then
-    Utils.mbtWarn("mbt_malisling: No supported inventory found! Install ox_inventory >= 2.30.0 or qb-inventory.")
+-- Inventory and loadInventoryWeaponsData() come from modules/inventory/*/server.lua, which
+-- bail out when their inventory is not 'started' at the moment we load — a restart that
+-- leaves ox_inventory briefly in 'starting' takes both out. Without this guard the next
+-- line calls a nil global, and that error names nothing an owner can act on.
+-- Stop, don't return: modules loaded before this file call MBT.NetThrottle, defined below.
+if not Inventory or not loadInventoryWeaponsData then
+    Utils.Error(
+        "No supported inventory detected at startup. Install ox_inventory >= 2.30.0 or qb-inventory, " ..
+        "and make sure it is fully started BEFORE mbt_malisling — in server.cfg, ensure it first. " ..
+        "If it was already running, this usually means it was mid-restart: restart mbt_malisling on its own."
+    )
+    return StopResource(GetCurrentResourceName())
 end
 
 lib.callback.register('mbt_malisling:getWeapoConf', function(source)
@@ -48,14 +62,29 @@ AddEventHandler('onServerResourceStart', function(resource)
     loadWeaponsInfo()
 end)
 
+-- Per-source net-event throttle — the house anti-spam pattern. Exposed as MBT.NetThrottle
+-- so feature modules share one per-src table (cleared on playerDropped below).
+local _lastNet = {}   -- [src] = { [key] = lastMs }
+local function netThrottle(src, key, ms)
+    local t = _lastNet[src]
+    if not t then t = {}; _lastNet[src] = t end
+    local now = GetGameTimer()
+    if t[key] and (now - t[key]) < ms then return false end
+    t[key] = now
+    return true
+end
+MBT.NetThrottle = netThrottle
+
 AddEventHandler("playerDropped", function()
     if not source then return end
+    _lastNet[source] = nil
     dropPlayer(source)
 end)
 
 RegisterNetEvent("mbt_malisling:getPlayersInPlayerScope")
 AddEventHandler("mbt_malisling:getPlayersInPlayerScope", function(data)
     if type(data) ~= "table" then return end
+    if not netThrottle(source, 'scope', 100) then return end
     if not scopes[tostring(source)] then scopes[tostring(source)] = {} end
     local limit = math.min(#data, 2048)
     for i = 1, limit do
@@ -68,6 +97,7 @@ end)
 
 RegisterNetEvent("mbt_malisling:checkInventory")
 AddEventHandler("mbt_malisling:checkInventory", function()
+    if not netThrottle(source, 'checkInv', 250) then return end
     Utils.mbtDebugger("checkInventory ~ Checking inventory for source ", source)
     local items = Inventory:GetInventoryItems(source)
     if type(items) ~= "table" then items = {} end
@@ -84,6 +114,7 @@ RegisterNetEvent("mbt_malisling:syncSling")
 AddEventHandler("mbt_malisling:syncSling", function(data)
     local _source = source
     if type(data) ~= "table" or type(data.playerWeapons) ~= "table" then return end
+    if not netThrottle(_source, 'syncSling', 100) then return end
     if not playersToTrack[_source] then playersToTrack[_source] = {} end
     for k, v in pairs(data.playerWeapons) do
         if _validWeaponTypes[k] and (type(v) == "table" or v == false) then
@@ -94,7 +125,7 @@ AddEventHandler("mbt_malisling:syncSling", function(data)
     -- keyed by serial — NOT a metadata write, which would re-trigger updateInventory
     -- and re-spawn the slung prop while the weapon is in hand).
     if MBT.ChainOfCustody and MBT.ChainOfCustody.RecordHolders then
-        MBT.ChainOfCustody.RecordHolders(_source, data.playerWeapons)
+        MBT.ChainOfCustody.RecordHolders(_source)   -- resolves serials server-side; ignores client payload
     end
 
     Wait(100)
@@ -117,6 +148,8 @@ end)
 RegisterNetEvent("mbt_malisling:syncDeletion")
 AddEventHandler("mbt_malisling:syncDeletion", function(weaponType)
     local _source = source
+    if not _validWeaponTypes[weaponType] then return end   -- validate the key, like syncSling
+    if not netThrottle(_source, 'syncDel', 100) then return end
     if playersToTrack[_source] == nil then return end
     playersToTrack[_source][weaponType] = false
 
@@ -200,7 +233,7 @@ end
 ---@return promise
 local function triggerCl(data)
     local event = data.event
-    if not data.event then Utils.mbtWarn("No event has passed in triggerCl function") return end
+    if not event or type(event) ~= "string" then Utils.mbtWarn("No event has passed in triggerCl function") return end
     local target = data.target
     if not data.target then Utils.mbtWarn("No target has passed in triggerCl function") return end
     local payload = data.payload

@@ -167,8 +167,7 @@
 }
 
 /* ── Inputs ───────────────────────────────────────────────────────────── */
-.mbt-input,
-.mbt-select {
+.mbt-input {
   height: 38px;
   padding: 0 12px;
   background: var(--mbt-surface-base);
@@ -182,8 +181,7 @@
   outline: none;
   transition: border-color var(--mbt-dur) var(--mbt-ease);
 }
-.mbt-input:focus,
-.mbt-select:focus {
+.mbt-input:focus {
   border-color: rgba(var(--mbt-accent-rgb), 0.45);
   box-shadow: 0 0 0 3px var(--mbt-accent-glow);
 }
@@ -225,20 +223,6 @@ input[type="number"]::-webkit-outer-spin-button {
 .mbt-field--error .mbt-input:focus {
   border-color: rgba(var(--mbt-hacked-rgb), 0.55);
   box-shadow: none;
-}
-
-.mbt-select {
-  cursor: pointer;
-  appearance: none;
-  -webkit-appearance: none;
-  padding-right: 30px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238C8A82' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 10px center;
-}
-.mbt-select option {
-  background: var(--mbt-surface-2);
-  color: var(--mbt-text-hi);
 }
 
 /* ── Setting block (toggle-gated section item) ────────────────────────── */

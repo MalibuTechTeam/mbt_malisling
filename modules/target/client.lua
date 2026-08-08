@@ -1,13 +1,8 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Target interaction abstraction (coords / sphere-zone based).
---
--- Uses ox_target sphere zones rather than entity targeting: entity targeting
--- (addLocalEntity) does not work on CreateWeaponObject props — ox_target's
--- raycast does not register weapon-object entities. A coords-based sphere zone
--- is independent of the entity type and works reliably.
---
--- Falls back to a drawtext + E-key proximity prompt when ox_target is absent.
--- ox_target stays an optional (soft) dependency.
+-- Uses ox_target sphere zones, NOT entity targeting: addLocalEntity/raycast does
+-- not register CreateWeaponObject props; a coords sphere is entity-type agnostic.
+-- Falls back to drawtext + E-key proximity when ox_target (soft dep) is absent.
 -- ─────────────────────────────────────────────────────────────────────────────
 
 Target = {}
@@ -15,8 +10,7 @@ Target = {}
 local oxZones       = {}  -- [id] = ox_target zone handle
 local fallbackZones = {}  -- [id] = { coords = vec3, opts = table }
 
---- Checked per-call (not cached at load): resource start order is not
---- guaranteed, so a load-time snapshot can be permanently wrong.
+--- Checked per-call, not cached: start order isn't guaranteed, so a load-time snapshot can be permanently wrong.
 local function oxTargetReady()
     return GetResourceState('ox_target') == 'started'
 end
