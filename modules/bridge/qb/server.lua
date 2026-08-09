@@ -14,6 +14,16 @@ function getPlayerJob(s)
     return xPlayer.PlayerData.job.name
 end
 
+--- Jobs as a set, mirroring the ox_core bridge. QBCore has one job per player, so this
+--- is always zero or one entry — it exists so callers can ask the same question the
+--- same way on every framework.
+---@param s number|string
+---@return table<string, true>
+function getPlayerJobs(s)
+    local job = getPlayerJob(s)
+    return job ~= '' and { [job] = true } or {}
+end
+
 function getPlayerSex(s)
     s = tonumber(s)
     local xPlayer = QBCore.Functions.GetPlayer(s)

@@ -151,7 +151,10 @@ local function canUse(src, loc)
         if identifierOf(src) ~= loc.owner then return false end
     end
     if not loc.job then return true end
-    return getPlayerJob(src) == loc.job
+    -- playerHasJob, not `getPlayerJob(src) == loc.job`: on ox_core a player can hold
+    -- several groups and getPlayerJob picks one, so the equality locked a cop out of
+    -- the armoury whenever their other group happened to sort first.
+    return playerHasJob(src, loc.job)
 end
 
 --- Armory audit log → Discord webhook (fire-and-forget); reads cfg.Logging fresh each call so the admin menu's live-apply takes effect without a restart.

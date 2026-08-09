@@ -118,7 +118,7 @@ end)
 
 local function canExamine(src)
     if not cfg.ExamineJobs then return true end
-    return cfg.ExamineJobs[getPlayerJob(src)] == true
+    return playerHasAnyJob(src, cfg.ExamineJobs)
 end
 
 --- Serial → what the examine card reveals ('partial' keeps head + tail).
