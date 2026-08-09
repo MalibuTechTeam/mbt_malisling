@@ -91,6 +91,14 @@ local function applyConfig(d)
     MBT.EnableSling       = d.EnableSling
     MBT.EnableFlashlight  = d.EnableFlashlight
     MBT.DropWeaponOnDeath = d.DropWeaponOnDeath
+    -- The holster prompt lives in patched ox_inventory code, which cannot see MBT.*: it
+    -- is a different resource. A statebag crosses that line on the same client, and the
+    -- hook reads it at the moment you draw, so the dashboard toggle takes effect without
+    -- restarting anything. Not a convar — modules/inventory/qb/client.lua:145 records
+    -- that SetConvarReplicated does not reliably reach the client on every qb server,
+    -- and it killed the side-weapon prompt once already.
+    MBT.HolsterConfirm    = d.HolsterConfirm
+    LocalPlayer.state:set('malisling_holster_confirm', d.HolsterConfirm ~= false, false)
     if MBT.UI then MBT.UI.Position = d.UIPosition end
     if d.UIStyle then MBT.UIStyle = d.UIStyle end
     if d.Sounds and MBT.Sounds then

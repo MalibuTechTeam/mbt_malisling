@@ -14,6 +14,13 @@ MBT = MBT or {}
 MBT.DropWeaponOnDeath  = true
 MBT.EnableSling        = true
 MBT.EnableFlashlight   = true
+-- Drawing a sidearm asks you to confirm before the weapon reaches your hand. Turn this
+-- off and the draw animation still plays, it just doesn't wait for an answer.
+-- Worth knowing if your host blocks resources from writing files: the ox_inventory patch
+-- exists so this prompt can hook the equip flow, so with the prompt off a failed patch
+-- costs you nothing. The patch is still applied when it can be — the switch is read at
+-- the moment you draw, not at startup, which is what lets the dashboard flip it live.
+MBT.HolsterConfirm     = true
 
 -- UI
 MBT.UI                 = {

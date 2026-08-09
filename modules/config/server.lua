@@ -60,6 +60,7 @@ local function snapshot()
         -- General (editable). Debug is intentionally NOT exposed (dev flag → config.lua).
         EnableSling       = b(MBT.EnableSling),
         EnableFlashlight  = b(MBT.EnableFlashlight),
+        HolsterConfirm    = b(MBT.HolsterConfirm),
         DropWeaponOnDeath = b(MBT.DropWeaponOnDeath),
         UIPosition        = MBT.UI.Position,
         UIStyle           = MBT.UIStyle or 'standard',
@@ -234,6 +235,7 @@ local function validate(d)
     -- General
     if type(d.EnableSling) ~= 'boolean' then return false end
     if type(d.EnableFlashlight) ~= 'boolean' then return false end
+    if type(d.HolsterConfirm) ~= 'boolean' then return false end
     if type(d.DropWeaponOnDeath) ~= 'boolean' then return false end
     if type(d.UIPosition) ~= 'string' or not VALID_POSITIONS[d.UIPosition] then return false end
     if d.UIStyle ~= 'standard' and d.UIStyle ~= 'cinematic' then return false end
@@ -405,6 +407,7 @@ end
 local function applyToMBT(d)
     MBT.EnableSling       = d.EnableSling
     MBT.EnableFlashlight  = d.EnableFlashlight
+    MBT.HolsterConfirm    = d.HolsterConfirm
     MBT.DropWeaponOnDeath = d.DropWeaponOnDeath
     MBT.UI.Position       = d.UIPosition
     MBT.UIStyle           = d.UIStyle
@@ -564,6 +567,7 @@ end
 local function persistable(d)
     return {
         EnableSling = d.EnableSling, EnableFlashlight = d.EnableFlashlight,
+        HolsterConfirm = d.HolsterConfirm,
         DropWeaponOnDeath = d.DropWeaponOnDeath, UIPosition = d.UIPosition, UIStyle = d.UIStyle,
         Sounds = { Enabled = d.Sounds.Enabled, MaxDistance = d.Sounds.MaxDistance, Volume = d.Sounds.Volume },
         WeaponDrop = {
