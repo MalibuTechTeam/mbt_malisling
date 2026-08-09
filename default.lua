@@ -72,11 +72,16 @@ MBT.PropInfo           = {
             ["male"]   = { ["x"] = 0.0, ["y"] = 145.0, ["z"] = 0.0 },
             ["female"] = { ["x"] = 0.0, ["y"] = 155.0, ["z"] = 0.0 },
         },
+        -- sleep/sleepOut are how long ox blocks before the weapon is in hand: they land
+        -- in Items[name].anim via the ox patch, and ox reads them as `anim[3]`. They are
+        -- the FEEL of drawing a long gun, so tune them against the clip, not the clock —
+        -- go too low and the rifle appears in your hands while the arm is still reaching
+        -- behind your back. 2000 was the original; 1200 matches melee3 and reads snappier.
         ["HolsterAnim"] = {
             ["dict"]     = "reaction@intimidation@1h",
             ["animIn"]   = "intro",
             ["animOut"]  = "outro",
-            ["sleep"]    = 2000,
+            ["sleep"]    = 1200,
             ["sleepOut"] = 1600,
         },
     },
