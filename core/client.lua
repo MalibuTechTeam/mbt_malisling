@@ -256,6 +256,17 @@ function GetLocalSlungProp(propType)
     return nil
 end
 
+--- Tell the server our job changed, so every observer re-decides what to draw on us:
+--- the job selects both whether a prop exists (MBT.HiddenByJob) and where it sits
+--- (MBT.CustomPropPosition).
+--- Called by the framework bridges, and only by them. Deliberately NOT folded into
+--- sendAnimations, even though all four bridges call that too: sendAnimations also runs
+--- at Init and on every live position broadcast from the editor, and a delete-and-resync
+--- on those paths would mean a storm of them while someone drags a slider.
+function NotifyJobChanged()
+    TriggerServerEvent('mbt_malisling:jobChanged')
+end
+
 function sendAnimations(jobName)
     -- ox_core uses PlayerData.groups instead of a single job name
     if PlayerData and PlayerData.groups then

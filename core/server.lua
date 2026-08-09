@@ -104,6 +104,29 @@ AddEventHandler("mbt_malisling:checkInventory", function()
     TriggerClientEvent("mbt_malisling:checkWeaponProps", source, items)
 end)
 
+-- Job changed: every observer has to re-decide what to draw on this player. Their job
+-- feeds MBT.HiddenByJob (whether a prop exists at all) and MBT.CustomPropPosition (where
+-- it sits), and neither was re-evaluated on a job change before — the props simply kept
+-- whatever they were given when they spawned.
+RegisterNetEvent("mbt_malisling:jobChanged")
+AddEventHandler("mbt_malisling:jobChanged", function()
+    local _source = source
+    if not netThrottle(_source, 'jobChange', 1000) then return end
+
+    -- ONE broadcast that clears every type, not a loop of per-type syncDeletion: that
+    -- event is throttled at 100ms per source, so most of seven deletes would be dropped
+    -- and the player would be left with a half-updated set of props.
+    TriggerClientEvent("mbt_malisling:syncDeletion", -1,
+        { playerSource = _source, weaponType = "all", calledBy = "jobChanged" })
+
+    -- Then let the normal path rebuild. The client re-reports what it carries, the sync
+    -- goes back out with the job re-resolved HERE (a job name from a client is not
+    -- evidence), and the suppression predicate drops whatever the new job hides.
+    local items = Inventory:GetInventoryItems(_source)
+    if type(items) ~= "table" then items = {} end
+    TriggerClientEvent("mbt_malisling:checkWeaponProps", _source, items)
+end)
+
 -- Derived from MBT.PropInfo so any custom type added to the config (e.g.
 -- 'extinguisher') is accepted automatically — no separate whitelist to keep
 -- in sync.
