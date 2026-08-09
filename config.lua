@@ -10,7 +10,7 @@
 MBT = MBT or {}
 
 -- ── General ───────────────────────────────────────────────────────────────────
-MBT.Debug              = false  -- dev logging; intentionally NOT exposed in the dashboard
+MBT.Debug              = true  -- dev logging; intentionally NOT exposed in the dashboard
 MBT.Language           = 'en'   -- read-only in the dashboard; set the server language here
 
 -- ── Admin ─────────────────────────────────────────────────────────────────────
@@ -64,6 +64,27 @@ MBT.HolsterControls.Confirm.Key   = 'MOUSE_RIGHT'
 MBT.HolsterControls.Confirm.Input = 'MOUSE_BUTTON'   -- 'MOUSE_BUTTON' | 'keyboard'
 MBT.HolsterControls.Cancel.Key    = 'BACK'
 MBT.HolsterControls.Cancel.Input  = 'keyboard'
+
+-- ── Hide sling props per job ──────────────────────────────────────────────────
+-- Police uniforms — GTA's own and most EUP packs — have a duty holster with a pistol
+-- MODELLED INTO THE CLOTHING. We then attach ours on the same hip, and the officer
+-- visibly carries two. The second one lives in the mesh: we can't see it or move it,
+-- we can only decline to add a third thing to the picture.
+--
+-- Keys are BODY SLOTS, not weapon families: `side` is every pistol, `back` is every long
+-- gun, then back2 / melee / melee2 / melee3. Hiding applies to everyone who sees that
+-- player, not just to themselves — it is their uniform.
+--
+-- ⚠️ The rule is per JOB, not per outfit. An officer in plain clothes has the same job
+-- and no modelled holster, so this takes their pistol away too. Reading the ped's
+-- clothing to tell the difference is not something we can ship: the drawable indices
+-- change with every EUP pack. If your server needs the distinction, use two jobs.
+--
+-- Hiding is the blunt option. MBT.CustomPropPosition in default.lua does the other half
+-- and already works: move the pistol to the thigh instead of removing it.
+MBT.HiddenByJob = {
+    -- ["police"] = { ["side"] = true },
+}
 
 -- ── QB-weapons interop ─────────────────────────────────────────────────────────
 -- Only relevant on QBCore + qb-weapons. qb-weapons owns its own pistol draw

@@ -205,6 +205,22 @@ They are the one setting the dashboard cannot change, and there is a reason. Bin
 
 Two things worth knowing. The holster prompt's two bindings each carry the input family they belong to; change `Key` and `Input` together, because a keyboard key left on `MOUSE_BUTTON` never fires and never says so. And `config.lua` is replaced when you update, like every other file in the folder — keep a note of your keys, or you will set them again after the next release.
 
+### Officers carrying two pistols
+
+Most police uniforms — GTA's own and nearly every EUP pack — have a duty holster with a pistol **modelled into the clothing**. We attach ours on the same hip, so the officer ends up with two. The second one lives in the mesh: nothing can see it or move it.
+
+Hide ours for that job, in `config.lua`:
+
+```lua
+MBT.HiddenByJob = {
+    ['police'] = { ['side'] = true },
+}
+```
+
+Keys are **body slots**, not weapon families: `side` is every pistol, `back` every long gun. The rule applies to everyone who sees that officer, and it re-evaluates the moment they change job.
+
+It is per job, not per outfit — an officer in plain clothes has the same job and no modelled holster, and loses their pistol too. Use two jobs if you need the distinction. And if you would rather **move** our pistol than remove it, `MBT.CustomPropPosition` in `default.lua` has done that all along.
+
 ### Discord audit logs
 
 Weapon drops, armory racks and pat-downs can each post to a Discord webhook. The URLs live in `config.lua` and **not** in the dashboard: a webhook is a secret, and the dashboard is rendered on the player's side. They sit behind an `IsDuplicityVersion()` guard so they never reach a client.
