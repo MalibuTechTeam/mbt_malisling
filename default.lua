@@ -587,6 +587,13 @@ MBT.Inspect            = {
     Enabled     = true,
     Key         = 'I',  -- set in config.lua
     MaxDistance = 20.0,   -- nearby players that see the inspect animation
+    -- Safety net for a hold that never gets released. Inspect starts on key down and
+    -- ends on key UP, and if another resource takes NUI focus the moment you press —
+    -- which is what happens when this key is also your inventory key — the release
+    -- never reaches the game and the overlay stays up until you press again. We can't
+    -- intercept another resource's key-up, so instead it gives up after this long.
+    -- Nobody looks at a weapon for fifteen seconds, so it costs honest use nothing.
+    MaxHoldSeconds = 15,
     -- Inspection animation. This is the base-game weapon "fidget" idle (the ped
     -- manipulates / looks over the held weapon) — the same clip the popular free
     -- weapon-inspect scripts use; it plays fine in third person despite the
