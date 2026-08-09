@@ -31,6 +31,40 @@ MBT.Admin              = {
     Permission = nil,
 }
 
+-- ── Keybinds ──────────────────────────────────────────────────────────────────
+-- Every key the resource binds, in one place. They live HERE and not in default.lua
+-- for a concrete reason: they are the one setting you cannot tune live. Bindings are
+-- registered once at resource start, and **FiveM then caches them per player profile**
+-- — so changing a key later does nothing for anyone who has already joined. Set them
+-- before your first start; after that, players rebind in
+-- GTA Settings → Key Bindings → FiveM.
+--
+-- '' = no key, command only (each feature keeps its chat command either way).
+-- Defaults also live in default.lua, so deleting a line here falls back rather than
+-- breaking. And like every file in this folder, config.lua is REPLACED on update —
+-- keep a note of your keys, or you will re-do this after the next release.
+-- (The admin dashboard key is in MBT.Admin above, next to its command and ACE.)
+
+MBT.Inspect.Key        = 'I'        -- hold: examine the weapon in hand (serial, condition)
+MBT.ConcealedCarry.Key = 'U'        -- conceal / reveal (the weapon must be holstered)
+MBT.PatDown.Key        = 'Y'        -- hold near a person: frisk them (allowed jobs only)
+MBT.Handoff.Key        = 'G'        -- hand the weapon you hold to a nearby player
+MBT.AmmoSharing.Key    = 'H'        -- give ammo to a nearby player
+MBT.Throw.Key          = 'K'        -- throw the weapon in hand
+MBT.LowReady.Key       = 'HOME'     -- low ready / chest carry stance
+MBT.Safety.Key         = 'END'      -- toggle the safety
+MBT.ChargeWeapon.Key   = 'INSERT'   -- charge (rack) the weapon
+MBT.WeaponName.Key     = ''         -- engrave a custom name on a weapon
+MBT.ShowcasePoses.Key  = ''         -- showcase poses
+
+-- Holster prompt: two bindings, and each carries the INPUT FAMILY it belongs to.
+-- Change Key and Input together — a keyboard key with Input = 'MOUSE_BUTTON' simply
+-- never fires, and it fails silently.
+MBT.HolsterControls.Confirm.Key   = 'MOUSE_RIGHT'
+MBT.HolsterControls.Confirm.Input = 'MOUSE_BUTTON'   -- 'MOUSE_BUTTON' | 'keyboard'
+MBT.HolsterControls.Cancel.Key    = 'BACK'
+MBT.HolsterControls.Cancel.Input  = 'keyboard'
+
 -- ── QB-weapons interop ─────────────────────────────────────────────────────────
 -- Only relevant on QBCore + qb-weapons. qb-weapons owns its own pistol draw
 -- animation (Config.WeapDraw), played by an independent loop on weapon switch.
