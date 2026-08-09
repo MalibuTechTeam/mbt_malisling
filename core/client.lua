@@ -743,6 +743,13 @@ AddEventHandler('mbt_malisling:syncSling', function (data)
             -- window, spawn two props, and orphan the first (it stays on the back
             -- after equip deletes the tracked one). The sentinel makes the loser skip.
             playersToTrack[data.playerSource][weaponType] = true
+            -- Spawn-window timing (debug only). Since b5d8c5b the prop is invisible for
+            -- this whole stretch, so "the weapon takes a while to appear" is a report
+            -- about a duration nobody can see. Split per phase: the three candidates are
+            -- weapon streaming, per-component model streaming, and the fixed flashlight
+            -- Wait — and they have very different fixes.
+            local tStart = GetGameTimer()
+            local tAsset, tExist, tComps
             local attachInfo = getAttachInfo({
                 Job = playerJob,
                 Type = weaponType
@@ -763,6 +770,7 @@ AddEventHandler('mbt_malisling:syncSling', function (data)
                 playersToTrack[data.playerSource][weaponType] = false
                 goto continue
             end
+            tAsset = GetGameTimer()
             weaponData.weaponObj = CreateWeaponObject(weaponData.weaponHash, 50, playerCoords.x, playerCoords.y, playerCoords.z, true, 1.0, 0)
             RequestWeaponHighDetailModel(weaponData.weaponObj)
             RemoveWeaponAsset(weaponData.weaponHash)   -- object keeps its model; the asset was never freed (streaming-memory leak)
@@ -771,6 +779,8 @@ AddEventHandler('mbt_malisling:syncSling', function (data)
             while not DoesEntityExist(weaponData.weaponObj) and GetGameTimer() < deadline do
                 Wait(10)
             end
+
+            tExist = GetGameTimer()
 
             if not DoesEntityExist(weaponData.weaponObj) then
                 Utils.mbtDebugger("syncSling ~ Weapon object failed to create for ", weaponData.name)
@@ -785,6 +795,7 @@ AddEventHandler('mbt_malisling:syncSling', function (data)
                 -- sentinel, and that loop only touches number handles.
                 SetEntityVisible(weaponData.weaponObj, false, 0)
                 local hasObjFlashlight = applyAttachments(weaponData)
+                tComps = GetGameTimer()
                 -- Light the slung prop only when it ACTUALLY received a flashlight component
                 -- AND the saved state says it was on. The component check prevents a weapon
                 -- with stale/leaked flashlightState (but no torch) from glowing. NOTE: once a
@@ -813,6 +824,10 @@ AddEventHandler('mbt_malisling:syncSling', function (data)
                 Utils.syncPropAlpha(weaponData.weaponObj, GetEntityAlpha(playerPed))
                 SetFlashLightKeepOnWhileMoving(true)
                 Utils.mbtDebugger("syncSling ~ Apply attachments to weapon obj!")
+                local tEnd = GetGameTimer()
+                Utils.mbtDebugger(("syncSling ~ TIMING %s [%s]  total %dms  =  stream %d + create %d + components %d + attach %d")
+                    :format(weaponData.name, weaponType, tEnd - tStart,
+                        tAsset - tStart, tExist - tAsset, tComps - tExist, tEnd - tComps))
                 playersToTrack[data.playerSource][weaponType] = weaponData.weaponObj
                 weaponObjectiveSpawned[#weaponObjectiveSpawned+1] = weaponData.weaponObj
             end
