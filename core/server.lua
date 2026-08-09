@@ -138,6 +138,11 @@ AddEventHandler("mbt_malisling:syncSling", function(data)
             type = "add",
             playerSource = _source,
             playerJob = getPlayerJob(_source),
+            -- Full set alongside the single name: MBT.HiddenByJob has to answer "is this
+            -- player a cop", and on ox_core someone can hold several groups at once, so
+            -- the single name is one arbitrary pick out of them. playerJob stays for the
+            -- position overrides, which are keyed by one job by design.
+            playerJobs = getPlayerJobs(_source),
             pedSex = getPlayerSex(_source),
             calledBy = "mbt_malisling:syncSling ~ 162",
             playerWeapons = playersToTrack[_source]
@@ -334,6 +339,7 @@ Citizen.CreateThread(function()
                             tType = values[i].type == "Removed" and "del" or "add",
                             playerSource = tonumber(source),
                             playerJob = getPlayerJob(source),
+                            playerJobs = getPlayerJobs(source),
                             pedSex = getPlayerSex(source),
                             playerWeapons = values[i].type == "Added" and playersToTrack[tonumber(source)] or nil
                         }

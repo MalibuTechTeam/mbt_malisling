@@ -194,6 +194,27 @@ MBT.PropInfo           = {
     },
 }
 
+-- ── Hide sling props per job ──────────────────────────────────────────────────
+-- Police uniforms — GTA's own and most EUP packs — have a duty holster with a pistol
+-- MODELLED INTO THE CLOTHING. We then attach ours on the same hip, and the officer
+-- visibly carries two. The second one lives in the mesh: we can't see it or move it,
+-- we can only decline to add a third thing to the picture.
+--
+-- Keys are body slots (side/back/back2/melee/melee2/melee3), not weapon families —
+-- `side` is every pistol, `back` is every long gun. Hiding applies to everyone who
+-- sees that player, not just to themselves: it is their uniform.
+--
+-- ⚠️ The rule is per JOB, not per outfit. An officer in plain clothes has the same job
+-- and no modelled holster, so this takes their pistol away too. Reading the ped's
+-- clothing to tell the difference is not something we can ship: the drawable indices
+-- change with every EUP pack. If your server needs the distinction, use two jobs.
+--
+-- Repositioning is the other half of this and already works — see MBT.CustomPropPosition
+-- below if you would rather move the pistol to the thigh than hide it.
+MBT.HiddenByJob = {
+    -- ["police"] = { ["side"] = true },
+}
+
 -- Job-specific prop overrides. Uncomment and fill to override positions per job.
 MBT.CustomPropPosition = {
     --[[ Example:

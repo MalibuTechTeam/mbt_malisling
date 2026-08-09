@@ -211,6 +211,34 @@ local function getAttachInfo(data)
     return MBT.PropInfo[data.Type]
 end
 
+-- Jobs of every player in scope, as the server resolved them. Kept apart from
+-- playersToTrack because that map holds prop handles and gets wiped on scope churn,
+-- while the job answer stays true for as long as the player is around.
+local playerJobsInScope = {}   -- [serverId] = { police = true, ... }
+
+--- Should this player's prop for this type exist at all?
+--- ONE predicate, not a chain of conditions at the call site: the 2.1 rewrite subtracts
+--- suppressed props from a desired set, and it wants a single term to subtract. Add new
+--- reasons here rather than next to the spawn.
+---@param source number   server id of the player carrying the weapon
+---@param propType string body slot: side/back/back2/melee/melee2/melee3
+---@return boolean
+local function isPropSuppressed(source, propType)
+    -- Concealed carry (opaque hook, no-op without the module).
+    if MBT.IsTypeConcealed and MBT.IsTypeConcealed(source, propType) then return true end
+
+    -- Hidden for this player's job: their uniform already draws the weapon.
+    local hidden = MBT.HiddenByJob
+    if not hidden then return false end
+    local jobs = playerJobsInScope[source]
+    if not jobs then return false end
+    for job in pairs(jobs) do
+        local byType = hidden[job]
+        if byType and byType[propType] then return true end
+    end
+    return false
+end
+
 --- Resolved back/sling attach info for a prop type, job overrides applied; global so sibling modules (e.g. low_ready) can re-attach a slung prop without duplicating the job lookup.
 ---@param propType string
 ---@return table?
@@ -576,6 +604,7 @@ RegisterNetEvent("mbt_malisling:syncPlayerRemoval")
 AddEventHandler("mbt_malisling:syncPlayerRemoval", function(data)
     if not data then return end
     if not data.playerSource then return end
+    playerJobsInScope[data.playerSource] = nil
     if not playersToTrack[data.playerSource] then return end
     playersToTrack[data.playerSource] = nil
 end)
@@ -658,6 +687,7 @@ AddEventHandler('mbt_malisling:syncScope', function (data)
 
 
     if not playersToTrack[data.playerSource] then  playersToTrack[data.playerSource] = {} end
+    if data.playerJobs then playerJobsInScope[data.playerSource] = data.playerJobs end
     if tType == "del" then
 
         Utils.mbtDebugger("syncScope ~ ", data.playerSource, " has exited from your scope!")
@@ -723,6 +753,8 @@ AddEventHandler('mbt_malisling:syncSling', function (data)
     local playerCoords = GetEntityCoords(playerPed)
     local playerJob = data.playerJob
     local pedSex = data.pedSex
+    -- Record before the spawn loop: isPropSuppressed reads it below.
+    if data.playerJobs then playerJobsInScope[data.playerSource] = data.playerJobs end
 
     Utils.mbtDebugger(data)
 
@@ -730,10 +762,10 @@ AddEventHandler('mbt_malisling:syncSling', function (data)
 
     for weaponType, weaponData in pairs(data.playerWeapons) do
         if not playersToTrack[data.playerSource] then return end
-        -- Concealed Carry guard (opaque hook, no-op without the module): skip
-        -- spawning types the player's replicated statebag marks as concealed.
+        -- Suppression guard: concealed carry, or hidden for this player's job. One
+        -- predicate — see isPropSuppressed.
         if weaponData ~= false and propInfoTable[weaponType] ~= nil
-            and not (MBT.IsTypeConcealed and MBT.IsTypeConcealed(data.playerSource, weaponType))
+            and not isPropSuppressed(data.playerSource, weaponType)
             and (playersToTrack[data.playerSource][weaponType] == false or playersToTrack[data.playerSource][weaponType] == nil) then
             Utils.mbtDebugger("syncSling ~ Check passed, creating weapon object!")
             -- Reserve the slot SYNCHRONOUSLY before the async CreateWeaponObject below.
