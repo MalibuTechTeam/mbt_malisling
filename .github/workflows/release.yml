@@ -17,10 +17,23 @@ jobs:
         run: sudo apt install zip
 
       - name: Checkout source code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
           ref: ${{ github.event.repository.default_branch }}
+
+      # Fail before anything is mutated. The release body comes from this file (see the
+      # Create Release step), and a tag pushed without it used to produce a release
+      # carrying GitHub's auto-generated commit list — which is what happened to v2.0.0
+      # and had to be corrected by hand afterwards. Checking here, ahead of the manifest
+      # bump, means a missing file costs a re-tag and nothing else.
+      - name: Require release notes
+        run: |
+          notes=".github/release-notes/${{ github.ref_name }}.md"
+          if [ ! -f "$notes" ]; then
+            echo "::error::$notes is missing. Write the release notes before tagging."
+            exit 1
+          fi
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -39,7 +52,7 @@ jobs:
           TGT_RELEASE_VERSION: ${{ github.ref_name }}
 
       - name: Push manifest change
-        uses: EndBug/add-and-commit@v9
+        uses: EndBug/add-and-commit@v11
         with:
           add: fxmanifest.lua
           push: true
@@ -47,10 +60,13 @@ jobs:
           author_email: 41898282+github-actions[bot]@users.noreply.github.com
           message: "chore: bump manifest version to ${{ github.ref_name }}"
 
+      # Move the tag onto the manifest-bump commit, so the zip and the tag agree on the
+      # version. Pinned rather than @latest: a moving reference decides on its own when
+      # your releases change behaviour.
       - name: Update tag ref
-        uses: EndBug/latest-tag@latest
+        uses: EndBug/latest-tag@v1.6.3
         with:
-          tag-name: ${{ github.ref_name }}
+          ref: ${{ github.ref_name }}
 
       - name: Bundle files
         run: |
@@ -61,15 +77,14 @@ jobs:
           cp -r ./web/dist ./temp/mbt_malisling/web/dist
           cd ./temp && zip -r ../mbt_malisling.zip ./mbt_malisling
 
+      # softprops, not marvinpinto/action-automatic-releases: that one has had no release
+      # since 2021 and still runs on a deprecated Node. The reason to care beyond age is
+      # body_path — it publishes our own notes with the release, instead of an auto
+      # changelog we then have to overwrite with `gh release edit`.
       - name: Create Release
-        uses: "marvinpinto/action-automatic-releases@v1.2.1"
-        id: auto_release
+        uses: softprops/action-gh-release@v3
         with:
-          repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          title: "${{ github.ref_name }}"
+          name: ${{ github.ref_name }}
+          body_path: .github/release-notes/${{ github.ref_name }}.md
           prerelease: false
           files: mbt_malisling.zip
-
-        env:
-          CI: false
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

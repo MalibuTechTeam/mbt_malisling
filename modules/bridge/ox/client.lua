@@ -23,4 +23,5 @@ AddEventHandler('ox:setGroup', function(group, grade)
     PlayerData.groups = PlayerData.groups or {}
     PlayerData.groups[group] = grade
     sendAnimations(nil)
+    NotifyJobChanged()
 end)

@@ -13,6 +13,7 @@ RegisterNetEvent('QBCore:Client:OnJobUpdate')
 AddEventHandler('QBCore:Client:OnJobUpdate', function(JobInfo)
     PlayerData.job = JobInfo
     sendAnimations(JobInfo.name)
+    NotifyJobChanged()
 end)
 
 RegisterNetEvent('QBCore:Client:OnPlayerUnload')

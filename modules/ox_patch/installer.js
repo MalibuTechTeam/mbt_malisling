@@ -47,6 +47,11 @@
 
   const HOOK_MARKER   = 'mbt_malisling:holster_request';
   const APPEND_MARKER = 'mbt_malisling:sendAnim';
+  // Bump this, and the line at the top of patches/ox_hook.lua, whenever a fragment
+  // changes. Without it the check below sees a marker, says "already patched" and skips
+  // — so every existing install keeps running the OLD fragment forever, and a new switch
+  // in the dashboard does nothing for anyone but fresh installs, silently.
+  const VERSION_MARKER = 'mbt_malisling patch v2';
   const INSERT_POINT  = 'sleep = anim and anim[3] or 1200';
   const RETURN_POINT  = 'return Weapon';
 
@@ -65,17 +70,40 @@
     if (!oxPath || oxPath === '' || oxPath === '/' || oxPath.includes('null')) return;
 
     const target = path.join(oxPath, 'modules', 'weapon', 'client.lua');
-    const content = readFile(target);
+    let content = readFile(target);   // let: the stale-patch path below restores the backup into it
     if (content === null) {
       warn('ox_inventory found but its weapon file could not be read. Patch skipped.');
       report(false, 'cannot read ox_inventory weapon file');
       return;
     }
 
-    if (content.includes(HOOK_MARKER) && content.includes(APPEND_MARKER)) {
-      line('ox_inventory patch already present — nothing to do.');
+    const isPatched = content.includes(HOOK_MARKER) || content.includes(APPEND_MARKER);
+
+    if (isPatched && content.includes(VERSION_MARKER)) {
+      line('ox_inventory patch already present and current — nothing to do.');
       report(true);
       return;
+    }
+
+    // Patched, but by an older mbt_malisling. Restore the pristine backup and fall
+    // through to a clean apply — the same thing the manual installers in tools/ do.
+    // Patching on top of a patch would nest the old fragment inside the new one.
+    if (isPatched) {
+      const oldBak = `${target}.bak`;
+      if (!fs.existsSync(oldBak)) {
+        warn('ox_inventory carries an older mbt_malisling patch and no backup was found next to it.');
+        warn(`Reinstall ox_inventory (or restore ${path.basename(target)} yourself), then restart. Leaving the file untouched.`);
+        report(false, 'stale patch, no backup to restore');
+        return;
+      }
+      const pristine = readFile(oldBak);
+      if (pristine === null) {
+        warn(`ox_inventory carries an older patch but its backup could not be read: ${oldBak}`);
+        report(false, 'stale patch, backup unreadable');
+        return;
+      }
+      line('ox_inventory carries an older patch — restoring the backup and reapplying.');
+      content = pristine;
     }
 
     // Fragments live in our own resource — single source of truth.

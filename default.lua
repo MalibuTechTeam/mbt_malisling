@@ -14,6 +14,13 @@ MBT = MBT or {}
 MBT.DropWeaponOnDeath  = true
 MBT.EnableSling        = true
 MBT.EnableFlashlight   = true
+-- Drawing a sidearm asks you to confirm before the weapon reaches your hand. Turn this
+-- off and the draw animation still plays, it just doesn't wait for an answer.
+-- Worth knowing if your host blocks resources from writing files: the ox_inventory patch
+-- exists so this prompt can hook the equip flow, so with the prompt off a failed patch
+-- costs you nothing. The patch is still applied when it can be — the switch is read at
+-- the moment you draw, not at startup, which is what lets the dashboard flip it live.
+MBT.HolsterConfirm     = true
 
 -- UI
 MBT.UI                 = {
@@ -26,8 +33,8 @@ MBT.Bones              = {
 }
 
 MBT.HolsterControls    = {
-    ["Confirm"] = { ["Label"] = "Confirm Holster", ["Input"] = "MOUSE_BUTTON", ["Key"] = "MOUSE_RIGHT" },
-    ["Cancel"]  = { ["Label"] = "Cancel Holster", ["Input"] = "keyboard", ["Key"] = "BACK" },
+    ["Confirm"] = { ["Label"] = "Confirm Holster", ["Input"] = "MOUSE_BUTTON", ["Key"] = "MOUSE_RIGHT" },  -- set in config.lua
+    ["Cancel"]  = { ["Label"] = "Cancel Holster", ["Input"] = "keyboard", ["Key"] = "BACK" },  -- set in config.lua
 }
 
 -- UI style (dashboard-editable): 'standard' = the classic pills, 'cinematic' =
@@ -72,11 +79,16 @@ MBT.PropInfo           = {
             ["male"]   = { ["x"] = 0.0, ["y"] = 145.0, ["z"] = 0.0 },
             ["female"] = { ["x"] = 0.0, ["y"] = 155.0, ["z"] = 0.0 },
         },
+        -- sleep/sleepOut are how long ox blocks before the weapon is in hand: they land
+        -- in Items[name].anim via the ox patch, and ox reads them as `anim[3]`. They are
+        -- the FEEL of drawing a long gun, so tune them against the clip, not the clock —
+        -- go too low and the rifle appears in your hands while the arm is still reaching
+        -- behind your back. 2000 was the original; 1200 matches melee3 and reads snappier.
         ["HolsterAnim"] = {
             ["dict"]     = "reaction@intimidation@1h",
             ["animIn"]   = "intro",
             ["animOut"]  = "outro",
-            ["sleep"]    = 2000,
+            ["sleep"]    = 1200,
             ["sleepOut"] = 1600,
         },
     },
@@ -189,6 +201,11 @@ MBT.PropInfo           = {
     },
 }
 
+-- Hide sling props per job — FILL IT IN config.lua, next to the keybinds. Job names are
+-- your server's own strings and this can't be tuned from the dashboard, so it belongs
+-- with the things you decide at install. Declared here only so the table always exists.
+MBT.HiddenByJob = {}
+
 -- Job-specific prop overrides. Uncomment and fill to override positions per job.
 MBT.CustomPropPosition = {
     --[[ Example:
@@ -266,7 +283,7 @@ MBT.Jamming            = {
 MBT.Throw              = {
     ["Enabled"]   = true,
     ["Command"]   = "throwWeapon",
-    ["Key"]       = "K",
+    ["Key"]       = '',  -- set in config.lua
     ["Animation"] = {
         ["Dict"] = "melee@unarmed@streamed_variations",
         ["Anim"] = "plyr_takedown_front_slap",
@@ -559,8 +576,15 @@ MBT.WeaponRack         = {
 -- is visible to nearby players; the overlay is local-only. Purely visual / RP.
 MBT.Inspect            = {
     Enabled     = true,
-    Key         = 'I',
+    Key         = '',  -- set in config.lua
     MaxDistance = 20.0,   -- nearby players that see the inspect animation
+    -- Safety net for a hold that never gets released. Inspect starts on key down and
+    -- ends on key UP, and if another resource takes NUI focus the moment you press —
+    -- which is what happens when this key is also your inventory key — the release
+    -- never reaches the game and the overlay stays up until you press again. We can't
+    -- intercept another resource's key-up, so instead it gives up after this long.
+    -- Nobody looks at a weapon for fifteen seconds, so it costs honest use nothing.
+    MaxHoldSeconds = 15,
     -- Inspection animation. This is the base-game weapon "fidget" idle (the ped
     -- manipulates / looks over the held weapon) — the same clip the popular free
     -- weapon-inspect scripts use; it plays fine in third person despite the
@@ -599,7 +623,7 @@ MBT.Inspect            = {
 -- prop only). Changing clothes re-checks and force-reveals with a notification.
 MBT.ConcealedCarry     = {
     Enabled          = true,
-    Key              = 'U',          -- toggle key (concealable weapon must be holstered)
+    Key              = '',          -- toggle key (concealable weapon must be holstered) · set in config.lua
     -- NOTE: FiveM caches keybinds per player — if you change this after first
     -- join, rebind it in GTA Settings → Key Bindings → FiveM.
     ConcealableTypes = { ['side'] = true },
@@ -646,7 +670,7 @@ MBT.ConcealedCarry     = {
 -- found instantly; good concealment needs a short search. Every frisk → webhook.
 MBT.PatDown            = {
     Enabled       = true,
-    Key           = 'Y',          -- frisk key (hold near a person, allowed job only)
+    Key           = '',          -- frisk key (hold near a person, allowed job only) · set in config.lua
     Jobs          = { ['police'] = true, ['sheriff'] = true, ['bcso'] = true },
     MaxDistance   = 2.0,
     RequireConsent = true,        -- target must accept; false = always allowed (hard RP)
@@ -687,7 +711,7 @@ MBT.Serials            = {
 -- custom name — and Chain of Custody records the new holder on equip).
 MBT.Handoff            = {
     Enabled          = true,
-    Key              = 'G',      -- handoff key (hold a weapon, face a nearby player)
+    Key              = '',      -- handoff key (hold a weapon, face a nearby player) · set in config.lua
     MaxDistance      = 2.5,      -- how close the receiver must be
     RequestTimeoutMs = 8000,     -- offer expires if not answered
     EquipOnAccept    = false,    -- receiver takes the weapon straight into hand (ox)
@@ -703,7 +727,7 @@ MBT.Handoff            = {
 -- the weapon you're holding (its ox ammo item), or your largest ammo stack.
 MBT.AmmoSharing        = {
     Enabled          = true,
-    Key              = 'H',      -- share key (hold a weapon, face a nearby player)
+    Key              = '',      -- share key (hold a weapon, face a nearby player) · set in config.lua
     ShareAmount      = 30,       -- default rounds pre-selected in the amount picker
     Step             = 5,        -- picker adjust step (←/→; SHIFT = ×3)
     MaxDistance      = 2.5,
@@ -810,7 +834,7 @@ MBT.LowReady           = {
     -- Default keybind. The player can always rebind it from FiveM Settings >
     -- Key Bindings (FiveM/Malibu Tech). 'HOME' is chosen because it's almost
     -- never already bound, unlike X (cover) or other action keys.
-    Key      = 'HOME',
+    Key      = '',  -- set in config.lua
     Command  = 'mbtLowReady',
     -- Sling-prop types eligible for chest carry. Long guns by default — short
     -- weapons (side/melee) keep their own positions.
@@ -949,7 +973,7 @@ end
 -- via the 'mbt_weaponSafety' statebag / exports.IsWeaponSafetyOn().
 MBT.Safety             = {
     Enabled    = true,
-    Key        = 'END',        -- rebindable from FiveM Settings > Key Bindings
+    Key        = '',        -- rebindable from FiveM Settings > Key Bindings · set in config.lua
     Command    = 'mbtSafety',
     DefaultOn  = false,        -- a freshly drawn weapon starts ready to fire (safety OFF)
     PerWeapon  = true,         -- remember safety per weapon (by serial); false = single global flag
@@ -995,7 +1019,7 @@ MBT.ConditionHUD       = {
 MBT.WeaponName         = {
     Enabled    = true,
     Command    = 'weaponname',
-    Key        = '',            -- '' = command only; set a key to also bind it
+    Key        = '',            -- '' = command only; set a key to also bind it · set in config.lua
     MaxLength  = 24,            -- name length cap (sanitized: trims + strips control chars)
     -- Permission model:
     --   'everyone' → any player can rename their own weapon
@@ -1055,7 +1079,7 @@ MBT.WeaponWeight       = {
 -- firearm groups by default; the admin can disable some.
 MBT.ChargeWeapon       = {
     Enabled     = true,
-    Key         = 'INSERT',   -- rebindable from FiveM Settings > Key Bindings
+    Key         = '',   -- rebindable from FiveM Settings > Key Bindings · set in config.lua
     Command     = 'mbtcharge',
     MaxDistance = 20.0,        -- nearby players who see/hear the rack
     Cooldown    = 1500,        -- ms between racks (anti-spam)
@@ -1099,7 +1123,7 @@ MBT.ShowcasePoses      = {
     Sync    = true,        -- show your pose to nearby players (group photos); needs a
                            -- replicated statebag, also covers players who arrive later
     Command = 'pose',
-    Key     = '',          -- '' = command only; set a key to also bind it
+    Key     = '',          -- '' = command only; set a key to also bind it · set in config.lua
     -- Pose list. Cycled in order with the command / chosen with /pose <n>.
     -- Base-game idle clips; swap for custom .ycd if desired. Flag 1 = looped.
     Poses   = {

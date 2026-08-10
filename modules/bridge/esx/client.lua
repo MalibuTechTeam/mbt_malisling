@@ -28,6 +28,7 @@ RegisterNetEvent('esx:setJob')
 AddEventHandler('esx:setJob', function(job)
     PlayerData.job = job
     sendAnimations(job.name)
+    NotifyJobChanged()
 end)
 
 RegisterNetEvent('esx:onPlayerLogout')

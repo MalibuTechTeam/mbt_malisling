@@ -39,6 +39,32 @@ function getAllJobs()
     return list
 end
 
+--- Does the player hold any job in `allowed` (a set keyed by job name)?
+--- Use this instead of `allowed[getPlayerJob(src)]`: on ox_core a player can be in
+--- several groups at once and `getPlayerJob` has to pick one of them, so the direct
+--- lookup answers "is their arbitrarily-chosen group in the list", which is not the
+--- question anyone is asking. One framework call, then a lookup per allowed job.
+---@param s number|string
+---@param allowed table<string, boolean>?
+---@return boolean
+function playerHasAnyJob(s, allowed)
+    if type(allowed) ~= 'table' then return false end
+    local held = getPlayerJobs(s)
+    for name, on in pairs(allowed) do
+        if on and held[name] then return true end
+    end
+    return false
+end
+
+--- Does the player hold this exact job?
+---@param s number|string
+---@param name string?
+---@return boolean
+function playerHasJob(s, name)
+    if type(name) ~= 'string' or name == '' then return false end
+    return getPlayerJobs(s)[name] == true
+end
+
 -- The NUI fetches this lazily when the position editor opens.
 lib.callback.register('mbt_malisling:getJobs', function()
     return getAllJobs()

@@ -18,8 +18,7 @@ local function isAllowed(src)
         return IsPlayerAceAllowed(src, cfg.AcePermission or 'mbt.weaponname')
     end
     if mode == 'job' then
-        local job = getPlayerJob(src)  -- global from the framework bridge
-        return job ~= nil and cfg.Jobs and cfg.Jobs[job] == true
+        return playerHasAnyJob(src, cfg.Jobs)   -- global from modules/bridge/jobs.lua
     end
     return false
 end

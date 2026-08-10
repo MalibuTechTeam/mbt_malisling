@@ -15,6 +15,8 @@ export function CoreSection({ config, update }: SectionProps) {
         checked={!!config.EnableSling} onChange={(v) => update('EnableSling', v)} />
       <ToggleRow title="Enable Flashlight" desc="A slung weapon's torch stays lit if it was on"
         checked={!!config.EnableFlashlight} onChange={(v) => update('EnableFlashlight', v)} />
+      <ToggleRow title="Holster Confirm" desc="Ask before a drawn sidearm reaches the hand — the draw animation plays either way"
+        checked={!!config.HolsterConfirm} onChange={(v) => update('HolsterConfirm', v)} />
       <ToggleRow title="Drop Weapon on Death" desc="The weapon in hand falls where the player died"
         checked={!!config.DropWeaponOnDeath} onChange={(v) => update('DropWeaponOnDeath', v)} />
     </Section>

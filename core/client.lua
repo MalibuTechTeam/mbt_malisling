@@ -211,6 +211,73 @@ local function getAttachInfo(data)
     return MBT.PropInfo[data.Type]
 end
 
+-- Jobs of every player in scope, as the server resolved them. Kept apart from
+-- playersToTrack because that map holds prop handles and gets wiped on scope churn,
+-- while the job answer stays true for as long as the player is around.
+local playerJobsInScope = {}   -- [serverId] = { police = true, ... }
+
+--- Should this player's prop for this type exist at all?
+--- ONE predicate, not a chain of conditions at the call site: the 2.1 rewrite subtracts
+--- suppressed props from a desired set, and it wants a single term to subtract. Add new
+--- reasons here rather than next to the spawn.
+---@param source number   server id of the player carrying the weapon
+---@param propType string body slot: side/back/back2/melee/melee2/melee3
+---@return boolean suppressed, string? reason  reason is for /mbt_slingdebug; callers ignore it
+local function isPropSuppressed(source, propType)
+    -- Concealed carry (opaque hook, no-op without the module).
+    if MBT.IsTypeConcealed and MBT.IsTypeConcealed(source, propType) then return true, 'concealed' end
+
+    local hidden = MBT.HiddenByJob
+    if not hidden then return false end
+
+    -- '*' hides the type for everyone, job or no job. Asked for three times on the v1
+    -- thread by people who wanted pistols to draw normally and never hang on the hip —
+    -- without it they would have to list every job on the server to say "never".
+    -- Checked before the job lookup so it also covers players the framework gives no job.
+    local always = hidden['*']
+    if always and always[propType] then return true, "hidden for '*'" end
+
+    -- Hidden for this player's job: their uniform already draws the weapon.
+    local jobs = playerJobsInScope[source]
+    if not jobs then return false end
+    for job in pairs(jobs) do
+        local byType = hidden[job]
+        if byType and byType[propType] then return true, 'hidden for job ' .. job end
+    end
+    return false
+end
+
+-- ── Debug: why is (or isn't) my weapon on my body? (Debug builds only) ───────────
+-- Not a way to fake a job change — for that, use your framework's own command, or you
+-- are testing the fake. This answers the question that comes after: what did the
+-- predicate actually decide, and on what grounds. Worth having in support, where the
+-- report is "the pistol still shows" and the cause is a job name spelled differently in
+-- config than the framework returns.
+if MBT.Debug then
+    RegisterCommand('mbt_slingdebug', function()
+        local me   = cache.serverId
+        local jobs = {}
+        for j in pairs(playerJobsInScope[me] or {}) do jobs[#jobs + 1] = j end
+        table.sort(jobs)
+        local jobList = #jobs > 0 and table.concat(jobs, ', ') or 'none'
+
+        Utils.mbtDebugger(('sling debug ~ jobs as the server resolved them: %s'):format(jobList))
+        local mine = playersToTrack[me] or {}
+        for propType in pairs(MBT.PropInfo) do
+            local suppressed, why = isPropSuppressed(me, propType)
+            local handle = mine[propType]
+            Utils.mbtDebugger(('  %-12s prop=%-8s suppressed=%s%s'):format(
+                propType,
+                type(handle) == 'number' and tostring(handle) or tostring(handle),
+                tostring(suppressed),
+                why and ('  (' .. why .. ')') or ''))
+        end
+
+        lib.notify({ type = 'inform', title = 'Sling debug',
+            description = ('jobs: %s — full breakdown in F8'):format(jobList) })
+    end, false)
+end
+
 --- Resolved back/sling attach info for a prop type, job overrides applied; global so sibling modules (e.g. low_ready) can re-attach a slung prop without duplicating the job lookup.
 ---@param propType string
 ---@return table?
@@ -226,6 +293,17 @@ function GetLocalSlungProp(propType)
     local ent = mine and mine[propType]
     if type(ent) == 'number' and DoesEntityExist(ent) then return ent end
     return nil
+end
+
+--- Tell the server our job changed, so every observer re-decides what to draw on us:
+--- the job selects both whether a prop exists (MBT.HiddenByJob) and where it sits
+--- (MBT.CustomPropPosition).
+--- Called by the framework bridges, and only by them. Deliberately NOT folded into
+--- sendAnimations, even though all four bridges call that too: sendAnimations also runs
+--- at Init and on every live position broadcast from the editor, and a delete-and-resync
+--- on those paths would mean a storm of them while someone drags a slider.
+function NotifyJobChanged()
+    TriggerServerEvent('mbt_malisling:jobChanged')
 end
 
 function sendAnimations(jobName)
@@ -576,6 +654,7 @@ RegisterNetEvent("mbt_malisling:syncPlayerRemoval")
 AddEventHandler("mbt_malisling:syncPlayerRemoval", function(data)
     if not data then return end
     if not data.playerSource then return end
+    playerJobsInScope[data.playerSource] = nil
     if not playersToTrack[data.playerSource] then return end
     playersToTrack[data.playerSource] = nil
 end)
@@ -658,6 +737,7 @@ AddEventHandler('mbt_malisling:syncScope', function (data)
 
 
     if not playersToTrack[data.playerSource] then  playersToTrack[data.playerSource] = {} end
+    if data.playerJobs then playerJobsInScope[data.playerSource] = data.playerJobs end
     if tType == "del" then
 
         Utils.mbtDebugger("syncScope ~ ", data.playerSource, " has exited from your scope!")
@@ -723,6 +803,8 @@ AddEventHandler('mbt_malisling:syncSling', function (data)
     local playerCoords = GetEntityCoords(playerPed)
     local playerJob = data.playerJob
     local pedSex = data.pedSex
+    -- Record before the spawn loop: isPropSuppressed reads it below.
+    if data.playerJobs then playerJobsInScope[data.playerSource] = data.playerJobs end
 
     Utils.mbtDebugger(data)
 
@@ -730,10 +812,10 @@ AddEventHandler('mbt_malisling:syncSling', function (data)
 
     for weaponType, weaponData in pairs(data.playerWeapons) do
         if not playersToTrack[data.playerSource] then return end
-        -- Concealed Carry guard (opaque hook, no-op without the module): skip
-        -- spawning types the player's replicated statebag marks as concealed.
+        -- Suppression guard: concealed carry, or hidden for this player's job. One
+        -- predicate — see isPropSuppressed.
         if weaponData ~= false and propInfoTable[weaponType] ~= nil
-            and not (MBT.IsTypeConcealed and MBT.IsTypeConcealed(data.playerSource, weaponType))
+            and not isPropSuppressed(data.playerSource, weaponType)
             and (playersToTrack[data.playerSource][weaponType] == false or playersToTrack[data.playerSource][weaponType] == nil) then
             Utils.mbtDebugger("syncSling ~ Check passed, creating weapon object!")
             -- Reserve the slot SYNCHRONOUSLY before the async CreateWeaponObject below.
@@ -743,6 +825,13 @@ AddEventHandler('mbt_malisling:syncSling', function (data)
             -- window, spawn two props, and orphan the first (it stays on the back
             -- after equip deletes the tracked one). The sentinel makes the loser skip.
             playersToTrack[data.playerSource][weaponType] = true
+            -- Spawn-window timing (debug only). Since b5d8c5b the prop is invisible for
+            -- this whole stretch, so "the weapon takes a while to appear" is a report
+            -- about a duration nobody can see. Split per phase: the three candidates are
+            -- weapon streaming, per-component model streaming, and the fixed flashlight
+            -- Wait — and they have very different fixes.
+            local tStart = GetGameTimer()
+            local tAsset, tExist, tComps
             local attachInfo = getAttachInfo({
                 Job = playerJob,
                 Type = weaponType
@@ -763,6 +852,7 @@ AddEventHandler('mbt_malisling:syncSling', function (data)
                 playersToTrack[data.playerSource][weaponType] = false
                 goto continue
             end
+            tAsset = GetGameTimer()
             weaponData.weaponObj = CreateWeaponObject(weaponData.weaponHash, 50, playerCoords.x, playerCoords.y, playerCoords.z, true, 1.0, 0)
             RequestWeaponHighDetailModel(weaponData.weaponObj)
             RemoveWeaponAsset(weaponData.weaponHash)   -- object keeps its model; the asset was never freed (streaming-memory leak)
@@ -771,6 +861,8 @@ AddEventHandler('mbt_malisling:syncSling', function (data)
             while not DoesEntityExist(weaponData.weaponObj) and GetGameTimer() < deadline do
                 Wait(10)
             end
+
+            tExist = GetGameTimer()
 
             if not DoesEntityExist(weaponData.weaponObj) then
                 Utils.mbtDebugger("syncSling ~ Weapon object failed to create for ", weaponData.name)
@@ -785,6 +877,7 @@ AddEventHandler('mbt_malisling:syncSling', function (data)
                 -- sentinel, and that loop only touches number handles.
                 SetEntityVisible(weaponData.weaponObj, false, 0)
                 local hasObjFlashlight = applyAttachments(weaponData)
+                tComps = GetGameTimer()
                 -- Light the slung prop only when it ACTUALLY received a flashlight component
                 -- AND the saved state says it was on. The component check prevents a weapon
                 -- with stale/leaked flashlightState (but no torch) from glowing. NOTE: once a
@@ -813,6 +906,10 @@ AddEventHandler('mbt_malisling:syncSling', function (data)
                 Utils.syncPropAlpha(weaponData.weaponObj, GetEntityAlpha(playerPed))
                 SetFlashLightKeepOnWhileMoving(true)
                 Utils.mbtDebugger("syncSling ~ Apply attachments to weapon obj!")
+                local tEnd = GetGameTimer()
+                Utils.mbtDebugger(("syncSling ~ TIMING %s [%s]  total %dms  =  stream %d + create %d + components %d + attach %d")
+                    :format(weaponData.name, weaponType, tEnd - tStart,
+                        tAsset - tStart, tExist - tAsset, tComps - tExist, tEnd - tComps))
                 playersToTrack[data.playerSource][weaponType] = weaponData.weaponObj
                 weaponObjectiveSpawned[#weaponObjectiveSpawned+1] = weaponData.weaponObj
             end

@@ -22,6 +22,29 @@ local adminPerm       = (MBT.Admin and MBT.Admin.Permission) or ('command.' .. a
 -- 'ok' = patched · '<reason>' = failed · nil = n/a. Surfaced in the sidebar.
 local oxPatchStatus = nil
 
+-- Keybinds moved to config.lua in 2.0.2, and default.lua now holds '' so that commenting
+-- a line out actually unbinds instead of quietly restoring the default. That leaves one
+-- trap: updating while KEEPING a config.lua from 2.0.1 or earlier. Those files have no
+-- Keybinds block, nothing populates the keys, and every bind lands unassigned — with no
+-- error, looking like a broken script.
+--
+-- Nobody deliberately unbinds all of them, so all-empty means exactly one thing. Server
+-- side on purpose: this is for the console the owner reads, not a player's F8.
+CreateThread(function()
+    Wait(2000)   -- let config.lua and every feature block finish loading
+    local blocks = { 'Inspect', 'ConcealedCarry', 'PatDown', 'Handoff', 'AmmoSharing',
+                     'Throw', 'LowReady', 'Safety', 'ChargeWeapon' }
+    for _, name in ipairs(blocks) do
+        local b = MBT[name]
+        if b and type(b.Key) == 'string' and b.Key ~= '' then return end   -- at least one bound
+    end
+    Utils.mbtWarn(
+        "No keybinds are set. Since 2.0.2 they live in config.lua — if you kept a " ..
+        "config.lua from an older version, copy the Keybinds block out of the new one. " ..
+        "Every feature still has its chat command in the meantime."
+    )
+end)
+
 local function b(v) return v and true or false end
 local function num(v, default) if type(v) == 'number' then return v end return default end
 
@@ -60,6 +83,7 @@ local function snapshot()
         -- General (editable). Debug is intentionally NOT exposed (dev flag → config.lua).
         EnableSling       = b(MBT.EnableSling),
         EnableFlashlight  = b(MBT.EnableFlashlight),
+        HolsterConfirm    = b(MBT.HolsterConfirm),
         DropWeaponOnDeath = b(MBT.DropWeaponOnDeath),
         UIPosition        = MBT.UI.Position,
         UIStyle           = MBT.UIStyle or 'standard',
@@ -234,6 +258,7 @@ local function validate(d)
     -- General
     if type(d.EnableSling) ~= 'boolean' then return false end
     if type(d.EnableFlashlight) ~= 'boolean' then return false end
+    if type(d.HolsterConfirm) ~= 'boolean' then return false end
     if type(d.DropWeaponOnDeath) ~= 'boolean' then return false end
     if type(d.UIPosition) ~= 'string' or not VALID_POSITIONS[d.UIPosition] then return false end
     if d.UIStyle ~= 'standard' and d.UIStyle ~= 'cinematic' then return false end
@@ -405,6 +430,7 @@ end
 local function applyToMBT(d)
     MBT.EnableSling       = d.EnableSling
     MBT.EnableFlashlight  = d.EnableFlashlight
+    MBT.HolsterConfirm    = d.HolsterConfirm
     MBT.DropWeaponOnDeath = d.DropWeaponOnDeath
     MBT.UI.Position       = d.UIPosition
     MBT.UIStyle           = d.UIStyle
@@ -564,6 +590,7 @@ end
 local function persistable(d)
     return {
         EnableSling = d.EnableSling, EnableFlashlight = d.EnableFlashlight,
+        HolsterConfirm = d.HolsterConfirm,
         DropWeaponOnDeath = d.DropWeaponOnDeath, UIPosition = d.UIPosition, UIStyle = d.UIStyle,
         Sounds = { Enabled = d.Sounds.Enabled, MaxDistance = d.Sounds.MaxDistance, Volume = d.Sounds.Volume },
         WeaponDrop = {
@@ -596,14 +623,28 @@ local function persistable(d)
     }
 end
 
+--- Nodes whose keys are the SERVER'S OWN strings — job names — rather than ours.
+--- mergeKnown walks the TEMPLATE, so for these the saved keys get filtered against a
+--- table that is normally empty and simply vanish: an owner sets a per-job sling variant
+--- in the dashboard, it saves, and the next restart drops it without a word. Here the
+--- saved map replaces the template wholesale. Safe, because validate() runs on the merged
+--- result and already caps these maps by key count, type and string length.
+--- Add a path here for every free-key map exposed in the dashboard.
+local DYNAMIC_MAPS = {
+    ['TacticalSling.JobVariants'] = true,
+}
+
 --- Deep-merge SAVED values onto the live template: only template keys are read (type-checked), missing ones keep their config.lua default — so an older saved config auto-migrates to new defaults, never wiping state.
-local function mergeKnown(template, saved)
+local function mergeKnown(template, saved, path)
     if type(saved) ~= 'table' then return template end
     local out = {}
     for k, tv in pairs(template) do
         local sv = saved[k]
-        if type(tv) == 'table' then
-            out[k] = mergeKnown(tv, sv)
+        local kpath = path and (path .. '.' .. k) or k
+        if DYNAMIC_MAPS[kpath] then
+            out[k] = type(sv) == 'table' and sv or tv
+        elseif type(tv) == 'table' then
+            out[k] = mergeKnown(tv, sv, kpath)
         elseif sv ~= nil and type(sv) == type(tv) then
             out[k] = sv
         else

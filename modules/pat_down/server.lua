@@ -13,7 +13,7 @@ local pending = {}   -- [targetSrc] = { officer, expires }
 local lastUse = {}   -- [officer] = GetGameTimer()
 
 local function maxDist() return (cfg.MaxDistance or 2.0) + 2.0 end
-local function isCopJob(src) return cfg.Jobs and cfg.Jobs[getPlayerJob(src)] == true end
+local function isCopJob(src) return playerHasAnyJob(src, cfg.Jobs) end
 
 --- Build the weapon findings for a target: { name, label, serial, status, quality }.
 local function frisk(target)

@@ -131,10 +131,18 @@ local function startInspect()
     -- inventory takes NUI focus on key-down, so the key-up never reaches the game
     -- and '-mbtInspect' never fires.
     CreateThread(function()
+        local deadline = GetGameTimer() + ((cfg.MaxHoldSeconds or 15) * 1000)
         while inspecting do
             local h, wh = GetCurrentPedWeapon(cache.ped, true)
             if not h or wh == `WEAPON_UNARMED` or cache.vehicle
                 or IsPedShooting(cache.ped) or LocalPlayer.state.JammedState then
+                stopInspect()
+                break
+            end
+            -- The swallowed key-up case: nothing above will ever become true, because
+            -- nothing about the player changed. Only the clock gets us out.
+            if GetGameTimer() > deadline then
+                Utils.mbtDebugger("inspect ~ hold timed out; the release never arrived (key shared with another resource?)")
                 stopInspect()
                 break
             end

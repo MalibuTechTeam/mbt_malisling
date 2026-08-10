@@ -181,7 +181,7 @@ Frameworks: **ESX · QBCore · QBox · OX** (auto-detected).
 Configuration is split across two files plus the live dashboard:
 
 - **`default.lua`** — the complete default block for **every** feature (toggles, thresholds, animations, positions). Loaded first. Most values are meant to be tuned **live from the dashboard**, not by hand.
-- **`config.lua`** — thin server settings only: `Admin` (command + ACE permission), `QBWeapons`, `Language`, `Debug`, `Notification`, `ReduceMotion`, `VersionCheck`, and the Discord audit **webhooks**. Loaded after `default.lua`, so it can override any default.
+- **`config.lua`** — server settings and **every keybind**: `Admin` (command + ACE permission), `Keybinds`, `QBWeapons`, `Language`, `Debug`, `Notification`, `ReduceMotion`, `VersionCheck`, and the Discord audit **webhooks**. Loaded after `default.lua`, so it can override any default.
 - **Dashboard** (`/mbt_malisling`) — toggles and tunes features at runtime; changes persist to the `mbt_malisling_config` database row and survive resource updates.
 
 ```lua
@@ -196,6 +196,36 @@ MBT.Admin = {
 ```
 
 > **Notifications:** the notify function in `config.lua` ships presets for **ox_lib**, **ESX**, **QBCore**, **QBox**, and native GTA — uncomment the one that matches your server.
+
+### Keybinds — set them before your first start
+
+Every key the resource binds is listed together in `config.lua`, under **Keybinds**. Set `''` for no key: each feature keeps its chat command either way.
+
+They are the one setting the dashboard cannot change, and there is a reason. Bindings register once when the resource starts, and **FiveM then caches them per player profile** — so changing a key later moves nothing for anyone who has already joined your server. After that point it is the player who rebinds, in **GTA Settings → Key Bindings → FiveM**, where every binding appears prefixed with `[MBT]`.
+
+Two things worth knowing. The holster prompt's two bindings each carry the input family they belong to; change `Key` and `Input` together, because a keyboard key left on `MOUSE_BUTTON` never fires and never says so. And `config.lua` is replaced when you update, like every other file in the folder — keep a note of your keys, or you will set them again after the next release.
+
+### Officers carrying two pistols
+
+Most police uniforms — GTA's own and nearly every EUP pack — have a duty holster with a pistol **modelled into the clothing**. We attach ours on the same hip, so the officer ends up with two. The second one lives in the mesh: nothing can see it or move it.
+
+Hide ours for that job, in `config.lua`:
+
+```lua
+MBT.HiddenByJob = {
+    ['police'] = { ['side'] = true },
+}
+```
+
+Keys are **body slots**, not weapon families: `side` is every pistol, `back` every long gun. The rule applies to everyone who sees that officer, and it re-evaluates the moment they change job.
+
+The job `'*'` means everyone. Use it when a slot should never show at all — pistols that draw normally and never hang on the hip — rather than listing every job on your server to mean "never":
+
+```lua
+MBT.HiddenByJob = { ['*'] = { ['side'] = true } }
+```
+
+It is per job, not per outfit — an officer in plain clothes has the same job and no modelled holster, and loses their pistol too. Use two jobs if you need the distinction. And if you would rather **move** our pistol than remove it, `MBT.CustomPropPosition` in `default.lua` has done that all along.
 
 ### Discord audit logs
 

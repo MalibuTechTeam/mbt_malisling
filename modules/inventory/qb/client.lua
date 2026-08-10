@@ -146,6 +146,10 @@ local function needsHolsterPrompt(weaponData)
     -- reach the client on every qb server, which silently killed the side-weapon prompt
     -- (pistol drew then bounced back). MBT.EnableSling is always set + honours dashboard toggles.
     if not MBT.EnableSling then return false end
+    -- Read straight from MBT: on qb the prompt is ours, in our own resource, so there is
+    -- no boundary to cross. The ox path reads the same switch through a statebag only
+    -- because its prompt runs inside patched ox_inventory code.
+    if MBT.HolsterConfirm == false then return false end
     local wInfo = MBT.WeaponsInfo
         and MBT.WeaponsInfo["Weapons"]
         and MBT.WeaponsInfo["Weapons"][weaponData.name]
