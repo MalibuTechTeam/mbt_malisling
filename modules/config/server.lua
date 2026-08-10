@@ -22,6 +22,29 @@ local adminPerm       = (MBT.Admin and MBT.Admin.Permission) or ('command.' .. a
 -- 'ok' = patched · '<reason>' = failed · nil = n/a. Surfaced in the sidebar.
 local oxPatchStatus = nil
 
+-- Keybinds moved to config.lua in 2.0.2, and default.lua now holds '' so that commenting
+-- a line out actually unbinds instead of quietly restoring the default. That leaves one
+-- trap: updating while KEEPING a config.lua from 2.0.1 or earlier. Those files have no
+-- Keybinds block, nothing populates the keys, and every bind lands unassigned — with no
+-- error, looking like a broken script.
+--
+-- Nobody deliberately unbinds all of them, so all-empty means exactly one thing. Server
+-- side on purpose: this is for the console the owner reads, not a player's F8.
+CreateThread(function()
+    Wait(2000)   -- let config.lua and every feature block finish loading
+    local blocks = { 'Inspect', 'ConcealedCarry', 'PatDown', 'Handoff', 'AmmoSharing',
+                     'Throw', 'LowReady', 'Safety', 'ChargeWeapon' }
+    for _, name in ipairs(blocks) do
+        local b = MBT[name]
+        if b and type(b.Key) == 'string' and b.Key ~= '' then return end   -- at least one bound
+    end
+    Utils.mbtWarn(
+        "No keybinds are set. Since 2.0.2 they live in config.lua — if you kept a " ..
+        "config.lua from an older version, copy the Keybinds block out of the new one. " ..
+        "Every feature still has its chat command in the meantime."
+    )
+end)
+
 local function b(v) return v and true or false end
 local function num(v, default) if type(v) == 'number' then return v end return default end
 
