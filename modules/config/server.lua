@@ -600,14 +600,28 @@ local function persistable(d)
     }
 end
 
+--- Nodes whose keys are the SERVER'S OWN strings — job names — rather than ours.
+--- mergeKnown walks the TEMPLATE, so for these the saved keys get filtered against a
+--- table that is normally empty and simply vanish: an owner sets a per-job sling variant
+--- in the dashboard, it saves, and the next restart drops it without a word. Here the
+--- saved map replaces the template wholesale. Safe, because validate() runs on the merged
+--- result and already caps these maps by key count, type and string length.
+--- Add a path here for every free-key map exposed in the dashboard.
+local DYNAMIC_MAPS = {
+    ['TacticalSling.JobVariants'] = true,
+}
+
 --- Deep-merge SAVED values onto the live template: only template keys are read (type-checked), missing ones keep their config.lua default — so an older saved config auto-migrates to new defaults, never wiping state.
-local function mergeKnown(template, saved)
+local function mergeKnown(template, saved, path)
     if type(saved) ~= 'table' then return template end
     local out = {}
     for k, tv in pairs(template) do
         local sv = saved[k]
-        if type(tv) == 'table' then
-            out[k] = mergeKnown(tv, sv)
+        local kpath = path and (path .. '.' .. k) or k
+        if DYNAMIC_MAPS[kpath] then
+            out[k] = type(sv) == 'table' and sv or tv
+        elseif type(tv) == 'table' then
+            out[k] = mergeKnown(tv, sv, kpath)
         elseif sv ~= nil and type(sv) == type(tv) then
             out[k] = sv
         else
