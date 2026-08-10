@@ -222,10 +222,10 @@ local playerJobsInScope = {}   -- [serverId] = { police = true, ... }
 --- reasons here rather than next to the spawn.
 ---@param source number   server id of the player carrying the weapon
 ---@param propType string body slot: side/back/back2/melee/melee2/melee3
----@return boolean
+---@return boolean suppressed, string? reason  reason is for /mbt_slingdebug; callers ignore it
 local function isPropSuppressed(source, propType)
     -- Concealed carry (opaque hook, no-op without the module).
-    if MBT.IsTypeConcealed and MBT.IsTypeConcealed(source, propType) then return true end
+    if MBT.IsTypeConcealed and MBT.IsTypeConcealed(source, propType) then return true, 'concealed' end
 
     local hidden = MBT.HiddenByJob
     if not hidden then return false end
@@ -235,16 +235,47 @@ local function isPropSuppressed(source, propType)
     -- without it they would have to list every job on the server to say "never".
     -- Checked before the job lookup so it also covers players the framework gives no job.
     local always = hidden['*']
-    if always and always[propType] then return true end
+    if always and always[propType] then return true, "hidden for '*'" end
 
     -- Hidden for this player's job: their uniform already draws the weapon.
     local jobs = playerJobsInScope[source]
     if not jobs then return false end
     for job in pairs(jobs) do
         local byType = hidden[job]
-        if byType and byType[propType] then return true end
+        if byType and byType[propType] then return true, 'hidden for job ' .. job end
     end
     return false
+end
+
+-- ── Debug: why is (or isn't) my weapon on my body? (Debug builds only) ───────────
+-- Not a way to fake a job change — for that, use your framework's own command, or you
+-- are testing the fake. This answers the question that comes after: what did the
+-- predicate actually decide, and on what grounds. Worth having in support, where the
+-- report is "the pistol still shows" and the cause is a job name spelled differently in
+-- config than the framework returns.
+if MBT.Debug then
+    RegisterCommand('mbt_slingdebug', function()
+        local me   = cache.serverId
+        local jobs = {}
+        for j in pairs(playerJobsInScope[me] or {}) do jobs[#jobs + 1] = j end
+        table.sort(jobs)
+        local jobList = #jobs > 0 and table.concat(jobs, ', ') or 'none'
+
+        Utils.mbtDebugger(('sling debug ~ jobs as the server resolved them: %s'):format(jobList))
+        local mine = playersToTrack[me] or {}
+        for propType in pairs(MBT.PropInfo) do
+            local suppressed, why = isPropSuppressed(me, propType)
+            local handle = mine[propType]
+            Utils.mbtDebugger(('  %-12s prop=%-8s suppressed=%s%s'):format(
+                propType,
+                type(handle) == 'number' and tostring(handle) or tostring(handle),
+                tostring(suppressed),
+                why and ('  (' .. why .. ')') or ''))
+        end
+
+        lib.notify({ type = 'inform', title = 'Sling debug',
+            description = ('jobs: %s — full breakdown in F8'):format(jobList) })
+    end, false)
 end
 
 --- Resolved back/sling attach info for a prop type, job overrides applied; global so sibling modules (e.g. low_ready) can re-attach a slung prop without duplicating the job lookup.
