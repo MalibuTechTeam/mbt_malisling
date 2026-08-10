@@ -227,9 +227,17 @@ local function isPropSuppressed(source, propType)
     -- Concealed carry (opaque hook, no-op without the module).
     if MBT.IsTypeConcealed and MBT.IsTypeConcealed(source, propType) then return true end
 
-    -- Hidden for this player's job: their uniform already draws the weapon.
     local hidden = MBT.HiddenByJob
     if not hidden then return false end
+
+    -- '*' hides the type for everyone, job or no job. Asked for three times on the v1
+    -- thread by people who wanted pistols to draw normally and never hang on the hip —
+    -- without it they would have to list every job on the server to say "never".
+    -- Checked before the job lookup so it also covers players the framework gives no job.
+    local always = hidden['*']
+    if always and always[propType] then return true end
+
+    -- Hidden for this player's job: their uniform already draws the weapon.
     local jobs = playerJobsInScope[source]
     if not jobs then return false end
     for job in pairs(jobs) do

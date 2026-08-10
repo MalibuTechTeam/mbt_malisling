@@ -82,8 +82,13 @@ MBT.HolsterControls.Cancel.Input  = 'keyboard'
 --
 -- Hiding is the blunt option. MBT.CustomPropPosition in default.lua does the other half
 -- and already works: move the pistol to the thigh instead of removing it.
+--
+-- The "*" job means everyone, whatever they do for a living. Use it when a slot should
+-- never show at all — pistols that draw normally and never hang on the hip, say — instead
+-- of listing every job on the server to mean "never".
 MBT.HiddenByJob = {
-    -- ["police"] = { ["side"] = true },
+    -- ["*"]      = { ["side"] = true },     -- nobody ever shows a holstered pistol
+    -- ["police"] = { ["side"] = true },     -- only the uniform that already has one
 }
 
 -- ── QB-weapons interop ─────────────────────────────────────────────────────────

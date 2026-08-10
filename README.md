@@ -219,6 +219,12 @@ MBT.HiddenByJob = {
 
 Keys are **body slots**, not weapon families: `side` is every pistol, `back` every long gun. The rule applies to everyone who sees that officer, and it re-evaluates the moment they change job.
 
+The job `'*'` means everyone. Use it when a slot should never show at all — pistols that draw normally and never hang on the hip — rather than listing every job on your server to mean "never":
+
+```lua
+MBT.HiddenByJob = { ['*'] = { ['side'] = true } }
+```
+
 It is per job, not per outfit — an officer in plain clothes has the same job and no modelled holster, and loses their pistol too. Use two jobs if you need the distinction. And if you would rather **move** our pistol than remove it, `MBT.CustomPropPosition` in `default.lua` has done that all along.
 
 ### Discord audit logs
