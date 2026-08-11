@@ -336,6 +336,18 @@ MBT.SuppressorHeat     = {
     --   'light'    → DrawLightWithRange: a real light, brighter but spills onto walls.
     --   'particle' → looped ptfx (Particle below) — use a ptfx tester to find a fx.
     Mode           = 'glow',
+    -- Glow colour, interpolated cold → hot. These defaults ARE the original look
+    -- (orange when it first glows, deep red at full heat) — the ramp is only exposed here
+    -- so it can be retuned without touching code.
+    --
+    -- Tried on 2026-08-12 and REJECTED after looking at it in game: reversing the ramp
+    -- toward white-hot (physically what steel does) plus radius 0.03 / intensity 0.1 read
+    -- worse in every light than what was already here. Worth knowing before someone
+    -- "fixes" it again — and worth knowing why the daylight test misleads:
+    -- t = (heat - WarmThreshold) / (MaxHeat - WarmThreshold), so heat 40 is t = 0.077,
+    -- a twelfth of the way up the ramp, not the midpoint it looks like.
+    ColdColour     = { r = 255, g = 110, b = 0 },   -- just past WarmThreshold
+    HotColour      = { r = 255, g = 0,   b = 0 },   -- at MaxHeat
     -- Where the glow sits WHEN A SUPPRESSOR IS FITTED. The 'gun_muzzle' bone stays at the
     -- barrel's mouth, while the suppressor is a component bolted further forward — without
     -- this the heat glows at its base instead of on its body. Expressed in the weapon's own
@@ -347,12 +359,11 @@ MBT.SuppressorHeat     = {
     -- doesn't follow that convention.
     SuppressorOffset = { x = 0.0, y = 0.10, z = 0.0 },
     GlowSphere     = {
-        -- Tuned in-world 2026-08-11 with /mbt_muzzletune, at pinned heat 40 (the level
-        -- sustained fire actually reaches; 100 is a flash you see for an instant).
-        -- The old 8.0 was almost entirely bloom: a hard orange blob the size of the slide,
-        -- not a hot muzzle. Most of what reads as "glow" here is radius, not intensity.
-        Radius    = 0.03,   -- small = tight glow on the suppressor
-        Intensity = 0.1,
+        -- Retuned to 0.03 / 0.1 on 2026-08-12 and put back: tight and subtle at night, but
+        -- gone in daylight, and daylight is where the shot that heats the barrel happens.
+        -- Live-tune with /mbt_muzzletune (debug) before changing these.
+        Radius    = 0.06,   -- small = tight glow on the suppressor
+        Intensity = 8.0,
     },
     Light          = {
         -- Range = how far the light reaches (lower = less spill onto nearby walls).

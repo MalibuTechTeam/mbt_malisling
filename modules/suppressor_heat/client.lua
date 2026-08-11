@@ -151,14 +151,27 @@ local function muzzlePos(entity, weaponHash)
     return pos + delta
 end
 
---- Heat-scaled orange->red colour + a throb multiplier once critically hot.
+local COLD_DEFAULT = { r = 255, g = 110, b = 0 }
+local HOT_DEFAULT  = { r = 255, g = 0,   b = 0 }
+
+--- Heat-scaled colour ramp + a throb multiplier once critically hot.
+--- The defaults reproduce the original orange→red look exactly; the ramp lives in config
+--- only so it can be retuned without touching code. See the note in default.lua before
+--- reaching for white-hot: it was tried in game and read worse.
 local function heatColour()
     local t = heatT()
+    local c = cfg.ColdColour or COLD_DEFAULT
+    local h = cfg.HotColour or HOT_DEFAULT
+
     local throb = 1.0
     if heat >= cfg.HotThreshold then
         throb = 0.85 + 0.15 * math.sin(GetGameTimer() / 90.0)
     end
-    return 255, math.floor(110 * (1.0 - t)), 0, t, throb
+
+    return math.floor(c.r + (h.r - c.r) * t),
+           math.floor(c.g + (h.g - c.g) * t),
+           math.floor(c.b + (h.b - c.b) * t),
+           t, throb
 end
 
 local function renderLight(entity, weaponHash)
@@ -224,8 +237,9 @@ local function updateGlow(weaponEntity, weaponHash)
 
     local t = heatT()
 
-    -- Colour ramps orange (1, 0.43, 0) -> deep red (1, 0, 0).
-    SetParticleFxLoopedColour(fxHandle, 1.0, 0.43 * (1.0 - t), 0.0, false)
+    -- Same incandescent ramp as the draw-call modes, in 0..1 floats.
+    local r, g, b = heatColour()
+    SetParticleFxLoopedColour(fxHandle, r / 255.0, g / 255.0, b / 255.0, false)
 
     local scale = (p.Scale or 0.4) * (0.6 + 0.4 * t)
     if heat >= cfg.HotThreshold then  -- subtle throb once critically hot
