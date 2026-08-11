@@ -139,20 +139,28 @@ AddEventHandler("mbt_malisling:syncSling", function(data)
     local _source = source
     if type(data) ~= "table" or type(data.playerWeapons) ~= "table" then return end
     if not netThrottle(_source, 'syncSling', 100) then return end
-    Slung.ensurePlayer(_source)
-    for k, v in pairs(data.playerWeapons) do
-        if _validWeaponTypes[k] then
-            if type(v) == "table" then
-                -- PHASE 1 — the client still reports one weapon per type, and the old
-                -- registry overwrote the type's cell on every report. replaceType keeps that
-                -- cardinality while the shape underneath goes per-serial. Phase 2 replaces
-                -- this with a per-serial put driven by the desired set.
-                Slung.replaceType(_source, k, v)
-            elseif v == false then
-                Slung.clearType(_source, k)
+    -- Shape gate. The payload REPLACES this player's registry, so a malformed one doesn't
+    -- write partial state — it wipes everything it failed to mention. Reject the lot
+    -- instead: [type][serial] = item, and every leaf must look like a weapon item. Catches
+    -- both a client on the old flat shape and a hand-built partial payload.
+    for propType, bySerial in pairs(data.playerWeapons) do
+        if type(propType) ~= "string" or type(bySerial) ~= "table" then
+            Utils.mbtWarn(("syncSling ~ malformed payload from %s (type key), ignored"):format(_source))
+            return
+        end
+        for _, item in pairs(bySerial) do
+            if type(item) ~= "table" or type(item.name) ~= "string" then
+                Utils.mbtWarn(("syncSling ~ malformed payload from %s (item under '%s'), ignored"):format(_source, propType))
+                return
             end
         end
     end
+
+    Slung.ensurePlayer(_source)
+    -- The client reports its COMPLETE desired set every time — every weapon that should be
+    -- hanging on it, keyed by type and serial — so this replaces the player's registry
+    -- rather than merging into it. Type filtering happens inside replaceAll.
+    Slung.replaceAll(_source, data.playerWeapons)
     -- Chain of Custody: record holders AFTER the sling sync (a server-side ledger
     -- keyed by serial — NOT a metadata write, which would re-trigger updateInventory
     -- and re-spawn the slung prop while the weapon is in hand).

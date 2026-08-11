@@ -303,8 +303,10 @@ local function reslingPrevious(prevHash)
     local prevType = prevData and MBT.WeaponsInfo.Weapons[prevData.name]
         and MBT.WeaponsInfo.Weapons[prevData.name].type
     if prevType and not Slung.hasType(cache.serverId, prevType) then
-        prevData.type = prevType
-        TriggerServerEvent('mbt_malisling:syncSling', { playerWeapons = { [prevType] = prevData } })
+        -- Re-report the WHOLE set, never a hand-built payload for this one weapon: the
+        -- server treats what arrives as a snapshot and replaces the registry with it, so a
+        -- partial report would delete every other weapon on this player's body.
+        ResyncSling()
     end
 end
 
