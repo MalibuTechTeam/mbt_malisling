@@ -12,6 +12,7 @@ if not MBT.SuppressorHeat then return end
 local cfg = MBT.SuppressorHeat
 
 local heat            = 0   -- 0 .. cfg.MaxHeat
+local pinnedHeat      = nil -- /mbt_muzzleglow (debug): hold the heat here, skip the decay
 local lastShotTime    = 0
 local lastArmedHash   = 0   -- last non-unarmed weapon held (for cold-on-swap reset)
 local suppHash        = 0   -- weapon hash whose suppressor currently holds the heat
@@ -93,16 +94,61 @@ local function glowEntity(weaponHash)
     end) or 0
 end
 
+-- Captured once: on a build without this native the offset simply never applies, which is
+-- the pre-suppressor-offset behaviour, rather than a red error every frame.
+local HasWeaponGotWeaponComponent = HasWeaponGotWeaponComponent
+
+--- Is a suppressor actually FITTED to this entity? The held weapon is answered from the ped
+--- (the same check the heat itself uses); a slung prop has to be asked directly, since no
+--- ped is holding it.
+---@param entity number
+---@param weaponHash number
+---@return boolean
+local function entityHasSuppressor(entity, weaponHash)
+    if entity == GetCurrentPedWeaponEntityIndex(cache.ped) then
+        return heldWeaponHasSuppressor(weaponHash)
+    end
+    if not HasWeaponGotWeaponComponent then return false end
+    for i = 1, #suppressorComps do
+        local r = HasWeaponGotWeaponComponent(entity, suppressorComps[i])
+        if r == true or r == 1 then return true end
+    end
+    return false
+end
+
+--- Offset from the muzzle bone, in the WEAPON's own axes, or nil for none.
+--- Only when a suppressor is really mounted: the companion combat resource glows bare
+--- barrels too (exports SetMuzzleHeat), and shifting those forward would be wrong.
+---@return table? { x, y, z }
+local function suppressorOffset(entity, weaponHash)
+    local o = cfg.SuppressorOffset
+    if not o then return nil end
+    if o.x == 0.0 and o.y == 0.0 and o.z == 0.0 then return nil end
+    if not entityHasSuppressor(entity, weaponHash) then return nil end
+    return o
+end
+
 --- World position of the weapon entity's muzzle, or nil if the entity is gone (no hand-bone fallback — that snap-to-hand caused the holster flicker).
 ---@param entity number
+---@param weaponHash number?  when given, a fitted suppressor shifts the point onto its body
 ---@return vector3?
-local function muzzlePos(entity)
+local function muzzlePos(entity, weaponHash)
     if not entity or entity == 0 or not DoesEntityExist(entity) then return nil end
     local bone = GetEntityBoneIndexByName(entity, 'gun_muzzle')
-    if bone ~= -1 then
-        return GetWorldPositionOfEntityBone(entity, bone)
+    if bone == -1 then
+        return GetEntityCoords(entity)  -- prop exists but exposes no muzzle bone
     end
-    return GetEntityCoords(entity)  -- prop exists but exposes no muzzle bone
+
+    local pos = GetWorldPositionOfEntityBone(entity, bone)
+    local o = weaponHash and suppressorOffset(entity, weaponHash)
+    if not o then return pos end
+
+    -- Rotate the local-space offset into world space by taking it around the entity's own
+    -- origin, then apply that delta to the bone position — the bone has no orientation of
+    -- its own we can use, but the weapon does, and they turn together.
+    local delta = GetOffsetFromEntityInWorldCoords(entity, o.x + 0.0, o.y + 0.0, o.z + 0.0)
+        - GetEntityCoords(entity)
+    return pos + delta
 end
 
 --- Heat-scaled orange->red colour + a throb multiplier once critically hot.
@@ -115,8 +161,8 @@ local function heatColour()
     return 255, math.floor(110 * (1.0 - t)), 0, t, throb
 end
 
-local function renderLight(entity)
-    local pos = muzzlePos(entity)
+local function renderLight(entity, weaponHash)
+    local pos = muzzlePos(entity, weaponHash)
     if not pos then return end
     local r, g, b, t, throb = heatColour()
     DrawLightWithRange(pos.x, pos.y, pos.z, r, g, b, cfg.Light.Range,
@@ -124,8 +170,8 @@ local function renderLight(entity)
 end
 
 -- ── Glow-sphere mode (draws a glow that does not light the environment) ─────────
-local function renderGlowSphere(entity)
-    local pos = muzzlePos(entity)
+local function renderGlowSphere(entity, weaponHash)
+    local pos = muzzlePos(entity, weaponHash)
     if not pos then return end
     local r, g, b, t, throb = heatColour()
     DrawGlowSphere(pos.x, pos.y, pos.z, cfg.GlowSphere.Radius, r, g, b,
@@ -146,7 +192,8 @@ end
 
 --- Start / maintain the looped heat-glow particle on the muzzle, tinting orange -> red and scaling with heat; works on the held weapon or, once holstered, the matching slung prop (entity resolved by the caller).
 ---@param weaponEntity number
-local function updateGlow(weaponEntity)
+---@param weaponHash number?
+local function updateGlow(weaponEntity, weaponHash)
     if not weaponEntity or weaponEntity == 0 or not DoesEntityExist(weaponEntity) then
         stopGlow()
         return
@@ -163,9 +210,13 @@ local function updateGlow(weaponEntity)
         end
         local bone = GetEntityBoneIndexByName(weaponEntity, 'gun_muzzle')
         if bone == -1 then bone = 0 end
+        -- The particle rides the bone, so the suppressor offset goes in as a bone-local
+        -- offset here rather than as a world delta like the two draw-call modes.
+        local o = weaponHash and suppressorOffset(weaponEntity, weaponHash)
         UseParticleFxAssetNextCall(p.Dict)
         fxHandle = StartParticleFxLoopedOnEntityBone(p.Name, weaponEntity,
-            0.0, 0.0, 0.0, 0.0, 0.0, 0.0, bone, p.Scale or 0.4, false, false, false)
+            o and (o.x + 0.0) or 0.0, o and (o.y + 0.0) or 0.0, o and (o.z + 0.0) or 0.0,
+            0.0, 0.0, 0.0, bone, p.Scale or 0.4, false, false, false)
         fxEntity = weaponEntity
     end
 
@@ -186,6 +237,72 @@ end
 AddEventHandler('onResourceStop', function(res)
     if res == GetCurrentResourceName() then stopGlow() end
 end)
+
+-- ── Offset tuning (debug builds) ────────────────────────────────────────────────
+-- The suppressor offset can't be derived: 'gun_muzzle' sits at the barrel's mouth, and how
+-- far forward the can reaches is a property of each weapon model. cfg is the live table, so
+-- a nudge here shows on the next frame — hold a suppressed weapon, fire until it glows,
+-- find the numbers, then paste them into default.lua.
+if MBT.Debug then
+    RegisterCommand('mbt_muzzletune', function(_, args)
+        local o = cfg.SuppressorOffset
+        if not o then
+            o = { x = 0.0, y = 0.0, z = 0.0 }
+            cfg.SuppressorOffset = o
+        end
+
+        local axis = tostring(args[1] or ''):lower()
+        local step = tonumber(args[2])
+        -- Radius/intensity live here too: pinned at full heat the default sphere reads as a
+        -- hard red blob, and finding softer numbers needs the same live loop as the offset.
+        local shape = cfg.Mode == 'light' and cfg.Light or cfg.GlowSphere
+        if axis == 'reset' then
+            o.x, o.y, o.z = 0.0, 0.0, 0.0
+        elseif (axis == 'x' or axis == 'y' or axis == 'z') and step then
+            o[axis] = (o[axis] or 0.0) + step
+        elseif axis == 'radius' and step and shape then
+            shape.Radius = math.max(0.005, (shape.Radius or 0.06) + step)
+        elseif axis == 'range' and step and shape then
+            shape.Range = math.max(0.05, (shape.Range or 1.0) + step)
+        elseif axis == 'intensity' and step and shape then
+            shape.Intensity = math.max(0.01, (shape.Intensity or 8.0) + step)
+        elseif axis ~= 'show' then
+            Utils.mbtDebugger('mbt_muzzletune ~ usage: x|y|z <delta> · radius|range|intensity <delta> · show · reset')
+        end
+
+        if shape then
+            Utils.mbtDebugger(('mbt_muzzletune ~ %s: Radius/Range = %s / %s, Intensity = %.2f'):format(
+                cfg.Mode, tostring(shape.Radius), tostring(shape.Range), shape.Intensity or 0.0))
+        end
+        local msg = ('SuppressorOffset = { x = %.3f, y = %.3f, z = %.3f }'):format(o.x, o.y, o.z)
+        Utils.mbtDebugger('mbt_muzzletune ~ ' .. msg)
+        lib.notify({ type = 'inform', title = 'Muzzle offset', description = msg })
+    end, false)
+
+    --- Hold the glow on so it can actually be looked at. `/mbt_muzzleglow` toggles it at
+    --- full heat; `/mbt_muzzleglow 50` picks a level to see the orange→red ramp; `off` clears.
+    --- The glow still needs a weapon to sit on, and the offset only applies where a
+    --- suppressor is really fitted — so draw the suppressed gun once before pinning.
+    RegisterCommand('mbt_muzzleglow', function(_, args)
+        local arg = tostring(args[1] or ''):lower()
+
+        if arg == 'off' or (arg == '' and pinnedHeat) then
+            pinnedHeat = nil
+            heat = 0
+            stopGlow()
+            lib.notify({ type = 'inform', title = 'Muzzle glow', description = 'released' })
+            return
+        end
+
+        pinnedHeat = math.max(cfg.WarmThreshold, math.min(tonumber(arg) or cfg.MaxHeat, cfg.MaxHeat))
+        local hint = suppHash == 0
+            and ' — no suppressed weapon seen yet: draw one once'
+            or ''
+        lib.notify({ type = 'inform', title = 'Muzzle glow',
+            description = ('pinned at %d/%d%s'):format(pinnedHeat, cfg.MaxHeat, hint) })
+        Utils.mbtDebugger(('mbt_muzzleglow ~ pinned at %d (suppHash %s)'):format(pinnedHeat, tostring(suppHash)))
+    end, false)
+end
 
 CreateThread(function()
     -- MBT.WeaponsInfo is populated by Init() via a server callback.
@@ -213,9 +330,9 @@ CreateThread(function()
                 if heat >= cfg.WarmThreshold then
                     local entity = GetCurrentPedWeaponEntityIndex(cache.ped)
                     if entity ~= 0 and DoesEntityExist(entity) then
-                        if cfg.Mode == 'particle' then updateGlow(entity)
-                        elseif cfg.Mode == 'light' then renderLight(entity)
-                        else renderGlowSphere(entity) end
+                        if cfg.Mode == 'particle' then updateGlow(entity, eHash)
+                        elseif cfg.Mode == 'light' then renderLight(entity, eHash)
+                        else renderGlowSphere(entity, eHash) end
                     else stopGlow() end
                 else
                     stopGlow()
@@ -248,6 +365,11 @@ CreateThread(function()
         local heldSupp = armed and heldWeaponHasSuppressor(weaponHash)
         if heldSupp then suppHash = weaponHash end
 
+        -- Pinned for testing: hold the heat and skip the decay below. Natural cooling gives
+        -- about two seconds above the glow threshold — not enough to tune the offset, and
+        -- not enough to watch the glow follow the weapon onto the back after a holster.
+        if pinnedHeat then heat = pinnedHeat end
+
         if heat <= 0 and not heldSupp then
             -- Fully idle — nothing hot, no suppressed weapon in hand.
             suppHash = 0
@@ -273,21 +395,22 @@ CreateThread(function()
                 lastClip = clip
             end
 
-            if heat > 0 and (GetGameTimer() - lastShotTime) > cfg.DecayDelayMs then
+            if not pinnedHeat and heat > 0 and (GetGameTimer() - lastShotTime) > cfg.DecayDelayMs then
                 heat = math.max(0, heat - cfg.DecayRate * dt)
             end
 
             -- glowEntity resolves held weapon or slung prop; no entity → no render
             -- (never snap to a fallback position — that was the flicker).
             if heat >= cfg.WarmThreshold then
-                local entity = glowEntity(suppHash ~= 0 and suppHash or weaponHash)
+                local glowHash = suppHash ~= 0 and suppHash or weaponHash
+                local entity = glowEntity(glowHash)
                 if entity ~= 0 then
                     if cfg.Mode == 'particle' then
-                        updateGlow(entity)
+                        updateGlow(entity, glowHash)
                     elseif cfg.Mode == 'light' then
-                        renderLight(entity)
+                        renderLight(entity, glowHash)
                     else  -- 'glow' (default)
-                        renderGlowSphere(entity)
+                        renderGlowSphere(entity, glowHash)
                     end
                 else
                     stopGlow()

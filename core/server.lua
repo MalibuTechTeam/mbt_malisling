@@ -98,6 +98,7 @@ end)
 RegisterNetEvent("mbt_malisling:checkInventory")
 AddEventHandler("mbt_malisling:checkInventory", function()
     if not netThrottle(source, 'checkInv', 250) then return end
+    Slung.ensurePlayer(source)   -- a restart doesn't re-fire playerLoaded; see Slung.ensurePlayer
     Utils.mbtDebugger("checkInventory ~ Checking inventory for source ", source)
     local items = Inventory:GetInventoryItems(source)
     if type(items) ~= "table" then items = {} end
@@ -138,6 +139,7 @@ AddEventHandler("mbt_malisling:syncSling", function(data)
     local _source = source
     if type(data) ~= "table" or type(data.playerWeapons) ~= "table" then return end
     if not netThrottle(_source, 'syncSling', 100) then return end
+    Slung.ensurePlayer(_source)
     for k, v in pairs(data.playerWeapons) do
         if _validWeaponTypes[k] then
             if type(v) == "table" then
@@ -222,6 +224,40 @@ AddEventHandler("mbt_malisling:syncDeletionAll", function()
         }
     })
 end)
+
+-- Debug-only view of the server's side of the sync. Client-side debugging can only ever
+-- prove what a client RECEIVED; when two players disagree about who is carrying what, the
+-- answer is in the registry and in the scope lists, and there is no other way to see them.
+-- Registered only in debug builds — it exposes serials.
+if MBT.Debug then
+    lib.callback.register('mbt_malisling:debugSnapshot', function(src)
+        local registry = {}
+        for playerId, byType in pairs(playersToTrack) do
+            local types = {}
+            for propType, bySerial in pairs(byType) do
+                local serials = {}
+                for serial, entry in pairs(bySerial) do
+                    serials[#serials + 1] = ('%s(%s, lane %s)'):format(
+                        serial, entry.data and entry.data.name or '?', tostring(entry.lane))
+                end
+                table.sort(serials)
+                if #serials > 0 then types[propType] = serials end
+            end
+            registry[tostring(playerId)] = types
+        end
+
+        -- Who this player fans out TO, and who fans out to them. An asymmetry here is
+        -- exactly the "I see him, he doesn't see me" report.
+        local seesMe = {}
+        for owner, list in pairs(scopes) do
+            for i = 1, #list do
+                if list[i] == src then seesMe[#seesMe + 1] = owner break end
+            end
+        end
+
+        return { registry = registry, myScope = scopes[tostring(src)] or {}, inScopeOf = seesMe }
+    end)
+end
 
 -- Scopes --
 

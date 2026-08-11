@@ -64,6 +64,16 @@ function Slung.replaceType(src, propType, weaponData)
     return Slung.put(src, propType, Slung.serialKey(weaponData), weaponData)
 end
 
+--- Make sure this player HAS a registry entry, even an empty one.
+--- Not cosmetic: playerEnteredScope refuses to wire a player who has no entry
+--- (core/server.lua), and the bridges only create one on playerLoaded — which does NOT
+--- fire again when the resource restarts under players who are already connected. Without
+--- this, whoever reports a weapon first gets wired and the other one silently does not:
+--- "I see him, he doesn't see me".
+function Slung.ensurePlayer(src)
+    if not playersToTrack[src] then playersToTrack[src] = {} end
+end
+
 function Slung.clearSerial(src, propType, serial)
     local t = bucket(src, propType)
     if t then t[serial] = nil end

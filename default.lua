@@ -336,9 +336,23 @@ MBT.SuppressorHeat     = {
     --   'light'    → DrawLightWithRange: a real light, brighter but spills onto walls.
     --   'particle' → looped ptfx (Particle below) — use a ptfx tester to find a fx.
     Mode           = 'glow',
+    -- Where the glow sits WHEN A SUPPRESSOR IS FITTED. The 'gun_muzzle' bone stays at the
+    -- barrel's mouth, while the suppressor is a component bolted further forward — without
+    -- this the heat glows at its base instead of on its body. Expressed in the weapon's own
+    -- axes, so it follows the gun whether it's in hand or slung, and it is applied ONLY when
+    -- a suppressor is really mounted (the companion combat resource glows bare barrels too,
+    -- and those must not be shifted).
+    -- Tune it in-world with /mbt_muzzletune (debug builds), then paste the numbers here.
+    -- y is "down the barrel" on GTA weapon models; x/z are there for the odd model that
+    -- doesn't follow that convention.
+    SuppressorOffset = { x = 0.0, y = 0.10, z = 0.0 },
     GlowSphere     = {
-        Radius    = 0.06,   -- small = tight glow on the suppressor
-        Intensity = 8.0,
+        -- Tuned in-world 2026-08-11 with /mbt_muzzletune, at pinned heat 40 (the level
+        -- sustained fire actually reaches; 100 is a flash you see for an instant).
+        -- The old 8.0 was almost entirely bloom: a hard orange blob the size of the slide,
+        -- not a hot muzzle. Most of what reads as "glow" here is radius, not intensity.
+        Radius    = 0.03,   -- small = tight glow on the suppressor
+        Intensity = 0.1,
     },
     Light          = {
         -- Range = how far the light reaches (lower = less spill onto nearby walls).

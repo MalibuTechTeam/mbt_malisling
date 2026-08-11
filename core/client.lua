@@ -268,9 +268,57 @@ if MBT.Debug then
             end, { states = 'all', stale = true })
         end
 
+        -- Everyone ELSE we are tracking. "I see him but he doesn't see me" is answered
+        -- here: either the other player is missing from this list, or he is in it with no
+        -- entries, and those two have completely different causes.
+        local others = {}
+        for serverId in pairs(playersToTrack) do
+            if serverId ~= me then others[#others + 1] = serverId end
+        end
+        table.sort(others)
+        Utils.mbtDebugger(('sling debug ~ other players tracked here: %s'):format(
+            #others > 0 and table.concat(others, ', ') or 'NONE'))
+        for i = 1, #others do
+            local id, n = others[i], 0
+            Slung.forEach(id, function(handle, propType, serial, e)
+                n = n + 1
+                Utils.mbtDebugger(('  [%s] %-12s %-9s lane=%-4s prop=%-8s %s'):format(
+                    id, propType, e.state, tostring(e.lane), tostring(handle), serial))
+            end, { states = 'all', stale = true })
+            if n == 0 then Utils.mbtDebugger(('  [%s] no entries'):format(id)) end
+        end
+
+        -- The server's own view. A client can only prove what it RECEIVED; when two players
+        -- disagree, the truth is in the registry and the scope lists.
+        local snap = lib.callback.await('mbt_malisling:debugSnapshot', false)
+        if type(snap) == 'table' then
+            Utils.mbtDebugger('sling debug ~ SERVER registry:')
+            for playerId, types in pairs(snap.registry or {}) do
+                local any = false
+                for propType, serials in pairs(types) do
+                    any = true
+                    Utils.mbtDebugger(('  [%s] %-12s %s'):format(playerId, propType, table.concat(serials, ', ')))
+                end
+                if not any then Utils.mbtDebugger(('  [%s] registered, no weapons'):format(playerId)) end
+            end
+            Utils.mbtDebugger(('sling debug ~ SERVER my sync reaches: %s'):format(
+                #(snap.myScope or {}) > 0 and table.concat(snap.myScope, ', ') or 'NOBODY'))
+            Utils.mbtDebugger(('sling debug ~ SERVER I receive from:  %s'):format(
+                #(snap.inScopeOf or {}) > 0 and table.concat(snap.inScopeOf, ', ') or 'NOBODY'))
+        end
+
         lib.notify({ type = 'inform', title = 'Sling debug',
             description = ('jobs: %s — full breakdown in F8'):format(jobList) })
     end, false)
+end
+
+--- Jobs the SERVER resolved for a player in scope, as a set (nil if we know none).
+--- Global because a module that draws something on another player's body needs the jobs of
+--- the person wearing it, not ours — the tactical sling picks its strap variant that way.
+---@param serverId number
+---@return table<string, boolean>?
+function GetPlayerJobsInScope(serverId)
+    return playerJobsInScope[serverId]
 end
 
 --- Resolved back/sling attach info for a prop type, job overrides applied; global so sibling modules (e.g. low_ready) can re-attach a slung prop without duplicating the job lookup.
