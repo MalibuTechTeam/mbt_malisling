@@ -299,11 +299,10 @@ end
 --- After a direct armed→armed switch, re-create the PREVIOUS weapon's slung prop (qb-weapons swaps without a stable UNARMED step, so core never re-slings it).
 local function reslingPrevious(prevHash)
     if prevHash == `WEAPON_UNARMED` then return end
-    local mine = playersToTrack[cache.serverId]
     local prevData = findWeaponDataByHash(prevHash)
     local prevType = prevData and MBT.WeaponsInfo.Weapons[prevData.name]
         and MBT.WeaponsInfo.Weapons[prevData.name].type
-    if prevType and (not mine or not mine[prevType] or mine[prevType] == false) then
+    if prevType and not Slung.hasType(cache.serverId, prevType) then
         prevData.type = prevType
         TriggerServerEvent('mbt_malisling:syncSling', { playerWeapons = { [prevType] = prevData } })
     end

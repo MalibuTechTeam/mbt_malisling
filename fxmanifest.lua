@@ -17,14 +17,16 @@ shared_scripts {
     '@ox_lib/init.lua',
     'default.lua',               
     'config.lua',                 
-    'modules/utils/logger.lua',  
+    'modules/utils/logger.lua',
     'modules/locales.lua',
     'locales/*.lua',
+    'modules/slung/shared.lua',   -- serial/visual keys: both VMs must derive them identically
 }
 
 server_scripts {
     'modules/ox_patch/installer.js',
     'modules/utils/server.lua',
+    'modules/slung/server.lua',
     'modules/version/server.lua',
     'modules/weapon_sounds/server.lua',
     'modules/bridge/esx/server.lua',
@@ -60,6 +62,7 @@ server_scripts {
 
 client_scripts {
     'modules/utils/client.lua',
+    'modules/slung/client.lua',
     'modules/anchor/client.lua',
     'modules/shooting_bridge/client.lua',
     'modules/target/client.lua',

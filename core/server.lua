@@ -6,7 +6,7 @@ if not Utils.MbtResourceNameCheck('mbt_malisling') then return end
 -- which lib.versionCheck can't do (console-only, result not exposed).
 
 local isReady = false
-playersToTrack = {}
+-- playersToTrack and every operation on it live in modules/slung/server.lua (global `Slung`).
 
 -- Inventory and loadInventoryWeaponsData() come from modules/inventory/*/server.lua, which
 -- bail out when their inventory is not 'started' at the moment we load — a restart that
@@ -53,7 +53,7 @@ local function dropPlayer(s)
     TriggerClientEvent("mbt_malisling:syncDeletion", -1,
         { playerSource = s, weaponType = "all", calledBy = "dropPlayer" })
     TriggerClientEvent("mbt_malisling:syncPlayerRemoval", -1, { playerSource = s })
-    playersToTrack[s] = nil
+    Slung.clearPlayer(s)
     removePlayerFromScopes(s)
 end
 
@@ -138,10 +138,17 @@ AddEventHandler("mbt_malisling:syncSling", function(data)
     local _source = source
     if type(data) ~= "table" or type(data.playerWeapons) ~= "table" then return end
     if not netThrottle(_source, 'syncSling', 100) then return end
-    if not playersToTrack[_source] then playersToTrack[_source] = {} end
     for k, v in pairs(data.playerWeapons) do
-        if _validWeaponTypes[k] and (type(v) == "table" or v == false) then
-            playersToTrack[_source][k] = v
+        if _validWeaponTypes[k] then
+            if type(v) == "table" then
+                -- PHASE 1 — the client still reports one weapon per type, and the old
+                -- registry overwrote the type's cell on every report. replaceType keeps that
+                -- cardinality while the shape underneath goes per-serial. Phase 2 replaces
+                -- this with a per-serial put driven by the desired set.
+                Slung.replaceType(_source, k, v)
+            elseif v == false then
+                Slung.clearType(_source, k)
+            end
         end
     end
     -- Chain of Custody: record holders AFTER the sling sync (a server-side ledger
@@ -168,7 +175,7 @@ AddEventHandler("mbt_malisling:syncSling", function(data)
             playerJobs = getPlayerJobs(_source),
             pedSex = getPlayerSex(_source),
             calledBy = "mbt_malisling:syncSling ~ 162",
-            playerWeapons = playersToTrack[_source]
+            playerWeapons = Slung.snapshot(_source)
         }
     })
 end)
@@ -179,7 +186,7 @@ AddEventHandler("mbt_malisling:syncDeletion", function(weaponType)
     if not _validWeaponTypes[weaponType] then return end   -- validate the key, like syncSling
     if not netThrottle(_source, 'syncDel', 100) then return end
     if playersToTrack[_source] == nil then return end
-    playersToTrack[_source][weaponType] = false
+    Slung.clearType(_source, weaponType)
 
     TriggerScopeEvent({
         event = "mbt_malisling:syncDeletion",
@@ -189,6 +196,29 @@ AddEventHandler("mbt_malisling:syncDeletion", function(weaponType)
             playerSource = _source,
             calledBy = "mbt_malisling:syncDeletion",
             weaponType = weaponType
+        }
+    })
+end)
+
+-- Every type at once. Its own event on purpose: syncDeletion is throttled at 100ms per
+-- source, so a client looping one delete per type lands the first and loses the rest, and
+-- the observers keep rendering props the owner has already destroyed (entering a vehicle
+-- with a pistol AND a rifle slung is enough to hit it). Same shape as the jobChanged reset.
+RegisterNetEvent("mbt_malisling:syncDeletionAll")
+AddEventHandler("mbt_malisling:syncDeletionAll", function()
+    local _source = source
+    if not netThrottle(_source, 'syncDelAll', 100) then return end
+    if playersToTrack[_source] == nil then return end
+    Slung.clearAll(_source)
+
+    TriggerScopeEvent({
+        event = "mbt_malisling:syncDeletion",
+        scopeOwner = _source,
+        selfTrigger = true,
+        payload = {
+            playerSource = _source,
+            calledBy = "mbt_malisling:syncDeletionAll",
+            weaponType = "all"
         }
     })
 end)
@@ -364,7 +394,7 @@ Citizen.CreateThread(function()
                             playerJob = getPlayerJob(source),
                             playerJobs = getPlayerJobs(source),
                             pedSex = getPlayerSex(source),
-                            playerWeapons = values[i].type == "Added" and playersToTrack[tonumber(source)] or nil
+                            playerWeapons = values[i].type == "Added" and Slung.snapshot(tonumber(source)) or nil
                         }
                     }
                 }

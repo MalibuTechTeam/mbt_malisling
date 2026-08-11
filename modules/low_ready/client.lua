@@ -133,8 +133,8 @@ RegisterNetEvent('mbt_malisling:remoteLowReady', function(srcPlayer, propType, c
     if pid == -1 then return end   -- unstreamed source: GetPlayerPed(-1) would resolve to OUR ped
     local ped = GetPlayerPed(pid)
     if not ped or ped == 0 or not DoesEntityExist(ped) then return end
-    local prop = playersToTrack[srcPlayer] and playersToTrack[srcPlayer][propType]
-    if type(prop) ~= 'number' or not DoesEntityExist(prop) then return end
+    local prop = Slung.first(propType, srcPlayer)
+    if not prop then return end
     placeAt(prop, ped, propType, chest and 'chest' or 'back')
 end)
 

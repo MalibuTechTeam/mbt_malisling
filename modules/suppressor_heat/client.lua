@@ -84,17 +84,13 @@ local function glowEntity(weaponHash)
     end
 
     if not weaponHash or weaponHash == 0 then return 0 end
-    local mine = playersToTrack and playersToTrack[cache.serverId]
-    if not mine then return 0 end
 
+    -- Matched by MODEL, which is why phase 3 has to move this to the serial: with two copies
+    -- of the same weapon slung, the model alone can't say which one is the hot barrel.
     local wantModel = GetWeapontypeModel(weaponHash)
-    for _, ent in pairs(mine) do
-        if type(ent) == 'number' and ent ~= 0 and DoesEntityExist(ent)
-            and GetEntityModel(ent) == wantModel then
-            return ent
-        end
-    end
-    return 0
+    return Slung.forEach(cache.serverId, function(ent)
+        if GetEntityModel(ent) == wantModel then return ent end
+    end) or 0
 end
 
 --- World position of the weapon entity's muzzle, or nil if the entity is gone (no hand-bone fallback — that snap-to-hand caused the holster flicker).

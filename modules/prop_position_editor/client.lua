@@ -174,23 +174,17 @@ end
 local hiddenSlung = {}
 local function hideRealSlung()
     hiddenSlung = {}
-    local mine = playersToTrack and playersToTrack[cache.serverId]
-    if type(mine) ~= 'table' then return end
-    for wtype, prop in pairs(mine) do
-        if type(prop) == 'number' and DoesEntityExist(prop) then
-            -- SetEntityVisible doesn't reliably hide attached weapon objects, so DELETE.
-            -- The `true` sentinel reserves the slot so syncSling won't respawn it while editing.
-            DeleteEntity(prop)
-            mine[wtype] = true
-            hiddenSlung[#hiddenSlung + 1] = wtype
-        end
-    end
+    -- SetEntityVisible doesn't reliably hide attached weapon objects, so DELETE. reserve
+    -- keeps the slot claimed so syncSling won't respawn it while editing.
+    Slung.forEach(cache.serverId, function(_, wtype, serial)
+        Slung.deleteSerial(cache.serverId, wtype, serial, { reserve = true })
+        hiddenSlung[#hiddenSlung + 1] = { wtype, serial }
+    end)
 end
 local function restoreRealSlung()
     if #hiddenSlung == 0 then return end
-    local mine = playersToTrack and playersToTrack[cache.serverId]
-    if type(mine) == 'table' then
-        for i = 1, #hiddenSlung do mine[hiddenSlung[i]] = false end   -- release the slots
+    for i = 1, #hiddenSlung do   -- release the slots
+        Slung.deleteSerial(cache.serverId, hiddenSlung[i][1], hiddenSlung[i][2])
     end
     hiddenSlung = {}
     TriggerServerEvent('mbt_malisling:checkInventory')   -- respawn the real props fresh on exit
