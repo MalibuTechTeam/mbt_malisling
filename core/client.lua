@@ -279,10 +279,15 @@ local playerCtxInScope = {}    -- [serverId] = { playerJob = string?, pedSex = s
 --- reasons here rather than next to the spawn.
 ---@param source number   server id of the player carrying the weapon
 ---@param propType string body slot: side/back/back2/melee/melee2/melee3
+---@param serial string?  the weapon itself, where a reason is per-weapon rather than per-slot
 ---@return boolean suppressed, string? reason  reason is for /mbt_slingdebug; callers ignore it
-local function isPropSuppressed(source, propType)
-    -- Concealed carry (opaque hook, no-op without the module).
-    if MBT.IsTypeConcealed and MBT.IsTypeConcealed(source, propType) then return true, 'concealed' end
+local function isPropSuppressed(source, propType, serial)
+    -- Concealed carry (opaque hook, no-op without the module). Per WEAPON: hiding every
+    -- pistol because one of them is tucked away would make concealment the one action that
+    -- can't name what it acts on.
+    if serial and MBT.IsSerialConcealed and MBT.IsSerialConcealed(source, serial) then
+        return true, 'concealed'
+    end
 
     local hidden = MBT.HiddenByJob
     if not hidden then return false end
@@ -329,6 +334,8 @@ if MBT.Debug then
         end
 
         for propType in pairs(slots) do
+            -- No serial here: this line answers the per-SLOT reasons (hidden for a job).
+            -- Per-weapon concealment shows up on the entry lines below, as a missing prop.
             local suppressed, why = isPropSuppressed(me, propType)
             Utils.mbtDebugger(('  %-12s suppressed=%-6s%s'):format(
                 propType, tostring(suppressed), why and ('(' .. why .. ')') or ''))
@@ -959,12 +966,13 @@ AddEventHandler('mbt_malisling:syncSling', function (data)
             end, { states = 'all', stale = true })
 
             -- 3. Spawn what is missing. Suppression (concealed carry, hidden for this
-            --    player's job) decides whether anything is drawn at all — one predicate,
-            --    see isPropSuppressed.
-            local suppressed = isPropSuppressed(src, weaponType)
+            --    player's job) decides whether anything is drawn — one predicate, see
+            --    isPropSuppressed. Evaluated per WEAPON, because concealment is: one
+            --    tucked-away pistol must not take the other one off the hip too.
             for serial, slot in pairs(bySerial) do
                 local weaponData = slot and slot.data
                 if weaponData then
+                    local suppressed = isPropSuppressed(src, weaponType, serial)
                     if suppressed or not slot.lane then
                         -- Tracked, not drawn: either hidden, or another serial holds the
                         -- lane. Unconditional — if we still have a prop for it, that prop
@@ -1070,7 +1078,7 @@ CreateThread(function()
                     Slung.forEach(serverId, function(_, propType, serial, e)
                         -- Only entries the server gave a lane to: a shadow with no lane is
                         -- deliberately not drawn, not a failure.
-                        if e.lane and e.data and not isPropSuppressed(serverId, propType) then
+                        if e.lane and e.data and not isPropSuppressed(serverId, propType, serial) then
                             Utils.mbtDebugger('repair ~ re-spawning ', e.data.name, ' for ', serverId)
                             if Slung.reserve(serverId, propType, serial, 'repair') then
                                 local handle = spawnProp({

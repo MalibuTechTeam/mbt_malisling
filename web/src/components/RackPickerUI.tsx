@@ -15,6 +15,10 @@ interface RackPickerData {
   index: number                     // 1-based selection (Lua side)
   locale?: Locale
   style?: 'standard' | 'cinematic'
+  // Callers other than the weapon rack reuse this list — same keys, same feel — and
+  // supply their own heading and confirm verb. Absent = the rack's own wording.
+  title?: string
+  confirm?: string
 }
 
 export default function RackPickerUI() {
@@ -52,7 +56,7 @@ export default function RackPickerUI() {
     <div className={`rkp-overlay ${exiting ? 'rkp-exit' : 'rkp-enter'}`}>
       <div className={`rkp-card${data.style === 'cinematic' ? ' cine-chip' : ''}`}>
         <div className="rkp-header">
-          <span className="rkp-label">{t('rack_picker_title', 'WEAPON RACK')}</span>
+          <span className="rkp-label">{data.title ?? t('rack_picker_title', 'WEAPON RACK')}</span>
           <span className="rkp-count">{index}/{data.weapons.length}</span>
         </div>
 
@@ -78,7 +82,7 @@ export default function RackPickerUI() {
           </span>
           <span className="rkp-hint">
             <span className="mbt-kc">E</span>
-            <span className="rkp-hint-lbl rkp-hint-lbl--primary">{t('rack_picker_take', 'Take')}</span>
+            <span className="rkp-hint-lbl rkp-hint-lbl--primary">{data.confirm ?? t('rack_picker_take', 'Take')}</span>
           </span>
           <span className="rkp-hint">
             <span className="mbt-kc">BSPC</span>
