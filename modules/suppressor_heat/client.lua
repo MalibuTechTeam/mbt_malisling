@@ -16,6 +16,19 @@ local pinnedHeat      = nil -- /mbt_muzzleglow (debug): hold the heat here, skip
 local lastShotTime    = 0
 local lastArmedHash   = 0   -- last non-unarmed weapon held (for cold-on-swap reset)
 local suppHash        = 0   -- weapon hash whose suppressor currently holds the heat
+local suppSerial      = nil -- ...and WHICH gun it is: the hash can't tell two copies apart
+local suppType        = nil -- its body slot, needed to look the prop up
+
+-- Identity of the weapon in hand, kept so the heat can find its way back to the SAME gun
+-- after a holster. Not cleared on unequip: that is exactly the moment we still need it.
+local heldSerial, heldType = nil, nil
+AddEventHandler('ox_inventory:currentWeapon', function(data)
+    if data and data.name then
+        heldSerial = data.metadata and data.metadata.serial
+        local info = MBT.WeaponsInfo and MBT.WeaponsInfo.Weapons and MBT.WeaponsInfo.Weapons[data.name]
+        heldType = info and info.type
+    end
+end)
 local lastClip        = nil -- clip ammo last frame, to detect shots fired
 local suppressorComps = {}
 
@@ -78,20 +91,52 @@ end
 --- The held weapon if armed, else the matching slung prop (matched by model) so the glow survives holstering.
 ---@param weaponHash number  hash of the (possibly holstered) suppressed weapon
 ---@return number entity  0 if neither is available
+-- Throttled so a per-frame render loop doesn't flood the console.
+local lastGlowLog = 0
+local function logGlow(...)
+    if not MBT.Debug then return end
+    local now = GetGameTimer()
+    if now - lastGlowLog < 1000 then return end
+    lastGlowLog = now
+    Utils.mbtDebugger(...)
+end
+
 local function glowEntity(weaponHash)
     local held = GetCurrentPedWeaponEntityIndex(cache.ped)
     if held and held ~= 0 and DoesEntityExist(held) then
+        logGlow(('glow ~ on the HELD weapon entity %s'):format(held))
         return held
     end
 
-    if not weaponHash or weaponHash == 0 then return 0 end
+    if not weaponHash or weaponHash == 0 then
+        logGlow('glow ~ no weapon hash to look up — nothing drawn')
+        return 0
+    end
 
-    -- Matched by MODEL, which is why phase 3 has to move this to the serial: with two copies
-    -- of the same weapon slung, the model alone can't say which one is the hot barrel.
+    -- By SERIAL: with two copies of the same weapon slung, the model cannot say which barrel
+    -- is the hot one. resolve() also promotes that serial into the lane when it is tracked
+    -- but not currently drawn — so the glow never lands on a different gun that happens to
+    -- look the same.
+    if suppSerial and suppType then
+        local ent = Slung.resolve(suppType, tostring(suppSerial))
+        if ent then
+            logGlow(('glow ~ on the slung prop %s (serial %s, %s)'):format(ent, suppSerial, suppType))
+            return ent
+        end
+        logGlow(('glow ~ serial %s [%s] has NO prop here'):format(tostring(suppSerial), tostring(suppType)))
+    else
+        logGlow(('glow ~ no identity for the hot weapon (serial %s, type %s)')
+            :format(tostring(suppSerial), tostring(suppType)))
+    end
+
+    -- Weapons that never got a serial (stacks, EnsureGeneration off, a repair sweep that
+    -- hasn't run yet) still deserve a glow: fall back to matching the model.
     local wantModel = GetWeapontypeModel(weaponHash)
-    return Slung.forEach(cache.serverId, function(ent)
+    local byModel = Slung.forEach(cache.serverId, function(ent)
         if GetEntityModel(ent) == wantModel then return ent end
-    end) or 0
+    end)
+    logGlow(('glow ~ model fallback for %s: %s'):format(wantModel, tostring(byModel)))
+    return byModel or 0
 end
 
 -- Captured once: on a build without this native the offset simply never applies, which is
@@ -377,16 +422,32 @@ CreateThread(function()
         end
 
         local heldSupp = armed and heldWeaponHasSuppressor(weaponHash)
-        if heldSupp then suppHash = weaponHash end
+        if heldSupp then
+            suppHash = weaponHash
+            -- Take the identity at the same moment as the hash: this is the gun the heat
+            -- belongs to, and it has to survive the holster that comes after.
+            suppSerial, suppType = heldSerial, heldType
+        end
 
         -- Pinned for testing: hold the heat and skip the decay below. Natural cooling gives
         -- about two seconds above the glow threshold — not enough to tune the offset, and
         -- not enough to watch the glow follow the weapon onto the back after a holster.
-        if pinnedHeat then heat = pinnedHeat end
+        if pinnedHeat then
+            heat = pinnedHeat
+            -- Adopt whatever is in hand, suppressor or not. Real heat is only ever taken
+            -- from a suppressed barrel, so without this the pin lights the gun you are
+            -- holding and then has no identity to hand over at the holster — which reads
+            -- as "the glow doesn't survive being put away" when nothing is wrong.
+            if armed and suppHash == 0 then
+                suppHash = weaponHash
+                suppSerial, suppType = heldSerial, heldType
+            end
+        end
 
         if heat <= 0 and not heldSupp then
             -- Fully idle — nothing hot, no suppressed weapon in hand.
             suppHash = 0
+            suppSerial, suppType = nil, nil
             lastClip = nil
             stopGlow()
             Wait(400)
@@ -433,7 +494,7 @@ CreateThread(function()
                 stopGlow()
             end
 
-            if heat <= 0 then suppHash = 0 end
+            if heat <= 0 then suppHash = 0; suppSerial, suppType = nil, nil end
             -- Per-frame while the glow is drawn or a gun is in hand (a draw-call glow flickers if
             -- not redrawn every frame); throttle only the invisible cooling tail. Decay is dt-based.
             if heldSupp or heat >= (cfg.WarmThreshold or 35) then Wait(0) else Wait(20) end
