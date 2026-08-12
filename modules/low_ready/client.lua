@@ -11,7 +11,9 @@ if not MBT.LowReady then return end   -- always register the keybind; Enabled is
 local cfg = MBT.LowReady
 local tr  = cfg.Transition or { Enabled = false }
 
--- [propType] = true while that type is in low-ready (chest) for the LOCAL player.
+-- [serialKey] = propType while THAT WEAPON is in low-ready (chest) for the LOCAL player.
+-- Keyed by serial, not by type: the stance belongs to the gun the player moved, and with
+-- two long guns on one slot "the type is at the chest" cannot say which of them is.
 local lowReady = {}
 local busy       = false  -- a transition sequence is running
 local lastToggle = 0      -- client toggle debounce (>= server rate-limit, avoids remote desync)
@@ -33,9 +35,14 @@ local function placeChest(prop, ped, propType)
     if p then attachAt(prop, ped, p.Bone, p.Pos, p.Rot, p.isPed, p.RotOrder, p.FixedRot) end
 end
 
---- Per-sex chest-stance attach info for `propType`, or nil if not low-ready; shaped like getAttachInfo's return so the core spawn path re-slings straight to the chest with no back→chest snap.
-function MBT.GetLowReadyOverride(propType)
-    if not cfg.Enabled or not lowReady[propType] then return nil end
+--- Per-sex chest-stance attach info for THIS WEAPON, or nil if it isn't at the chest;
+--- shaped like getAttachInfo's return so the core spawn path re-slings straight to the chest
+--- with no back→chest snap. The serial is required: without it we would put a weapon on the
+--- chest because a DIFFERENT one of the same type happens to be carried there.
+---@param propType string
+---@param serial string?
+function MBT.GetLowReadyOverride(propType, serial)
+    if not cfg.Enabled or not serial or lowReady[serial] ~= propType then return nil end
     local p = cfg.Position and cfg.Position[propType]
     if not p then return nil end
     return { Bone = p.Bone, isPed = p.isPed, RotOrder = p.RotOrder, FixedRot = p.FixedRot,
@@ -98,11 +105,15 @@ local function toggle()
     if now - lastToggle < 200 then return end     -- debounce: with transitions off there's no busy lock,
     lastToggle = now                              -- and the server drops events <150ms apart → desync
 
-    local targetType, prop
-    for propType in pairs(cfg.Types) do
-        if cfg.Types[propType] then
-            local ent = GetLocalSlungProp(propType)
-            if ent then targetType, prop = propType, ent break end
+    local targetType, targetSerial, prop
+    for propType, on in pairs(cfg.Types) do
+        if on then
+            -- Slung.first also hands back WHICH weapon it found. With one prop per type
+            -- that is still "the long gun on your back"; once phase 4 draws more than one,
+            -- this is the line that decides which of them the key moves — and it will need
+            -- a rule better than "the lowest lane", not a serial pulled out of the air.
+            local ent, serial = Slung.first(propType)
+            if ent then targetType, targetSerial, prop = propType, serial, ent break end
         end
     end
     if not targetType then
@@ -110,9 +121,9 @@ local function toggle()
         return
     end
 
-    local goChest = not lowReady[targetType]
-    lowReady[targetType] = goChest or nil
-    TriggerServerEvent('mbt_malisling:syncLowReady', targetType, goChest)
+    local goChest = lowReady[targetSerial] == nil
+    lowReady[targetSerial] = goChest and targetType or nil
+    TriggerServerEvent('mbt_malisling:syncLowReady', targetType, targetSerial, goChest)
 
     if tr.Enabled then
         busy = true
@@ -128,12 +139,14 @@ RegisterCommand(cfg.Command, toggle, false)
 RegisterKeyMapping(cfg.Command, '[MBT] Toggle low ready (chest carry)', 'keyboard', cfg.Key)
 
 -- Nearby players: plain final placement (no choreography) on the prop we hold.
-RegisterNetEvent('mbt_malisling:remoteLowReady', function(srcPlayer, propType, chest)
+RegisterNetEvent('mbt_malisling:remoteLowReady', function(srcPlayer, propType, serial, chest)
     local pid = GetPlayerFromServerId(srcPlayer)
     if pid == -1 then return end   -- unstreamed source: GetPlayerPed(-1) would resolve to OUR ped
     local ped = GetPlayerPed(pid)
     if not ped or ped == 0 or not DoesEntityExist(ped) then return end
-    local prop = Slung.first(propType, srcPlayer)
+    -- The exact weapon he moved. Nothing happens if we don't have a prop for it — better
+    -- than moving whichever gun of that type we happen to be drawing for him.
+    local prop = serial and Slung.get(srcPlayer, propType, serial)
     if not prop then return end
     placeAt(prop, ped, propType, chest and 'chest' or 'back')
 end)
@@ -145,14 +158,14 @@ local wasPresent = {}
 CreateThread(function()
     while true do
         Wait(next(lowReady) and 200 or 1000)   -- poll fast only while a chest stance is held
-        for propType in pairs(lowReady) do
-            local prop = GetLocalSlungProp(propType)
-            local present = (prop and DoesEntityExist(prop)) and true or false
-            if present and wasPresent[propType] == false and not busy then
+        for serial, propType in pairs(lowReady) do
+            local prop = Slung.get(cache.serverId, propType, serial)
+            local present = prop and true or false
+            if present and wasPresent[serial] == false and not busy then
                 placeChest(prop, cache.ped, propType)
-                TriggerServerEvent('mbt_malisling:syncLowReady', propType, true)
+                TriggerServerEvent('mbt_malisling:syncLowReady', propType, serial, true)
             end
-            wasPresent[propType] = present
+            wasPresent[serial] = present
         end
     end
 end)

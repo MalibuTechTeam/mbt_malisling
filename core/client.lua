@@ -782,7 +782,8 @@ end)
 ---@param weaponType string
 ---@param weaponData table
 ---@return number?
-local function spawnProp(ctx, weaponType, weaponData)
+---@param serial string?  registry key, so a per-weapon override (low ready) picks the right one
+local function spawnProp(ctx, weaponType, weaponData, serial)
     -- Spawn-window timing (debug only). Since b5d8c5b the prop is invisible for this whole
     -- stretch, so "the weapon takes a while to appear" is a report about a duration nobody
     -- can see. Split per phase: the three candidates are weapon streaming, per-component
@@ -795,7 +796,7 @@ local function spawnProp(ctx, weaponType, weaponData)
     -- type in chest carry, spawn it on the chest directly so a re-sling after a draw doesn't
     -- snap back→chest. Gated to the local player (the stance is local state).
     if ctx.targetPlayerId == PlayerId() and MBT.GetLowReadyOverride then
-        attachInfo = MBT.GetLowReadyOverride(weaponType) or attachInfo
+        attachInfo = MBT.GetLowReadyOverride(weaponType, serial) or attachInfo
     end
 
     local playerPed = ctx.playerPed
@@ -979,7 +980,7 @@ AddEventHandler('mbt_malisling:syncSling', function (data)
                         -- both fire) would otherwise both pass the free check during the
                         -- ~500ms create window, spawn two props and orphan one.
                         Utils.mbtDebugger("syncSling ~ spawning ", weaponData.name, serial)
-                        local handle = spawnProp(ctx, weaponType, weaponData)
+                        local handle = spawnProp(ctx, weaponType, weaponData, serial)
                         if handle then
                             -- slot.lane comes from the SERVER and is applied as given: every
                             -- observer has to place the weapon in the same spot, so no client
@@ -1079,7 +1080,7 @@ CreateThread(function()
                                     playerJob      = ctx.playerJob,
                                     pedSex         = ctx.pedSex,
                                     targetPlayerId = GetPlayerFromServerId(serverId),
-                                }, propType, e.data)
+                                }, propType, e.data, serial)
                                 if handle then
                                     Slung.commit(serverId, propType, serial, handle, e.data, e.lane)
                                 else

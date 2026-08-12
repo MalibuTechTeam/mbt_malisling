@@ -9,10 +9,13 @@ if not MBT.LowReady then return end   -- always register; Enabled is live-checke
 local maxDist  = 60.0  -- slung props are visible far; keep generous
 local lastSync = {}
 
-RegisterNetEvent('mbt_malisling:syncLowReady', function(propType, chest)
+RegisterNetEvent('mbt_malisling:syncLowReady', function(propType, serial, chest)
     local src = source
     if not MBT.LowReady.Enabled then return end   -- live on/off from the dashboard
     if type(propType) ~= 'string' then return end
+    -- The stance belongs to one weapon, not to a body slot: the serial rides along so
+    -- observers move the gun he actually moved.
+    if type(serial) ~= 'string' or #serial > 64 then return end
 
     -- Rate limit the toggle key.
     local now = GetGameTimer()
@@ -28,7 +31,7 @@ RegisterNetEvent('mbt_malisling:syncLowReady', function(propType, chest)
         if pid and pid ~= src then
             local ped = GetPlayerPed(pid)
             if ped and ped ~= 0 and #(srcCoords - GetEntityCoords(ped)) <= maxDist then
-                TriggerClientEvent('mbt_malisling:remoteLowReady', pid, src, propType, chest and true or false)
+                TriggerClientEvent('mbt_malisling:remoteLowReady', pid, src, propType, serial, chest and true or false)
             end
         end
     end
