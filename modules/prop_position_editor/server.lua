@@ -9,8 +9,17 @@ local adminCommand = (MBT.Admin and MBT.Admin.Command) or GetCurrentResourceName
 local adminPerm    = (MBT.Admin and MBT.Admin.Permission) or ('command.' .. adminCommand)
 
 local WTYPES = { side = true, back = true, back2 = true, melee = true, melee2 = true, melee3 = true, extinguisher = true, sling = true }
--- Valid wtypes = the base set + per-variant sling virtual types 'sling:<id>'.
-local function validWtype(w) return WTYPES[w] == true or (type(w) == 'string' and w:match('^sling:[%w%-_]+$') ~= nil) end
+-- Valid wtypes = the base set, per-variant sling virtual types 'sling:<id>', and the extra
+-- multi-weapon lanes '<slot>#<n>' — a lane is an ordinary position with its own key, which
+-- is what lets it be edited, overridden per job and persisted like any other. Without this
+-- the editor would refuse to save one AND drop it again on load.
+local function validWtype(w)
+    if WTYPES[w] == true then return true end
+    if type(w) ~= 'string' then return false end
+    if w:match('^sling:[%w%-_]+$') then return true end
+    local slot, lane = w:match('^(%w+)#(%d+)$')
+    return (slot ~= nil and WTYPES[slot] == true and tonumber(lane) ~= nil and tonumber(lane) >= 2)
+end
 local BONES  = { [24816] = true, [24818] = true, [57005] = true, [36029] = true,
                  [58271] = true, [51826] = true, [11816] = true, [23553] = true }
 

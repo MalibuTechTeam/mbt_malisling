@@ -937,15 +937,20 @@ MBT.LowReady           = {
 MBT.MultiWeaponVisibility = {
     Enabled    = false,
     MaxPerType = 2,     -- distinct weapons DRAWN per slot; the rest are still tracked
-    -- Where the extra ones sit, as an offset from the slot's normal position. Lane 1 is
-    -- never offset — it is exactly where the weapon has always been, which is what makes
-    -- the toggle OFF identical to before and keeps the first weapon put when a second
-    -- arrives. Tune in-world with /mbt_lanetune (debug builds), then paste here.
+    -- WHICH SLOTS GET AN EXTRA LANE, and where it starts from — an offset off the slot's
+    -- normal position. This table is the list: a slot absent from here has no second lane,
+    -- so a second weapon there is tracked but not drawn. That is deliberate — without a
+    -- position to put it in, the only alternative is drawing it exactly on top of the first.
+    --
+    -- Only `back` and `side` ship with one. The other slots either can't hold two weapons
+    -- (`extinguisher` maps a single weapon) or wouldn't plausibly (`back2` is three rocket
+    -- launchers; `melee3`'s 18 entries are mostly grenades, molotovs and gadgets — only
+    -- BAT, POOLCUE and GOLFCLUB are things you sling). Adding one is a config edit, no code.
+    --
+    -- Lane 1 is never offset: it is exactly where the weapon has always been, which is what
+    -- makes the toggle OFF identical rather than merely similar.
     LaneOffsets = {
         ['back'] = {
-            [2] = { Pos = { x = 0.0, y = -0.10, z = 0.0 }, Rot = { x = 0.0, y = 0.0, z = 0.0 } },
-        },
-        ['back2'] = {
             [2] = { Pos = { x = 0.0, y = -0.10, z = 0.0 }, Rot = { x = 0.0, y = 0.0, z = 0.0 } },
         },
         ['side'] = {
@@ -953,6 +958,38 @@ MBT.MultiWeaponVisibility = {
         },
     },
 }
+
+-- Seed each extra lane as a prop type of its OWN, keyed '<slot>#<lane>', copied from the
+-- slot's base position with the offset above applied once. From here it is an ordinary
+-- position: the NUI editor edits it, per-job overrides apply to it, it persists in
+-- mbt_malisling_positions like any other. Same trick the tactical sling uses for its
+-- variants (below), and the same trade-off — retuning lane 1 no longer drags lane 2 along.
+--
+-- The offset is NOT discarded after seeding: it stays as the fallback when a job overrode
+-- the base position but nobody wrote a lane position for that job. Falling back to the
+-- global lane position instead would place the two weapons off different bases, and they
+-- would intersect.
+do
+    for slot, byLane in pairs(MBT.MultiWeaponVisibility.LaneOffsets) do
+        local base = MBT.PropInfo[slot]
+        if base then
+            for lane, off in pairs(byLane) do
+                local dp, dr = off.Pos or {}, off.Rot or {}
+                local out = {
+                    Bone = base.Bone, isPed = base.isPed,
+                    RotOrder = base.RotOrder, FixedRot = base.FixedRot,
+                    Pos = {}, Rot = {},
+                }
+                for _, sex in ipairs({ 'male', 'female' }) do
+                    local bp, br = base.Pos[sex], base.Rot[sex]
+                    out.Pos[sex] = { x = bp.x + (dp.x or 0.0), y = bp.y + (dp.y or 0.0), z = bp.z + (dp.z or 0.0) }
+                    out.Rot[sex] = { x = br.x + (dr.x or 0.0), y = br.y + (dr.y or 0.0), z = br.z + (dr.z or 0.0) }
+                end
+                MBT.PropInfo[slot .. '#' .. lane] = out
+            end
+        end
+    end
+end
 
 MBT.TacticalSling      = {
     Enabled  = true,    -- toggle live from the admin dashboard (NUI), no restart needed

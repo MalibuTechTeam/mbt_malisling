@@ -26,21 +26,22 @@ local function bucket(src, propType, create)
     return t
 end
 
---- Assign lanes across every serial of ONE type.
---- PHASE 2: cardinality is still one rendered prop per type, so exactly one entry gets
---- lane 1 and the rest are carried with no lane — tracked, not drawn. The pick is
---- deterministic (weapon name, then serial) so every observer, every late joiner and every
---- reconnect agree on which one it is; the old code let the order of `pairs` decide.
---- Phase 4 replaces THIS FUNCTION and nothing else: two-pass assignment (a lane per
---- distinct weapon name first, visual variants only with spare capacity), lease held while
---- the weapon is merely in hand, no compaction when one frees, inheritance when a component
---- changes the visual key. Kept as a single function so that stays true.
---- How many weapons this slot may DRAW. One unless the feature is on: the toggle has to be
+--- How many weapons THIS slot may draw. One unless the feature is on: the toggle has to be
 --- semantically identical to the old behaviour, not merely similar.
-local function laneCount()
+---
+--- Capped by the positions that actually exist. A lane with nowhere to put the weapon can
+--- only draw it on top of the one already there, so it is not a lane. This is also why
+--- MaxPerType is a ceiling and not a promise: raising it to 3 on a slot with two positions
+--- gives two, and the dashboard says so rather than leaving the owner guessing.
+---@param propType string
+local function laneCount(propType)
     local cfg = MBT.MultiWeaponVisibility
     if not (cfg and cfg.Enabled) then return 1 end
-    return math.max(1, math.floor(tonumber(cfg.MaxPerType) or 2))
+
+    local want = math.max(1, math.floor(tonumber(cfg.MaxPerType) or 2))
+    local n = 1
+    while n < want and MBT.PropInfo[propType .. '#' .. (n + 1)] do n = n + 1 end
+    return n
 end
 
 --- Assign lanes across every serial of ONE type.
@@ -55,9 +56,9 @@ end
 --- Whoever holds a lane keeps it while still carried, so picking up a weapon that sorts
 --- earlier cannot silently swap what is on your back in front of everyone.
 ---@param prev table?  the same type's map from before this snapshot, for lane stability
-local function assignLanes(t, prev)
+local function assignLanes(propType, t, prev)
     for _, e in pairs(t) do e.lane = nil end
-    local maxLanes = laneCount()
+    local maxLanes = laneCount(propType)
 
     -- Serials sorted once: every derived order below inherits it, so two observers and two
     -- reconnects agree on the answer.
@@ -189,7 +190,7 @@ function Slung.replaceAll(src, byType)
                 end
             end
             if next(t) then
-                assignLanes(t, prev[propType])
+                assignLanes(propType, t, prev[propType])
                 p[propType] = t
             end
         end

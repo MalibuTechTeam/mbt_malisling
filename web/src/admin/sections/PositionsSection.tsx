@@ -9,10 +9,17 @@ import { Icon } from '../ui/Icon'
 export interface Job { name: string; label: string }
 export interface EditTarget { wtype: string; job: string; gender: string }
 
+// The '#n' entries are the extra multi-weapon lanes: ordinary positions with their own key,
+// edited exactly like the first one. They are listed next to the slot they belong to rather
+// than in a section of their own — you place a second rifle by thinking about the back, not
+// about lanes. Which of them exist is decided in default.lua (LaneOffsets): a slot without
+// one simply never draws a second weapon.
 const WTYPES = [
   { v: 'back', l: 'Rifle / Long gun' },
+  { v: 'back#2', l: 'Rifle / Long gun — 2nd' },
   { v: 'back2', l: 'Heavy / Launcher' },
   { v: 'side', l: 'Pistol' },
+  { v: 'side#2', l: 'Pistol — 2nd' },
   { v: 'melee', l: 'Melee' },
   { v: 'melee2', l: 'Knife' },
   { v: 'melee3', l: 'Hatchet / Alt melee' },

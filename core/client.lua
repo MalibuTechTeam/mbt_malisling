@@ -257,11 +257,55 @@ local function overwriteValues(newTable)
     end
 end
 
-local function getAttachInfo(data)
-    if MBT.CustomPropPosition[data.Job] and MBT.CustomPropPosition[data.Job][data.Type] then
-        return MBT.CustomPropPosition[data.Job][data.Type]
+--- The factory offset for a lane, or nil. Kept after seeding purely as the fallback below.
+local function laneOffset(propType, lane)
+    local cfg = MBT.MultiWeaponVisibility
+    local byLane = cfg and cfg.LaneOffsets and cfg.LaneOffsets[propType]
+    return byLane and byLane[lane] or nil
+end
+
+--- A copy of `info` shifted by `off`. A copy because info is the shared config table, and
+--- writing to it would move that weapon for every player at once.
+local function shifted(info, off)
+    if not info or not off then return info end
+    local out = {
+        Bone = info.Bone, isPed = info.isPed,
+        RotOrder = info.RotOrder, FixedRot = info.FixedRot,
+        Pos = {}, Rot = {},
+    }
+    local dp, dr = off.Pos or {}, off.Rot or {}
+    for _, sex in ipairs({ 'male', 'female' }) do
+        local p, r = info.Pos[sex], info.Rot[sex]
+        out.Pos[sex] = { x = p.x + (dp.x or 0.0), y = p.y + (dp.y or 0.0), z = p.z + (dp.z or 0.0) }
+        out.Rot[sex] = { x = r.x + (dr.x or 0.0), y = r.y + (dr.y or 0.0), z = r.z + (dr.z or 0.0) }
     end
-    return MBT.PropInfo[data.Type]
+    return out
+end
+
+--- Where this weapon attaches. `data.Lane` > 1 resolves the lane's own prop type ('back#2'),
+--- which the editor and the per-job overrides treat like any other.
+---
+--- The fallback order matters. A job that moved the base position but has no lane position
+--- of its own must NOT fall through to the global lane position: lane 1 would sit where the
+--- job put it and lane 2 where the factory put it, off two different bases, and the two
+--- weapons would intersect. So the job's own base plus the factory offset comes first —
+--- that at least preserves the relationship between them, which is the thing that matters.
+local function getAttachInfo(data)
+    local job, base = data.Job, data.Type
+    local custom = MBT.CustomPropPosition[job]
+    local lane = data.Lane
+
+    if lane and lane > 1 then
+        local key = base .. '#' .. lane
+        local off = laneOffset(base, lane)
+        if custom and custom[key] then return custom[key] end            -- this job placed this lane
+        if custom and custom[base] then return shifted(custom[base], off) end  -- job moved the base: follow it
+        if MBT.PropInfo[key] then return MBT.PropInfo[key] end           -- the shipped/edited lane
+        return shifted(MBT.PropInfo[base], off)                          -- last resort; only if unseeded
+    end
+
+    if custom and custom[base] then return custom[base] end
+    return MBT.PropInfo[base]
 end
 
 -- Jobs of every player in scope, as the server resolved them. Kept apart from
@@ -808,33 +852,6 @@ end)
 ---@param weaponType string
 ---@param weaponData table
 ---@return number?
---- attachInfo with this lane's offset folded in, or the original for lane 1.
---- Lane 1 is never moved: it is exactly where the weapon has always sat, which is what makes
---- the toggle OFF identical to before and keeps the first weapon put when a second arrives.
---- Returns a COPY — attachInfo is the shared config table, and writing to it would move
---- every weapon of that type, for everyone.
----@return table
-local function withLaneOffset(info, propType, lane)
-    if not lane or lane < 2 then return info end
-
-    local cfg = MBT.MultiWeaponVisibility
-    local byLane = cfg and cfg.LaneOffsets and cfg.LaneOffsets[propType]
-    local off = byLane and byLane[lane]
-    if not off then return info end
-
-    local out = {
-        Bone = info.Bone, isPed = info.isPed,
-        RotOrder = info.RotOrder, FixedRot = info.FixedRot,
-        Pos = {}, Rot = {},
-    }
-    local dp, dr = off.Pos or {}, off.Rot or {}
-    for _, sex in ipairs({ 'male', 'female' }) do
-        local p, r = info.Pos[sex], info.Rot[sex]
-        out.Pos[sex] = { x = p.x + (dp.x or 0.0), y = p.y + (dp.y or 0.0), z = p.z + (dp.z or 0.0) }
-        out.Rot[sex] = { x = r.x + (dr.x or 0.0), y = r.y + (dr.y or 0.0), z = r.z + (dr.z or 0.0) }
-    end
-    return out
-end
 
 ---@param serial string?  registry key, so a per-weapon override (low ready) picks the right one
 ---@param lane number?    visual slot from the server; >1 shifts the prop by the lane offset
@@ -846,19 +863,20 @@ local function spawnProp(ctx, weaponType, weaponData, serial, lane)
     local tStart = GetGameTimer()
     local tAsset, tExist, tComps
 
-    local attachInfo = getAttachInfo({ Job = ctx.playerJob, Type = weaponType })
+    local attachInfo = getAttachInfo({ Job = ctx.playerJob, Type = weaponType, Lane = lane })
+    if not attachInfo then
+        -- No position for this lane and nothing to fall back on: draw nothing rather than
+        -- stack this weapon exactly on top of the one already there.
+        Utils.mbtDebugger('syncSling ~ no attach info for ', weaponType, ' lane ', tostring(lane))
+        return nil
+    end
     -- Low Ready guard (opaque hook, no-op without the module): if the LOCAL player has this
     -- type in chest carry, spawn it on the chest directly so a re-sling after a draw doesn't
     -- snap back→chest. Gated to the local player (the stance is local state).
-    local chestCarry = false
+    -- Wins over the lane position: chest carry is a deliberate spot for ONE weapon, and it
+    -- is where the player put this one.
     if ctx.targetPlayerId == PlayerId() and MBT.GetLowReadyOverride then
-        local override = MBT.GetLowReadyOverride(weaponType, serial)
-        if override then attachInfo, chestCarry = override, true end
-    end
-    -- Skipped for chest carry: that is a deliberate spot for ONE weapon, and adding a lane
-    -- offset on top would drag it off the chest.
-    if not chestCarry then
-        attachInfo = withLaneOffset(attachInfo, weaponType, lane)
+        attachInfo = MBT.GetLowReadyOverride(weaponType, serial) or attachInfo
     end
 
     local playerPed = ctx.playerPed
@@ -956,71 +974,6 @@ Slung.spawner = function(serverId, propType, entry, lane)
         pedSex         = ctx.pedSex or (IsPedMale(ped) and 'male' or 'female'),
         targetPlayerId = targetPlayerId,
     }, propType, entry.data, entry.serial, lane)
-end
-
--- ── Lane offset tuning (debug builds) ────────────────────────────────────────────
--- Where the second weapon of a slot sits cannot be derived: it depends on the models, the
--- bone and what already hangs there. cfg is the live table and the re-attach is immediate,
--- so this is a look-and-nudge loop instead of edit-config-and-restart.
-if MBT.Debug then
-    --- Re-attach every prop of ours that sits in lane 2 or beyond, at the current offset.
-    local function reattachLanes()
-        local ped = cache.ped
-        local sex = IsPedMale(ped) and 'male' or 'female'
-        local job = (PlayerData and PlayerData.job and PlayerData.job.name) or nil
-
-        Slung.forEach(cache.serverId, function(prop, propType, _, e)
-            if not e.lane or e.lane < 2 then return end
-            local info = withLaneOffset(getAttachInfo({ Job = job, Type = propType }), propType, e.lane)
-            local P, R = info.Pos[sex], info.Rot[sex]
-            AttachEntityToEntity(prop, ped, GetPedBoneIndex(ped, info.Bone),
-                P.x + 0.0, P.y + 0.0, P.z + 0.0, R.x + 0.0, R.y + 0.0, R.z + 0.0,
-                true, true, false, info.isPed, info.RotOrder, info.FixedRot)
-        end)
-    end
-
-    RegisterCommand('mbt_lanetune', function(_, args)
-        local cfg = MBT.MultiWeaponVisibility
-        if not cfg then return end
-
-        local propType = tostring(args[1] or 'back')
-        local axis     = tostring(args[2] or 'show'):lower()
-        local step     = tonumber(args[3])
-        local lane     = math.floor(tonumber(args[4]) or 2)
-
-        if not MBT.PropInfo[propType] then
-            Utils.mbtDebugger('mbt_lanetune ~ unknown slot: ' .. propType)
-            return
-        end
-
-        cfg.LaneOffsets = cfg.LaneOffsets or {}
-        cfg.LaneOffsets[propType] = cfg.LaneOffsets[propType] or {}
-        local o = cfg.LaneOffsets[propType][lane]
-        if not o then
-            o = { Pos = { x = 0.0, y = 0.0, z = 0.0 }, Rot = { x = 0.0, y = 0.0, z = 0.0 } }
-            cfg.LaneOffsets[propType][lane] = o
-        end
-
-        if axis == 'reset' then
-            o.Pos = { x = 0.0, y = 0.0, z = 0.0 }
-            o.Rot = { x = 0.0, y = 0.0, z = 0.0 }
-        elseif step and (axis == 'x' or axis == 'y' or axis == 'z') then
-            o.Pos[axis] = (o.Pos[axis] or 0.0) + step
-        elseif step and (axis == 'rx' or axis == 'ry' or axis == 'rz') then
-            local k = axis:sub(2)
-            o.Rot[k] = (o.Rot[k] or 0.0) + step
-        elseif axis ~= 'show' then
-            Utils.mbtDebugger('mbt_lanetune ~ usage: /mbt_lanetune <slot> x|y|z|rx|ry|rz <delta> [lane] · show · reset')
-        end
-
-        reattachLanes()
-
-        local line = ("['%s'] = { [%d] = { Pos = { x = %.3f, y = %.3f, z = %.3f }, Rot = { x = %.1f, y = %.1f, z = %.1f } } },")
-            :format(propType, lane, o.Pos.x, o.Pos.y, o.Pos.z, o.Rot.x, o.Rot.y, o.Rot.z)
-        Utils.mbtDebugger('mbt_lanetune ~ ' .. line)
-        lib.notify({ type = 'inform', title = 'Lane ' .. lane,
-            description = ('%s  %.3f / %.3f / %.3f'):format(propType, o.Pos.x, o.Pos.y, o.Pos.z) })
-    end, false)
 end
 
 RegisterNetEvent('mbt_malisling:syncSling')
