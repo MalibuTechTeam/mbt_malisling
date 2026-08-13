@@ -471,6 +471,27 @@ function ResyncSling()
     syncSling({ playerWeapons = buildDesired() })
 end
 
+-- Coalesced re-read, asked of the SERVER.
+-- Two problems, one answer. Reading ox's client cache right after an inventory change can
+-- still see the item that just left — that is why a dropped weapon stayed on the body and
+-- in the concealment list. And ox_inventory:updateInventory fires in bursts, so a re-read
+-- per event meant a 130-name Inventory:Search per event, each in its own coroutine: a cost
+-- that did not exist before the snapshot rewrite, and the kind that stalls a client under
+-- load. checkInventory reads the inventory SERVER-side, where it is authoritative, and the
+-- flag collapses a burst into one round trip.
+local resyncPending = false
+
+---@param delay number?  ms to let the inventory settle first
+local function scheduleResync(delay)
+    if resyncPending then return end
+    resyncPending = true
+    CreateThread(function()
+        Wait(delay or 150)
+        resyncPending = false
+        TriggerServerEvent("mbt_malisling:checkInventory")
+    end)
+end
+
 function Init()
     isReady = false
     equippedWeapon = {}
@@ -634,12 +655,9 @@ function Init()
                     TriggerServerEvent("mbt_malisling:syncDeletion", weaponType)
                 end
 
-                Wait(500)
-                -- Re-report the whole set: the weapon that left is simply absent from it.
-                -- (buildDesired keeps the weapon in hand out — on qb the equip transition
-                -- fires itemCount while the ped is already armed, and without that the
-                -- re-report would sling the gun the player is holding.)
-                syncSling({ playerWeapons = buildDesired() })
+                -- Re-read the whole set: the weapon that left is simply absent from it.
+                -- Asked of the server, which is where the inventory is authoritative.
+                scheduleResync(500)
             end
         end
     end)
@@ -659,19 +677,11 @@ function Init()
         end
         if not touchesWeapon then return end
 
-        -- Let ox's client-side cache settle before reading it. This event fires as the
-        -- change is applied, and reading straight away can still see a weapon that has just
-        -- been dropped — which then lands in the snapshot, gets stored, and stays there
-        -- because nothing else re-reports. The itemCount path already waited for the same
-        -- reason. A quarter second later the prop appears; a stale snapshot lasts until
-        -- something unrelated happens to clear it.
-        Wait(250)
-
-        Utils.mbtDebugger("ox_inventory:updateInventory ~ re-reporting the desired set")
+        Utils.mbtDebugger("ox_inventory:updateInventory ~ scheduling a re-read")
         -- No "is the slot busy" check any more. The set is what it is; the reconciliation
         -- on the receiving side works out what to spawn and what to remove. That guard was
         -- how a weapon added while another was already slung got silently ignored.
-        syncSling({ playerWeapons = buildDesired() })
+        scheduleResync()
     end)
 
     Wait(200)
@@ -1086,7 +1096,13 @@ CreateThread(function()
                     Slung.forEach(serverId, function(_, propType, serial, e)
                         -- Only entries the server gave a lane to: a shadow with no lane is
                         -- deliberately not drawn, not a failure.
-                        if e.lane and e.data and not isPropSuppressed(serverId, propType, serial) then
+                        -- Bounded. A weapon whose model never streams would otherwise be
+                        -- retried twice a second for the rest of the session; the counter
+                        -- resets when a new snapshot re-reserves the slot, so a transient
+                        -- failure still recovers.
+                        if e.lane and e.data and (e.retries or 0) < 3
+                            and not isPropSuppressed(serverId, propType, serial) then
+                            e.retries = (e.retries or 0) + 1
                             Utils.mbtDebugger('repair ~ re-spawning ', e.data.name, ' for ', serverId)
                             if Slung.reserve(serverId, propType, serial, 'repair') then
                                 local handle = spawnProp({

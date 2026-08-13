@@ -199,6 +199,9 @@ function Slung.reserve(serverId, propType, serial, why)
     t[serial] = e or { serial = serial }
     t[serial].state = 'pending'
     t[serial].why = why
+    -- A genuinely new attempt restarts the repair tick's give-up counter. A repair does NOT:
+    -- it is the thing being counted, and clearing it here would make the cap unreachable.
+    if why ~= 'repair' then t[serial].retries = nil end
     return true
 end
 

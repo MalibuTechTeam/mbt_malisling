@@ -138,7 +138,12 @@ local function closePicker(pickIdx)
     local p = picker
     picker = nil
     SendNUIMessage({ action = 'hideRackPicker', data = {} })
-    if pickIdx then p.onPick(p.list[pickIdx]) end
+    -- On its OWN thread, never inside the input loop: the pick awaits a server round trip,
+    -- and awaiting inside a loop that is disabling half the player's controls means any
+    -- hitch on that trip is a hitch the player feels as being stuck.
+    if pickIdx and p.list[pickIdx] then
+        CreateThread(function() p.onPick(p.list[pickIdx]) end)
+    end
 end
 
 local function openPicker(list, onPick)
@@ -165,8 +170,14 @@ local function openPicker(list, onPick)
     } })
 
     CreateThread(function()
+        -- Hard deadline. This loop holds down a dozen controls; if it ever failed to close
+        -- — a key that never registers, a state we didn't foresee — the player would be
+        -- locked out with no way back, and that reads as the game having frozen.
+        local deadline = GetGameTimer() + 15000
+
         while picker do
             Wait(0)
+            if GetGameTimer() > deadline then closePicker(nil) break end
             for _, c in ipairs({ 172, 173, 191, 177, 38, 24, 25, 140, 141, 142 }) do
                 DisableControlAction(0, c, true)
             end
