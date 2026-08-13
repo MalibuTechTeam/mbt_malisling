@@ -792,6 +792,10 @@ RegisterNetEvent('mbt_malisling:adminSave', function(data)
         Utils.mbtWarn('config ~ oxmysql not started; save applied live but NOT persisted')
     end
     TriggerClientEvent('mbt_malisling:applyConfig', -1, payload)   -- no secrets in payload (webhooks live in config.lua)
+    -- Multi-weapon lanes are decided when a snapshot lands, not when the setting changes:
+    -- without this, turning it on does nothing visible until somebody happens to pick a
+    -- weapon up. Defined in core/server.lua, absent if that bailed at startup.
+    if MBT.RefreshAllSling then MBT.RefreshAllSling() end
     Utils.mbtDebugger('Admin config saved by player', src)
 end)
 

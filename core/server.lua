@@ -105,6 +105,26 @@ AddEventHandler("mbt_malisling:checkInventory", function()
     TriggerClientEvent("mbt_malisling:checkWeaponProps", source, items)
 end)
 
+--- Ask every tracked player to re-report what they carry.
+--- Lanes are worked out when a snapshot lands, so a change to the multi-weapon toggle or to
+--- MaxPerType would sit unused until something else happened to somebody's inventory. Their
+--- reports come back through the same path that assigns lanes, so one call re-decides the
+--- whole server. Staggered: on a full server this is 64 round trips, and there is no hurry.
+function MBT.RefreshAllSling()
+    CreateThread(function()
+        for _, id in ipairs(GetPlayers()) do
+            local s = tonumber(id)
+            if s and playersToTrack[s] then
+                local items = Inventory:GetInventoryItems(s)
+                if type(items) == "table" then
+                    TriggerClientEvent("mbt_malisling:checkWeaponProps", s, items)
+                end
+            end
+            Wait(50)
+        end
+    end)
+end
+
 -- Job changed: every observer has to re-decide what to draw on this player. Their job
 -- feeds MBT.HiddenByJob (whether a prop exists at all) and MBT.CustomPropPosition (where
 -- it sits), and neither was re-evaluated on a job change before — the props simply kept
