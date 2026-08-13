@@ -179,6 +179,7 @@ local function destroyPreview()
     lastGoodPreview = nil
 end
 
+
 -- While editing, hide the player's REAL slung weapon(s) so the preview prop doesn't
 -- overlap them. Restored on stop.
 local hiddenSlung = {}
@@ -274,6 +275,68 @@ local function currentData(wtype, job)
     return json.decode(json.encode(src))   -- deep copy
 end
 
+-- ── Reference lanes ──────────────────────────────────────────────────────────
+-- The other lanes of the same slot, shown while editing one of them. You judge where the
+-- second rifle goes AGAINST the first — with the first hidden you are placing blind, and
+-- the number on the slider tells you nothing about whether the two intersect.
+-- Faded and never touched by the sliders, so it reads as scenery rather than as the thing
+-- being moved.
+local refProps = {}
+
+local function destroyReferenceLanes()
+    for i = 1, #refProps do
+        if DoesEntityExist(refProps[i]) then DeleteEntity(refProps[i]) end
+    end
+    refProps = {}
+end
+
+--- Spawn a faded prop for every OTHER lane of this slot, at the position the game would
+--- actually draw it (job and gender resolved exactly as currentData does).
+---@param wtype string  the lane being edited
+---@param job string
+---@param gender string
+local function spawnReferenceLanes(wtype, job, gender)
+    destroyReferenceLanes()
+
+    local base = baseType(wtype)
+    local weapon = PREVIEW[base]
+    if not weapon then return end
+
+    -- Every lane that has a position, the edited one excluded.
+    local keys = { base }
+    for lane = 2, 4 do
+        local key = base .. '#' .. lane
+        if MBT.PropInfo[key] then keys[#keys + 1] = key end
+    end
+
+    local ped = cache.ped
+    local sex = (gender == 'female') and 'female' or 'male'
+    local hash = joaat(weapon)
+    if not pcall(lib.requestWeaponAsset, hash, 5000, 31, 1) then return end
+
+    local pc = GetEntityCoords(ped)
+    for i = 1, #keys do
+        local key = keys[i]
+        if key ~= wtype then
+            local info = currentData(key, job)
+            if info and info.Pos and info.Pos[sex] then
+                local obj = CreateWeaponObject(hash, 50, pc.x, pc.y, pc.z, true, 1.0, 0)
+                if obj and DoesEntityExist(obj) then
+                    local p, r = info.Pos[sex], info.Rot[sex]
+                    AttachEntityToEntity(obj, ped, GetPedBoneIndex(ped, math.floor(tonumber(info.Bone) or 0)),
+                        p.x + 0.0, p.y + 0.0, p.z + 0.0, r.x + 0.0, r.y + 0.0, r.z + 0.0,
+                        true, true, false, info.isPed == true, math.floor(tonumber(info.RotOrder) or 2),
+                        info.FixedRot ~= false)
+                    SetEntityCompletelyDisableCollision(obj, false, true)
+                    SetEntityAlpha(obj, 150, false)   -- reference, not the thing you are moving
+                    refProps[#refProps + 1] = obj
+                end
+            end
+        end
+    end
+    RemoveWeaponAsset(hash)
+end
+
 RegisterNUICallback('propEdit:start', function(d, cb)
     local wtype = d and d.wtype
     if not PREVIEW[baseType(wtype)] and not isObjectType(wtype) then cb({ ok = false }); return end
@@ -286,6 +349,10 @@ RegisterNUICallback('propEdit:start', function(d, cb)
         hideRealSlung()
         -- Show the sling strap (if eligible) as a placement reference.
         if MBT.SetSlingWeaponPreview then MBT.SetSlingWeaponPreview(baseType(wtype)) end
+        -- And the slot's OTHER lanes, faded. A second rifle is placed against the first,
+        -- not against a number on a slider: without this you are working blind and only
+        -- find out they intersect once you leave the editor.
+        spawnReferenceLanes(wtype, d and d.job or 'default', d and d.gender or 'male')
     end
 
     local ped = cache.ped
@@ -392,6 +459,7 @@ local function stopEditing()
         cam = nil
     end
     destroyPreview()
+    destroyReferenceLanes()
     restoreRealSlung()
     if MBT.SetSlingEditing then MBT.SetSlingEditing(false) end   -- strap respawns at the saved offset
     if MBT.SetSlingWeaponPreview then MBT.SetSlingWeaponPreview(nil) end
