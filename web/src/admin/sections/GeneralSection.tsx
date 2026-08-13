@@ -1,5 +1,6 @@
 import { PositionPicker } from '../ui/PositionPicker'
 import { Segmented } from '../ui/Segmented'
+import { NumberInput } from '../ui/NumberInput'
 import { Section, ToggleRow, FieldBlock, type SectionProps } from './parts'
 
 /**
@@ -19,6 +20,26 @@ export function CoreSection({ config, update }: SectionProps) {
         checked={!!config.HolsterConfirm} onChange={(v) => update('HolsterConfirm', v)} />
       <ToggleRow title="Drop Weapon on Death" desc="The weapon in hand falls where the player died"
         checked={!!config.DropWeaponOnDeath} onChange={(v) => update('DropWeaponOnDeath', v)} />
+    </Section>
+  )
+}
+
+/** MULTI-WEAPON — more than one weapon visible in the same body slot.
+ *  Off by default: the slots are body positions, not weapon families, so turning this on
+ *  changes what every player looks like. */
+export function MultiWeaponSection({ config, update }: SectionProps) {
+  const mw = config.MultiWeaponVisibility ?? {}
+  return (
+    <Section icon="power" title="MULTI-WEAPON" sub="More than one weapon in the same body slot.">
+      <ToggleRow title="Show Multiple Weapons"
+        desc="A rifle and a shotgun share the back slot — off, only one of them shows"
+        checked={!!mw.Enabled} onChange={(v) => update('MultiWeaponVisibility.Enabled', v)} />
+      <FieldBlock label="Max Per Slot"
+        hint="Distinct weapons drawn per slot. Copies of the same model share one prop; the rest are still tracked."
+        disabled={!mw.Enabled} style={{ marginBottom: 0 }}>
+        <NumberInput min={1} max={4} step={1} value={String(mw.MaxPerType ?? 2)}
+          onChange={(raw) => update('MultiWeaponVisibility.MaxPerType', raw === '' ? 2 : parseInt(raw, 10) || 2)} />
+      </FieldBlock>
     </Section>
   )
 }
