@@ -356,9 +356,10 @@ RegisterNUICallback('propEdit:start', function(d, cb)
     end
 
     local ped = cache.ped
-    -- IMPORTANT: do NOT freeze the ped or disable the prop's collision. Soft-pinning is a
-    -- PHYSICS constraint; killing it leaves only the raw Euler → gimbal lock. /mbt_propedit
-    -- does neither, which is why rotation works there. NUI focus already blocks movement.
+    -- IMPORTANT: do NOT freeze the ped. NUI focus already blocks movement, and freezing
+    -- was what used to break the attach. The prop's collision IS disabled below, matching
+    -- what the runtime does to a real slung weapon — anything else and the preview shows a
+    -- position the game will not reproduce.
     SetCurrentPedWeapon(ped, `WEAPON_UNARMED`, true)
 
     destroyPreview()
@@ -376,6 +377,12 @@ RegisterNUICallback('propEdit:start', function(d, cb)
         local hash = joaat(PREVIEW[baseType(wtype)])
         lib.requestWeaponAsset(hash, 1000, 31, 1)
         previewObj = CreateWeaponObject(hash, 50, pc.x, pc.y, pc.z, true, 1.0, 0)
+        -- Exactly what spawnProp does to a real slung weapon after attaching it. Without it
+        -- the preview stays a physics body under a soft-pinning constraint and settles a
+        -- couple of centimetres off, so the position you tune is not the position the game
+        -- draws. Nobody caught it while a slot held one weapon and there was nothing beside
+        -- it to compare against; with two lanes the gap is obvious.
+        SetEntityCompletelyDisableCollision(previewObj, false, true)
     end
 
     local data = currentData(wtype, d.job)
