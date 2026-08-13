@@ -647,18 +647,15 @@ function Init()
     AddEventHandler('ox_inventory:itemCount', function(itemName, left)
         Utils.mbtDebugger("ox_inventory:itemCount ~ Item "..itemName.." removed, remaining "..left)
 
+        -- Any weapon leaving, not just the LAST one of its name. Counting was right when a
+        -- slot held one weapon; per serial it is the wrong question — dropping one of two
+        -- pistols leaves the count at 1 and used to do nothing at all.
+        --
+        -- And no per-type syncDeletion any more: it cleared the whole slot server-side, so
+        -- with two pistols dropping one took the other's prop down with it until the next
+        -- snapshot put it back. The re-read removes exactly the weapon that left.
         if Utils.isWeapon(itemName) then
-            local weaponType = MBT.WeaponsInfo["Weapons"][itemName]?.type
-
-            if left < 1 and type(weaponType) == "string" then
-                if Slung.first(weaponType) then
-                    TriggerServerEvent("mbt_malisling:syncDeletion", weaponType)
-                end
-
-                -- Re-read the whole set: the weapon that left is simply absent from it.
-                -- Asked of the server, which is where the inventory is authoritative.
-                scheduleResync(500)
-            end
+            scheduleResync(500)
         end
     end)
 
@@ -666,16 +663,25 @@ function Init()
         Utils.mbtDebugger(data)
         if not playersToTrack[cache.serverId] then return end
 
-        -- Only when a weapon is involved: this fires for every inventory change, and a
-        -- re-report per sandwich is a syncSling per sandwich.
-        local touchesWeapon = false
+        -- Only when a weapon MIGHT be involved: this fires for every inventory change, and
+        -- a re-read per sandwich is a round trip per sandwich.
+        --
+        -- An emptied slot arrives as `false` — no name to test. Checking only for a weapon
+        -- name filtered out exactly the case that matters most, REMOVAL, which is why a
+        -- dropped weapon stayed on the body and in the concealment picker. A cleared slot
+        -- is always worth a look; the coalescing makes an over-trigger cost one round trip.
+        local worthReading = false
         for _, v in pairs(data) do
+            if v == false or v == nil then
+                worthReading = true
+                break
+            end
             if type(v) == "table" and type(v.name) == "string" and Utils.isWeapon(v.name) then
-                touchesWeapon = true
+                worthReading = true
                 break
             end
         end
-        if not touchesWeapon then return end
+        if not worthReading then return end
 
         Utils.mbtDebugger("ox_inventory:updateInventory ~ scheduling a re-read")
         -- No "is the slot busy" check any more. The set is what it is; the reconciliation
@@ -699,19 +705,14 @@ end
 function onEsxWeaponRemoved(itemName, left)
     Utils.mbtDebugger("esx:removeInventoryItem ~ Item "..itemName.." removed, remaining "..left)
 
+    -- Same reasoning as the ox itemCount path: any weapon leaving, no per-type deletion.
+    -- ESX items carry no slot and no metadata.serial, so every weapon of a type collapses
+    -- onto the same fallback key and only one survives per type — exactly what ESX did
+    -- before, and the floor multi-weapon can reach there until the ESX bridge grows
+    -- per-slot identity.
     if Utils.isWeapon(itemName) then
-        local weaponType = MBT.WeaponsInfo["Weapons"][itemName]?.type
-        if left < 1 and type(weaponType) == "string" then
-            if Slung.first(weaponType) then
-                TriggerServerEvent("mbt_malisling:syncDeletion", weaponType)
-            end
-            Wait(500)
-            -- ESX items carry no slot and no metadata.serial, so every weapon of a type
-            -- collapses onto the same fallback key and only one survives per type. That is
-            -- exactly what ESX did before, and it is the floor multi-weapon can reach there
-            -- until the ESX bridge grows per-slot identity.
-            syncSling({ playerWeapons = buildDesired(ESX.GetPlayerData().inventory) })
-        end
+        Wait(500)
+        syncSling({ playerWeapons = buildDesired(ESX.GetPlayerData().inventory) })
     end
 end
 
