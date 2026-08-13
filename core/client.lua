@@ -873,8 +873,17 @@ local function spawnProp(ctx, weaponType, weaponData, serial, lane)
     -- Low Ready guard (opaque hook, no-op without the module): if the LOCAL player has this
     -- type in chest carry, spawn it on the chest directly so a re-sling after a draw doesn't
     -- snap back→chest. Gated to the local player (the stance is local state).
-    -- Wins over the lane position: chest carry is a deliberate spot for ONE weapon, and it
-    -- is where the player put this one.
+    -- Length class: this weapon is longer or shorter than the one the position was tuned
+    -- with, so slide it. Applied on top of whatever the lane resolved to, and shared by
+    -- every lane of the slot — a class is a size, not a place.
+    local class = (MBT.WeaponLengthClass or {})[weaponData.name]
+    if class then
+        local byClass = (MBT.WeaponClassOffsets or {})[weaponType]
+        attachInfo = shifted(attachInfo, byClass and byClass[class])
+    end
+
+    -- Wins over both: chest carry is a deliberate spot for ONE weapon, and it is where the
+    -- player put this one.
     if ctx.targetPlayerId == PlayerId() and MBT.GetLowReadyOverride then
         attachInfo = MBT.GetLowReadyOverride(weaponType, serial) or attachInfo
     end

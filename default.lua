@@ -959,6 +959,47 @@ MBT.MultiWeaponVisibility = {
     },
 }
 
+-- ── Length classes ───────────────────────────────────────────────────────────
+-- A slot holds weapons of very different lengths — `back` alone maps 40, from a sawn-off to
+-- a heavy sniper — and they all share one tuned position. Attached at the same point, a
+-- short one floats and a long one runs through the shoulder.
+--
+-- A class is a SHIFT, not a position, and that is the whole point: a lane answers "where
+-- does the second weapon go relative to the first", which is a relationship and cannot be
+-- expressed as a translation. A class answers "this weapon is longer", which is exactly a
+-- translation. Two problems, two mechanisms — so classes do NOT multiply the lanes: the same
+-- two shifts apply to every lane of the slot.
+--
+-- Everything not listed is `standard` and shifts by nothing. The shipped shifts are ZERO:
+-- the mechanism is here, tuned values are not, so nothing moves until someone tunes them.
+MBT.WeaponLengthClass = {
+    -- compact — short enough that a position tuned for a rifle leaves them hanging
+    ['WEAPON_SMG']            = 'compact', ['WEAPON_ASSAULTSMG']  = 'compact',
+    ['WEAPON_COMBATPDW']      = 'compact', ['WEAPON_SAWNOFFSHOTGUN'] = 'compact',
+    ['WEAPON_DBSHOTGUN']      = 'compact', ['WEAPON_COMPACTLAUNCHER'] = 'compact',
+    ['WEAPON_GADGETPISTOL']   = 'compact', ['WEAPON_MACHINEPISTOL'] = 'compact',
+    ['WEAPON_MICROSMG']       = 'compact',
+
+    -- long — sticks out past the shoulder at a rifle's position
+    ['WEAPON_SNIPERRIFLE']    = 'long', ['WEAPON_HEAVYSNIPER']     = 'long',
+    ['WEAPON_HEAVYSNIPER_MK2']= 'long', ['WEAPON_MARKSMANRIFLE']   = 'long',
+    ['WEAPON_MARKSMANRIFLE_MK2'] = 'long', ['WEAPON_MUSKET']       = 'long',
+    ['WEAPON_MINIGUN']        = 'long', ['WEAPON_RAYMINIGUN']      = 'long',
+    ['WEAPON_RAILGUN']        = 'long', ['WEAPON_RAILGUNXM3']      = 'long',
+}
+
+-- Per-slot shift for each class, applied on top of whatever position the lane resolved to.
+-- Tune 'y' first: on GTA weapon models it is conventionally the axis along the barrel, so it
+-- is the one that slides a weapon back into place rather than moving it off the body.
+MBT.WeaponClassOffsets = {
+    ['back']  = { compact = { Pos = { x = 0.0, y = 0.0, z = 0.0 } },
+                  long    = { Pos = { x = 0.0, y = 0.0, z = 0.0 } } },
+    ['back2'] = { compact = { Pos = { x = 0.0, y = 0.0, z = 0.0 } },
+                  long    = { Pos = { x = 0.0, y = 0.0, z = 0.0 } } },
+    ['side']  = { compact = { Pos = { x = 0.0, y = 0.0, z = 0.0 } },
+                  long    = { Pos = { x = 0.0, y = 0.0, z = 0.0 } } },
+}
+
 -- Seed each extra lane as a prop type of its OWN, keyed '<slot>#<lane>', copied from the
 -- slot's base position with the offset above applied once. From here it is an ordinary
 -- position: the NUI editor edits it, per-job overrides apply to it, it persists in
