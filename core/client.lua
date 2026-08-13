@@ -958,6 +958,71 @@ Slung.spawner = function(serverId, propType, entry, lane)
     }, propType, entry.data, entry.serial, lane)
 end
 
+-- ── Lane offset tuning (debug builds) ────────────────────────────────────────────
+-- Where the second weapon of a slot sits cannot be derived: it depends on the models, the
+-- bone and what already hangs there. cfg is the live table and the re-attach is immediate,
+-- so this is a look-and-nudge loop instead of edit-config-and-restart.
+if MBT.Debug then
+    --- Re-attach every prop of ours that sits in lane 2 or beyond, at the current offset.
+    local function reattachLanes()
+        local ped = cache.ped
+        local sex = IsPedMale(ped) and 'male' or 'female'
+        local job = (PlayerData and PlayerData.job and PlayerData.job.name) or nil
+
+        Slung.forEach(cache.serverId, function(prop, propType, _, e)
+            if not e.lane or e.lane < 2 then return end
+            local info = withLaneOffset(getAttachInfo({ Job = job, Type = propType }), propType, e.lane)
+            local P, R = info.Pos[sex], info.Rot[sex]
+            AttachEntityToEntity(prop, ped, GetPedBoneIndex(ped, info.Bone),
+                P.x + 0.0, P.y + 0.0, P.z + 0.0, R.x + 0.0, R.y + 0.0, R.z + 0.0,
+                true, true, false, info.isPed, info.RotOrder, info.FixedRot)
+        end)
+    end
+
+    RegisterCommand('mbt_lanetune', function(_, args)
+        local cfg = MBT.MultiWeaponVisibility
+        if not cfg then return end
+
+        local propType = tostring(args[1] or 'back')
+        local axis     = tostring(args[2] or 'show'):lower()
+        local step     = tonumber(args[3])
+        local lane     = math.floor(tonumber(args[4]) or 2)
+
+        if not MBT.PropInfo[propType] then
+            Utils.mbtDebugger('mbt_lanetune ~ unknown slot: ' .. propType)
+            return
+        end
+
+        cfg.LaneOffsets = cfg.LaneOffsets or {}
+        cfg.LaneOffsets[propType] = cfg.LaneOffsets[propType] or {}
+        local o = cfg.LaneOffsets[propType][lane]
+        if not o then
+            o = { Pos = { x = 0.0, y = 0.0, z = 0.0 }, Rot = { x = 0.0, y = 0.0, z = 0.0 } }
+            cfg.LaneOffsets[propType][lane] = o
+        end
+
+        if axis == 'reset' then
+            o.Pos = { x = 0.0, y = 0.0, z = 0.0 }
+            o.Rot = { x = 0.0, y = 0.0, z = 0.0 }
+        elseif step and (axis == 'x' or axis == 'y' or axis == 'z') then
+            o.Pos[axis] = (o.Pos[axis] or 0.0) + step
+        elseif step and (axis == 'rx' or axis == 'ry' or axis == 'rz') then
+            local k = axis:sub(2)
+            o.Rot[k] = (o.Rot[k] or 0.0) + step
+        elseif axis ~= 'show' then
+            Utils.mbtDebugger('mbt_lanetune ~ usage: /mbt_lanetune <slot> x|y|z|rx|ry|rz <delta> [lane] · show · reset')
+        end
+
+        reattachLanes()
+
+        local line = ("['%s'] = { [%d] = { Pos = { x = %.3f, y = %.3f, z = %.3f }, Rot = { x = %.1f, y = %.1f, z = %.1f } } },")
+            :format(propType, lane, o.Pos.x, o.Pos.y, o.Pos.z, o.Rot.x, o.Rot.y, o.Rot.z)
+        Utils.mbtDebugger('mbt_lanetune ~ ' .. line)
+        lib.notify({ type = 'inform', title = 'Lane ' .. lane,
+            description = ('%s  %.3f / %.3f / %.3f'):format(propType, o.Pos.x, o.Pos.y, o.Pos.z) })
+    end, false)
+end
+
 RegisterNetEvent('mbt_malisling:syncSling')
 AddEventHandler('mbt_malisling:syncSling', function (data)
     while not isReady do Wait(100) end
