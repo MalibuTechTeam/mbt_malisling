@@ -13,6 +13,16 @@ local PREVIEW = {
     extinguisher = 'WEAPON_FIREEXTINGUISHER',
 }
 
+--- The body slot behind a wtype: 'back#2' → 'back'. The extra multi-weapon lanes are prop
+--- types of their own so they can be positioned, overridden per job and persisted like any
+--- other — but they hold the SAME weapons as the slot they belong to, so anything that asks
+--- "which weapon goes here" has to ask about the slot.
+---@param wtype string
+---@return string
+local function baseType(wtype)
+    return (type(wtype) == 'string' and wtype:match('^(%w+)#%d+$')) or wtype
+end
+
 -- Non-weapon preview types: plain object props (CreateObject). The tactical sling uses
 -- per-variant virtual types 'sling:<id>' (bare 'sling' = default variant).
 local function slingVariantId(wtype)
@@ -233,19 +243,40 @@ local function applyPreview(data, gender)
 end
 
 --- Current effective data for (wtype, job) → seed the editor sliders.
+--- Mirrors the runtime's resolution order (getAttachInfo in core/client.lua), including the
+--- lane fallback: a job that moved the base but has no position for this lane is shown its
+--- own base plus the factory offset, not the global lane. Seeding it any other way would
+--- open the editor with the weapon somewhere the game never draws it.
 local function currentData(wtype, job)
+    local custom = (job and job ~= 'default') and MBT.CustomPropPosition[job] or nil
     local src
-    if job and job ~= 'default' and MBT.CustomPropPosition[job] and MBT.CustomPropPosition[job][wtype] then
-        src = MBT.CustomPropPosition[job][wtype]
+
+    if custom and custom[wtype] then
+        src = custom[wtype]
     else
+        local base, lane = wtype:match('^(%w+)#(%d+)$')
+        local off = base and (MBT.MultiWeaponVisibility or {}).LaneOffsets
+        off = off and off[base] and off[base][tonumber(lane)]
+
+        if custom and base and custom[base] and off then
+            src = json.decode(json.encode(custom[base]))
+            for _, sex in ipairs({ 'male', 'female' }) do
+                local p, r = src.Pos[sex], src.Rot[sex]
+                local dp, dr = off.Pos or {}, off.Rot or {}
+                p.x, p.y, p.z = p.x + (dp.x or 0.0), p.y + (dp.y or 0.0), p.z + (dp.z or 0.0)
+                r.x, r.y, r.z = r.x + (dr.x or 0.0), r.y + (dr.y or 0.0), r.z + (dr.z or 0.0)
+            end
+            return src   -- already a copy
+        end
         src = MBT.PropInfo[wtype]
     end
+
     return json.decode(json.encode(src))   -- deep copy
 end
 
 RegisterNUICallback('propEdit:start', function(d, cb)
     local wtype = d and d.wtype
-    if not PREVIEW[wtype] and not isObjectType(wtype) then cb({ ok = false }); return end
+    if not PREVIEW[baseType(wtype)] and not isObjectType(wtype) then cb({ ok = false }); return end
     editing = true
     editWtype = wtype
     if isObjectType(wtype) then
@@ -254,7 +285,7 @@ RegisterNUICallback('propEdit:start', function(d, cb)
     else
         hideRealSlung()
         -- Show the sling strap (if eligible) as a placement reference.
-        if MBT.SetSlingWeaponPreview then MBT.SetSlingWeaponPreview(wtype) end
+        if MBT.SetSlingWeaponPreview then MBT.SetSlingWeaponPreview(baseType(wtype)) end
     end
 
     local ped = cache.ped
@@ -275,7 +306,7 @@ RegisterNUICallback('propEdit:start', function(d, cb)
         previewObj = CreateObject(model, pc.x, pc.y, pc.z, false, false, false)
         SetModelAsNoLongerNeeded(model)
     else
-        local hash = joaat(PREVIEW[wtype])
+        local hash = joaat(PREVIEW[baseType(wtype)])
         lib.requestWeaponAsset(hash, 1000, 31, 1)
         previewObj = CreateWeaponObject(hash, 50, pc.x, pc.y, pc.z, true, 1.0, 0)
     end
