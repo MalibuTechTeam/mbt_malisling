@@ -627,6 +627,16 @@
 .mbt-pe__bone { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--mbt-text-lo); }
 .mbt-pe__bone .mbt-select2 { flex: 1; }
 .mbt-pe__bone .mbt-select2__btn { height: 32px; font-size: 13px; }
+/* Length class of the previewed weapon — a readout, not a control: it tells you which of
+   the slot's shifts is being applied on top of the position you are tuning. */
+.mbt-pe__class {
+  flex: none;
+  font-family: var(--mbt-font-mono);
+  font-size: 9px; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--mbt-text-faint);
+  border: 1px solid var(--mbt-edge-lo); border-radius: var(--mbt-r-pill);
+  padding: 2px 7px;
+}
 
 /* Axis grid header — clarifies the two columns (Position / Rotation). */
 .mbt-pe__gridhead { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 1px; }

@@ -9,7 +9,9 @@
 -- Representative weapon shown per type while editing (so you can edit without owning one).
 local PREVIEW = {
     side = 'WEAPON_PISTOL', back = 'WEAPON_CARBINERIFLE', back2 = 'WEAPON_RPG',
-    melee = 'WEAPON_BAT', melee2 = 'WEAPON_KNIFE', melee3 = 'WEAPON_HATCHET',
+    -- melee/melee3 used to hold each other's weapon (bat is melee3, hatchet is melee per
+    -- data/weapons.lua), so both slots were tuned against a model from the other one.
+    melee = 'WEAPON_HATCHET', melee2 = 'WEAPON_KNIFE', melee3 = 'WEAPON_BAT',
     extinguisher = 'WEAPON_FIREEXTINGUISHER',
 }
 
@@ -413,7 +415,12 @@ RegisterNUICallback('propEdit:start', function(d, cb)
         end
     end)
 
-    cb({ ok = true, data = data, view = { yaw = orbit.yaw, pitch = orbit.pitch, dist = orbit.dist } })
+    cb({
+        ok = true, data = data,
+        view = { yaw = orbit.yaw, pitch = orbit.pitch, dist = orbit.dist },
+        weapon = PREVIEW[baseType(wtype)],
+        class = (MBT.WeaponLengthClass or {})[PREVIEW[baseType(wtype)] or ''] or 'standard',
+    })
 end)
 
 RegisterNUICallback('propEdit:update', function(d, cb)
@@ -472,6 +479,35 @@ local function stopEditing()
     if MBT.SetSlingWeaponPreview then MBT.SetSlingWeaponPreview(nil) end
     FreezeEntityPosition(cache.ped, false)
 end
+
+--- Swap the weapon shown on the lane, without touching the position.
+--- A slot holds up to 40 models of very different lengths and they share one tuned
+--- position: tuning against whichever one the editor happened to pick is a bet that the
+--- other 39 are the same size. This is how you check instead of hoping — try the extremes,
+--- and if no single position holds them, that is what the length classes are for.
+--- Deliberately NOT persisted: it is a way of looking, not a setting.
+RegisterNUICallback('propEdit:previewWeapon', function(d, cb)
+    local name = d and d.weapon
+    if not editing or type(name) ~= 'string' or isObjectType(editWtype) then cb({ ok = false }) return end
+    if not (MBT.WeaponsInfo and MBT.WeaponsInfo.Weapons and MBT.WeaponsInfo.Weapons[name]) then
+        cb({ ok = false }) return
+    end
+
+    local hash = joaat(name)
+    if not pcall(lib.requestWeaponAsset, hash, 5000, 31, 1) then cb({ ok = false }) return end
+
+    local ped = cache.ped
+    local pc = GetEntityCoords(ped)
+    destroyPreview()
+    previewObj = CreateWeaponObject(hash, 50, pc.x, pc.y, pc.z, true, 1.0, 0)
+    RemoveWeaponAsset(hash)
+    if not previewObj or not DoesEntityExist(previewObj) then cb({ ok = false }) return end
+    SetEntityCompletelyDisableCollision(previewObj, false, true)
+
+    -- Re-apply the pose being edited, so only the weapon changed.
+    applyPreview(editData, editGender)
+    cb({ ok = true, class = (MBT.WeaponLengthClass or {})[name] or 'standard' })
+end)
 
 RegisterNUICallback('propEdit:stop', function(_, cb)
     stopEditing()

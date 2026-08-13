@@ -18,6 +18,45 @@ interface Data {
 }
 interface Props { wtype: string; job: string; gender: string; onClose: () => void }
 
+// Weapons offered as a preview for each body slot, chosen as the EXTREMES of what that slot
+// carries plus the middle: a position tuned against one model is a bet that the other 39 are
+// the same size, and this is how you check instead of hoping. Purely a way of looking —
+// picking one changes nothing that gets saved. The lane suffix ('back#2') is stripped first:
+// a lane holds the same weapons as its slot.
+const PREVIEW_WEAPONS: Record<string, { v: string; l: string }[]> = {
+  back: [
+    { v: 'WEAPON_CARBINERIFLE', l: 'Carbine — standard' },
+    { v: 'WEAPON_SAWNOFFSHOTGUN', l: 'Sawn-off — compact' },
+    { v: 'WEAPON_HEAVYSNIPER', l: 'Heavy sniper — long' },
+    { v: 'WEAPON_PUMPSHOTGUN', l: 'Pump shotgun' },
+    { v: 'WEAPON_SMG', l: 'SMG' },
+  ],
+  back2: [
+    { v: 'WEAPON_RPG', l: 'RPG' },
+    { v: 'WEAPON_HOMINGLAUNCHER', l: 'Homing launcher' },
+  ],
+  side: [
+    { v: 'WEAPON_PISTOL', l: 'Pistol — standard' },
+    { v: 'WEAPON_PISTOL50', l: 'Pistol .50 — large' },
+    { v: 'WEAPON_SNSPISTOL', l: 'SNS — compact' },
+  ],
+  melee: [
+    { v: 'WEAPON_HATCHET', l: 'Hatchet' },
+    { v: 'WEAPON_BATTLEAXE', l: 'Battle axe — long' },
+    { v: 'WEAPON_WRENCH', l: 'Wrench — compact' },
+  ],
+  melee2: [
+    { v: 'WEAPON_KNIFE', l: 'Knife' },
+    { v: 'WEAPON_MACHETE', l: 'Machete — long' },
+    { v: 'WEAPON_NIGHTSTICK', l: 'Nightstick' },
+  ],
+  melee3: [
+    { v: 'WEAPON_BAT', l: 'Bat' },
+    { v: 'WEAPON_POOLCUE', l: 'Pool cue — long' },
+    { v: 'WEAPON_GOLFCLUB', l: 'Golf club' },
+  ],
+}
+
 const BONES = [
   { id: 24816, label: 'Upper back' },
   { id: 24818, label: 'Chest' },
@@ -54,6 +93,19 @@ export function PropEditorOverlay({ wtype, job, gender: initGender, onClose }: P
   const [saved, setSaved] = useState(false)
   const [view, setView] = useState({ yaw: 180, pitch: -5, dist: 2.4 })
 
+  // Which weapon the preview is wearing, and its length class. Never saved.
+  const slot = wtype.replace(/#\d+$/, '')
+  const weapons = PREVIEW_WEAPONS[slot] ?? []
+  const [previewWeapon, setPreviewWeapon] = useState(weapons[0]?.v ?? '')
+  const [previewClass, setPreviewClass] = useState('standard')
+
+  const pickWeapon = (v: string) => {
+    setPreviewWeapon(v)
+    fetchNui('propEdit:previewWeapon', { weapon: v }).then((r: any) => {
+      if (r?.ok) setPreviewClass(r.class || 'standard')
+    })
+  }
+
   // Enter edit mode once; leave on unmount.
   useEffect(() => {
     let alive = true
@@ -61,6 +113,8 @@ export function PropEditorOverlay({ wtype, job, gender: initGender, onClose }: P
       if (!alive || !r?.ok || !r.data) return
       setData(normalizeData(r.data))
       if (r.view) setView(r.view)
+      if (r.weapon) setPreviewWeapon(r.weapon)
+      if (r.class) setPreviewClass(r.class)
     })
     return () => { alive = false; fetchNui('propEdit:stop') }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -161,6 +215,17 @@ export function PropEditorOverlay({ wtype, job, gender: initGender, onClose }: P
         <CamSlider label="Roll"  min={-180} max={180} step={1} val={n180(rot.y)} unit="°" fmt={(v) => String(Math.round(v))} onChange={(v) => setAxis('Rot', 'y', v)} />
         <CamSlider label="Yaw"   min={-180} max={180} step={1} val={n180(rot.z)} unit="°" fmt={(v) => String(Math.round(v))} onChange={(v) => setAxis('Rot', 'z', v)} />
       </div>
+
+      {weapons.length > 1 && (
+        <div className="mbt-pe__bone">
+          <span>Preview</span>
+          <Select value={previewWeapon} aria-label="Preview weapon" onChange={pickWeapon}
+            options={weapons.map((w) => ({ value: w.v, label: w.l }))} />
+          <span className="mbt-pe__class" title="Length class — shifts this weapon on top of the position">
+            {previewClass}
+          </span>
+        </div>
+      )}
 
       <div className="mbt-pe__bone">
         <span>Bone</span>
