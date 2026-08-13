@@ -633,6 +633,7 @@ local function persistable(d)
         ChainOfCustody = d.ChainOfCustody,
         WeaponRack = d.WeaponRack,
         TacticalSling = d.TacticalSling,
+        MultiWeaponVisibility = d.MultiWeaponVisibility,
         ShellCasings = d.ShellCasings,
         Handoff = d.Handoff,
         Serials = d.Serials,
