@@ -659,6 +659,14 @@ function Init()
         end
         if not touchesWeapon then return end
 
+        -- Let ox's client-side cache settle before reading it. This event fires as the
+        -- change is applied, and reading straight away can still see a weapon that has just
+        -- been dropped — which then lands in the snapshot, gets stored, and stays there
+        -- because nothing else re-reports. The itemCount path already waited for the same
+        -- reason. A quarter second later the prop appears; a stale snapshot lasts until
+        -- something unrelated happens to clear it.
+        Wait(250)
+
         Utils.mbtDebugger("ox_inventory:updateInventory ~ re-reporting the desired set")
         -- No "is the slot busy" check any more. The set is what it is; the reconciliation
         -- on the receiving side works out what to spawn and what to remove. That guard was

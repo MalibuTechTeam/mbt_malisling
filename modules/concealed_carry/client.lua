@@ -65,22 +65,58 @@ end
 --- Everything the key could act on, concealed ones first so a second press always undoes.
 --- Reads the REGISTRY, shadows included: MaxPerType caps how many weapons are drawn, not
 --- how many exist, and a weapon you can't see is exactly one you might want tucked away.
+--- Every concealable weapon the registry still knows we carry.
+--- Shadows included: a concealed weapon IS a shadow (suppressed, so no prop), and
+--- MaxPerType caps how many are drawn, not how many exist.
+---@return table<string, table>  [serial] = { wtype, name }
+local function ownedConcealable()
+    local owned = {}
+    Slung.forEach(cache.serverId, function(_, propType, serial, e)
+        if (cfg.ConcealableTypes or {})[propType] then
+            owned[serial] = { wtype = propType, name = e.name }
+        end
+    end, { states = 'all', stale = true })
+    return owned
+end
+
+--- Drop concealment for weapons that are no longer ours.
+--- Concealment used to end only with an explicit toggle or a clothing change, so a gun that
+--- was dropped, stowed, handed over or seized stayed "hidden" forever: offered by the
+--- picker, reported by a frisk, and still triggering the waistband tell. The registry knows
+--- the truth — a weapon that left the inventory left the snapshot — so reconcile against it.
+---@param owned table?
+local function pruneStaleState(owned)
+    if type(myState) ~= 'table' then return end
+    owned = owned or ownedConcealable()
+
+    for serial in pairs(myState) do
+        if not owned[serial] then
+            myState[serial] = nil
+            TriggerServerEvent('mbt_malisling:concealed:forceReveal', serial)
+        end
+    end
+    if not next(myState) then myState = nil end
+end
+
 ---@return table[]  { serial, wtype, name, concealed }
 local function candidates()
     local out, seen = {}, {}
+    local owned = ownedConcealable()
+    pruneStaleState(owned)
 
     if type(myState) == 'table' then
         for serial, st in pairs(myState) do
-            out[#out + 1] = { serial = serial, wtype = st.t, name = st.n, concealed = true }
+            out[#out + 1] = { serial = serial, wtype = st.t,
+                              name = st.n or (owned[serial] and owned[serial].name), concealed = true }
             seen[serial] = true
         end
     end
 
-    Slung.forEach(cache.serverId, function(_, propType, serial, e)
-        if (cfg.ConcealableTypes or {})[propType] and not seen[serial] then
-            out[#out + 1] = { serial = serial, wtype = propType, name = e.name, concealed = false }
+    for serial, o in pairs(owned) do
+        if not seen[serial] then
+            out[#out + 1] = { serial = serial, wtype = o.wtype, name = o.name, concealed = false }
         end
-    end, { states = 'all', stale = true })
+    end
 
     -- Stable order: concealed first (they came first above), then by name, then serial.
     table.sort(out, function(a, b)
@@ -225,6 +261,11 @@ end
 CreateThread(function()
     while true do
         Wait(800)
+        if myState and cfg.Enabled then
+            -- Also here, not only when the key is pressed: a frisk or the tell animation
+            -- must not act on a weapon that left while the player did nothing.
+            pruneStaleState()
+        end
         if myState and cfg.Enabled then
             local _, d = clothingQuality()
             if lastTop ~= nil and d ~= lastTop then
