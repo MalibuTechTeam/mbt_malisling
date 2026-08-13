@@ -923,6 +923,37 @@ MBT.LowReady           = {
 -- tuned. To add your own variant: convert the model to a prop .ydr (+ .ytd), drop it in
 -- stream/belt/, declare its archetype in mbt_m4_prop.ytyp, add a row to Variants, then
 -- place it with the dashboard's Position editor (it appears there as type 'sling:<id>').
+-- ── Multi-Weapon Visibility ───────────────────────────────────────────────────
+-- Shows more than one weapon in the same body slot. The slots are body positions, not
+-- weapon families — `back` holds 38 weapons — so a rifle and a shotgun already collide.
+--
+-- Shows up to MaxPerType DISTINCT weapons per slot. Copies of the same model share one
+-- prop: two identical rifles side by side read as a rendering fault, and every report that
+-- asked for this described DIFFERENT weapons in one slot. A distinct weapon always wins a
+-- lane over another variant of one already shown — knowing WHAT someone carries matters
+-- more than which accessory is on it.
+--
+-- OFF by default: existing servers see exactly what they saw before.
+MBT.MultiWeaponVisibility = {
+    Enabled    = false,
+    MaxPerType = 2,     -- distinct weapons DRAWN per slot; the rest are still tracked
+    -- Where the extra ones sit, as an offset from the slot's normal position. Lane 1 is
+    -- never offset — it is exactly where the weapon has always been, which is what makes
+    -- the toggle OFF identical to before and keeps the first weapon put when a second
+    -- arrives. Tune in-world with /mbt_lanetune (debug builds), then paste here.
+    LaneOffsets = {
+        ['back'] = {
+            [2] = { Pos = { x = 0.0, y = -0.10, z = 0.0 }, Rot = { x = 0.0, y = 0.0, z = 0.0 } },
+        },
+        ['back2'] = {
+            [2] = { Pos = { x = 0.0, y = -0.10, z = 0.0 }, Rot = { x = 0.0, y = 0.0, z = 0.0 } },
+        },
+        ['side'] = {
+            [2] = { Pos = { x = 0.0, y = 0.0, z = 0.14 }, Rot = { x = 0.0, y = 0.0, z = 0.0 } },
+        },
+    },
+}
+
 MBT.TacticalSling      = {
     Enabled  = true,    -- toggle live from the admin dashboard (NUI), no restart needed
     -- Strap prop variants, shipped in stream/ and declared in mbt_m4_prop.ytyp. Add as many

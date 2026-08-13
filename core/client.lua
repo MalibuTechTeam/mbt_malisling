@@ -808,8 +808,37 @@ end)
 ---@param weaponType string
 ---@param weaponData table
 ---@return number?
+--- attachInfo with this lane's offset folded in, or the original for lane 1.
+--- Lane 1 is never moved: it is exactly where the weapon has always sat, which is what makes
+--- the toggle OFF identical to before and keeps the first weapon put when a second arrives.
+--- Returns a COPY — attachInfo is the shared config table, and writing to it would move
+--- every weapon of that type, for everyone.
+---@return table
+local function withLaneOffset(info, propType, lane)
+    if not lane or lane < 2 then return info end
+
+    local cfg = MBT.MultiWeaponVisibility
+    local byLane = cfg and cfg.LaneOffsets and cfg.LaneOffsets[propType]
+    local off = byLane and byLane[lane]
+    if not off then return info end
+
+    local out = {
+        Bone = info.Bone, isPed = info.isPed,
+        RotOrder = info.RotOrder, FixedRot = info.FixedRot,
+        Pos = {}, Rot = {},
+    }
+    local dp, dr = off.Pos or {}, off.Rot or {}
+    for _, sex in ipairs({ 'male', 'female' }) do
+        local p, r = info.Pos[sex], info.Rot[sex]
+        out.Pos[sex] = { x = p.x + (dp.x or 0.0), y = p.y + (dp.y or 0.0), z = p.z + (dp.z or 0.0) }
+        out.Rot[sex] = { x = r.x + (dr.x or 0.0), y = r.y + (dr.y or 0.0), z = r.z + (dr.z or 0.0) }
+    end
+    return out
+end
+
 ---@param serial string?  registry key, so a per-weapon override (low ready) picks the right one
-local function spawnProp(ctx, weaponType, weaponData, serial)
+---@param lane number?    visual slot from the server; >1 shifts the prop by the lane offset
+local function spawnProp(ctx, weaponType, weaponData, serial, lane)
     -- Spawn-window timing (debug only). Since b5d8c5b the prop is invisible for this whole
     -- stretch, so "the weapon takes a while to appear" is a report about a duration nobody
     -- can see. Split per phase: the three candidates are weapon streaming, per-component
@@ -821,8 +850,15 @@ local function spawnProp(ctx, weaponType, weaponData, serial)
     -- Low Ready guard (opaque hook, no-op without the module): if the LOCAL player has this
     -- type in chest carry, spawn it on the chest directly so a re-sling after a draw doesn't
     -- snap back→chest. Gated to the local player (the stance is local state).
+    local chestCarry = false
     if ctx.targetPlayerId == PlayerId() and MBT.GetLowReadyOverride then
-        attachInfo = MBT.GetLowReadyOverride(weaponType, serial) or attachInfo
+        local override = MBT.GetLowReadyOverride(weaponType, serial)
+        if override then attachInfo, chestCarry = override, true end
+    end
+    -- Skipped for chest carry: that is a deliberate spot for ONE weapon, and adding a lane
+    -- offset on top would drag it off the chest.
+    if not chestCarry then
+        attachInfo = withLaneOffset(attachInfo, weaponType, lane)
     end
 
     local playerPed = ctx.playerPed
@@ -896,6 +932,30 @@ local function spawnProp(ctx, weaponType, weaponData, serial)
             tAsset - tStart, tExist - tAsset, tComps - tExist, tEnd - tComps))
 
     return weaponData.weaponObj
+end
+
+-- Promotion (phase 4). Slung.resolve calls this when an action names a serial that is
+-- tracked but not currently drawn — a hot barrel, a chest carry, an attachment refresh on
+-- the copy that isn't the one on show. It builds that weapon's prop; Slung.resolve reveals
+-- it and only THEN deletes the outgoing one, so the swap is invisible. The other direction
+-- would leave the body bare for the ~550ms a spawn takes, which reads as a bug.
+Slung.spawner = function(serverId, propType, entry, lane)
+    if not entry or not entry.data then return nil end
+
+    local targetPlayerId = (serverId == cache.serverId) and PlayerId() or GetPlayerFromServerId(serverId)
+    if not targetPlayerId or targetPlayerId == -1 then return nil end
+    local ped = GetPlayerPed(targetPlayerId)
+    if not ped or ped == 0 or not DoesEntityExist(ped) then return nil end
+
+    local ctx = playerCtxInScope[serverId] or {}
+    return spawnProp({
+        playerSource   = serverId,
+        playerPed      = ped,
+        playerCoords   = GetEntityCoords(ped),
+        playerJob      = ctx.playerJob,
+        pedSex         = ctx.pedSex or (IsPedMale(ped) and 'male' or 'female'),
+        targetPlayerId = targetPlayerId,
+    }, propType, entry.data, entry.serial, lane)
 end
 
 RegisterNetEvent('mbt_malisling:syncSling')
@@ -999,7 +1059,7 @@ AddEventHandler('mbt_malisling:syncSling', function (data)
                         -- backwards, and it is how two rifles ended up sharing one lane.
                         -- The entry stays: deletes and promotion both need to know the
                         -- weapon is there.
-                        Slung.shadow(src, weaponType, serial, weaponData, slot.lane)
+                        Slung.shadow(src, weaponType, serial, weaponData, slot.lane, slot.vkey)
                     elseif Slung.reserve(src, weaponType, serial, 'spawn') then
                         -- reserve claims the slot SYNCHRONOUSLY before the async spawn.
                         -- Two near-simultaneous syncSling for the same weapon (at restart
@@ -1007,12 +1067,12 @@ AddEventHandler('mbt_malisling:syncSling', function (data)
                         -- both fire) would otherwise both pass the free check during the
                         -- ~500ms create window, spawn two props and orphan one.
                         Utils.mbtDebugger("syncSling ~ spawning ", weaponData.name, serial)
-                        local handle = spawnProp(ctx, weaponType, weaponData, serial)
+                        local handle = spawnProp(ctx, weaponType, weaponData, serial, slot.lane)
                         if handle then
                             -- slot.lane comes from the SERVER and is applied as given: every
                             -- observer has to place the weapon in the same spot, so no client
                             -- ever computes a lane of its own.
-                            Slung.commit(src, weaponType, serial, handle, weaponData, slot.lane)
+                            Slung.commit(src, weaponType, serial, handle, weaponData, slot.lane, slot.vkey)
                         else
                             -- Kept as a shadow, weaponData and all, so it stays retryable —
                             -- a failed stream is how "everyone else sees the weapon, this
@@ -1113,9 +1173,9 @@ CreateThread(function()
                                     playerJob      = ctx.playerJob,
                                     pedSex         = ctx.pedSex,
                                     targetPlayerId = GetPlayerFromServerId(serverId),
-                                }, propType, e.data, serial)
+                                }, propType, e.data, serial, e.lane)
                                 if handle then
-                                    Slung.commit(serverId, propType, serial, handle, e.data, e.lane)
+                                    Slung.commit(serverId, propType, serial, handle, e.data, e.lane, e.vkey)
                                 else
                                     Slung.release(serverId, propType, serial, e.data)
                                 end

@@ -221,6 +221,13 @@ local function applyConfig(d)
             MBT.WeaponRack.Placement.Access       = d.WeaponRack.Placement.Access
         end
     end
+    -- Multi-weapon: the CLIENT only reads MaxPerType for its own bookkeeping — lanes are
+    -- assigned server-side, so a client that disagreed would simply be ignored.
+    if d.MultiWeaponVisibility and MBT.MultiWeaponVisibility then
+        MBT.MultiWeaponVisibility.Enabled    = d.MultiWeaponVisibility.Enabled
+        MBT.MultiWeaponVisibility.MaxPerType = math.floor(tonumber(d.MultiWeaponVisibility.MaxPerType) or 2)
+    end
+
     if d.TacticalSling and MBT.TacticalSling then
         local oldVariant = MBT.TacticalSling.DefaultVariant
         local oldJV = json.encode(MBT.TacticalSling.JobVariants or {})

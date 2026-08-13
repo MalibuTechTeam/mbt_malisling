@@ -208,13 +208,15 @@ end
 --- Reservation → live prop.
 ---@param data table?  weaponData, kept so a later retry has something to re-spawn from
 ---@param lane number?  the lane the SERVER assigned; the client applies it, never invents it
-function Slung.commit(serverId, propType, serial, handle, data, lane)
+---@param vkey string?  the server's visual signature, so promotion can find this weapon's group
+function Slung.commit(serverId, propType, serial, handle, data, lane, vkey)
     local t = bucket(serverId, propType, true)
     local e = t[serial] or { serial = serial }
 
     e.state, e.handle = 'live', handle
     e.why = nil              -- the reservation is over; keeping it only muddies /mbt_slingdebug
     if lane then e.lane = lane end
+    if vkey then e.vkey = vkey end
     if data then
         e.data = data
         e.name = data.name
@@ -242,13 +244,14 @@ end
 
 --- Track a serial with no prop: a visual duplicate, an overflow past MaxPerType, or a
 --- failed spawn. Shadows are what make "delete them all" and promotion possible.
-function Slung.shadow(serverId, propType, serial, data, lane)
+function Slung.shadow(serverId, propType, serial, data, lane, vkey)
     local t = bucket(serverId, propType, true)
     local e = t[serial] or { serial = serial }
 
     destroy(e)
     e.state = 'shadow'
     e.lane = lane
+    if vkey then e.vkey = vkey end
     if data then
         e.data = data
         e.name = data.name
@@ -384,18 +387,28 @@ function Slung.resolve(propType, serial, serverId)
     local e = Slung.entry(serverId, propType, serial)
     if not e or not Slung.spawner then return nil, false end
 
-    local lane = e.lane
+    -- Which prop does this weapon get to replace? The one representing its OWN visual group
+    -- — the copy that looks the same on the body. Stealing the lane of a DIFFERENT weapon
+    -- would hide something the player is genuinely carrying to show a duplicate of
+    -- something already on show.
+    local lane, outgoing = e.lane, nil
+    if not lane then
+        Slung.forEachType(serverId, propType, function(_, _, otherSerial, other)
+            if otherSerial ~= serial and other.lane and other.vkey and other.vkey == e.vkey then
+                lane, outgoing = other.lane, otherSerial
+                return true
+            end
+        end, { states = 'all', stale = true })
+    end
+    if not lane then return nil, false end   -- its group isn't drawn: nothing to take over
+
     local promoted = Slung.spawner(serverId, propType, e, lane)
     if not promoted then return nil, false end
 
-    -- Same lane, one representative: whoever held it steps down only now that the
-    -- replacement is on the ped and visible.
-    Slung.forEachType(serverId, propType, function(_, _, otherSerial, other)
-        if otherSerial ~= serial and other.lane == lane then
-            Slung.deleteSerial(serverId, propType, otherSerial)
-        end
-    end)
-    Slung.commit(serverId, propType, serial, promoted, e.data)
+    -- The outgoing one steps down only NOW, with the replacement already on the ped and
+    -- visible. The other order leaves the body bare for as long as a spawn takes.
+    if outgoing then Slung.deleteSerial(serverId, propType, outgoing) end
+    Slung.commit(serverId, propType, serial, promoted, e.data, lane, e.vkey)
     return promoted, true
 end
 

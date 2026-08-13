@@ -35,34 +35,112 @@ end
 --- distinct weapon name first, visual variants only with spare capacity), lease held while
 --- the weapon is merely in hand, no compaction when one frees, inheritance when a component
 --- changes the visual key. Kept as a single function so that stays true.
+--- How many weapons this slot may DRAW. One unless the feature is on: the toggle has to be
+--- semantically identical to the old behaviour, not merely similar.
+local function laneCount()
+    local cfg = MBT.MultiWeaponVisibility
+    if not (cfg and cfg.Enabled) then return 1 end
+    return math.max(1, math.floor(tonumber(cfg.MaxPerType) or 2))
+end
+
+--- Assign lanes across every serial of ONE type.
+---
+--- Groups by VISUAL SIGNATURE, so copies of a weapon that look identical on the body share
+--- one prop, then hands out lanes in two passes:
+---   1. one lane per distinct weapon NAME
+---   2. leftover lanes to the other visual variants of names already shown
+--- Without the second pass being second, two variants of one rifle would take both lanes
+--- and the shotgun would vanish — the exact opposite of what this feature is for.
+---
+--- Whoever holds a lane keeps it while still carried, so picking up a weapon that sorts
+--- earlier cannot silently swap what is on your back in front of everyone.
 ---@param prev table?  the same type's map from before this snapshot, for lane stability
 local function assignLanes(t, prev)
-    -- Whoever held the lane keeps it, as long as they are still carried. Without this the
-    -- sort decides afresh every snapshot, so picking up a rifle whose name sorts earlier
-    -- silently swaps the weapon on your back in front of everyone — the lane belongs to
-    -- what is already being worn, not to the alphabet.
+    for _, e in pairs(t) do e.lane = nil end
+    local maxLanes = laneCount()
+
+    -- Serials sorted once: every derived order below inherits it, so two observers and two
+    -- reconnects agree on the answer.
+    local serials = {}
+    for serial in pairs(t) do serials[#serials + 1] = serial end
+    table.sort(serials)
+
+    local groups, order = {}, {}
+    for i = 1, #serials do
+        local serial = serials[i]
+        local e = t[serial]
+        local vkey = e.vkey or (e.data and e.data.name) or '?'
+        local g = groups[vkey]
+        if not g then
+            g = { vkey = vkey, name = (e.data and e.data.name) or '?', serials = {} }
+            groups[vkey] = g
+            order[#order + 1] = g
+        end
+        g.serials[#g.serials + 1] = serial
+    end
+
+    local taken = {}
+    local function claim(g, lane)
+        if not lane or lane > maxLanes or taken[lane] or g.lane then return false end
+        taken[lane], g.lane = true, lane
+        return true
+    end
+    local function lowestFree()
+        for l = 1, maxLanes do if not taken[l] then return l end end
+    end
+
+    -- Leases first.
     if prev then
-        for serial, e in pairs(prev) do
-            if e.lane == 1 and t[serial] then
-                t[serial].lane = 1
-                for other in pairs(t) do
-                    if other ~= serial then t[other].lane = nil end
-                end
-                return
-            end
+        for _, e in pairs(prev) do
+            if e.lane and e.vkey and groups[e.vkey] then claim(groups[e.vkey], e.lane) end
         end
     end
 
-    local keys = {}
-    for serial in pairs(t) do keys[#keys + 1] = serial end
-    table.sort(keys, function(a, b)
-        local na = t[a].data and t[a].data.name or ''
-        local nb = t[b].data and t[b].data.name or ''
-        if na ~= nb then return na < nb end
-        return a < b
-    end)
-    for i = 1, #keys do
-        t[keys[i]].lane = (i == 1) and 1 or nil
+    local byName, nameOrder = {}, {}
+    for i = 1, #order do
+        local g = order[i]
+        if not byName[g.name] then
+            byName[g.name] = {}
+            nameOrder[#nameOrder + 1] = g.name
+        end
+        local list = byName[g.name]
+        list[#list + 1] = g
+    end
+    table.sort(nameOrder)
+
+    -- Pass 1 — a lane for every distinct name.
+    for i = 1, #nameOrder do
+        local list = byName[nameOrder[i]]
+        table.sort(list, function(a, b) return a.vkey < b.vkey end)
+        local placed = false
+        for j = 1, #list do
+            if list[j].lane then placed = true break end
+        end
+        if not placed then claim(list[1], lowestFree()) end
+    end
+
+    -- Pass 2 — what is left over goes to the other variants.
+    for i = 1, #nameOrder do
+        local list = byName[nameOrder[i]]
+        for j = 1, #list do
+            if not list[j].lane then claim(list[j], lowestFree()) end
+        end
+    end
+
+    -- Stamp the group's representative. Whoever represented it before keeps the job, so a
+    -- new copy arriving doesn't swap the prop for an identical one.
+    for i = 1, #order do
+        local g = order[i]
+        if g.lane then
+            local rep
+            if prev then
+                for j = 1, #g.serials do
+                    local p = prev[g.serials[j]]
+                    if p and p.lane then rep = g.serials[j] break end
+                end
+            end
+            t[rep or g.serials[1]].lane = g.lane
+        end
     end
 end
 

@@ -201,6 +201,10 @@ local function snapshot()
                 Access       = (WR.Placement and WR.Placement.Access) == 'owner' and 'owner' or 'everyone',
             },
         },
+        MultiWeaponVisibility = {
+            Enabled    = b(MBT.MultiWeaponVisibility and MBT.MultiWeaponVisibility.Enabled),
+            MaxPerType = num(MBT.MultiWeaponVisibility and MBT.MultiWeaponVisibility.MaxPerType, 2),
+        },
         TacticalSling = {
             Enabled        = b(TS.Enabled),
             DefaultVariant = TS.DefaultVariant or 'normal',
@@ -370,6 +374,17 @@ local function validate(d)
     if type(wrp) ~= 'table' or type(wrp.Enabled) ~= 'boolean' or type(wrp.AllowPickup) ~= 'boolean' then return false end
     if type(wrp.MaxPerPlayer) ~= 'number' or wrp.MaxPerPlayer < 1 or wrp.MaxPerPlayer > 20 then return false end
     if wrp.Access ~= 'everyone' and wrp.Access ~= 'owner' then return false end
+    -- Multi-Weapon Visibility. OPTIONAL on purpose: the dashboard has no control for it
+    -- yet, and a payload from an older UI must not be rejected wholesale — that would take
+    -- every other setting down with it.
+    local mw = d.MultiWeaponVisibility
+    if mw ~= nil then
+        if type(mw) ~= 'table' or type(mw.Enabled) ~= 'boolean' then return false end
+        -- Cap: props scale with MaxPerType x slots x players in scope, and 4 lanes on a
+        -- 64-slot server already reaches the engine's per-frame limits elsewhere.
+        if type(mw.MaxPerType) ~= 'number' or mw.MaxPerType < 1 or mw.MaxPerType > 4 then return false end
+    end
+
     -- Tactical Sling
     local ts = d.TacticalSling
     if type(ts) ~= 'table' or type(ts.Enabled) ~= 'boolean' then return false end
@@ -532,6 +547,10 @@ local function applyToMBT(d)
         MBT.WeaponRack.Placement.MaxPerPlayer = d.WeaponRack.Placement.MaxPerPlayer
         MBT.WeaponRack.Placement.AllowPickup  = d.WeaponRack.Placement.AllowPickup
         MBT.WeaponRack.Placement.Access       = d.WeaponRack.Placement.Access
+    end
+    if d.MultiWeaponVisibility and MBT.MultiWeaponVisibility then
+        MBT.MultiWeaponVisibility.Enabled    = d.MultiWeaponVisibility.Enabled
+        MBT.MultiWeaponVisibility.MaxPerType = math.floor(d.MultiWeaponVisibility.MaxPerType)
     end
     MBT.TacticalSling.Enabled = d.TacticalSling.Enabled
     if d.TacticalSling.DefaultVariant then MBT.TacticalSling.DefaultVariant = d.TacticalSling.DefaultVariant end
