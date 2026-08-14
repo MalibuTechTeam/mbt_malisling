@@ -158,6 +158,7 @@ local cam        = nil
 local orbit      = { yaw = 180.0, pitch = -5.0, dist = 2.4 }
 local editData   = nil       -- latest data from the NUI; the render loop applies it
 local editGender = 'male'
+local editJob    = 'default'  -- scope being edited; the reference lanes resolve against it
 local dirty      = false      -- re-attach ONLY when something changed, then let soft-pinning settle
 local lastGoodPreview = nil   -- last pose whose attach produced a valid (non-NaN) matrix
 local applyingFallback = false
@@ -375,6 +376,7 @@ RegisterNUICallback('propEdit:start', function(d, cb)
     if not PREVIEW[baseType(wtype)] and not isObjectType(wtype) then cb({ ok = false }); return end
     editing = true
     editWtype = wtype
+    editJob   = (d and type(d.job) == 'string' and d.job) or 'default'
     if isObjectType(wtype) then
         -- Hide only the real strap (keep weapons visible as an alignment reference).
         if MBT.SetSlingEditing then MBT.SetSlingEditing(true) end
@@ -460,9 +462,15 @@ end)
 
 RegisterNUICallback('propEdit:update', function(d, cb)
     if editing and type(d) == 'table' and type(d.data) == 'table' then
+        local wasGender = editGender
         editData   = normalizeEditorData(d.data)   -- render loop re-attaches next frame
         editGender = d.gender or editGender
         dirty      = true
+        -- The faded reference lanes were placed for the gender you were on. Leave them and
+        -- you would be judging a female lane 2 against where the male lane 1 sits.
+        if editGender ~= wasGender and not isObjectType(editWtype) then
+            spawnReferenceLanes(editWtype, editJob, editGender)
+        end
     end
     cb({})
 end)

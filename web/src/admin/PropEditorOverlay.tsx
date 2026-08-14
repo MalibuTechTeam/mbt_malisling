@@ -197,12 +197,21 @@ export function PropEditorOverlay({ wtype, job, gender: initGender, onClose }: P
     fetchNui('propEdit:cam', next)
   }
   const setBone = (b: number) => push({ ...structuredClone(data), Bone: b }, g)
+  // Switching gender has to reach Lua, not just the sliders. Without the push the preview
+  // keeps the pose of the gender you left: the numbers on screen say female, the weapon on
+  // the ped is still where male put it, and you tune against the wrong thing. It never
+  // showed while only the male positions were ever touched.
+  const pickGender = (next: 'male' | 'female') => {
+    if (next === g) return
+    setGender(next)
+    push(structuredClone(data), next)
+  }
   const copyGender = () => {
     const other = g === 'male' ? 'female' : 'male'
     const next = structuredClone(data)
     next.Pos[other] = { ...next.Pos[g] }
     next.Rot[other] = { ...next.Rot[g] }
-    setData(next)
+    push(next, g)
   }
   // Saves both, because they are two halves of one adjustment: you tune the position on a
   // standard weapon, load a long one, correct the shift — and clicking Save once should
@@ -241,8 +250,8 @@ export function PropEditorOverlay({ wtype, job, gender: initGender, onClose }: P
           per-gender, and a control that vanishes reads as a bug where one that greys out
           reads as an answer. */}
       <div className="mbt-pe__seg" aria-disabled={editingOffset}>
-        <button className={g === 'male' ? 'is-on' : ''} disabled={editingOffset} onClick={() => setGender('male')}>Male</button>
-        <button className={g === 'female' ? 'is-on' : ''} disabled={editingOffset} onClick={() => setGender('female')}>Female</button>
+        <button className={g === 'male' ? 'is-on' : ''} disabled={editingOffset} onClick={() => pickGender('male')}>Male</button>
+        <button className={g === 'female' ? 'is-on' : ''} disabled={editingOffset} onClick={() => pickGender('female')}>Female</button>
         <button className="mbt-pe__copy" disabled={editingOffset} onClick={copyGender}>Copy →</button>
       </div>
 
