@@ -616,6 +616,14 @@
 .mbt-pe__seg button { flex: 1; padding: 6px 0; border: 1px solid var(--mbt-edge); background: var(--mbt-surface-1); color: var(--mbt-text-lo); border-radius: var(--mbt-r-sm); font-size: 12px; cursor: pointer; transition: color var(--mbt-dur) var(--mbt-ease), background var(--mbt-dur) var(--mbt-ease), border-color var(--mbt-dur) var(--mbt-ease); }
 .mbt-pe__seg button.is-on { background: var(--mbt-accent-soft); border-color: rgba(var(--mbt-accent-rgb), 0.4); color: var(--mbt-text-hi); }
 .mbt-pe__seg .mbt-pe__copy { flex: 0 0 auto; padding: 6px 10px; }
+/* Greyed rather than removed: the gender switch does not apply while a length-class shift
+   is being edited, and a control that disappears reads as a bug where one that dims reads
+   as an answer. */
+.mbt-pe__seg button:disabled { opacity: 0.35; cursor: not-allowed; }
+/* Which of the two the sliders below are moving — the position, or the shift for the
+   previewed weapon's length class. Set apart from the gender row above it. */
+.mbt-pe__target { margin-top: -2px; }
+.mbt-pe__target button.is-on { font-family: var(--mbt-font-mono); font-size: 11px; letter-spacing: 0.03em; }
 
 .mbt-pe__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .mbt-pe__axis { display: flex; align-items: center; gap: 4px; background: var(--mbt-surface-1); border: 1px solid var(--mbt-edge); border-radius: var(--mbt-r-sm); padding: 4px 6px; }

@@ -18,6 +18,12 @@ interface Data {
 }
 interface Props { wtype: string; job: string; gender: string; onClose: () => void }
 
+// The length-class shift for the loaded preview weapon. Not per-gender and not per-job —
+// a weapon's length is the same whoever carries it — which is why it saves somewhere else
+// than the position and why the gender switch goes quiet while it is being edited.
+interface Offset { Pos: Vec; Rot: Vec }
+const ZERO_OFFSET: Offset = { Pos: { x: 0, y: 0, z: 0 }, Rot: { x: 0, y: 0, z: 0 } }
+
 // Weapons offered as a preview for each body slot, chosen as the EXTREMES of what that slot
 // carries plus the middle: a position tuned against one model is a bet that the other 39 are
 // the same size, and this is how you check instead of hoping. Purely a way of looking —
@@ -99,10 +105,28 @@ export function PropEditorOverlay({ wtype, job, gender: initGender, onClose }: P
   const [previewWeapon, setPreviewWeapon] = useState(weapons[0]?.v ?? '')
   const [previewClass, setPreviewClass] = useState('standard')
 
+  // Which of the two the sliders are moving. A weapon whose class is 'standard' has no
+  // offset to move: the slot's tuned position IS the standard, and a second control
+  // saying the same thing would only make it ambiguous which one did the moving.
+  const [target, setTarget] = useState<'position' | 'offset'>('position')
+  // null = this slot declares no class offsets, so there is nothing to edit. Driven by what
+  // Lua sends back rather than by the class name alone: offering a control whose save the
+  // server would silently drop is worse than not offering it.
+  const [offset, setOffset] = useState<Offset | null>(null)
+  const [offsetDirty, setOffsetDirty] = useState(false)
+  const hasOffset = offset !== null && (previewClass === 'compact' || previewClass === 'long')
+
   const pickWeapon = (v: string) => {
     setPreviewWeapon(v)
     fetchNui('propEdit:previewWeapon', { weapon: v }).then((r: any) => {
-      if (r?.ok) setPreviewClass(r.class || 'standard')
+      if (!r?.ok) return
+      const cls = r.class || 'standard'
+      setPreviewClass(cls)
+      setOffset(r.offset ?? null)
+      setOffsetDirty(false)
+      // Loading a standard weapon while the offset tab is open would leave the sliders
+      // pointing at nothing.
+      if (cls !== 'compact' && cls !== 'long') setTarget('position')
     })
   }
 
@@ -115,6 +139,7 @@ export function PropEditorOverlay({ wtype, job, gender: initGender, onClose }: P
       if (r.view) setView(r.view)
       if (r.weapon) setPreviewWeapon(r.weapon)
       if (r.class) setPreviewClass(r.class)
+      setOffset(r.offset ?? null)
     })
     return () => { alive = false; fetchNui('propEdit:stop') }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -146,10 +171,19 @@ export function PropEditorOverlay({ wtype, job, gender: initGender, onClose }: P
 
   if (!data) return null
   const g = gender
-  const pos = data.Pos[g]
-  const rot = data.Rot[g]
 
+  const editingOffset = target === 'offset' && hasOffset
+  const pos = editingOffset && offset ? offset.Pos : data.Pos[g]
+  const rot = editingOffset && offset ? offset.Rot : data.Rot[g]
+  const posLimit = editingOffset ? 0.3 : 1   // a shift past 30cm is not a length correction
   const setAxis = (kind: 'Pos' | 'Rot', axis: 'x' | 'y' | 'z', v: number) => {
+    if (editingOffset) {
+      const next = structuredClone(offset)
+      ;(next[kind] as any)[axis] = v
+      setOffset(next); setOffsetDirty(true)
+      fetchNui('propEdit:classOffset', next)
+      return
+    }
     const next = structuredClone(data)
     ;(next[kind][g] as any)[axis] = v
     push(next, g)
@@ -170,13 +204,24 @@ export function PropEditorOverlay({ wtype, job, gender: initGender, onClose }: P
     next.Rot[other] = { ...next.Rot[g] }
     setData(next)
   }
+  // Saves both, because they are two halves of one adjustment: you tune the position on a
+  // standard weapon, load a long one, correct the shift — and clicking Save once should
+  // keep everything you just did, not the half the active tab happens to point at.
   const save = () => {
     fetchNui('propEdit:save', { scope: job, wtype, data: normalizeData(data) })
+    if (offsetDirty) { fetchNui('propEdit:saveClassOffset', {}); setOffsetDirty(false) }
     setSaved(true); window.setTimeout(() => setSaved(false), 1200)
   }
   // Reset to the FACTORY default (config.lua) — clears any saved override and snaps
   // the sliders + live preview back to a known-good position (Lua returns it).
   const reset = () => {
+    // On the shift tab Reset means "no shift" — resetting the position from here would
+    // undo work on a tab you are not looking at.
+    if (editingOffset) {
+      setOffset(ZERO_OFFSET); setOffsetDirty(true)
+      fetchNui('propEdit:classOffset', ZERO_OFFSET)
+      return
+    }
     fetchNui('propEdit:reset', { scope: job, wtype, gender: g }).then((r: any) => {
       if (r && r.Pos) setData(normalizeData(r))
     })
@@ -192,25 +237,40 @@ export function PropEditorOverlay({ wtype, job, gender: initGender, onClose }: P
         <span className="mbt-pe__scope">{job === 'default' ? 'Default' : job}</span>
       </div>
 
-      <div className="mbt-pe__seg">
-        <button className={g === 'male' ? 'is-on' : ''} onClick={() => setGender('male')}>Male</button>
-        <button className={g === 'female' ? 'is-on' : ''} onClick={() => setGender('female')}>Female</button>
-        <button className="mbt-pe__copy" onClick={copyGender}>Copy →</button>
+      {/* Disabled, not hidden, while the offset is being edited: the offset is not
+          per-gender, and a control that vanishes reads as a bug where one that greys out
+          reads as an answer. */}
+      <div className="mbt-pe__seg" aria-disabled={editingOffset}>
+        <button className={g === 'male' ? 'is-on' : ''} disabled={editingOffset} onClick={() => setGender('male')}>Male</button>
+        <button className={g === 'female' ? 'is-on' : ''} disabled={editingOffset} onClick={() => setGender('female')}>Female</button>
+        <button className="mbt-pe__copy" disabled={editingOffset} onClick={copyGender}>Copy →</button>
       </div>
 
+      {hasOffset && (
+        <div className="mbt-pe__seg mbt-pe__target">
+          <button className={!editingOffset ? 'is-on' : ''} onClick={() => setTarget('position')}>Position</button>
+          <button className={editingOffset ? 'is-on' : ''} onClick={() => setTarget('offset')}
+            title="Shift applied to every weapon of this length class, on top of the position">
+            Shift · {previewClass}
+          </button>
+        </div>
+      )}
+
       <div className="mbt-pe__axgroup">
-        <span className="mbt-pe__camhead">Position (m)</span>
+        <span className="mbt-pe__camhead">
+          {editingOffset ? `${previewClass} shift (m) — every ${slot} lane` : 'Position (m)'}
+        </span>
         {/* Body props all attach to the spine "Back" bone, whose LOCAL frame is rotated:
             local X runs vertically, local Z runs horizontally. Map the world-intuitive
             labels onto the matching axis so the sliders move the way they read (Left/Right
             → local Z, Up/Down → local X). The stored offset stays bone-local — only which
             slider edits which component changes. */}
-        <CamSlider label="Left / Right" min={-1} max={1} step={0.005} val={pos.z} fmt={(v) => v.toFixed(3)} onChange={(v) => setAxis('Pos', 'z', v)} />
-        <CamSlider label="Fwd / Back"   min={-1} max={1} step={0.005} val={pos.y} fmt={(v) => v.toFixed(3)} onChange={(v) => setAxis('Pos', 'y', v)} />
-        <CamSlider label="Up / Down"    min={-1} max={1} step={0.005} val={pos.x} fmt={(v) => v.toFixed(3)} onChange={(v) => setAxis('Pos', 'x', v)} />
+        <CamSlider label="Left / Right" min={-posLimit} max={posLimit} step={0.005} val={pos.z} fmt={(v) => v.toFixed(3)} onChange={(v) => setAxis('Pos', 'z', v)} />
+        <CamSlider label="Fwd / Back"   min={-posLimit} max={posLimit} step={0.005} val={pos.y} fmt={(v) => v.toFixed(3)} onChange={(v) => setAxis('Pos', 'y', v)} />
+        <CamSlider label="Up / Down"    min={-posLimit} max={posLimit} step={0.005} val={pos.x} fmt={(v) => v.toFixed(3)} onChange={(v) => setAxis('Pos', 'x', v)} />
       </div>
       <div className="mbt-pe__axgroup">
-        <span className="mbt-pe__camhead">Rotation (°)</span>
+        <span className="mbt-pe__camhead">{editingOffset ? 'Shift rotation (°)' : 'Rotation (°)'}</span>
         <CamSlider label="Pitch" min={-180} max={180} step={1} val={n180(rot.x)} unit="°" fmt={(v) => String(Math.round(v))} onChange={(v) => setAxis('Rot', 'x', v)} />
         <CamSlider label="Roll"  min={-180} max={180} step={1} val={n180(rot.y)} unit="°" fmt={(v) => String(Math.round(v))} onChange={(v) => setAxis('Rot', 'y', v)} />
         <CamSlider label="Yaw"   min={-180} max={180} step={1} val={n180(rot.z)} unit="°" fmt={(v) => String(Math.round(v))} onChange={(v) => setAxis('Rot', 'z', v)} />
@@ -227,11 +287,15 @@ export function PropEditorOverlay({ wtype, job, gender: initGender, onClose }: P
         </div>
       )}
 
-      <div className="mbt-pe__bone">
-        <span>Bone</span>
-        <Select value={String(data.Bone)} aria-label="Bone" onChange={(v) => setBone(Number(v))}
-          options={BONES.map((b) => ({ value: String(b.id), label: b.label }))} />
-      </div>
+      {/* The bone belongs to the position. A shift has nowhere to put one — it is added to
+          whatever the position already resolved to. */}
+      {!editingOffset && (
+        <div className="mbt-pe__bone">
+          <span>Bone</span>
+          <Select value={String(data.Bone)} aria-label="Bone" onChange={(v) => setBone(Number(v))}
+            options={BONES.map((b) => ({ value: String(b.id), label: b.label }))} />
+        </div>
+      )}
 
       <div className="mbt-pe__cam">
         <span className="mbt-pe__camhead">Camera</span>

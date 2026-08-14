@@ -48,6 +48,54 @@ end)
 local function b(v) return v and true or false end
 local function num(v, default) if type(v) == 'number' then return v end return default end
 
+-- The classes an offset exists for. NOT 'standard': the slot's tuned position IS the
+-- standard, so a standard offset would be a second way to say the same thing — two
+-- controls that move the same weapon, and no way to tell from the numbers which one did.
+local OFFSET_CLASSES = { 'compact', 'long' }
+
+--- The class offsets as a COMPLETE shape (every slot in default.lua, both classes, Pos and
+--- Rot), whatever the live table happens to hold. mergeKnown walks the template, so a key
+--- missing here can never be restored from a saved row — and the shipped defaults carry
+--- Pos only.
+local function classOffsetSnapshot()
+    local out = {}
+    for slot, byClass in pairs(MBT.WeaponClassOffsets or {}) do
+        local s = {}
+        for _, class in ipairs(OFFSET_CLASSES) do
+            local o = byClass[class] or {}
+            local p, r = o.Pos or {}, o.Rot or {}
+            s[class] = {
+                Pos = { x = num(p.x, 0.0), y = num(p.y, 0.0), z = num(p.z, 0.0) },
+                Rot = { x = num(r.x, 0.0), y = num(r.y, 0.0), z = num(r.z, 0.0) },
+            }
+        end
+        out[slot] = s
+    end
+    return out
+end
+
+--- Write validated class offsets onto the live table. Only slots default.lua already
+--- declares are touched: a saved row is data, and data does not get to invent body slots.
+--- The client has its own copy of this in modules/config/client.lua — same rule as every
+--- other block here, each VM applies the snapshot to its own MBT.
+local function applyClassOffsets(src)
+    if type(src) ~= 'table' or type(MBT.WeaponClassOffsets) ~= 'table' then return end
+    for slot, byClass in pairs(MBT.WeaponClassOffsets) do
+        local s = src[slot]
+        if type(s) == 'table' then
+            for _, class in ipairs(OFFSET_CLASSES) do
+                local o = s[class]
+                if type(o) == 'table' and type(o.Pos) == 'table' and type(o.Rot) == 'table' then
+                    byClass[class] = {
+                        Pos = { x = o.Pos.x + 0.0, y = o.Pos.y + 0.0, z = o.Pos.z + 0.0 },
+                        Rot = { x = o.Rot.x + 0.0, y = o.Rot.y + 0.0, z = o.Rot.z + 0.0 },
+                    }
+                end
+            end
+        end
+    end
+end
+
 -- ── Snapshot: full config the dashboard reads (incl. overview flags) ──
 local function snapshot()
     local S, D = MBT.Sounds or {}, MBT.WeaponDrop or {}
@@ -205,6 +253,7 @@ local function snapshot()
             Enabled    = b(MBT.MultiWeaponVisibility and MBT.MultiWeaponVisibility.Enabled),
             MaxPerType = num(MBT.MultiWeaponVisibility and MBT.MultiWeaponVisibility.MaxPerType, 2),
         },
+        WeaponClassOffsets = classOffsetSnapshot(),
         TacticalSling = {
             Enabled        = b(TS.Enabled),
             DefaultVariant = TS.DefaultVariant or 'normal',
@@ -385,6 +434,28 @@ local function validate(d)
         if type(mw.MaxPerType) ~= 'number' or mw.MaxPerType < 1 or mw.MaxPerType > 4 then return false end
     end
 
+    -- Class offsets. Optional for the same reason as the block above. The limits are what a
+    -- SHIFT can plausibly be: past ~30cm you are not correcting for a weapon's length any
+    -- more, you are moving it somewhere else, and that belongs in the position.
+    local co = d.WeaponClassOffsets
+    if co ~= nil then
+        if type(co) ~= 'table' then return false end
+        local slots = 0
+        for slot, byClass in pairs(co) do
+            slots = slots + 1
+            if slots > 32 or type(slot) ~= 'string' or #slot > 32 or type(byClass) ~= 'table' then return false end
+            for class, o in pairs(byClass) do
+                if class ~= 'compact' and class ~= 'long' then return false end
+                if type(o) ~= 'table' or type(o.Pos) ~= 'table' or type(o.Rot) ~= 'table' then return false end
+                for _, axis in ipairs({ 'x', 'y', 'z' }) do
+                    local p, r = o.Pos[axis], o.Rot[axis]
+                    if type(p) ~= 'number' or p ~= p or p < -0.3 or p > 0.3 then return false end
+                    if type(r) ~= 'number' or r ~= r or r < -180 or r > 180 then return false end
+                end
+            end
+        end
+    end
+
     -- Tactical Sling
     local ts = d.TacticalSling
     if type(ts) ~= 'table' or type(ts.Enabled) ~= 'boolean' then return false end
@@ -552,6 +623,7 @@ local function applyToMBT(d)
         MBT.MultiWeaponVisibility.Enabled    = d.MultiWeaponVisibility.Enabled
         MBT.MultiWeaponVisibility.MaxPerType = math.floor(d.MultiWeaponVisibility.MaxPerType)
     end
+    applyClassOffsets(d.WeaponClassOffsets)
     MBT.TacticalSling.Enabled = d.TacticalSling.Enabled
     if d.TacticalSling.DefaultVariant then MBT.TacticalSling.DefaultVariant = d.TacticalSling.DefaultVariant end
     if d.TacticalSling.JobVariants then
@@ -634,6 +706,7 @@ local function persistable(d)
         WeaponRack = d.WeaponRack,
         TacticalSling = d.TacticalSling,
         MultiWeaponVisibility = d.MultiWeaponVisibility,
+        WeaponClassOffsets = d.WeaponClassOffsets,
         ShellCasings = d.ShellCasings,
         Handoff = d.Handoff,
         Serials = d.Serials,
@@ -799,6 +872,58 @@ RegisterNetEvent('mbt_malisling:adminSave', function(data)
     if MBT.RefreshAllSling then MBT.RefreshAllSling() end
     Utils.mbtDebugger('Admin config saved by player', src)
 end)
+
+-- ── Class offsets from the position editor ───────────────────────────────────
+-- Saved from the 3D editor rather than the dashboard, because that is where you can SEE
+-- the weapon you are shifting — but persisted here, through the config row, because an
+-- offset is global: not per-job and not per-gender, since a weapon's length is the same
+-- whoever carries it. Going through this file keeps ONE writer for the row; a second one
+-- reading-modifying-writing the same JSON would lose whichever save landed first.
+local lastOffsetSave = {}
+
+RegisterNetEvent('mbt_malisling:classOffset:save', function(p)
+    local src = source
+    if not IsPlayerAceAllowed(src, adminPerm) then return end
+    if type(p) ~= 'table' or type(p.slot) ~= 'string' or type(p.offset) ~= 'table' then return end
+    if p.class ~= 'compact' and p.class ~= 'long' then return end
+    -- One write per second per admin: the panel saves on a click, so anything faster is
+    -- not a person, and each save is a DB round-trip plus a broadcast.
+    local now = GetGameTimer()
+    if lastOffsetSave[src] and now - lastOffsetSave[src] < 1000 then return end
+    lastOffsetSave[src] = now
+
+    -- Patch the ONE offset onto the live snapshot and re-validate the whole thing, so this
+    -- path cannot write a config the dashboard's own save would have rejected.
+    local data = snapshot()
+    local slot = data.WeaponClassOffsets and data.WeaponClassOffsets[p.slot]
+    if not slot then return end            -- not a slot default.lua declares
+    -- Rebuilt field by field rather than assigned: whatever else the payload carried does
+    -- not belong in a row that gets read back and applied on every restart.
+    local ip, ir = p.offset.Pos or {}, p.offset.Rot or {}
+    slot[p.class] = {
+        Pos = { x = num(ip.x, 0.0), y = num(ip.y, 0.0), z = num(ip.z, 0.0) },
+        Rot = { x = num(ir.x, 0.0), y = num(ir.y, 0.0), z = num(ir.z, 0.0) },
+    }
+
+    if not validate(data) then
+        Utils.mbtWarn('classOffset ~ invalid payload from player', src)
+        return
+    end
+    applyToMBT(data)
+    local payload = persistable(data)
+    if hasDb() then
+        exports.oxmysql:execute(
+            'INSERT INTO mbt_malisling_config (id, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)',
+            { DB_ROW, json.encode(payload) }
+        )
+    else
+        Utils.mbtWarn('config ~ oxmysql not started; class offset applied live but NOT persisted')
+    end
+    TriggerClientEvent('mbt_malisling:applyConfig', -1, payload)
+    Utils.mbtDebugger('class offset saved by player', src, p.slot, p.class)
+end)
+
+AddEventHandler('playerDropped', function() lastOffsetSave[source] = nil end)
 
 -- Clients fetch the live config on (re)init so a restart or fresh join picks it up
 -- without needing a save. Returns the editable snapshot applyConfig consumes.

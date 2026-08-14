@@ -227,6 +227,35 @@ local function applyConfig(d)
         MBT.MultiWeaponVisibility.Enabled    = d.MultiWeaponVisibility.Enabled
         MBT.MultiWeaponVisibility.MaxPerType = math.floor(tonumber(d.MultiWeaponVisibility.MaxPerType) or 2)
     end
+    -- Class offsets, on the other hand, the client DOES need: it is the client that draws
+    -- the prop, so the shift for a long weapon has to be here or it simply never happens.
+    -- Only slots default.lua declares are touched — a saved row does not invent body slots.
+    if type(d.WeaponClassOffsets) == 'table' and type(MBT.WeaponClassOffsets) == 'table' then
+        local before = json.encode(MBT.WeaponClassOffsets)
+        for slot, byClass in pairs(MBT.WeaponClassOffsets) do
+            local s = d.WeaponClassOffsets[slot]
+            if type(s) == 'table' then
+                for _, class in ipairs({ 'compact', 'long' }) do
+                    local o = s[class]
+                    if type(o) == 'table' and type(o.Pos) == 'table' and type(o.Rot) == 'table' then
+                        byClass[class] = {
+                            Pos = { x = o.Pos.x + 0.0, y = o.Pos.y + 0.0, z = o.Pos.z + 0.0 },
+                            Rot = { x = o.Rot.x + 0.0, y = o.Rot.y + 0.0, z = o.Rot.z + 0.0 },
+                        }
+                    end
+                end
+            end
+        end
+        -- The offset is read at attach time, so props already on a back keep the old one:
+        -- nothing about WHICH weapons are out changed, which is exactly why the desired-set
+        -- diff cannot notice. Say it explicitly — but ONLY when the numbers really moved.
+        -- applyConfig runs on every save and on join, and re-drawing every prop on a
+        -- street full of people because somebody toggled a sound would be a visible hitch
+        -- caused by a setting that has nothing to do with any of it.
+        if before ~= json.encode(MBT.WeaponClassOffsets) and MBT.RedrawAllSlung then
+            MBT.RedrawAllSlung()
+        end
+    end
 
     if d.TacticalSling and MBT.TacticalSling then
         local oldVariant = MBT.TacticalSling.DefaultVariant

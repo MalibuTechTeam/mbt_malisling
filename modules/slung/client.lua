@@ -162,6 +162,21 @@ function Slung.forEach(serverId, fn, opts)
     end
 end
 
+--- Every player this client is tracking, in a stable order. Callers that need to sweep the
+--- whole registry (a redraw after a position change) go through here rather than reaching
+--- for the table: an entry can exist with no props at all, and only this module knows that.
+---@param fn fun(serverId: number): any?  a non-nil return stops the walk and is returned
+function Slung.forEachPlayer(fn)
+    local ids = {}
+    for id in pairs(playersToTrack) do ids[#ids + 1] = id end
+    table.sort(ids)
+
+    for i = 1, #ids do
+        local r = fn(ids[i])
+        if r ~= nil then return r end
+    end
+end
+
 --- The prop in the lowest lane of this type. COMPAT ONLY: a caller holding a serial must
 --- use Slung.get or Slung.resolve — the serial is the identity, "the first one" is not.
 ---@return number? handle, string? serial

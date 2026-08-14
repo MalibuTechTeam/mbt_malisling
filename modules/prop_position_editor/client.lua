@@ -73,6 +73,30 @@ local function coerceInts(d)
     return d
 end
 
+-- ── Length-class offset being edited ─────────────────────────────────────────
+-- The class shift is what makes ONE tuned position fit a slot that holds weapons of very
+-- different lengths, so it has to be tunable where you can see it — and the preview has to
+-- apply it, or the editor would once again show a pose the game does not draw.
+-- Lives here rather than in the position: it belongs to the weapon's size, not to the slot,
+-- and it is shared by every lane of that slot.
+local editClass                     -- 'compact' | 'long' | nil (standard has no offset)
+local editClassOff                  -- live { Pos = {x,y,z}, Rot = {x,y,z} } being dragged
+
+--- The saved offset for a slot and class, as a copy the sliders can move freely.
+--- nil when the slot has no offsets declared in default.lua: the save path writes onto that
+--- table and would drop the payload on the floor, so the panel must not offer the control.
+local function classOffsetOf(slot, class)
+    if not class or class == 'standard' then return nil end
+    local byClass = (MBT.WeaponClassOffsets or {})[slot]
+    if not byClass then return nil end
+    local o = byClass[class]
+    local p, r = (o and o.Pos) or {}, (o and o.Rot) or {}
+    return {
+        Pos = { x = (tonumber(p.x) or 0.0) + 0.0, y = (tonumber(p.y) or 0.0) + 0.0, z = (tonumber(p.z) or 0.0) + 0.0 },
+        Rot = { x = (tonumber(r.x) or 0.0) + 0.0, y = (tonumber(r.y) or 0.0) + 0.0, z = (tonumber(r.z) or 0.0) + 0.0 },
+    }
+end
+
 -- ── Shared re-attach (used by broadcast apply) ───────────────────────────────
 local function reattachLocal(wtype)
     local prop = GetLocalSlungProp(wtype)
@@ -222,6 +246,13 @@ local function applyPreview(data, gender)
     local sex = (gender == 'female') and 'female' or 'male'
     local pos, rot = data.Pos[sex], data.Rot[sex]
     if not pos or not rot then return end   -- guard against malformed data
+    -- Same sum the runtime does in spawnProp: without it the editor would show the loaded
+    -- weapon at the bare position and the game would draw it shifted.
+    if editClassOff then
+        local dp, dr = editClassOff.Pos, editClassOff.Rot
+        pos = { x = pos.x + dp.x, y = pos.y + dp.y, z = pos.z + dp.z }
+        rot = { x = rot.x + dr.x, y = rot.y + dr.y, z = rot.z + dr.z }
+    end
     local bone = GetPedBoneIndex(ped, data.Bone)
     local rotOrder = data.RotOrder
     -- isPed=TRUE (the fix): isPed=false ignores pitch + only takes negative roll → NaN matrix.
@@ -391,6 +422,11 @@ RegisterNUICallback('propEdit:start', function(d, cb)
     normalizeEditorData(data)
     editData   = data
     editGender = d.gender or (IsPedMale(ped) and 'male' or 'female')
+    -- Before the first applyPreview: it sums the class offset in, so setting this after
+    -- would show one frame at the bare position.
+    local weapon = (not isObjectType(wtype)) and PREVIEW[baseType(wtype)] or nil
+    editClass    = weapon and ((MBT.WeaponLengthClass or {})[weapon] or 'standard') or nil
+    editClassOff = classOffsetOf(baseType(wtype), editClass)
     applyPreview(editData, editGender)
 
     -- Default camera: BEHIND the ped so the slung weapon is in frame. From the forward
@@ -418,8 +454,7 @@ RegisterNUICallback('propEdit:start', function(d, cb)
     cb({
         ok = true, data = data,
         view = { yaw = orbit.yaw, pitch = orbit.pitch, dist = orbit.dist },
-        weapon = PREVIEW[baseType(wtype)],
-        class = (MBT.WeaponLengthClass or {})[PREVIEW[baseType(wtype)] or ''] or 'standard',
+        weapon = weapon, class = editClass, offset = editClassOff,
     })
 end)
 
@@ -430,6 +465,37 @@ RegisterNUICallback('propEdit:update', function(d, cb)
         dirty      = true
     end
     cb({})
+end)
+
+--- Drag the class offset instead of the position. Same sliders on the NUI side — what
+--- changes is which of the two the drag lands on, which is why the panel says so.
+RegisterNUICallback('propEdit:classOffset', function(d, cb)
+    if not editing or not editClass or editClass == 'standard' or type(d) ~= 'table' then
+        cb({ ok = false }); return
+    end
+    local p, r = d.Pos, d.Rot
+    if type(p) ~= 'table' or type(r) ~= 'table' then cb({ ok = false }); return end
+    -- Clamped to the same range the server validates: a shift past ~30cm is not a length
+    -- correction any more, and the sliders should not be able to write what a save rejects.
+    local function clamp(v, lo, hi) return math.max(lo, math.min(hi, (tonumber(v) or 0.0) + 0.0)) end
+    editClassOff = {
+        Pos = { x = clamp(p.x, -0.3, 0.3), y = clamp(p.y, -0.3, 0.3), z = clamp(p.z, -0.3, 0.3) },
+        Rot = { x = clamp(r.x, -180, 180), y = clamp(r.y, -180, 180), z = clamp(r.z, -180, 180) },
+    }
+    dirty = true
+    cb({ ok = true })
+end)
+
+--- Persist the class offset. It goes through the CONFIG row, not the positions table: it is
+--- global, not per-job and not per-gender — a weapon's length is the same whoever carries it.
+RegisterNUICallback('propEdit:saveClassOffset', function(_, cb)
+    if not editing or not editClass or editClass == 'standard' or not editClassOff then
+        cb({ ok = false }); return
+    end
+    TriggerServerEvent('mbt_malisling:classOffset:save', {
+        slot = baseType(editWtype), class = editClass, offset = editClassOff,
+    })
+    cb({ ok = true })
 end)
 
 RegisterNUICallback('propEdit:cam', function(d, cb)
@@ -467,6 +533,9 @@ end)
 local function stopEditing()
     editing = false
     editWtype = nil
+    -- Dropped, not saved: an unsaved drag must not survive into the next slot you open,
+    -- where it would silently shift a weapon nobody moved.
+    editClass, editClassOff = nil, nil
     if cam then
         RenderScriptCams(false, false, 0, true, true)
         DestroyCam(cam, false)
@@ -504,9 +573,15 @@ RegisterNUICallback('propEdit:previewWeapon', function(d, cb)
     if not previewObj or not DoesEntityExist(previewObj) then cb({ ok = false }) return end
     SetEntityCompletelyDisableCollision(previewObj, false, true)
 
+    -- The class follows the weapon, so the offset the sliders reach follows it too — that
+    -- is the whole point: load the sniper, and the control in front of you is the one that
+    -- moves snipers.
+    editClass    = (MBT.WeaponLengthClass or {})[name] or 'standard'
+    editClassOff = classOffsetOf(baseType(editWtype), editClass)
+
     -- Re-apply the pose being edited, so only the weapon changed.
     applyPreview(editData, editGender)
-    cb({ ok = true, class = (MBT.WeaponLengthClass or {})[name] or 'standard' })
+    cb({ ok = true, class = editClass, offset = editClassOff })
 end)
 
 RegisterNUICallback('propEdit:stop', function(_, cb)

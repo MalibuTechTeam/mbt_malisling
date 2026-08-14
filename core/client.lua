@@ -1216,3 +1216,22 @@ CreateThread(function()
     end
 end)
 
+--- Re-draw every prop this client is showing, for every player in scope.
+---
+--- Needed by anything that changes WHERE a weapon attaches rather than WHICH weapons are
+--- there: the offset is read once, at attach time, so a prop already on someone's back
+--- keeps the old one forever. The desired-set diff cannot help — nothing about the set
+--- changed, which is precisely why it has to be said explicitly.
+---
+--- Deletes and shadows; the repair tick above rebuilds one per 500ms rather than all at
+--- once, so a busy street does not hitch. Retries are cleared or a prop that already
+--- exhausted its three would never come back.
+function MBT.RedrawAllSlung()
+    Slung.forEachPlayer(function(serverId)
+        Slung.forEach(serverId, function(_, propType, serial, e)
+            e.retries = nil
+            Slung.shadow(serverId, propType, serial, e.data, e.lane, e.vkey)
+        end, { states = { 'live' } })
+    end)
+end
+
