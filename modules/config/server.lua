@@ -1056,6 +1056,11 @@ function MBT.ResetClassOffsets(src)
         )
     end
     TriggerClientEvent('mbt_malisling:applyConfig', -1, payload)
+    -- The admin who asked may have the dashboard open, and its draft is holding the OLD
+    -- offsets: the draft round-trips the whole config, so the next ordinary Save would send
+    -- them straight back and undo this reset — minutes later, from an unrelated click.
+    -- applyConfig cannot do it: that updates MBT.* on the Lua side, not the open panel.
+    TriggerClientEvent('mbt_malisling:patchDraft', src, { WeaponClassOffsets = data.WeaponClassOffsets })
     Utils.mbtDebugger('class offsets reset by player', src)
 end
 

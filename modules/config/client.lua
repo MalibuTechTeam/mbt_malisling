@@ -99,6 +99,15 @@ RegisterNUICallback('getAccent', function(_, cb)
     cb({ accent = MBT.Accent })
 end)
 
+-- A value the open dashboard is HOLDING but does not edit has been changed elsewhere.
+-- The draft round-trips the whole config, so without this the panel's stale copy goes back
+-- on the next ordinary Save and silently undoes the change. Targeted at one admin, and only
+-- worth sending while the panel is up.
+RegisterNetEvent('mbt_malisling:patchDraft', function(patch)
+    if not dashboardOpen or type(patch) ~= 'table' then return end
+    SendNUIMessage({ action = 'patchDraft', data = patch })
+end)
+
 -- Server-driven localized notification (shared by config + other modules).
 RegisterNetEvent('mbt_malisling:notifyLabel', function(key)
     MBT.NotifyLabel(key)

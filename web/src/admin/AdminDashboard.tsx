@@ -166,6 +166,29 @@ export default function AdminDashboard() {
     fetchNui('getJobs').then((list: any) => setJobs(Array.isArray(list) ? list : []))
   })
 
+  /**
+   * The server changed a value the panel is holding but does not edit.
+   *
+   * The draft round-trips the WHOLE config: everything the snapshot sends comes back on
+   * Save. So when something outside the panel rewrites one of those keys — the position
+   * editor's Reset All zeroes the length-class shifts server-side — the draft still holds
+   * the old value, and the next ordinary Save quietly puts it back. The reset appears to
+   * work and is undone by an unrelated click minutes later.
+   *
+   * Patched into the baseline as well as the draft: the value did not come from the user,
+   * so it must not register as unsaved work, or Discard would offer to revert to the state
+   * the server has just discarded.
+   */
+  useNuiEvent<Record<string, unknown>>('patchDraft', (patch) => {
+    if (!patch || typeof patch !== 'object') return
+    setCfg((c: any) => {
+      if (!c) return c
+      const next = { ...c, ...patch }
+      baseline.current = JSON.stringify(next)
+      return next
+    })
+  })
+
   // Play the exit animation, then unmount. `notify` releases NUI focus (user-
   // initiated close); the game-initiated closeAdmin event already dropped it.
   const beginClose = useCallback((notify: boolean) => {
