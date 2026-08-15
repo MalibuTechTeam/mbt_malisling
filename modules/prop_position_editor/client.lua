@@ -159,6 +159,7 @@ local orbit      = { yaw = 180.0, pitch = -5.0, dist = 2.4 }
 local editData   = nil       -- latest data from the NUI; the render loop applies it
 local editGender = 'male'
 local editJob    = 'default'  -- scope being edited; the reference lanes resolve against it
+local editWeapon = nil        -- model loaded in the preview; the reference lanes mirror it
 local dirty      = false      -- re-attach ONLY when something changed, then let soft-pinning settle
 local lastGoodPreview = nil   -- last pose whose attach produced a valid (non-NaN) matrix
 local applyingFallback = false
@@ -315,13 +316,33 @@ end
 -- the number on the slider tells you nothing about whether the two intersect.
 -- Faded and never touched by the sliders, so it reads as scenery rather than as the thing
 -- being moved.
-local refProps = {}
+-- Each entry keeps the pose it was placed with, so dragging the class shift can move these
+-- too without rebuilding the props: the shift applies to every lane of the slot, so if the
+-- reference stood still you would read a growing gap that the game never opens.
+local refProps = {}   -- { obj = handle, info = table, sex = 'male'|'female' }
 
 local function destroyReferenceLanes()
     for i = 1, #refProps do
-        if DoesEntityExist(refProps[i]) then DeleteEntity(refProps[i]) end
+        if DoesEntityExist(refProps[i].obj) then DeleteEntity(refProps[i].obj) end
     end
     refProps = {}
+end
+
+--- Re-attach the reference lanes with the shift currently on the sliders.
+local function reattachReferenceLanes()
+    local dp = editClassOff and editClassOff.Pos or { x = 0.0, y = 0.0, z = 0.0 }
+    local dr = editClassOff and editClassOff.Rot or { x = 0.0, y = 0.0, z = 0.0 }
+    local ped = cache.ped
+    for i = 1, #refProps do
+        local ref = refProps[i]
+        if DoesEntityExist(ref.obj) then
+            local p, r = ref.info.Pos[ref.sex], ref.info.Rot[ref.sex]
+            AttachEntityToEntity(ref.obj, ped, GetPedBoneIndex(ped, math.floor(tonumber(ref.info.Bone) or 0)),
+                p.x + dp.x, p.y + dp.y, p.z + dp.z, r.x + dr.x, r.y + dr.y, r.z + dr.z,
+                true, true, false, ref.info.isPed == true, math.floor(tonumber(ref.info.RotOrder) or 2),
+                ref.info.FixedRot ~= false)
+        end
+    end
 end
 
 --- Spawn a faded prop for every OTHER lane of this slot, at the position the game would
@@ -329,11 +350,16 @@ end
 ---@param wtype string  the lane being edited
 ---@param job string
 ---@param gender string
-local function spawnReferenceLanes(wtype, job, gender)
+---@param weapon string?  what to show in the other lanes; defaults to the slot's standard.
+---   Follows the Preview picker, so loading a sniper shows sniper-against-sniper — the worst
+---   case for two weapons in one slot, and the one worth tuning against. Showing the standard
+---   here while the edited lane held a long one made the pair look like it cleared when the
+---   real pair does not.
+local function spawnReferenceLanes(wtype, job, gender, weapon)
     destroyReferenceLanes()
 
     local base = baseType(wtype)
-    local weapon = PREVIEW[base]
+    weapon = weapon or PREVIEW[base]
     if not weapon then return end
 
     -- Every lane that has a position, the edited one excluded.
@@ -356,19 +382,15 @@ local function spawnReferenceLanes(wtype, job, gender)
             if info and info.Pos and info.Pos[sex] then
                 local obj = CreateWeaponObject(hash, 50, pc.x, pc.y, pc.z, true, 1.0, 0)
                 if obj and DoesEntityExist(obj) then
-                    local p, r = info.Pos[sex], info.Rot[sex]
-                    AttachEntityToEntity(obj, ped, GetPedBoneIndex(ped, math.floor(tonumber(info.Bone) or 0)),
-                        p.x + 0.0, p.y + 0.0, p.z + 0.0, r.x + 0.0, r.y + 0.0, r.z + 0.0,
-                        true, true, false, info.isPed == true, math.floor(tonumber(info.RotOrder) or 2),
-                        info.FixedRot ~= false)
                     SetEntityCompletelyDisableCollision(obj, false, true)
                     SetEntityAlpha(obj, 150, false)   -- reference, not the thing you are moving
-                    refProps[#refProps + 1] = obj
+                    refProps[#refProps + 1] = { obj = obj, info = info, sex = sex }
                 end
             end
         end
     end
     RemoveWeaponAsset(hash)
+    reattachReferenceLanes()   -- one place decides where these sit, shift included
 end
 
 RegisterNUICallback('propEdit:start', function(d, cb)
@@ -387,7 +409,12 @@ RegisterNUICallback('propEdit:start', function(d, cb)
         -- And the slot's OTHER lanes, faded. A second rifle is placed against the first,
         -- not against a number on a slider: without this you are working blind and only
         -- find out they intersect once you leave the editor.
-        spawnReferenceLanes(wtype, d and d.job or 'default', d and d.gender or 'male')
+        -- Class first: the reference lanes are placed with the shift applied, so it has to
+        -- be resolved before they go down.
+        editWeapon   = PREVIEW[baseType(wtype)]
+        editClass    = (MBT.WeaponLengthClass or {})[editWeapon] or 'standard'
+        editClassOff = classOffsetOf(baseType(wtype), editClass)
+        spawnReferenceLanes(wtype, editJob, d and d.gender or 'male', editWeapon)
     end
 
     local ped = cache.ped
@@ -424,11 +451,8 @@ RegisterNUICallback('propEdit:start', function(d, cb)
     normalizeEditorData(data)
     editData   = data
     editGender = d.gender or (IsPedMale(ped) and 'male' or 'female')
-    -- Before the first applyPreview: it sums the class offset in, so setting this after
-    -- would show one frame at the bare position.
-    local weapon = (not isObjectType(wtype)) and PREVIEW[baseType(wtype)] or nil
-    editClass    = weapon and ((MBT.WeaponLengthClass or {})[weapon] or 'standard') or nil
-    editClassOff = classOffsetOf(baseType(wtype), editClass)
+    -- A plain object prop (the sling strap) has no length class to shift.
+    if isObjectType(wtype) then editWeapon, editClass, editClassOff = nil, nil, nil end
     applyPreview(editData, editGender)
 
     -- Default camera: BEHIND the ped so the slung weapon is in frame. From the forward
@@ -456,7 +480,7 @@ RegisterNUICallback('propEdit:start', function(d, cb)
     cb({
         ok = true, data = data,
         view = { yaw = orbit.yaw, pitch = orbit.pitch, dist = orbit.dist },
-        weapon = weapon, class = editClass, offset = editClassOff,
+        weapon = editWeapon, class = editClass, offset = editClassOff,
     })
 end)
 
@@ -469,7 +493,7 @@ RegisterNUICallback('propEdit:update', function(d, cb)
         -- The faded reference lanes were placed for the gender you were on. Leave them and
         -- you would be judging a female lane 2 against where the male lane 1 sits.
         if editGender ~= wasGender and not isObjectType(editWtype) then
-            spawnReferenceLanes(editWtype, editJob, editGender)
+            spawnReferenceLanes(editWtype, editJob, editGender, editWeapon)
         end
     end
     cb({})
@@ -491,6 +515,9 @@ RegisterNUICallback('propEdit:classOffset', function(d, cb)
         Rot = { x = clamp(r.x, -180, 180), y = clamp(r.y, -180, 180), z = clamp(r.z, -180, 180) },
     }
     dirty = true
+    -- The shift moves every lane of the slot, so the reference moves with you. Without this
+    -- you would watch a gap open that the game never opens: both weapons shift together.
+    reattachReferenceLanes()
     cb({ ok = true })
 end)
 
@@ -543,7 +570,7 @@ local function stopEditing()
     editWtype = nil
     -- Dropped, not saved: an unsaved drag must not survive into the next slot you open,
     -- where it would silently shift a weapon nobody moved.
-    editClass, editClassOff = nil, nil
+    editClass, editClassOff, editWeapon = nil, nil, nil
     if cam then
         RenderScriptCams(false, false, 0, true, true)
         DestroyCam(cam, false)
@@ -586,6 +613,11 @@ RegisterNUICallback('propEdit:previewWeapon', function(d, cb)
     -- moves snipers.
     editClass    = (MBT.WeaponLengthClass or {})[name] or 'standard'
     editClassOff = classOffsetOf(baseType(editWtype), editClass)
+
+    -- The other lanes follow, so what you are looking at is a PAIR of this weapon. Two long
+    -- rifles is the case that intersects; judging it against a carbine tells you nothing.
+    editWeapon = name
+    spawnReferenceLanes(editWtype, editJob, editGender, editWeapon)
 
     -- Re-apply the pose being edited, so only the weapon changed.
     applyPreview(editData, editGender)
