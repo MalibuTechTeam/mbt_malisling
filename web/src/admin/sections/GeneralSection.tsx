@@ -99,10 +99,14 @@ export function InterfaceSection({ config, update }: SectionProps) {
       <FieldBlock label="Brand Accent"
         hint="Your server's colour on the prompts players see. This dashboard is the MalibuTech panel and keeps its own green.">
         {/* A sample of the real thing rather than a swatch: the accent lands on a prompt
-            chip over dark gameplay, and a square of colour on a bright card tells you
-            nothing about whether it will read there. Tokens are set inline so this one
-            element previews the DRAFT while everything around it stays brand-coloured. */}
-        <div className="mbt-accent-preview cine-chip" style={accentTokens(accent) as CSSProperties}>
+            over dark gameplay, and a square of colour on a bright card tells you nothing
+            about whether it will read there. Tokens are set inline so this one element
+            previews the DRAFT while everything around it stays brand-coloured.
+            It follows the Prompt Style above — the two surfaces are not the same, and a
+            sample that always showed the cinematic chip was showing half the servers a
+            prompt they never see, which is the one thing a preview must not do. */}
+        <div className={`mbt-accent-preview${(config.UIStyle ?? 'standard') === 'cinematic' ? ' cine-chip' : ''}`}
+          style={accentTokens(accent) as CSSProperties}>
           <span className="mbt-kc">R</span>
           <span className="mbt-accent-preview__label">Holster weapon</span>
           <span className="mbt-accent-preview__dot" />
