@@ -160,6 +160,7 @@ local editData   = nil       -- latest data from the NUI; the render loop applie
 local editGender = 'male'
 local editJob    = 'default'  -- scope being edited; the reference lanes resolve against it
 local editWeapon = nil        -- model loaded in the preview; the reference lanes mirror it
+local lastPreview = {}        -- [slot] = last previewed model, remembered for the session
 local dirty      = false      -- re-attach ONLY when something changed, then let soft-pinning settle
 local lastGoodPreview = nil   -- last pose whose attach produced a valid (non-NaN) matrix
 local applyingFallback = false
@@ -416,7 +417,7 @@ RegisterNUICallback('propEdit:start', function(d, cb)
         -- find out they intersect once you leave the editor.
         -- Class first: the reference lanes are placed with the shift applied, so it has to
         -- be resolved before they go down.
-        editWeapon   = PREVIEW[baseType(wtype)]
+        editWeapon   = lastPreview[baseType(wtype)] or PREVIEW[baseType(wtype)]
         editClass    = (MBT.WeaponLengthClass or {})[editWeapon] or 'standard'
         editClassOff = classOffsetOf(baseType(wtype), editClass)
         spawnReferenceLanes(wtype, editJob, d and d.gender or 'male', editWeapon)
@@ -441,7 +442,8 @@ RegisterNUICallback('propEdit:start', function(d, cb)
         previewObj = CreateObject(model, pc.x, pc.y, pc.z, false, false, false)
         SetModelAsNoLongerNeeded(model)
     else
-        local hash = joaat(PREVIEW[baseType(wtype)])
+        -- editWeapon, not PREVIEW: the slot may be remembering the model you were checking.
+        local hash = joaat(editWeapon or PREVIEW[baseType(wtype)])
         lib.requestWeaponAsset(hash, 1000, 31, 1)
         previewObj = CreateWeaponObject(hash, 50, pc.x, pc.y, pc.z, true, 1.0, 0)
         -- Exactly what spawnProp does to a real slung weapon after attaching it. Without it
@@ -594,7 +596,10 @@ end
 --- position: tuning against whichever one the editor happened to pick is a bet that the
 --- other 39 are the same size. This is how you check instead of hoping — try the extremes,
 --- and if no single position holds them, that is what the length classes are for.
---- Deliberately NOT persisted: it is a way of looking, not a setting.
+--- Deliberately NOT persisted: it is a way of looking, not a setting. Remembered for the
+--- session though, per slot — checking a slot means opening and closing the editor a dozen
+--- times, and re-picking the sniper each time is friction with nothing on the other side.
+--- Per slot because a sniper is not a thing you can load into the pistol slot.
 RegisterNUICallback('propEdit:previewWeapon', function(d, cb)
     local name = d and d.weapon
     if not editing or type(name) ~= 'string' or isObjectType(editWtype) then cb({ ok = false }) return end
@@ -622,6 +627,7 @@ RegisterNUICallback('propEdit:previewWeapon', function(d, cb)
     -- The other lanes follow, so what you are looking at is a PAIR of this weapon. Two long
     -- rifles is the case that intersects; judging it against a carbine tells you nothing.
     editWeapon = name
+    lastPreview[baseType(editWtype)] = name
     spawnReferenceLanes(editWtype, editJob, editGender, editWeapon)
 
     -- Re-apply the pose being edited, so only the weapon changed.
