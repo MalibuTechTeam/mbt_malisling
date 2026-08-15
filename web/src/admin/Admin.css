@@ -310,14 +310,30 @@
   gap: 14px;
 }
 
-/* Stagger the cards on category switch — they cascade in rather than popping
-   together. Delays are short (total < 220ms) so it reads as rhythm, not lag. */
-.mbt-admin__sections > .mbt-section:nth-child(1) { animation-delay: 0ms; }
-.mbt-admin__sections > .mbt-section:nth-child(2) { animation-delay: 45ms; }
-.mbt-admin__sections > .mbt-section:nth-child(3) { animation-delay: 90ms; }
-.mbt-admin__sections > .mbt-section:nth-child(4) { animation-delay: 135ms; }
-.mbt-admin__sections > .mbt-section:nth-child(5) { animation-delay: 180ms; }
-.mbt-admin__sections > .mbt-admin__section-stack { animation-delay: 225ms; }
+/* Stagger the cards on category switch — they cascade in rather than popping together.
+   The ladder used to stop at 5 while Core has 7 cards: 6 and 7 matched nothing, took the
+   0ms default and arrived FIRST, ahead of 2-5. A page gaining a card scrambled its own
+   cascade silently. It now runs past any plausible card count.
+   :nth-child, not a --i from JSX, because the grid stretches its DIRECT children to equal
+   heights — wrapping each card to carry an index would break that.
+   The stack is a bare flex wrapper with no animation of its own, so its delay did nothing
+   while its two children entered at 0ms. It animates now; they don't. */
+/* .mbt-section already carries the animation (Field.css) — only the stack needs it, and
+   only the delays belong here. Restating the animation is how two rules drift apart. */
+.mbt-admin__sections > .mbt-admin__section-stack {
+  animation: mbt-section-in var(--mbt-dur) var(--mbt-ease) both;
+}
+.mbt-admin__sections > :nth-child(1)  { animation-delay: 0ms; }
+.mbt-admin__sections > :nth-child(2)  { animation-delay: 45ms; }
+.mbt-admin__sections > :nth-child(3)  { animation-delay: 90ms; }
+.mbt-admin__sections > :nth-child(4)  { animation-delay: 135ms; }
+.mbt-admin__sections > :nth-child(5)  { animation-delay: 180ms; }
+.mbt-admin__sections > :nth-child(6)  { animation-delay: 225ms; }
+.mbt-admin__sections > :nth-child(7)  { animation-delay: 270ms; }
+.mbt-admin__sections > :nth-child(8)  { animation-delay: 315ms; }
+.mbt-admin__sections > :nth-child(9)  { animation-delay: 360ms; }
+.mbt-admin__sections > :nth-child(n+10) { animation-delay: 405ms; }
+.mbt-admin__section-stack > .mbt-section { animation: none; }
 
 /* Section panel chrome — the kit's .mbt-section is bare (it was wrapped by a
    card in elevator). Give it the card surface + border here. */
@@ -368,10 +384,10 @@
   border: 1px solid var(--mbt-edge-lo); border-radius: var(--mbt-r-pill); padding: 1px 6px;
 }
 
+/* Only the box size differs from Field.css — the colour is deliberately NOT restated, so
+   there is one place that decides it. Restating it here is how the two drifted apart. */
 .mbt-admin__center .mbt-section__ic {
-  width: 30px; height: 30px; flex-shrink: 0; display: grid; place-items: center;
-  background: var(--mbt-surface-3); border: 1px solid var(--mbt-edge);
-  border-radius: var(--mbt-r-sm); color: var(--mbt-accent);
+  width: 30px; height: 30px;
 }
 /* .mbt-section__title styling lives in Field.css (single source — was a divergent
    duplicate here that dropped text-transform). */
@@ -402,37 +418,37 @@
   flex-direction: column;
   justify-content: center;
   gap: 13px;
-  border: 1px solid var(--mbt-border, rgba(255,255,255,0.08));
-  border-radius: var(--mbt-r-sm, 8px);
+  border: 1px solid var(--mbt-edge);
+  border-radius: var(--mbt-r-sm);
   background:
-    radial-gradient(120% 80% at 50% 0%, rgba(var(--mbt-accent-rgb, 0,230,118), 0.04), transparent 70%),
-    var(--mbt-surface-soft, rgba(255,255,255,0.02));
+    radial-gradient(120% 80% at 50% 0%, rgba(var(--mbt-accent-rgb), 0.04), transparent 70%),
+    var(--mbt-surface-3);
   padding: 18px 16px;
 }
 .mbt-prev__hero { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
 .mbt-prev__ic {
-  color: var(--mbt-accent, #00e676);
+  color: var(--mbt-accent);
   display: grid; place-items: center;
   width: 40px; height: 40px;
   border-radius: 11px;
-  background: var(--mbt-accent-soft, rgba(0,230,118,0.08));
-  border: 1px solid rgba(var(--mbt-accent-rgb, 0,230,118), 0.25);
+  background: var(--mbt-accent-soft);
+  border: 1px solid rgba(var(--mbt-accent-rgb), 0.25);
 }
 .mbt-prev__title {
-  font: 600 15px/1.1 var(--mbt-font-display, system-ui, sans-serif);
-  color: var(--mbt-text-hi, #eef2f3); letter-spacing: -0.01em;
+  font: 600 15px/1.1 var(--mbt-font-display);
+  color: var(--mbt-text-hi); letter-spacing: -0.01em;
 }
 .mbt-prev__tag {
-  font: 600 9px/1 var(--mbt-font-display, system-ui, sans-serif);
-  letter-spacing: 0.2em; color: var(--mbt-text-lo, #8a9196);
+  font: 600 9px/1 var(--mbt-font-display);
+  letter-spacing: 0.2em; color: var(--mbt-text-lo);
 }
-.mbt-prev__div { height: 1px; background: var(--mbt-border, rgba(255,255,255,0.08)); margin: 0 2px; }
+.mbt-prev__div { height: 1px; background: var(--mbt-edge); margin: 0 2px; }
 .mbt-prev__rows { display: flex; flex-direction: column; gap: 9px; }
 .mbt-prev__row { display: flex; justify-content: space-between; align-items: baseline; font-size: 12.5px; }
-.mbt-prev__row > span { color: var(--mbt-text-lo, #8a9196); }
-.mbt-prev__row > b { color: var(--mbt-text-hi, #eef2f3); font-weight: 600; font-variant-numeric: tabular-nums; }
-.mbt-prev__row > b.is-warn { color: var(--mbt-warn, #f5a623); }
-.mbt-prev__empty { font-size: 12px; color: var(--mbt-text-lo, #8a9196); font-style: italic; text-align: center; }
+.mbt-prev__row > span { color: var(--mbt-text-lo); }
+.mbt-prev__row > b { color: var(--mbt-text-hi); font-weight: 600; font-variant-numeric: tabular-nums; }
+.mbt-prev__row > b.is-warn { color: var(--mbt-hacked); }
+.mbt-prev__empty { font-size: 12px; color: var(--mbt-text-lo); font-style: italic; text-align: center; }
 
 .mbt-btn-ghost, .mbt-btn-primary {
   display: flex; align-items: center; gap: 7px; height: 38px; padding: 0 16px;

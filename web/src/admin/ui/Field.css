@@ -13,7 +13,7 @@
      time the rail target changes, so this fires per swap. `both` holds the
      from-state through any stagger delay (see .mbt-admin__sections) so a
      delayed card doesn't flash visible first. */
-  animation: mbt-section-in 180ms var(--mbt-ease) both;
+  animation: mbt-section-in var(--mbt-dur) var(--mbt-ease) both;
 }
 
 @keyframes mbt-section-in {
@@ -40,7 +40,11 @@
   background: var(--mbt-surface-3);
   border: 1px solid var(--mbt-edge);
   border-radius: var(--mbt-r-sm);
-  color: var(--mbt-accent);
+  /* Neutral, matching .mbt-card__ic. These sit on EVERY card header — seven on the Core
+     page — and at accent they were the loudest thing on screen, so Save & Apply, the one
+     terminal action, competed with a grid of decoration. tokens.css reserves the accent for
+     the active rail item, focus, and Save; this is what holding that reservation costs. */
+  color: var(--mbt-text-lo);
 }
 .mbt-section__head-tx {
   flex: 1;

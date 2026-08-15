@@ -118,4 +118,14 @@
   animation-iteration-count: 1 !important;
   transition-duration: 0.01ms !important;
   scroll-behavior: auto !important;
+  /* Collapsing the duration alone left the DELAYS running, and the entrances use
+     fill-mode: both — so asking for less motion bought blank columns for 150ms and blank
+     cards for up to 225ms, then a pop. Worse than the animation it replaced.
+     transition-delay too: a hover that commits 120ms late reads as an unresponsive panel. */
+  animation-delay: 0s !important;
+  transition-delay: 0s !important;
 }
+/* iteration-count: 1 stops a looping animation on its FIRST keyframe, which for the update
+   pulse is opacity 0.55 — so the indicator shipped permanently dimmed to exactly the people
+   who asked for less motion. It has somewhere to stop instead. */
+:root.mbt-reduce-motion .mbt-rail__status.has-update .sdot { opacity: 1 !important; }
