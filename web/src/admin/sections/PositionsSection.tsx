@@ -31,10 +31,15 @@ const GENDERS = [
   { value: 'female', label: 'Female' },
 ]
 
-export function PositionsSection({ jobs, onEdit }: { jobs: Job[]; onEdit: (t: EditTarget) => void }) {
+export function PositionsSection(
+  { jobs, onEdit, multiOn }: { jobs: Job[]; onEdit: (t: EditTarget) => void; multiOn: boolean },
+) {
   const [wtype, setWtype] = useState('back')
   const [job, setJob] = useState('default')
   const [gender, setGender] = useState('male')
+  // The lanes stay listed with Multi-Weapon off — they exist, and you may want them placed
+  // before turning it on — but say so, or you tune a position nothing will ever draw.
+  const laneOff = (v: string) => !multiOn && v.includes('#')
   return (
     <Section icon="configure" title="WEAPON POSITIONS"
       sub="Where each weapon sits on the body, per type and job."
@@ -50,7 +55,7 @@ export function PositionsSection({ jobs, onEdit }: { jobs: Job[]; onEdit: (t: Ed
       <Grid2>
         <FieldBlock label="Weapon Type" hint="Which prop type to position.">
           <Select value={wtype} aria-label="Weapon type" onChange={setWtype}
-            options={WTYPES.map((t) => ({ value: t.v, label: t.l }))} />
+            options={WTYPES.map((t) => ({ value: t.v, label: laneOff(t.v) ? `${t.l} (disabled)` : t.l }))} />
         </FieldBlock>
         <FieldBlock label="Job" hint="Default applies to everyone; a job overrides it for that job.">
           <Select value={job} aria-label="Job" onChange={setJob}
@@ -61,6 +66,12 @@ export function PositionsSection({ jobs, onEdit }: { jobs: Job[]; onEdit: (t: Ed
       <FieldBlock label="Gender" hint="Edit the male or female offset (you can copy one to the other).">
         <Segmented value={gender} options={GENDERS} onChange={setGender} />
       </FieldBlock>
+      {laneOff(wtype) && (
+        <div className="mbt-notice mbt-notice--warn">
+          <b>Multi-Weapon Visibility is off</b>, so this lane is never drawn. You can place it
+          now and it will be waiting when you turn the feature on under Core.
+        </div>
+      )}
     </Section>
   )
 }

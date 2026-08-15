@@ -394,7 +394,8 @@ export default function AdminDashboard() {
           <div className="mbt-admin__sections">
             {isPositions ? (
               <>
-                <PositionsSection jobs={jobs} onEdit={(t) => setEditing(t)} />
+                <PositionsSection jobs={jobs} onEdit={(t) => setEditing(t)}
+                  multiOn={!!cfg.MultiWeaponVisibility?.Enabled} />
                 <TrunkPositionsSection config={cfg} update={update} refreshKey={trunkRefresh}
                   onEdit={(s) => setTrunkEditing({ model: s.model, vclass: s.class, off: s.off, view: s.view })} />
                 <SlingPositionsSection config={cfg} update={update} jobs={jobs}

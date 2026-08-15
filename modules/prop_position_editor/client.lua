@@ -362,9 +362,14 @@ local function spawnReferenceLanes(wtype, job, gender, weapon)
     weapon = weapon or PREVIEW[base]
     if not weapon then return end
 
-    -- Every lane that has a position, the edited one excluded.
+    -- Every lane the SERVER would actually fill, the edited one excluded. The extra lanes
+    -- are seeded into PropInfo whether or not the feature is on, so going by "has a
+    -- position" drew a faded second rifle on a server that will never show one — a
+    -- reference to something that does not exist is worse than no reference.
+    local mw = MBT.MultiWeaponVisibility or {}
+    local maxLane = mw.Enabled and math.max(1, math.floor(tonumber(mw.MaxPerType) or 2)) or 1
     local keys = { base }
-    for lane = 2, 4 do
+    for lane = 2, maxLane do
         local key = base .. '#' .. lane
         if MBT.PropInfo[key] then keys[#keys + 1] = key end
     end
