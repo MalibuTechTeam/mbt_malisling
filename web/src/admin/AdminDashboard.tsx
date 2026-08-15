@@ -295,10 +295,10 @@ export default function AdminDashboard() {
         <nav className="mbt-admin__rail">
           <div className="mbt-rail__logo">
             <span className="ic"><img src={`${import.meta.env.BASE_URL}logo_mbt.svg`} alt="MalibuTech" /></span>
-            <div><b>MBT MALISLING</b></div>
+            <div><b>MBT MALISLING</b><span>Control panel</span></div>
           </div>
 
-          <div className="mbt-rail__group">Categories</div>
+          <div className="mbt-rail__group">Configuration</div>
           {CATEGORIES.map((cat) => (
             <button
               key={cat.id}
@@ -315,7 +315,11 @@ export default function AdminDashboard() {
             </button>
           ))}
 
-          {/* Weapon position editor — special live-edit page (not a card grid). */}
+          {/* Its own group, not a sixth category: Positions is a different MODE — the panel
+              hides, you place props in 3D, and each editor writes its own table immediately
+              instead of joining the draft. Listing it under Configuration said it was one
+              more page of toggles. */}
+          <div className="mbt-rail__group">Placement</div>
           <button
             className={`mbt-rail__item${isPositions ? ' is-active' : ''}`}
             aria-current={isPositions ? 'page' : undefined}

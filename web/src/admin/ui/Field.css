@@ -231,6 +231,12 @@ input[type="number"]::-webkit-outer-spin-button {
 
 /* ── Setting block (toggle-gated section item) ────────────────────────── */
 /* Sub-panel inside the section card — one step down the ladder (surface-1). */
+/* The filled row is what keeps a settings list COMPACT: it binds a title, its description
+   and its control into one object, so the eye reads four rows instead of eight loose lines.
+   Stripping the fill and border was tried and reverted — without the container the rows
+   float, the card reads sparse rather than open, and the page gains height for nothing.
+   Air in this panel has to come from the card's own padding and from fewer cards, not from
+   deleting the thing that groups a row. */
 .mbt-setting {
   padding: 9px 12px;
   background: var(--mbt-surface-1);

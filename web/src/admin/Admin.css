@@ -78,16 +78,23 @@
 /* ── Rail ──────────────────────────────────────────────────────────────── */
 .mbt-admin__rail {
   width: 212px; flex-shrink: 0; display: flex; flex-direction: column;
-  background: rgba(0, 0, 0, 0.28); border-right: 1px solid var(--mbt-edge);
+  background: #080C0A; border-right: 1px solid var(--mbt-edge);
   padding: 20px 14px;
 }
-.mbt-rail__logo { display: flex; align-items: center; gap: 9px; padding: 0 4px 22px; }
-.mbt-rail__logo .ic { color: var(--mbt-accent); display: grid; place-items: center; }
-/* Logo frame height matched to the two-line text lockup (title + subtitle) so the
-   mark and wordmark read as one unit; vertically centered by the flex row above. */
-.mbt-rail__logo .ic img { height: 34px; width: auto; display: block; }
+.mbt-rail__logo { display: flex; align-items: center; gap: 10px; padding: 0 2px 20px; }
+/* The mark sits in a badge rather than floating: bare, it read as an image dropped next to
+   text; framed, it reads as a product identity — which is what the top of the rail is for. */
+.mbt-rail__logo .ic {
+  color: var(--mbt-accent); display: grid; place-items: center;
+  width: 38px; height: 38px; flex-shrink: 0;
+  background: var(--mbt-accent-soft);
+  border: 1px solid rgba(var(--mbt-accent-rgb), 0.22);
+  border-radius: var(--mbt-r-md);
+}
+/* Mark sized to sit INSIDE the badge with its own margin, not to fill it. */
+.mbt-rail__logo .ic img { height: 22px; width: auto; display: block; }
 .mbt-rail__logo b { font-family: var(--mbt-font-display); font-size: 14px; font-weight: 700; color: var(--mbt-text-hi); letter-spacing: 0.02em; display: block; line-height: 1.1; }
-.mbt-rail__logo span { font-size: 8px; letter-spacing: 0.18em; color: var(--mbt-text-faint); display: block; }
+.mbt-rail__logo span { font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; margin-top: 2px; color: var(--mbt-text-faint); display: block; }
 
 /* MalibuTech links — they live in the bottom utility block with Exit and the status
    card, opened by a hairline. Quiet by default (they're ours, not the admin's task)
@@ -125,20 +132,28 @@
   mask-position: center; -webkit-mask-position: center;
 }
 
-.mbt-rail__group { font-size: 10px; font-weight: 600; letter-spacing: 0.12em; color: var(--mbt-text-lo); padding: 14px 8px 8px; }
+.mbt-rail__group { font-size: 9.5px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--mbt-text-faint); padding: 18px 8px 7px; }
+/* Grid, not flex, and the icon column is FIXED. With flex+gap the text column starts
+   wherever the icon happens to end, so a glyph a pixel narrower shifts its label and the
+   list loses its left edge. A locked 24px column means every label begins at the same x —
+   which is most of what reads as "refined" in a nav list, and costs nothing.
+   min-height gives every row the same beat regardless of whether its hint wraps. */
 .mbt-rail__item {
-  display: flex; align-items: center; gap: 11px; padding: 9px 8px; width: 100%;
+  display: grid; grid-template-columns: 24px minmax(0, 1fr) auto;
+  align-items: center; gap: 9px; min-height: 44px;
+  padding: 7px 9px; width: 100%; margin-bottom: 2px;
   border: none; background: none; text-align: left; cursor: pointer; position: relative;
   border-radius: var(--mbt-r-md); color: var(--mbt-text-lo);
   transition: color var(--mbt-dur) var(--mbt-ease), background var(--mbt-dur) var(--mbt-ease);
 }
+.mbt-rail__item .ic { display: grid; place-items: center; }
 .mbt-rail__item:hover { background: var(--mbt-surface-3); color: var(--mbt-text-mid); }
 /* Press feedback — every other control has one; transform is compositor-cheap. */
 .mbt-rail__item:active { transform: scale(0.985); }
 .mbt-rail__item:focus-visible { outline: 2px solid var(--mbt-accent-glow); outline-offset: -2px; }
 .mbt-rail__item.is-active { background: var(--mbt-accent-soft); color: var(--mbt-text-hi); }
 .mbt-rail__item.is-active::before {
-  content: ""; position: absolute; left: -14px; top: 9px; width: 2px; height: calc(100% - 18px);
+  content: ""; position: absolute; left: -14px; top: 10px; bottom: 10px; width: 2px;
   background: var(--mbt-accent); border-radius: 0 2px 2px 0;
   transform-origin: center; animation: mbt-rail-bar var(--mbt-dur) var(--mbt-ease);
 }
@@ -146,14 +161,16 @@
 .mbt-rail__item .ic { flex-shrink: 0; color: var(--mbt-text-faint); display: grid; place-items: center; }
 .mbt-rail__item.is-active .ic { color: var(--mbt-accent); }
 .mbt-rail__tx { min-width: 0; }
-.mbt-rail__label { font-size: 13px; font-weight: 500; display: block; }
-.mbt-rail__hint { font-size: 10px; color: var(--mbt-text-lo); margin-top: 1px; display: block; }
+.mbt-rail__label { font: 600 12px/1.25 var(--mbt-font-display); display: block; }
+.mbt-rail__hint { font-size: 9px; line-height: 1.2; color: var(--mbt-text-faint); margin-top: 2px; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mbt-rail__dot { margin-left: auto; width: 6px; height: 6px; border-radius: 50%; background: var(--mbt-accent); box-shadow: 0 0 8px var(--mbt-accent-glow); flex-shrink: 0; }
 .mbt-rail__off { margin-left: auto; font-size: 10px; color: var(--mbt-text-faint); flex-shrink: 0; }
 /* Per-category feature count badge (elevator-style). */
+/* min-width so a single digit and a double digit occupy the same box — without it the
+   badges ripple down the right edge as the counts change. */
 .mbt-rail__count {
-  margin-left: auto; flex-shrink: 0;
-  font-family: var(--mbt-font-mono); font-size: 10px; color: var(--mbt-text-faint);
+  flex-shrink: 0; min-width: 21px; text-align: center;
+  font-family: var(--mbt-font-mono); font-size: 9px; color: var(--mbt-text-faint);
   background: var(--mbt-surface-2); border: 1px solid var(--mbt-edge-lo);
   border-radius: var(--mbt-r-pill); padding: 1px 7px;
 }
@@ -294,12 +311,28 @@
    in a row the same height — clean, aligned rows (the brand prefers this orderly look
    over ragged masonry). The per-category card order height-pairs row-mates so the
    stretch fill is even. ~850px collapses to 1 column. */
+/* Multi-column, not grid — cards PACK instead of aligning into rows.
+   A grid always has row heights: with align-items:stretch a short card grew to match its
+   tall neighbour and carried dead space inside it; with align-items:start the card stopped
+   growing but the row did not, so the same emptiness reappeared underneath. Grid cannot
+   pack, and masonry is not available in this Chromium.
+   Columns have no rows at all, so a card ends where its content ends and the next one
+   starts 14px later. The trade is reading order: content flows down column one and then
+   down column two, instead of left-to-right across rows. On a settings page whose order is
+   "most important first" that is the same journey, taken vertically.
+   It also drops the hand-ordering in CATEGORIES, which paired cards by height and stopped
+   matching the arrays as soon as a card was added to a page. */
 .mbt-admin__sections {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
-  gap: 14px;
-  align-items: stretch;
-  align-content: start;
+  column-width: 420px;
+  column-gap: 18px;
+}
+/* 22px between stacked cards, not the 14px the grid used. In a grid the gap sat between
+   two ROWS and the ragged card bottoms did some of the separating; packed into a
+   continuous column the same 14px reads as a seam. The height for it comes free — it is
+   less than the dead space packing just removed. */
+.mbt-admin__sections > * {
+  break-inside: avoid;
+  margin-bottom: 22px;
 }
 
 /* A stacked group — two or more sections sharing one grid cell, laid out
@@ -307,7 +340,8 @@
 .mbt-admin__section-stack {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 22px;   /* same rhythm as between free-standing cards, so a stacked pair does not
+                  read as more tightly bound than any other two neighbours */
 }
 
 /* Stagger the cards on category switch — they cascade in rather than popping together.
@@ -350,7 +384,10 @@
   border-color: var(--mbt-edge-hi);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
-.mbt-admin__center .mbt-section--wide { grid-column: 1 / -1; }
+/* Span every column. `column-span` is the multi-column equivalent of the grid-column
+   trick this used to be; no section passes `wide` today, so this is here for when one
+   does rather than as something in use. */
+.mbt-admin__center .mbt-section--wide { column-span: all; }
 
 /* ── HUD position picker (INTERFACE card) — 2×2 button grid ──
    flex:1 + grid-auto-rows:1fr lets the four buttons grow to fill the card, so
@@ -527,7 +564,7 @@
 }
 
 /* Active-features gauge — top block above FEATURE OVERVIEW (elevator pattern). */
-.mbt-ov__gauge { padding: 14px 15px; background: var(--mbt-surface-2); border: 1px solid var(--mbt-edge); border-radius: var(--mbt-r-md); }
+.mbt-ov__gauge { padding: 14px; background: var(--mbt-surface-2); border: 1px solid var(--mbt-edge); border-radius: var(--mbt-r-md); }
 .mbt-ov__gauge-head { display: flex; align-items: baseline; gap: 6px; }
 .mbt-ov__gauge-n { font-family: var(--mbt-font-display); font-size: 28px; font-weight: 700; line-height: 1; color: var(--mbt-text-hi); }
 .mbt-ov__gauge-d { font-size: 12px; font-weight: 600; color: var(--mbt-text-lo); }
@@ -552,7 +589,11 @@
    features fit the sidebar without scrolling. */
 .mbt-ov__summary { display: flex; flex-direction: column; gap: 3px; }
 .mbt-ov__group { display: grid; grid-template-columns: 1fr 1fr; gap: 5px 12px; align-items: center; }
-.mbt-ov__grouphead { grid-column: 1 / -1; margin: 9px 0 1px; font-size: 9.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--mbt-text-lo); }
+/* A group boundary has to out-weigh a row gap or the five groups stop grouping: at 9px
+   above against a 5px row gap it was worth four pixels more than "next row", and 26
+   features read as one undifferentiated column. 18/2 makes the boundary three times the
+   row gap, and keeps the heading attached to what it labels rather than floating between. */
+.mbt-ov__grouphead { grid-column: 1 / -1; margin: 18px 0 2px; font-size: 9.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--mbt-text-lo); }
 .mbt-ov__group:first-child .mbt-ov__grouphead { margin-top: 0; }
 .mbt-ov__feat { display: flex; align-items: center; gap: 7px; min-width: 0; }
 .mbt-ov__dot { flex-shrink: 0; width: 7px; height: 7px; border-radius: 50%; background: var(--mbt-text-faint); }
@@ -581,7 +622,7 @@
 
 /* LIVE APPLY — a PASSIVE helper note, so it stays NEUTRAL (no accent). The vivid
    accent is reserved for the one primary action (Save), focus, and the active rail. */
-.mbt-ov__tip { display: flex; gap: 10px; padding: 13px; background: var(--mbt-surface-2); border: 1px solid var(--mbt-edge); border-radius: var(--mbt-r-md); }
+.mbt-ov__tip { display: flex; gap: 10px; padding: 14px; background: var(--mbt-surface-2); border: 1px solid var(--mbt-edge); border-radius: var(--mbt-r-md); }
 .mbt-ov__tip .ic { color: var(--mbt-text-lo); flex-shrink: 0; }
 .mbt-ov__tip b { font-family: var(--mbt-font-display); font-size: 11px; font-weight: 700; color: var(--mbt-text-hi); letter-spacing: 0.06em; display: block; margin-bottom: 3px; }
 .mbt-ov__tip p { font-size: 11.5px; line-height: 1.5; color: var(--mbt-text-lo); }
