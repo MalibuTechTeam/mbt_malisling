@@ -844,6 +844,39 @@ AddEventHandler('mbt_malisling:stopWaitingForPlayer', function (p)
     Utils.mbtDebugger("stopWaitingForPlayer ~ Stopped waiting for player ", p)
 end)
 
+--- Where this weapon ends up: position, plus the shift for its length class, plus the chest
+--- carry override. The whole chain in one place because two callers need the same answer —
+--- spawnProp when building a prop, MBT.RedrawAllSlung when a position changed under one
+--- that already exists. Two copies of this would be two things that can disagree, and the
+--- symptom would be a weapon that sits differently depending on how it got there.
+---@param ctx table   { playerJob, pedSex, targetPlayerId }
+---@param serial string?  registry key, so a per-weapon override (low ready) picks the right one
+---@param lane number?    visual slot from the server; >1 resolves the lane's own position
+---@return table?
+local function resolveAttachInfo(ctx, weaponType, weaponData, lane, serial)
+    local attachInfo = getAttachInfo({ Job = ctx.playerJob, Type = weaponType, Lane = lane })
+    if not attachInfo then return nil end
+
+    -- Length class: this weapon is longer or shorter than the one the position was tuned
+    -- with, so slide it. Applied on top of whatever the lane resolved to, and shared by
+    -- every lane of the slot — a class is a size, not a place.
+    local class = (MBT.WeaponLengthClass or {})[weaponData.name]
+    if class then
+        local byClass = (MBT.WeaponClassOffsets or {})[weaponType]
+        attachInfo = shifted(attachInfo, byClass and byClass[class])
+    end
+
+    -- Low Ready guard (opaque hook, no-op without the module): if the LOCAL player has this
+    -- type in chest carry, put it on the chest directly so a re-sling after a draw doesn't
+    -- snap back→chest. Gated to the local player (the stance is local state). Wins over both
+    -- of the above: chest carry is a deliberate spot for ONE weapon, and it is where the
+    -- player put this one.
+    if ctx.targetPlayerId == PlayerId() and MBT.GetLowReadyOverride then
+        attachInfo = MBT.GetLowReadyOverride(weaponType, serial) or attachInfo
+    end
+    return attachInfo
+end
+
 --- Build ONE slung prop and attach it to the ped. Returns the entity, or nil when it could
 --- not be made (asset streaming, create timeout) so the caller can free its reservation.
 --- Lifted out of the syncSling loop because phase 4 installs exactly this as Slung.spawner:
@@ -863,29 +896,12 @@ local function spawnProp(ctx, weaponType, weaponData, serial, lane)
     local tStart = GetGameTimer()
     local tAsset, tExist, tComps
 
-    local attachInfo = getAttachInfo({ Job = ctx.playerJob, Type = weaponType, Lane = lane })
+    local attachInfo = resolveAttachInfo(ctx, weaponType, weaponData, lane, serial)
     if not attachInfo then
         -- No position for this lane and nothing to fall back on: draw nothing rather than
         -- stack this weapon exactly on top of the one already there.
         Utils.mbtDebugger('syncSling ~ no attach info for ', weaponType, ' lane ', tostring(lane))
         return nil
-    end
-    -- Low Ready guard (opaque hook, no-op without the module): if the LOCAL player has this
-    -- type in chest carry, spawn it on the chest directly so a re-sling after a draw doesn't
-    -- snap back→chest. Gated to the local player (the stance is local state).
-    -- Length class: this weapon is longer or shorter than the one the position was tuned
-    -- with, so slide it. Applied on top of whatever the lane resolved to, and shared by
-    -- every lane of the slot — a class is a size, not a place.
-    local class = (MBT.WeaponLengthClass or {})[weaponData.name]
-    if class then
-        local byClass = (MBT.WeaponClassOffsets or {})[weaponType]
-        attachInfo = shifted(attachInfo, byClass and byClass[class])
-    end
-
-    -- Wins over both: chest carry is a deliberate spot for ONE weapon, and it is where the
-    -- player put this one.
-    if ctx.targetPlayerId == PlayerId() and MBT.GetLowReadyOverride then
-        attachInfo = MBT.GetLowReadyOverride(weaponType, serial) or attachInfo
     end
 
     local playerPed = ctx.playerPed
@@ -1216,21 +1232,42 @@ CreateThread(function()
     end
 end)
 
---- Re-draw every prop this client is showing, for every player in scope.
+--- Re-attach every prop this client is showing, for every player in scope, at wherever the
+--- position resolves NOW.
 ---
 --- Needed by anything that changes WHERE a weapon attaches rather than WHICH weapons are
---- there: the offset is read once, at attach time, so a prop already on someone's back
+--- there: the attach offset is read once, at spawn, so a prop already on someone's back
 --- keeps the old one forever. The desired-set diff cannot help — nothing about the set
---- changed, which is precisely why it has to be said explicitly.
+--- changed, which is exactly why it has to be said explicitly.
 ---
---- Deletes and shadows; the repair tick above rebuilds one per 500ms rather than all at
---- once, so a busy street does not hitch. Retries are cleared or a prop that already
---- exhausted its three would never come back.
+--- Re-attaches rather than re-spawning. Deleting and letting the repair tick rebuild would
+--- also work, but that tick is deliberately one prop per 500ms so a burst cannot stall the
+--- visibility sync — six weapons across five players in scope would take fifteen seconds to
+--- settle, blinking the whole way. Nothing here needs a new entity: same weapon, same
+--- components, different place.
 function MBT.RedrawAllSlung()
     Slung.forEachPlayer(function(serverId)
-        Slung.forEach(serverId, function(_, propType, serial, e)
-            e.retries = nil
-            Slung.shadow(serverId, propType, serial, e.data, e.lane, e.vkey)
+        local base = playerCtxInScope[serverId]
+        if not base then return end
+        local plyr = GetPlayerFromServerId(serverId)
+        if not plyr or plyr == -1 then return end
+        local ped = GetPlayerPed(plyr)
+        if not ped or ped == 0 or not DoesEntityExist(ped) then return end
+        -- playerCtxInScope keeps only job and sex; targetPlayerId is what tells the chest
+        -- carry override that this is us. Without it a redraw would drag a low-ready weapon
+        -- off the chest and back onto the back.
+        local ctx = { playerJob = base.playerJob, pedSex = base.pedSex, targetPlayerId = plyr }
+
+        Slung.forEach(serverId, function(prop, propType, serial, e)
+            if not DoesEntityExist(prop) or not e.data then return end
+            local info = resolveAttachInfo(ctx, propType, e.data, e.lane, serial)
+            if not info then return end
+            local P, R = info.Pos[ctx.pedSex], info.Rot[ctx.pedSex]
+            if not P or not R then return end
+            AttachEntityToEntity(prop, ped, GetPedBoneIndex(ped, info.Bone),
+                P.x + 0.0, P.y + 0.0, P.z + 0.0, R.x + 0.0, R.y + 0.0, R.z + 0.0,
+                true, true, false, info.isPed, info.RotOrder, info.FixedRot)
+            SetEntityCompletelyDisableCollision(prop, false, true)
         end, { states = { 'live' } })
     end)
 end

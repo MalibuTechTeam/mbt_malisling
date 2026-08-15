@@ -135,8 +135,15 @@ RegisterNetEvent('mbt_malisling:propPos:apply', function(p)
     if sendAnimations then
         sendAnimations(PlayerData and PlayerData.job and PlayerData.job.name or {})
     end
-    if isObjectType(p.wtype) then
+    if p.quiet then return                                -- bulk apply; one redraw follows
+    elseif isObjectType(p.wtype) then
         if MBT.RefreshSling then MBT.RefreshSling() end   -- strap respawns at the new offset
+    elseif MBT.RedrawAllSlung then
+        -- Every player in scope, not just us. The old path re-attached only the local prop,
+        -- so after an admin moved a position everyone ELSE on your screen kept wearing the
+        -- weapon in the old place until it happened to re-spawn — while the dashboard was
+        -- promising the save reaches every player at once. It does now.
+        MBT.RedrawAllSlung()
     else
         reattachLocal(p.wtype)
     end
@@ -638,6 +645,23 @@ end)
 RegisterNUICallback('propEdit:stop', function(_, cb)
     stopEditing()
     cb({})
+end)
+
+-- Tail of a bulk apply (reset all): the rows came through quiet, this puts every prop where
+-- the restored positions now say. The strap is a separate prop with its own respawn path.
+RegisterNetEvent('mbt_malisling:propPos:redrawAll', function()
+    if sendAnimations then
+        sendAnimations(PlayerData and PlayerData.job and PlayerData.job.name or {})
+    end
+    if MBT.RedrawAllSlung then MBT.RedrawAllSlung() end
+    if MBT.RefreshSling then MBT.RefreshSling() end
+end)
+
+--- Everything back to factory. Fired from the Positions section, not from inside the live
+--- editor: it is not a thing you do while placing one weapon.
+RegisterNUICallback('propPos:resetAll', function(_, cb)
+    TriggerServerEvent('mbt_malisling:propPos:resetAll')   -- server re-checks ACE
+    cb({ ok = true })
 end)
 
 -- NUI → server bridge: the Positions section fetches the framework job list.

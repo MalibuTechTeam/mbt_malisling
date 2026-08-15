@@ -459,6 +459,23 @@
 }
 /* Compact button for a section header action (sits next to the title). */
 .mbt-btn--sm { height: 30px; padding: 0 12px; font-size: 12px; gap: 6px; border-radius: var(--mbt-r-sm); }
+/* Second click of a two-step destructive action. Red only once it is armed — before that
+   it is an escape hatch, not a hazard, and colouring it red all the time would make the
+   one control that undoes a mess look like the thing that causes one. */
+.mbt-btn-ghost.is-armed {
+  border-color: rgba(var(--mbt-faulty-rgb), 0.55);
+  color: rgb(var(--mbt-faulty-rgb));
+  background: rgba(var(--mbt-faulty-rgb), 0.08);
+}
+
+/* Reset-all row: explanation on the left, the control on the right, set off from the
+   fields above by a rule — it acts on all of them, not on the one that is selected. */
+.mbt-pos__reset {
+  display: flex; align-items: center; gap: 12px; justify-content: space-between;
+  margin-top: 4px; padding-top: 12px; border-top: 1px solid var(--mbt-edge-lo);
+}
+.mbt-pos__reset span { font-size: 11.5px; line-height: 1.45; color: var(--mbt-text-faint); }
+.mbt-pos__reset button { flex: 0 0 auto; white-space: nowrap; }
 /* Header action holding a button + a toggle, kept on one baseline. */
 .mbt-section__action-row { display: inline-flex; align-items: center; gap: 12px; }
 .mbt-btn-primary.is-complete { animation: mbt-save-pulse var(--mbt-pulse) ease-out; }
@@ -623,6 +640,15 @@
 /* Which of the two the sliders below are moving — the position, or the shift for the
    previewed weapon's length class. Set apart from the gender row above it. */
 .mbt-pe__target { margin-top: -2px; }
+/* Sits under the gender row, so it reads as a consequence of the button above it rather
+   than as a standing warning about the panel. */
+.mbt-pe__hint {
+  margin-top: -6px;
+  font-size: 11px; line-height: 1.45; color: var(--mbt-text-lo);
+  border-left: 2px solid rgba(var(--mbt-accent-rgb), 0.45);
+  padding: 2px 0 2px 8px;
+}
+.mbt-pe__hint b { color: var(--mbt-text-mid); text-transform: capitalize; }
 .mbt-pe__target button.is-on { font-family: var(--mbt-font-mono); font-size: 11px; letter-spacing: 0.03em; }
 
 .mbt-pe__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }

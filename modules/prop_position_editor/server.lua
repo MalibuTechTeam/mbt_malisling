@@ -164,6 +164,45 @@ RegisterNetEvent('mbt_malisling:propPos:reset', function(payload)
     Utils.mbtDebugger('propPos reset by', src, scope, wtype)
 end)
 
+-- Everything back to default.lua, in one go. Reset is otherwise per (job, wtype), and a
+-- server that has been experimented with has no list of what was touched — the owner would
+-- have to guess their way through eight slots times every job. That is the state people
+-- actually get stuck in, and the only way out was editing the database by hand.
+local lastResetAll = {}
+
+RegisterNetEvent('mbt_malisling:propPos:resetAll', function()
+    local src = source
+    if not IsPlayerAceAllowed(src, adminPerm) then return end
+    local now = GetGameTimer()
+    if lastResetAll[src] and now - lastResetAll[src] < 3000 then return end
+    lastResetAll[src] = now
+
+    -- Reset only what was actually overridden, and tell the clients one row at a time
+    -- through the SAME path a single reset uses. A second broadcast shape would be a
+    -- second thing that can disagree with the first.
+    local rows = {}
+    for _, row in pairs(saved) do rows[#rows + 1] = { scope = row.scope, wtype = row.wtype } end
+    for i = 1, #rows do
+        local scope, wtype = rows[i].scope, rows[i].wtype
+        resetServer(scope, wtype)
+        saved[savedKey(scope, wtype)] = nil
+        local out = (scope == 'default') and MBT.PropInfo[wtype] or false
+        -- quiet: each apply would otherwise re-attach every prop of every player in scope,
+        -- once per row. One redraw at the end is the same result for a fraction of the work.
+        TriggerClientEvent('mbt_malisling:propPos:apply', -1,
+            { scope = scope, wtype = wtype, data = out, quiet = true })
+    end
+    TriggerClientEvent('mbt_malisling:propPos:redrawAll', -1)
+
+    if hasDb() then exports.oxmysql:execute('DELETE FROM mbt_malisling_positions', {}) end
+    -- The length-class shifts are placement too, and leaving them behind would make this a
+    -- reset that does not reset. They live in the config row, so the config module owns it.
+    if MBT.ResetClassOffsets then MBT.ResetClassOffsets(src) end
+    Utils.mbtDebugger('propPos reset ALL by', src, '(' .. #rows .. ' rows)')
+end)
+
+AddEventHandler('playerDropped', function() lastResetAll[source] = nil end)
+
 AddEventHandler('onServerResourceStart', function(resource)
     if resource ~= GetCurrentResourceName() then return end
     ensureSchema()

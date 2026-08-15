@@ -97,6 +97,9 @@ export function PropEditorOverlay({ wtype, job, gender: initGender, onClose }: P
   const [data, setData] = useState<Data | null>(null)
   const [gender, setGender] = useState<'male' | 'female'>(initGender === 'female' ? 'female' : 'male')
   const [saved, setSaved] = useState(false)
+  // Which gender was last copied INTO. Male and female peds are not the same size, so the
+  // copy is a starting point — saying so beats letting it look finished.
+  const [copied, setCopied] = useState<'male' | 'female' | null>(null)
   const [view, setView] = useState({ yaw: 180, pitch: -5, dist: 2.4 })
 
   // Which weapon the preview is wearing, and its length class. Never saved.
@@ -205,6 +208,7 @@ export function PropEditorOverlay({ wtype, job, gender: initGender, onClose }: P
     if (next === g) return
     setGender(next)
     push(structuredClone(data), next)
+    if (copied === next) setCopied(null)   // you went and looked; the hint has done its job
   }
   const copyGender = () => {
     const other = g === 'male' ? 'female' : 'male'
@@ -212,6 +216,7 @@ export function PropEditorOverlay({ wtype, job, gender: initGender, onClose }: P
     next.Pos[other] = { ...next.Pos[g] }
     next.Rot[other] = { ...next.Rot[g] }
     push(next, g)
+    setCopied(other)
   }
   // Saves both, because they are two halves of one adjustment: you tune the position on a
   // standard weapon, load a long one, correct the shift — and clicking Save once should
@@ -254,6 +259,12 @@ export function PropEditorOverlay({ wtype, job, gender: initGender, onClose }: P
         <button className={g === 'female' ? 'is-on' : ''} disabled={editingOffset} onClick={() => pickGender('female')}>Female</button>
         <button className="mbt-pe__copy" disabled={editingOffset} onClick={copyGender}>Copy →</button>
       </div>
+      {copied && (
+        <div className="mbt-pe__hint">
+          Copied to <b>{copied}</b>. The two peds are not the same size — switch over and
+          check it before saving.
+        </div>
+      )}
 
       {hasOffset && (
         <div className="mbt-pe__seg mbt-pe__target">

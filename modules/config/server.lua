@@ -57,9 +57,10 @@ local OFFSET_CLASSES = { 'compact', 'long' }
 --- Rot), whatever the live table happens to hold. mergeKnown walks the template, so a key
 --- missing here can never be restored from a saved row — and the shipped defaults carry
 --- Pos only.
-local function classOffsetSnapshot()
+---@param src table?  defaults to the live table; the captured defaults when resetting
+local function classOffsetSnapshot(src)
     local out = {}
-    for slot, byClass in pairs(MBT.WeaponClassOffsets or {}) do
+    for slot, byClass in pairs(src or MBT.WeaponClassOffsets or {}) do
         local s = {}
         for _, class in ipairs(OFFSET_CLASSES) do
             local o = byClass[class] or {}
@@ -73,6 +74,10 @@ local function classOffsetSnapshot()
     end
     return out
 end
+
+-- Captured at load, BEFORE any saved row is applied, so "reset" means default.lua and not
+-- "whatever was in the database when we started".
+local CLASS_OFFSET_DEFAULTS = json.decode(json.encode(MBT.WeaponClassOffsets or {}))
 
 --- Write validated class offsets onto the live table. Only slots default.lua already
 --- declares are touched: a saved row is data, and data does not get to invent body slots.
@@ -924,6 +929,31 @@ RegisterNetEvent('mbt_malisling:classOffset:save', function(p)
 end)
 
 AddEventHandler('playerDropped', function() lastOffsetSave[source] = nil end)
+
+--- Put every length-class shift back to default.lua and persist it. Called by the position
+--- editor's "reset all", because a shift is placement: a reset that left them behind would
+--- put the weapons back and still draw the long ones somewhere else.
+---@param src number  the admin who asked; re-checked here, not trusted from the caller
+function MBT.ResetClassOffsets(src)
+    if not IsPlayerAceAllowed(src, adminPerm) then return end
+    local data = snapshot()
+    -- Through the same shape builder: default.lua ships Pos only, and validate wants both.
+    data.WeaponClassOffsets = classOffsetSnapshot(CLASS_OFFSET_DEFAULTS)
+    if not validate(data) then
+        Utils.mbtWarn('config ~ class offset defaults failed validation; not resetting')
+        return
+    end
+    applyToMBT(data)
+    local payload = persistable(data)
+    if hasDb() then
+        exports.oxmysql:execute(
+            'INSERT INTO mbt_malisling_config (id, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)',
+            { DB_ROW, json.encode(payload) }
+        )
+    end
+    TriggerClientEvent('mbt_malisling:applyConfig', -1, payload)
+    Utils.mbtDebugger('class offsets reset by player', src)
+end
 
 -- Clients fetch the live config on (re)init so a restart or fresh join picks it up
 -- without needing a save. Returns the editable snapshot applyConfig consumes.

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { fetchNui } from '../../utils/fetchNui'
 import { Section, FieldBlock, Grid2, ToggleRow, type SectionProps } from './parts'
 import { Segmented } from '../ui/Segmented'
 import { Select } from '../ui/Select'
@@ -40,6 +41,18 @@ export function PositionsSection(
   // The lanes stay listed with Multi-Weapon off — they exist, and you may want them placed
   // before turning it on — but say so, or you tune a position nothing will ever draw.
   const laneOff = (v: string) => !multiOn && v.includes('#')
+
+  // Two clicks rather than a modal. Reset is otherwise per type AND per job, so a server
+  // that has been experimented with leaves no list of what was touched — this is the way
+  // back, and it should be reachable without being reachable by accident. Arms for 4s.
+  const [armed, setArmed] = useState(false)
+  const [done, setDone] = useState(false)
+  const resetAll = () => {
+    if (!armed) { setArmed(true); window.setTimeout(() => setArmed(false), 4000); return }
+    setArmed(false)
+    fetchNui('propPos:resetAll')
+    setDone(true); window.setTimeout(() => setDone(false), 2000)
+  }
   return (
     <Section icon="configure" title="WEAPON POSITIONS"
       sub="Where each weapon sits on the body, per type and job."
@@ -72,6 +85,16 @@ export function PositionsSection(
           now and it will be waiting when you turn the feature on under Core.
         </div>
       )}
+      <div className="mbt-pos__reset">
+        <span>
+          Reset everything to the shipped defaults — every position, every job, both genders,
+          and the length-class shifts.
+        </span>
+        <button className={`mbt-btn-ghost mbt-btn--sm${armed ? ' is-armed' : ''}`}
+          onClick={resetAll} aria-live="polite">
+          {done ? 'Reset' : armed ? 'Click again to confirm' : 'Reset all'}
+        </button>
+      </div>
     </Section>
   )
 }
