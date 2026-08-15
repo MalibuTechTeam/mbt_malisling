@@ -7,7 +7,7 @@ import { Select } from '../ui/Select'
 import { fetchNui } from '../../utils/fetchNui'
 import { ColorPicker } from '../ui/ColorPicker'
 import { accentContrast, accentTokens, isHexColor, DEFAULT_ACCENT, MIN_CONTRAST } from '../../utils/accent'
-import { Section, ToggleRow, FieldBlock, type SectionProps } from './parts'
+import { Section, ToggleRow, FieldBlock, type SectionProps, withMeta } from './parts'
 import type { Job } from './PositionsSection'
 
 /**
@@ -285,3 +285,18 @@ export function HiddenByJobSection({ config, update }: SectionProps) {
     </Section>
   )
 }
+
+// ── What these cards contain ────────────────────────────────────────────────
+// Declared here so the overview panel is derived rather than hand-mirrored. A card with no
+// `path` has no on/off switch of its own — it is configuration, not a feature.
+withMeta(CoreSection, {
+  label: 'Enable Sling', path: 'EnableSling',
+  also: [
+    { label: 'Flashlight on Sling', path: 'EnableFlashlight' },
+    { label: 'Holster Confirm', path: 'HolsterConfirm' },
+    { label: 'Drop on Death', path: 'DropWeaponOnDeath' },
+  ],
+})
+withMeta(MultiWeaponSection, { label: 'Multi-Weapon', path: 'MultiWeaponVisibility.Enabled' })
+withMeta(InterfaceSection, { label: 'Interface' })
+withMeta(HiddenByJobSection, { label: 'Hidden by Job' })

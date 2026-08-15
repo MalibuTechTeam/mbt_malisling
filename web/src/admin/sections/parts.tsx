@@ -1,6 +1,49 @@
-import { cloneElement, isValidElement, type ReactNode } from 'react'
+import { cloneElement, isValidElement, type ComponentType, type ReactNode } from 'react'
 import { Icon, type IconName } from '../ui/Icon'
 import { Toggle } from '../ui/Toggle'
+
+/**
+ * What a card declares about itself, so the overview panel can be DERIVED rather than
+ * hand-mirrored.
+ *
+ * There used to be two more lists — a `FEATURES` array and an `OV_CATS` array — maintained
+ * by hand alongside `CATEGORIES`. They had already drifted before anybody reorganised
+ * anything: Tactical Sling was filed under Core while its card renders on Positions, so the
+ * panel told you a feature was on a page it is not; Condition Pips was listed with no card
+ * of its own; and the master switch of the entire script, Enable Sling, was missing from a
+ * list whose own comment called itself "every on/off toggle". A counter that reads
+ * "21 / 26 active" while omitting the thing that turns everything on is worse than no
+ * counter.
+ *
+ * A card is the only place that knows what it contains, so it is the only place that can
+ * say so without going stale.
+ */
+export interface SectionMeta {
+  /** Name in the overview list. Not the card title — that shouts in caps. */
+  label: string
+  /** Config path of the card's own on/off switch. Omitted when it has none (Interface,
+   *  Hidden By Job and the position editors are configuration, not features). */
+  path?: string
+  /** Features this card owns that are not its own switch — Condition Pips lives inside
+   *  Weapon Safety, and listing it as a card of its own was the lie. */
+  also?: { label: string; path: string }[]
+}
+
+/**
+ * A section component plus what it declares about itself.
+ *
+ * Props are `any` rather than `SectionProps` because the Placement page's sections take
+ * their own (a job list, editor callbacks) and are listed alongside the rest so the
+ * overview can see the features they own. Nothing is lost that was being enforced: the
+ * card map already casts each entry to `ComponentType<SectionProps>` before rendering, so
+ * the check was nominal there too.
+ */
+export type SectionComponent = ComponentType<any> & { meta?: SectionMeta }
+
+/** Attach metadata to a section. Returns the same component, so it stays a plain export. */
+export function withMeta<T extends ComponentType<any>>(component: T, meta: SectionMeta): T & { meta: SectionMeta } {
+  return Object.assign(component, { meta })
+}
 
 /** Section panel: bordered card with an icon-box head + body.
  *  `action` renders right-aligned in the head (e.g. a segmented control).

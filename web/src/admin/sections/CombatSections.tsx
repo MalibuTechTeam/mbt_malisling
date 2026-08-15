@@ -1,4 +1,4 @@
-import { Section, ToggleRow, FieldBlock, Grid2, type SectionProps } from './parts'
+import { Section, ToggleRow, FieldBlock, Grid2, type SectionProps, withMeta } from './parts'
 import { NumberInput } from '../ui/NumberInput'
 import { Segmented } from '../ui/Segmented'
 
@@ -155,3 +155,15 @@ export function LowReadySection({ config, update }: SectionProps) {
     </Section>
   )
 }
+
+withMeta(SuppressorSection, { label: 'Suppressor Heat', path: 'SuppressorHeat.Enabled' })
+// Condition Pips has no card of its own — it renders inside Weapon Safety, beside SAFE/FIRE.
+// Listing it as a peer was what sent owners looking for a card that does not exist.
+withMeta(SafetySection, {
+  label: 'Weapon Safety', path: 'Safety.Enabled',
+  also: [{ label: 'Condition Pips', path: 'ConditionHUD.Enabled' }],
+})
+withMeta(JammingSection, { label: 'Weapon Jamming', path: 'Jamming.Enabled' })
+withMeta(ChargeSection, { label: 'Charge Weapon', path: 'ChargeWeapon.Enabled' })
+withMeta(WeightSection, { label: 'Weapon Weight', path: 'WeaponWeight.Enabled' })
+withMeta(LowReadySection, { label: 'Low Ready', path: 'LowReady.Enabled' })

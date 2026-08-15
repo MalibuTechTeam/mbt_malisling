@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Section, ToggleRow, FieldBlock, Grid2, type SectionProps } from './parts'
+import { Section, ToggleRow, FieldBlock, Grid2, type SectionProps, withMeta } from './parts'
 import { NumberInput } from '../ui/NumberInput'
 import { Icon } from '../ui/Icon'
 import { fetchNui } from '../../utils/fetchNui'
@@ -230,3 +230,11 @@ export function TrunkPositionsSection({ config, update, onEdit, refreshKey }: Tr
     </Section>
   )
 }
+
+withMeta(NoDrawSection, { label: 'No-Draw Zones', path: 'NoDrawZones.Enabled' })
+withMeta(VehicleSection, { label: 'Vehicle Hiding', path: 'VehicleHiding.Enabled' })
+withMeta(TrunkRackSection, { label: 'Trunk Rack', path: 'VehicleTrunkRack.Enabled' })
+withMeta(WeaponRackSection, { label: 'Weapon Rack', path: 'WeaponRack.Enabled' })
+// No path: it edits per-model placement overrides, and its on/off is Trunk Rack's — which
+// is why gating it on "disabled" would have collapsed two different cards from one switch.
+withMeta(TrunkPositionsSection, { label: 'Trunk Positions' })

@@ -1,4 +1,4 @@
-import { Section, ToggleRow, FieldBlock, type SectionProps } from './parts'
+import { Section, ToggleRow, FieldBlock, type SectionProps, withMeta } from './parts'
 import { NumberInput } from '../ui/NumberInput'
 
 /** Holster Sounds — holster/draw sound feedback. Per-type sound files stay in
@@ -24,3 +24,5 @@ export function HolsterSection({ config, update }: SectionProps) {
 }
 
 export default HolsterSection
+
+withMeta(HolsterSection, { label: 'Holster Sounds', path: 'Sounds.Enabled' })

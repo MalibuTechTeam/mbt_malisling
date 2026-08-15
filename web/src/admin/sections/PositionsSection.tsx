@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { fetchNui } from '../../utils/fetchNui'
-import { Section, FieldBlock, Grid2, ToggleRow, type SectionProps } from './parts'
+import { Section, FieldBlock, Grid2, ToggleRow, type SectionProps, withMeta } from './parts'
 import { Segmented } from '../ui/Segmented'
 import { Select } from '../ui/Select'
 import { Icon } from '../ui/Icon'
@@ -194,3 +194,8 @@ export function SlingPositionsSection(
     </Section>
   )
 }
+
+withMeta(PositionsSection, { label: 'Weapon Positions' })
+// Its card renders on the Placement page, so this is where the overview must file it. Filed
+// under Core by hand, it told owners a feature was on a page it has never been on.
+withMeta(SlingPositionsSection, { label: 'Tactical Sling', path: 'TacticalSling.Enabled' })

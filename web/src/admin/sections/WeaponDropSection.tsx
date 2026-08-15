@@ -1,4 +1,4 @@
-import { Section, ToggleRow, FieldBlock, Grid2, type SectionProps } from './parts'
+import { Section, ToggleRow, FieldBlock, Grid2, type SectionProps, withMeta } from './parts'
 import { NumberInput } from '../ui/NumberInput'
 
 /**
@@ -41,3 +41,12 @@ export function DespawnSection({ config, update }: SectionProps) {
   )
 }
 
+
+withMeta(DropVisualSection, {
+  label: 'Drop Visual',
+  also: [
+    { label: 'Render Weapon Model', path: 'WeaponDrop.WeaponModelProp' },
+    { label: 'ox_target Pickup', path: 'WeaponDrop.OxTargetPickup' },
+  ],
+})
+withMeta(DespawnSection, { label: 'Drop Despawn', path: 'WeaponDrop.Despawn.Enabled' })

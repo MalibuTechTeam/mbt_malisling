@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback, useRef, type ComponentType } from 'react'
+import { useState, useEffect, useCallback, useRef, Fragment, type ComponentType } from 'react'
 import { useNuiEvent } from '../utils/useNuiEvent'
 import { fetchNui } from '../utils/fetchNui'
 import { Icon, type IconName } from './ui/Icon'
-import type { SectionProps } from './sections/parts'
+import type { SectionComponent, SectionProps } from './sections/parts'
 import { CoreSection, InterfaceSection, MultiWeaponSection, HiddenByJobSection } from './sections/GeneralSection'
 import { HolsterSection } from './sections/HolsterSection'
 import { DropVisualSection, DespawnSection } from './sections/WeaponDropSection'
@@ -31,7 +31,13 @@ interface Category {
   icon: IconName
   // An entry can be a single section or an array of sections rendered stacked
   // in a single grid cell (see .mbt-admin__section-stack in Admin.css).
-  sections: (ComponentType<SectionProps> | ComponentType<SectionProps>[])[]
+  sections: (SectionComponent | SectionComponent[])[]
+  /** Renders its own layout instead of the card grid, and is grouped apart in the rail.
+   *  Placement is a MODE: the panel hides, you place props in 3D, and each editor writes
+   *  its own table immediately rather than joining the draft. It lives in this array all
+   *  the same, so the overview can see the features it owns — filed by hand it claimed
+   *  Tactical Sling was under Core, on a page the card has never been on. */
+  mode?: boolean
 }
 
 const CATEGORIES: Category[] = [
@@ -63,7 +69,38 @@ const CATEGORIES: Category[] = [
     // Height-paired for the equal-height grid: the two mid cards (No-Draw, Vehicle)
     // share row 1; the two tall cards (Trunk Rack, Weapon Rack) share row 2.
     sections: [NoDrawSection, VehicleSection, TrunkRackSection, WeaponRackSection] },
+  // NOTE: a `mode` category's sections are listed for the overview and the card count ONLY —
+  // the page renders them explicitly further down, because each takes props of its own
+  // (job list, editor callbacks) that the generic card map cannot supply. Adding one here
+  // does not put it on screen.
+  { id: 'positions',   label: 'Placement',   hint: 'Body and trunk placement', icon: 'configure', mode: true,
+    sections: [PositionsSection, TrunkPositionsSection, SlingPositionsSection] },
 ]
+
+/**
+ * The overview list, DERIVED from the categories above.
+ *
+ * It used to be two hand-kept arrays sitting beside this one, and they had already drifted:
+ * Tactical Sling filed under Core while its card renders on Placement, Condition Pips listed
+ * as a peer of the card it actually lives inside, and Enable Sling — the switch that turns
+ * the whole script on — missing entirely from a list whose comment called itself "every
+ * on/off toggle". Deriving is not tidiness: it is the only way the panel cannot lie.
+ */
+const FEATURES = CATEGORIES.flatMap((cat) =>
+  ([] as SectionComponent[]).concat(...cat.sections.map((s) => (Array.isArray(s) ? s : [s])))
+    .flatMap((S) => {
+      const m = S.meta
+      if (!m) return []
+      const own = m.path ? [{ label: m.label, path: m.path, cat: cat.label }] : []
+      return own.concat((m.also ?? []).map((a) => ({ ...a, cat: cat.label })))
+    }))
+
+const OV_CATS = CATEGORIES.map((c) => c.label)
+
+/** Cards a category renders — flattened, because a stacked pair is two cards in one cell
+ *  and counting the cell told Interaction it had six when it draws seven. */
+const cardCount = (cat: Category) =>
+  cat.sections.reduce((n, s) => n + (Array.isArray(s) ? s.length : 1), 0)
 
 // MalibuTech links in the rail. Brand constants, not server config — a server owner
 // tunes their server here, not who wrote the script.
@@ -76,43 +113,6 @@ const BRAND_LINKS: { icon: IconName | 'brand'; href: string; title: string }[] =
   { icon: 'discord', href: 'https://discord.gg/TaDRKtfaQt',                    title: 'Discord — support and updates' },
   { icon: 'github',  href: 'https://github.com/MalibuTechTeam/mbt_malisling',  title: 'GitHub — source, issues, releases' },
 ]
-
-// Feature overview — every on/off toggle, keyed to the exact config path its
-// section writes (keep in sync when adding a feature). Drives the gauge + list.
-const FEATURES: { label: string; path: string; cat: string }[] = [
-  // Core — sling, holster, drop (in page-card order).
-  { label: 'Holster Sounds', path: 'Sounds.Enabled',              cat: 'Core' },
-  { label: 'Drop Despawn',   path: 'WeaponDrop.Despawn.Enabled',  cat: 'Core' },
-  { label: 'Tactical Sling', path: 'TacticalSling.Enabled',       cat: 'Core' },
-  { label: 'Multi-Weapon',   path: 'MultiWeaponVisibility.Enabled', cat: 'Core' },
-  // Handling — feel and combat RP.
-  { label: 'Suppressor Heat',path: 'SuppressorHeat.Enabled',      cat: 'Handling' },
-  { label: 'Weapon Safety',  path: 'Safety.Enabled',              cat: 'Handling' },
-  { label: 'Condition Pips', path: 'ConditionHUD.Enabled',        cat: 'Handling' },
-  { label: 'Weapon Jamming', path: 'Jamming.Enabled',             cat: 'Handling' },
-  { label: 'Charge Weapon',  path: 'ChargeWeapon.Enabled',        cat: 'Handling' },
-  { label: 'Weapon Weight',  path: 'WeaponWeight.Enabled',        cat: 'Handling' },
-  { label: 'Low Ready',      path: 'LowReady.Enabled',            cat: 'Handling' },
-  // Interaction — inspect, throw, carry (in page-card order).
-  { label: 'Weapon Inspect', path: 'Inspect.Enabled',             cat: 'Interaction' },
-  { label: 'Weapon Throw',   path: 'Throw.Enabled',               cat: 'Interaction' },
-  { label: 'Concealed Carry',path: 'ConcealedCarry.Enabled',      cat: 'Interaction' },
-  { label: 'Weapon Name',    path: 'WeaponName.Enabled',          cat: 'Interaction' },
-  { label: 'Showcase Poses', path: 'ShowcasePoses.Enabled',       cat: 'Interaction' },
-  { label: 'Weapon Handoff', path: 'Handoff.Enabled',             cat: 'Interaction' },
-  { label: 'Ammo Sharing',   path: 'AmmoSharing.Enabled',         cat: 'Interaction' },
-  // Forensics — serial, custody, casings (in page-card order: Serials backbone first).
-  { label: 'Serial Ensure',  path: 'Serials.EnsureGeneration',    cat: 'Forensics' },
-  { label: 'Chain of Custody',path: 'ChainOfCustody.Enabled',     cat: 'Forensics' },
-  { label: 'Shell Casings',  path: 'ShellCasings.Enabled',        cat: 'Forensics' },
-  { label: 'Pat-down',       path: 'PatDown.Enabled',             cat: 'Forensics' },
-  // World — zones, vehicle, racks (in page-card order).
-  { label: 'No-Draw Zones',  path: 'NoDrawZones.Enabled',         cat: 'World' },
-  { label: 'Vehicle Hiding', path: 'VehicleHiding.Enabled',       cat: 'World' },
-  { label: 'Trunk Rack',     path: 'VehicleTrunkRack.Enabled',    cat: 'World' },
-  { label: 'Weapon Rack',    path: 'WeaponRack.Enabled',          cat: 'World' },
-]
-const OV_CATS = ['Core', 'Handling', 'Interaction', 'Forensics', 'World'] as const
 
 const getPath = (obj: any, path: string) => path.split('.').reduce((o, k) => (o == null ? o : o[k]), obj)
 
@@ -264,11 +264,14 @@ export default function AdminDashboard() {
   dirtyRef.current = dirty   // read by close(), which lives above this line
 
   const activeCat = CATEGORIES.find((c) => c.id === active) ?? CATEGORIES[0]
-  const isPositions = active === 'positions'
-  const headLabel = isPositions ? 'Positions' : activeCat.label
+  const isPositions = !!activeCat.mode
+  const headLabel = activeCat.label
   const headHint = isPositions
-    ? 'Body and trunk placement · set in-world · saved to oxmysql'
-    : `${activeCat.hint} · ${activeCat.sections.length} features · applies live on save`
+    ? `${activeCat.hint} · set in-world · saved to oxmysql`
+    // "cards", not "features": the page draws cards, and one of them can own several
+    // features while another owns none. Calling them features made the number disagree
+    // with both the overview list and what is on screen.
+    : `${activeCat.hint} · ${cardCount(activeCat)} cards · applies live on save`
 
   // Real feature state for the overview — derived from the same config paths the
   // section toggles write (single source of truth, always accurate). Grouped by
@@ -298,40 +301,29 @@ export default function AdminDashboard() {
             <div><b>MBT MALISLING</b><span>Control panel</span></div>
           </div>
 
-          <div className="mbt-rail__group">Configuration</div>
-          {CATEGORIES.map((cat) => (
-            <button
-              key={cat.id}
-              className={`mbt-rail__item${active === cat.id ? ' is-active' : ''}`}
-              aria-current={active === cat.id ? 'page' : undefined}
-              onClick={() => setActive(cat.id)}
-            >
-              <span className="ic"><Icon name={cat.icon} size={18} /></span>
-              <span className="mbt-rail__tx">
-                <span className="mbt-rail__label">{cat.label}</span>
-                <span className="mbt-rail__hint">{cat.hint}</span>
-              </span>
-              <span className="mbt-rail__count">{cat.sections.length}</span>
-            </button>
+          {/* One loop for every destination. The mode entry gets its own group heading —
+              Placement is not a sixth page of toggles, it hides the panel and edits in 3D —
+              but it is no longer hand-written beside the loop, which is how its count and
+              its overview group drifted from everything else. */}
+          {CATEGORIES.map((cat, i) => (
+            <Fragment key={cat.id}>
+              {(i === 0 || cat.mode !== CATEGORIES[i - 1].mode) && (
+                <div className="mbt-rail__group">{cat.mode ? 'Placement' : 'Configuration'}</div>
+              )}
+              <button
+                className={`mbt-rail__item${active === cat.id ? ' is-active' : ''}`}
+                aria-current={active === cat.id ? 'page' : undefined}
+                onClick={() => setActive(cat.id)}
+              >
+                <span className="ic"><Icon name={cat.icon} size={18} /></span>
+                <span className="mbt-rail__tx">
+                  <span className="mbt-rail__label">{cat.label}</span>
+                  <span className="mbt-rail__hint">{cat.hint}</span>
+                </span>
+                <span className="mbt-rail__count">{cardCount(cat)}</span>
+              </button>
+            </Fragment>
           ))}
-
-          {/* Its own group, not a sixth category: Positions is a different MODE — the panel
-              hides, you place props in 3D, and each editor writes its own table immediately
-              instead of joining the draft. Listing it under Configuration said it was one
-              more page of toggles. */}
-          <div className="mbt-rail__group">Placement</div>
-          <button
-            className={`mbt-rail__item${isPositions ? ' is-active' : ''}`}
-            aria-current={isPositions ? 'page' : undefined}
-            onClick={() => setActive('positions')}
-          >
-            <span className="ic"><Icon name="configure" size={18} /></span>
-            <span className="mbt-rail__tx">
-              <span className="mbt-rail__label">Positions</span>
-              <span className="mbt-rail__hint">Body and trunk placement</span>
-            </span>
-            <span className="mbt-rail__count">3</span>
-          </button>
 
           <div className="mbt-rail__spacer" />
 
