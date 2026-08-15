@@ -127,6 +127,34 @@ AddEventHandler("mbt_malisling:jobChanged", function()
     TriggerClientEvent("mbt_malisling:checkWeaponProps", _source, items)
 end)
 
+--- Re-decide the slung set of every tracked player, for everyone who can see them.
+--- For a POLICY change (MBT.HiddenByJob edited in the dashboard), where the answer to
+--- "does this prop exist" moved for players whose job never changed. Same two steps as
+--- jobChanged above: clear, then let the normal path rebuild with the new answer.
+--- Staggered, and over a snapshot of the ids: each player costs a broadcast plus a client
+--- round-trip, syncSling is throttled at 100ms per source, and someone joining mid-sweep
+--- must not be added to a table we are iterating.
+function MBT.RefreshAllSling()
+    CreateThread(function()
+        Wait(150)   -- let the config broadcast that triggered this reach the clients first
+
+        local ids = {}
+        for src in pairs(playersToTrack) do ids[#ids + 1] = src end
+
+        for i = 1, #ids do
+            local src = ids[i]
+            if GetPlayerName(src) then
+                TriggerClientEvent("mbt_malisling:syncDeletion", -1,
+                    { playerSource = src, weaponType = "all", calledBy = "RefreshAllSling" })
+                local items = Inventory:GetInventoryItems(src)
+                if type(items) ~= "table" then items = {} end
+                TriggerClientEvent("mbt_malisling:checkWeaponProps", src, items)
+                Wait(120)
+            end
+        end
+    end)
+end
+
 -- Derived from MBT.PropInfo so any custom type added to the config (e.g.
 -- 'extinguisher') is accepted automatically — no separate whitelist to keep
 -- in sync.

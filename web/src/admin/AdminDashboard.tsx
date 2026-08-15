@@ -3,7 +3,7 @@ import { useNuiEvent } from '../utils/useNuiEvent'
 import { fetchNui } from '../utils/fetchNui'
 import { Icon, type IconName } from './ui/Icon'
 import type { SectionProps } from './sections/parts'
-import { CoreSection, InterfaceSection } from './sections/GeneralSection'
+import { CoreSection, InterfaceSection, HiddenByJobSection } from './sections/GeneralSection'
 import { HolsterSection } from './sections/HolsterSection'
 import { DropVisualSection, DespawnSection } from './sections/WeaponDropSection'
 import { JammingSection, SuppressorSection, SafetySection, ChargeSection, WeightSection, LowReadySection } from './sections/CombatSections'
@@ -39,7 +39,9 @@ const CATEGORIES: Category[] = [
     // Height-paired for the equal-height grid: the two tall cards (Core's 3 toggles,
     // Interface's 2x2 placement picker) share row 1; the three ~equal mid cards fill
     // rows 2-3 with the shortest (Drop Visual) closing — keeps the columns balanced.
-    sections: [CoreSection, InterfaceSection, HolsterSection, DespawnSection, DropVisualSection] },
+    // Hidden By Job closes the page: it is the one card whose height follows the data
+    // (one row per rule), so nothing after it can be thrown out of balance by it.
+    sections: [CoreSection, InterfaceSection, HolsterSection, DespawnSection, DropVisualSection, HiddenByJobSection] },
   { id: 'handling',    label: 'Handling',    hint: 'Feel and combat RP',     icon: 'target',
     // Ordered to pair similar heights for the equal-height grid: the two tall
     // cards (Suppressor, Safety) share row 1; the two short 2-input cards

@@ -246,6 +246,13 @@
 .mbt-admin__confirm-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
 .mbt-btn-ghost.is-danger { color: var(--mbt-faulty); }
 .mbt-btn-ghost.is-danger:hover { background: rgba(var(--mbt-faulty-rgb), 0.10); border-color: rgba(var(--mbt-faulty-rgb), 0.28); }
+/* Armed = the next click does the destructive thing. It has to read as a different control
+   from the one just clicked, or the second click is made without noticing the first. */
+.mbt-btn-ghost.is-armed {
+  color: var(--mbt-faulty);
+  background: rgba(var(--mbt-faulty-rgb), 0.14);
+  border-color: rgba(var(--mbt-faulty-rgb), 0.45);
+}
 
 @keyframes mbt-confirm-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes mbt-confirm-card-in {

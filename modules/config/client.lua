@@ -40,18 +40,23 @@ local function forceCloseAdmin()
 end
 
 RegisterNetEvent('mbt_malisling:openAdmin', function(payload)
+    local wasOpen = dashboardOpen
     SendNUIMessage({ action = 'openAdmin', data = payload or {} })
     SetNuiFocus(true, true)
     dashboardOpen = true
     -- Watcher lives only as long as the panel does (no idle thread when closed).
     -- Dying with the dashboard up otherwise leaves it on screen holding NUI focus
     -- straight through the respawn, with the player unable to click anything.
-    CreateThread(function()
-        while dashboardOpen do
-            Wait(500)
-            if IsEntityDead(cache.ped) then forceCloseAdmin() break end
-        end
-    end)
+    -- Not re-spawned when the server re-sends the panel to refresh it (hide-rule
+    -- restore): the running one already covers the same panel.
+    if not wasOpen then
+        CreateThread(function()
+            while dashboardOpen do
+                Wait(500)
+                if IsEntityDead(cache.ped) then forceCloseAdmin() break end
+            end
+        end)
+    end
 end)
 
 -- Stopping the resource with the panel open would strand the cursor: the NUI is
@@ -71,6 +76,13 @@ end)
 RegisterNUICallback('adminClose', function(_, cb)
     dashboardOpen = false
     SetNuiFocus(false, false)
+    cb({})
+end)
+
+-- Drop the saved hide rules and fall back to config.lua. The server re-checks the ACE and
+-- throttles, then re-sends the whole dashboard — see the handler for why.
+RegisterNUICallback('hiddenByJob:restore', function(_, cb)
+    TriggerServerEvent('mbt_malisling:hiddenByJob:restore')
     cb({})
 end)
 
@@ -99,6 +111,22 @@ local function applyConfig(d)
     -- and it killed the side-weapon prompt once already.
     MBT.HolsterConfirm    = d.HolsterConfirm
     LocalPlayer.state:set('malisling_holster_confirm', d.HolsterConfirm ~= false, false)
+    -- The CLIENT decides whether a prop is drawn (core/client.lua ~ isPropSuppressed), so the
+    -- rules have to land here, not only on the server. Absent means "sent by a UI that predates
+    -- the setting" — keep what we have rather than reading it as "no rules".
+    if d.HiddenByJob ~= nil then
+        local hidden = {}
+        for job, slots in pairs(d.HiddenByJob) do
+            if type(job) == 'string' and type(slots) == 'table' then
+                local row = {}
+                for slot, on in pairs(slots) do
+                    if on == true and type(slot) == 'string' then row[slot] = true end
+                end
+                hidden[job] = row
+            end
+        end
+        MBT.HiddenByJob = hidden
+    end
     if MBT.UI then MBT.UI.Position = d.UIPosition end
     if d.UIStyle then MBT.UIStyle = d.UIStyle end
     if d.Sounds and MBT.Sounds then
