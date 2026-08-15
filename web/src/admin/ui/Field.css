@@ -621,6 +621,24 @@ input[type="number"]::-webkit-outer-spin-button {
   outline: 2px solid var(--mbt-accent-glow);
   outline-offset: 2px;
 }
+/* Sample in-game prompt. Reuses the real .cine-chip and .mbt-kc rules (defined for the
+   overlays and global to this document), so it drifts with the thing it is previewing
+   instead of being a lookalike that quietly stops matching. */
+.mbt-accent-preview {
+  display: flex; align-items: center; gap: 9px;
+  padding: 7px 11px; margin-bottom: 9px;
+  width: max-content; max-width: 100%;
+  font-size: 12px; color: var(--mbt-text-mid);
+}
+.mbt-accent-preview__label { white-space: nowrap; }
+/* The accent's own showing — the prompts use it as a small emphasis, never as a fill,
+   so a big block of it here would flatter a colour that fails where it actually lands. */
+.mbt-accent-preview__dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--mbt-accent);
+  box-shadow: 0 0 8px var(--mbt-accent-glow);
+}
+
 .mbt-accent-hex {
   flex: 1;
   min-width: 0;

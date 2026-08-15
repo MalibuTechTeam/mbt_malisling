@@ -1,6 +1,6 @@
 import './index.css'
 import './components/overlay.css'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { debugData } from './utils/debugData'
 import { useNuiEvent } from './utils/useNuiEvent'
 import { fetchNui } from './utils/fetchNui'
@@ -178,15 +178,19 @@ export default function App() {
       document.documentElement.classList.toggle('mbt-reduce-motion', !!r?.on))
   }, [])
 
-  // Brand accent. Pulled here rather than only on the applyConfig push because the
-  // in-game overlays live in THIS document too — a player who never opens the
-  // dashboard still has to see the server's colour on their prompts.
+  // Brand accent — painted on the in-game overlay wrapper only, never on <html>. The
+  // dashboard is a sibling below and keeps the MalibuTech green: the accent is the server
+  // owner's colour for what their PLAYERS see, not a theme for our admin panel.
+  //
+  // Pulled here rather than only on the applyConfig push because a player who never opens
+  // the dashboard still has to see the server's colour on their prompts.
+  const ingame = useRef<HTMLDivElement>(null)
   useEffect(() => {
-    fetchNui('getAccent', {}, { accent: DEFAULT_ACCENT }).then((r: any) => applyAccent(r?.accent))
+    fetchNui('getAccent', {}, { accent: DEFAULT_ACCENT }).then((r: any) => applyAccent(r?.accent, ingame.current))
   }, [])
 
   // Live repaint when an admin saves (broadcast to every client).
-  useNuiEvent<{ accent?: string }>('setAccent', ({ accent }) => applyAccent(accent))
+  useNuiEvent<{ accent?: string }>('setAccent', ({ accent }) => applyAccent(accent, ingame.current))
 
   useNuiEvent<{ file: string; volume: number }>('playHolsterSound', ({ file, volume }) => {
     // Guard the filename (it builds a path): only a safe token can be played, and
@@ -200,19 +204,23 @@ export default function App() {
 
   return (
     <>
-      <HolsterUI />
-      <JamUI />
-      <InspectUI />
-      <NoDrawUI />
-      <WeaponStatusUI />
-      <PoseHUD />
-      <RackPickerUI />
-      <EvidenceUI />
-      <HandoffUI />
-      <HintUI />
-      <PatdownUI />
-      <AmmoPickerUI />
-      <ChargeMeter />
+      {/* Everything the PLAYER sees. The wrapper exists to carry the server's accent —
+          the overlays inside are all position:fixed, so it costs no layout. */}
+      <div ref={ingame} className="mbt-ingame">
+        <HolsterUI />
+        <JamUI />
+        <InspectUI />
+        <NoDrawUI />
+        <WeaponStatusUI />
+        <PoseHUD />
+        <RackPickerUI />
+        <EvidenceUI />
+        <HandoffUI />
+        <HintUI />
+        <PatdownUI />
+        <AmmoPickerUI />
+        <ChargeMeter />
+      </div>
       <AdminDashboard />
     </>
   )

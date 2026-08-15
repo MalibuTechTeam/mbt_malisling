@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type CSSProperties } from 'react'
 import { PositionPicker } from '../ui/PositionPicker'
 import { Segmented } from '../ui/Segmented'
 import { NumberInput } from '../ui/NumberInput'
 import { Icon } from '../ui/Icon'
 import { Select } from '../ui/Select'
 import { fetchNui } from '../../utils/fetchNui'
-import { accentContrast, isHexColor, DEFAULT_ACCENT, MIN_CONTRAST } from '../../utils/accent'
+import { accentContrast, accentTokens, isHexColor, DEFAULT_ACCENT, MIN_CONTRAST } from '../../utils/accent'
 import { Section, ToggleRow, FieldBlock, type SectionProps } from './parts'
 import type { Job } from './PositionsSection'
 
@@ -84,7 +84,16 @@ export function InterfaceSection({ config, update }: SectionProps) {
         />
       </FieldBlock>
       <FieldBlock label="Brand Accent"
-        hint="The one interactive colour — buttons, selection, focus rings. Repaints this dashboard and every in-game prompt as you pick.">
+        hint="Your server's colour on the prompts players see. This dashboard is the MalibuTech panel and keeps its own green.">
+        {/* A sample of the real thing rather than a swatch: the accent lands on a prompt
+            chip over dark gameplay, and a square of colour on a bright card tells you
+            nothing about whether it will read there. Tokens are set inline so this one
+            element previews the DRAFT while everything around it stays brand-coloured. */}
+        <div className="mbt-accent-preview cine-chip" style={accentTokens(accent) as CSSProperties}>
+          <span className="mbt-kc">R</span>
+          <span className="mbt-accent-preview__label">Holster weapon</span>
+          <span className="mbt-accent-preview__dot" />
+        </div>
         <div className="mbt-accent-row">
           <input type="color" className="mbt-accent-swatch" value={accent} aria-label="Brand accent colour"
             onChange={(e) => update('Accent', e.target.value.toUpperCase())} />
@@ -110,8 +119,8 @@ export function InterfaceSection({ config, update }: SectionProps) {
         <div className="mbt-notice mbt-notice--warn" role="alert">
           <Icon name="alert" size={15} />
           <span>
-            Hard to read — this colour scores <b>{ratio.toFixed(2)}:1</b> against the panel, under the {MIN_CONTRAST}:1
-            minimum. Prompts, focus rings and pills will be difficult to make out in game. Saving is still allowed.
+            Hard to read — this colour scores <b>{ratio.toFixed(2)}:1</b> against the in-game prompt, under the
+            {' '}{MIN_CONTRAST}:1 minimum. Players will struggle to make out keycaps and highlights. Saving is still allowed.
           </span>
         </div>
       )}

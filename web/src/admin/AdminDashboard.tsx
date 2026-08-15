@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useRef, type ComponentType } from 'react'
 import { useNuiEvent } from '../utils/useNuiEvent'
 import { fetchNui } from '../utils/fetchNui'
-import { applyAccent } from '../utils/accent'
 import { Icon, type IconName } from './ui/Icon'
 import type { SectionProps } from './sections/parts'
 import { CoreSection, InterfaceSection, MultiWeaponSection, HiddenByJobSection } from './sections/GeneralSection'
@@ -230,15 +229,10 @@ export default function AdminDashboard() {
     setCfg(JSON.parse(baseline.current))
   }, [])
 
-  // Live accent preview, painted from the DRAFT: picking a colour you can't see is
-  // picking blind. The cleanup repaints from the last-saved snapshot, so discarding or
-  // closing without saving leaves the screen in a colour someone actually chose —
-  // otherwise a half-typed hex survives the panel that produced it.
-  useEffect(() => {
-    if (!open) return
-    applyAccent(cfg?.Accent)
-    return () => { applyAccent(JSON.parse(baseline.current || '{}')?.Accent) }
-  }, [open, cfg?.Accent])
+  // No live repaint of the dashboard: it keeps the MalibuTech green whatever the server
+  // picks. The draft colour is shown instead on a sample prompt inside the Interface
+  // section — you see what a PLAYER will see, which is the thing being chosen, and the
+  // panel does not pretend to be the product being branded.
 
   if (!open || !cfg) return null
 
