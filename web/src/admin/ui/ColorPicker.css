@@ -19,8 +19,12 @@
 .mbt-cp__swatch:focus-visible { outline: 2px solid var(--mbt-accent-glow); outline-offset: 2px; }
 
 /* ── Popover ──────────────────────────────────────────────────────────── */
+/* Portalled to <body> and positioned FIXED from JS. Absolute positioning could not work
+   here at any z-index: .mbt-section animates transform with fill-mode both, so every card
+   stays its own stacking context and the next one paints over this — and the centre column
+   is overflow-y:auto, which clips it too. Left/top come from the component. */
 .mbt-cp__pop {
-  position: absolute; top: calc(100% + 8px); left: 0; z-index: 50;
+  position: fixed; z-index: 10050;
   width: 212px; padding: 12px;
   display: flex; flex-direction: column; gap: 11px;
   background: var(--mbt-surface-2);
@@ -29,9 +33,9 @@
   box-shadow: var(--mbt-shadow-panel);
   animation: mbt-cp-in var(--mbt-dur) var(--mbt-ease);
 }
-/* Low in the panel there is no room below; opening upward beats a picker you have to
-   scroll to reach, which is a picker you cannot see the effect of. */
-.mbt-cp__pop.is-flipped { top: auto; bottom: calc(100% + 8px); }
+/* Low on screen there is no room below; opening upward beats a picker you have to scroll
+   to reach, which is a picker you cannot see the effect of. Only the animation differs —
+   the flipped position itself is computed with the rest. */
 @keyframes mbt-cp-in {
   from { opacity: 0; transform: translateY(-6px) scale(0.98); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
@@ -44,7 +48,7 @@
 /* Caret pointing back at the swatch. Without it the popover reads as a panel that
    happened to appear, not as this control's own. */
 .mbt-cp__pop::before {
-  content: ""; position: absolute; left: 16px;
+  content: ""; position: absolute; left: 19px;   /* ~centre of the 46px swatch it aligns to */
   width: 9px; height: 9px;
   background: var(--mbt-surface-2);
   border-left: 1px solid var(--mbt-edge-hi);

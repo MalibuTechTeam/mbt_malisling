@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { hexToHsv, hsvToHex, hsvToRgb, isHexColor, type HSV } from '../../utils/color'
 import './ColorPicker.css'
 
@@ -14,9 +15,13 @@ import './ColorPicker.css'
  *   than a div pretending. The saturation/value square is focusable and takes arrow
  *   keys (shift for coarse steps) — a 2D control has no native equivalent, so it is
  *   the one place with hand-written key handling.
- * - **The popover flips.** Fixed below the swatch, it fell off the bottom of the panel
- *   for any section low on the page, and a colour picker you have to scroll to is one
- *   you cannot use while looking at what it changes.
+ * - **The popover escapes the card, and flips.** An absolutely-positioned popover could
+ *   not work here whatever its z-index: .mbt-section animates transform with fill-mode
+ *   both, which leaves every card a stacking context of its own, so the next card paints
+ *   over it — and the centre column is overflow-y:auto, which clips it as well. It is
+ *   portalled to <body> and positioned fixed against the swatch, then flipped upward when
+ *   the viewport has no room below. A picker you have to scroll to is one you cannot use
+ *   while looking at what it changes.
  */
 
 export interface ColorPickerProps {
@@ -44,7 +49,7 @@ const FALLBACK: HSV = { h: 0, s: 0, v: 1 }
 
 export function ColorPicker({ value, onChange, presets = [], footer, 'aria-label': label }: ColorPickerProps) {
   const [open, setOpen] = useState(false)
-  const [flip, setFlip] = useState(false)
+  const [pos, setPos] = useState<{ left: number; top: number; flip: boolean } | null>(null)
   const [hsv, setHsv] = useState<HSV>(() => hexToHsv(value) ?? FALLBACK)
 
   const rootRef = useRef<HTMLDivElement>(null)
@@ -73,8 +78,12 @@ export function ColorPicker({ value, onChange, presets = [], footer, 'aria-label
   // and shutting the whole panel to dismiss a popover loses unsaved work.
   useEffect(() => {
     if (!open) return
+    // The popover is portalled out, so it is NOT inside rootRef any more — checking only
+    // the anchor would close it the moment you touched the square you came to drag.
     const onDown = (e: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false)
+      const t = e.target as Node
+      if (rootRef.current?.contains(t) || popRef.current?.contains(t)) return
+      setOpen(false)
     }
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return
@@ -89,14 +98,35 @@ export function ColorPicker({ value, onChange, presets = [], footer, 'aria-label
     }
   }, [open])
 
-  // Open upward when there isn't room below. Measured after layout, before paint, so it
-  // never renders once in the wrong place and jumps.
+  // Place it against the swatch, in viewport coordinates. Measured after layout and before
+  // paint, so it never renders once in the wrong place and jumps.
+  const place = useCallback(() => {
+    if (!popRef.current || !rootRef.current) return
+    const a = rootRef.current.getBoundingClientRect()
+    const w = popRef.current.offsetWidth
+    const h = popRef.current.offsetHeight
+    const flip = a.bottom + 8 + h > window.innerHeight && a.top - 8 - h > 0
+    setPos({
+      // Clamped so a swatch near the right edge does not push the popover off-screen.
+      left: Math.max(8, Math.min(a.left, window.innerWidth - w - 8)),
+      top: flip ? a.top - 8 - h : a.bottom + 8,
+      flip,
+    })
+  }, [])
+
   useLayoutEffect(() => {
-    if (!open || !popRef.current || !rootRef.current) return
-    const anchor = rootRef.current.getBoundingClientRect()
-    const height = popRef.current.offsetHeight
-    setFlip(anchor.bottom + 8 + height > window.innerHeight && anchor.top - 8 - height > 0)
-  }, [open])
+    if (!open) { setPos(null); return }
+    place()
+    // Fixed positioning does not follow the scrolling card it is anchored to, so re-place
+    // on any scroll (capture: the centre column scrolls, not the window) and on resize.
+    const onMove = () => place()
+    document.addEventListener('scroll', onMove, true)
+    window.addEventListener('resize', onMove)
+    return () => {
+      document.removeEventListener('scroll', onMove, true)
+      window.removeEventListener('resize', onMove)
+    }
+  }, [open, place])
 
   // Pointer capture rather than window listeners: the drag survives leaving the window,
   // and the browser cancels it for us if the pointer is lost.
@@ -145,9 +175,12 @@ export function ColorPicker({ value, onChange, presets = [], footer, 'aria-label
         aria-label={label ?? 'Pick a colour'} aria-expanded={open} aria-haspopup="dialog"
         onClick={() => setOpen((o) => !o)} />
 
-      {open && (
-        <div ref={popRef} className={`mbt-cp__pop${flip ? ' is-flipped' : ''}`}
-          role="dialog" aria-label="Colour picker">
+      {open && createPortal(
+        <div ref={popRef} className={`mbt-cp__pop${pos?.flip ? ' is-flipped' : ''}`}
+          role="dialog" aria-label="Colour picker"
+          // Hidden for the one frame before it has been measured, or it would flash at
+          // the top-left corner on every open.
+          style={pos ? { left: pos.left, top: pos.top } : { opacity: 0, pointerEvents: 'none' }}>
 
           {presets.length > 0 && (
             <div className="mbt-cp__presets">
@@ -180,7 +213,8 @@ export function ColorPicker({ value, onChange, presets = [], footer, 'aria-label
             onChange={(e) => emit({ ...hsv, h: Number(e.target.value) })} />
 
           {footer && <div className="mbt-cp__footer">{footer}</div>}
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   )
