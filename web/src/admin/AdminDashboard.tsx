@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef, type ComponentType } from 'react'
 import { useNuiEvent } from '../utils/useNuiEvent'
 import { fetchNui } from '../utils/fetchNui'
+import { applyAccent } from '../utils/accent'
 import { Icon, type IconName } from './ui/Icon'
 import type { SectionProps } from './sections/parts'
 import { CoreSection, InterfaceSection } from './sections/GeneralSection'
@@ -225,6 +226,16 @@ export default function AdminDashboard() {
   const discard = useCallback(() => {
     setCfg(JSON.parse(baseline.current))
   }, [])
+
+  // Live accent preview, painted from the DRAFT: picking a colour you can't see is
+  // picking blind. The cleanup repaints from the last-saved snapshot, so discarding or
+  // closing without saving leaves the screen in a colour someone actually chose —
+  // otherwise a half-typed hex survives the panel that produced it.
+  useEffect(() => {
+    if (!open) return
+    applyAccent(cfg?.Accent)
+    return () => { applyAccent(JSON.parse(baseline.current || '{}')?.Accent) }
+  }, [open, cfg?.Accent])
 
   if (!open || !cfg) return null
 

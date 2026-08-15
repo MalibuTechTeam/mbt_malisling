@@ -506,6 +506,48 @@ input[type="number"]::-webkit-outer-spin-button {
 .mbt-notice__x:hover { color: var(--mbt-text-hi); background: rgba(var(--mbt-faulty-rgb), 0.14); }
 .mbt-notice__x:focus-visible { outline: 2px solid var(--mbt-accent-glow); outline-offset: 1px; }
 
+/* ── Accent picker (swatch + hex + armed reset) ───────────────────────── */
+.mbt-accent-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.mbt-accent-swatch {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  background: var(--mbt-surface-base);
+  border: 1px solid var(--mbt-edge);
+  border-radius: var(--mbt-r-sm);
+  cursor: pointer;
+}
+/* The native swatch has its own chrome; strip it so the control reads as one of ours. */
+.mbt-accent-swatch::-webkit-color-swatch-wrapper { padding: 3px; }
+.mbt-accent-swatch::-webkit-color-swatch { border: none; border-radius: 5px; }
+.mbt-accent-swatch:focus-visible {
+  outline: 2px solid var(--mbt-accent-glow);
+  outline-offset: 2px;
+}
+.mbt-accent-hex {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--mbt-font-mono);
+  text-transform: uppercase;
+}
+/* Armed reset — first click arms, second commits. Coloured as destructive so the
+   second click is never made by accident; it disarms itself after 4s. */
+.mbt-btn-ghost.is-armed {
+  color: var(--mbt-faulty);
+  background: rgba(var(--mbt-faulty-rgb), 0.12);
+  border-color: rgba(var(--mbt-faulty-rgb), 0.45);
+}
+.mbt-btn-ghost.is-armed:hover {
+  color: var(--mbt-faulty);
+  background: rgba(var(--mbt-faulty-rgb), 0.18);
+  border-color: rgba(var(--mbt-faulty-rgb), 0.6);
+}
+
 /* ── Tag editor (chips + inline input) ────────────────────────────────── */
 .mbt-tag-editor {
   display: flex;
