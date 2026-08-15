@@ -361,6 +361,98 @@ input[type="number"]::-webkit-outer-spin-button {
   border-radius: var(--mbt-r-sm);
 }
 
+/* ── Hide-rule list (Hidden By Job) ───────────────────────────────────────
+   One full-width row per rule, not the 2-column .mbt-trunk-list grid: a rule
+   carries a wrapping strip of slot chips under its head, which needs the width. */
+.mbt-hbj-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 280px;
+  overflow-y: auto;
+  padding-right: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+.mbt-hbj-list::-webkit-scrollbar { width: 11px; }
+.mbt-hbj-list::-webkit-scrollbar-track { background: transparent; }
+.mbt-hbj-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: var(--mbt-r-pill);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+.mbt-hbj-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.24);
+  background-clip: padding-box;
+}
+.mbt-hbj-row {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+  padding: 8px 9px;
+  background: var(--mbt-surface-1);
+  border: 1px solid var(--mbt-edge);
+  border-radius: var(--mbt-r-sm);
+}
+.mbt-hbj-row__head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  font-family: var(--mbt-font-display);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--mbt-text-hi);
+}
+/* The rule in one line, so a row reads without decoding the chips. */
+.mbt-hbj-row__sum {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--mbt-font-mono);
+  font-size: 10.5px;
+  font-weight: 400;
+  color: var(--mbt-text-lo);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* A rule whose job the framework no longer knows: it still applies, it just can't match
+   anyone — so it's marked, not hidden, and the row keeps its Remove button. */
+.mbt-hbj-tag--unknown {
+  color: var(--mbt-faulty);
+  background: rgba(var(--mbt-faulty-rgb), 0.10);
+  border-color: rgba(var(--mbt-faulty-rgb), 0.28);
+}
+.mbt-hbj-row__head .mbt-btn-ghost {
+  flex-shrink: 0;
+  height: 24px;
+  padding: 0 9px;
+  font-size: 11px;
+  border-radius: var(--mbt-r-sm);
+}
+.mbt-hbj-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.mbt-chip {
+  padding: 3px 8px;
+  border-radius: var(--mbt-r-pill);
+  font-family: var(--mbt-font-mono);
+  font-size: 10.5px;
+  color: var(--mbt-text-lo);
+  background: var(--mbt-surface-3);
+  border: 1px solid var(--mbt-edge);
+  cursor: pointer;
+  transition: color var(--mbt-dur) var(--mbt-ease), background var(--mbt-dur) var(--mbt-ease),
+              border-color var(--mbt-dur) var(--mbt-ease);
+}
+.mbt-chip:hover { color: var(--mbt-text-hi); border-color: var(--mbt-edge-hi); }
+.mbt-chip.is-on {
+  color: var(--mbt-accent);
+  background: var(--mbt-accent-soft);
+  border-color: rgba(var(--mbt-accent-rgb), 0.35);
+}
+.mbt-chip:focus-visible { outline: 2px solid var(--mbt-accent-glow); outline-offset: 1px; }
+
 /* ── Capture field (coord display + capture button) ───────────────────── */
 .mbt-capture-field {
   display: flex;
@@ -535,8 +627,12 @@ input[type="number"]::-webkit-outer-spin-button {
   font-family: var(--mbt-font-mono);
   text-transform: uppercase;
 }
-/* Armed reset — first click arms, second commits. Coloured as destructive so the
-   second click is never made by accident; it disarms itself after 4s. */
+/* Second click of a two-step destructive action — first click arms, second commits, and it
+   disarms itself after 4s. Red only ONCE ARMED: before that it is an escape hatch, not a
+   hazard, and colouring it red all the time would make the one control that undoes a mess
+   look like the thing that causes one. Armed has to read as a different control from the one
+   just clicked, or the second click gets made without noticing the first.
+   Shared by the accent reset, the positions reset-all and the hide-rule restore. */
 .mbt-btn-ghost.is-armed {
   color: var(--mbt-faulty);
   background: rgba(var(--mbt-faulty-rgb), 0.12);

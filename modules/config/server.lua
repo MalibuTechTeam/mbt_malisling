@@ -20,6 +20,11 @@ local adminCommand    = (MBT.Admin and MBT.Admin.Command) or GetCurrentResourceN
 -- extra server.cfg lines — same as mbt_elevator.
 local adminPerm       = (MBT.Admin and MBT.Admin.Permission) or ('command.' .. adminCommand)
 
+-- MBT.HiddenByJob as config.lua left it, captured before any DB row lands on top. It seeds
+-- a fresh install and it is what "Restore from config.lua" comes back to — copied, because
+-- applyToMBT replaces the live table and the seed has to outlive that.
+local HIDDEN_BY_JOB_SEED = Utils.tableDeepCopy(MBT.HiddenByJob or {})
+
 -- ox_inventory auto-patch outcome (set by ox_patch/installer.js, server-local event).
 -- 'ok' = patched · '<reason>' = failed · nil = n/a. Surfaced in the sidebar.
 local oxPatchStatus = nil
@@ -77,6 +82,45 @@ local function classOffsetSnapshot(src)
     return out
 end
 
+--- Body slots a hide rule can target, from the LIVE MBT.PropInfo so a custom type a server
+--- added is covered without a second whitelist to keep in sync.
+--- The strap ('sling' / 'sling:<id>') and the multi-weapon lanes ('<slot>#<n>') are dropped:
+--- neither is a policy target. The strap is owned by TacticalSling.Types, and hiding a slot
+--- already takes every lane sitting on it — offering them would be an option that does nothing.
+---@return string[]
+local function bodySlots()
+    local out = {}
+    for wtype in pairs(MBT.PropInfo or {}) do
+        if type(wtype) == 'string' and wtype ~= 'sling'
+            and not wtype:match('^sling:') and not wtype:match('#%d+$') then
+            out[#out + 1] = wtype
+        end
+    end
+    table.sort(out)
+    return out
+end
+
+--- Hide rules as a complete, normalised map: { [job] = { [slot] = true } }, false/absent
+--- slots dropped and rows that hide nothing left out entirely.
+---@param src table?
+---@return table<string, table<string, boolean>>
+local function hiddenByJob(src)
+    local out = {}
+    for job, slots in pairs(src or {}) do
+        if type(job) == 'string' and type(slots) == 'table' then
+            local row, n = {}, 0
+            for slot, on in pairs(slots) do
+                if on == true and type(slot) == 'string' then
+                    row[slot] = true
+                    n = n + 1
+                end
+            end
+            if n > 0 then out[job] = row end
+        end
+    end
+    return out
+end
+
 -- Captured at load, BEFORE any saved row is applied, so "reset" means default.lua and not
 -- "whatever was in the database when we started".
 local CLASS_OFFSET_DEFAULTS = json.decode(json.encode(MBT.WeaponClassOffsets or {}))
@@ -101,6 +145,26 @@ local function applyClassOffsets(src)
             end
         end
     end
+end
+
+--- Same policy? json.encode can't answer it — two maps holding the same rules serialise in
+--- whatever order pairs() hands them out, and a false "it changed" costs every player in the
+--- world a delete-and-respawn of their props. Both sides must be normalised (hiddenByJob).
+---@param a table<string, table<string, boolean>>
+---@param b_ table<string, table<string, boolean>>
+---@return boolean
+local function sameHidden(a, b_)
+    for job, slots in pairs(a) do
+        local other = b_[job]
+        if not other then return false end
+        for slot in pairs(slots) do if not other[slot] then return false end end
+    end
+    for job, slots in pairs(b_) do
+        local other = a[job]
+        if not other then return false end
+        for slot in pairs(slots) do if not other[slot] then return false end end
+    end
+    return true
 end
 
 -- ── Snapshot: full config the dashboard reads (incl. overview flags) ──
@@ -144,6 +208,11 @@ local function snapshot()
         UIStyle           = MBT.UIStyle or 'standard',
         Accent            = MBT.Accent or DEFAULT_ACCENT,
         Language          = MBT.Language,            -- read-only in the UI
+        -- Which body slots stay off which job (see MBT.HiddenByJob in config.lua). BodySlots
+        -- rides along read-only: the dashboard builds its slot chips from the types this
+        -- server actually has, instead of a list frozen into the NUI bundle.
+        HiddenByJob       = hiddenByJob(MBT.HiddenByJob),
+        BodySlots         = bodySlots(),
         -- Holster & Sounds
         Sounds = {
             Enabled     = b(S.Enabled),
@@ -327,6 +396,22 @@ local function validate(d)
     -- the security boundary: exactly '#rrggbb', nothing else. Readability is NOT checked
     -- here — the dashboard warns on low contrast and still lets the owner save it.
     if type(d.Accent) ~= 'string' or not d.Accent:match('^#%x%x%x%x%x%x$') then return false end
+    -- Hide rules. Optional on purpose: a payload from a UI that predates this block must not
+    -- fail the whole save and take every other setting down with it. Keys are the server's own
+    -- job names and its own slot names, so all we can check is shape and size.
+    if d.HiddenByJob ~= nil then
+        if type(d.HiddenByJob) ~= 'table' then return false end
+        local rows = 0
+        for job, slots in pairs(d.HiddenByJob) do
+            rows = rows + 1
+            if rows > 64 or type(job) ~= 'string' or #job > 48 or type(slots) ~= 'table' then return false end
+            local n = 0
+            for slot, on in pairs(slots) do
+                n = n + 1
+                if n > 64 or type(slot) ~= 'string' or #slot > 48 or type(on) ~= 'boolean' then return false end
+            end
+        end
+    end
     -- Sounds
     if type(d.Sounds) ~= 'table' then return false end
     if type(d.Sounds.Enabled) ~= 'boolean' then return false end
@@ -533,6 +618,9 @@ local function applyToMBT(d)
     MBT.UI.Position       = d.UIPosition
     MBT.UIStyle           = d.UIStyle
     MBT.Accent            = d.Accent
+    -- Guarded like validate(): absent means "this UI doesn't know about hide rules", not
+    -- "the owner cleared them".
+    if d.HiddenByJob ~= nil then MBT.HiddenByJob = hiddenByJob(d.HiddenByJob) end
     MBT.Sounds.Enabled     = d.Sounds.Enabled
     MBT.Sounds.MaxDistance = d.Sounds.MaxDistance
     MBT.Sounds.Volume      = d.Sounds.Volume
@@ -697,6 +785,9 @@ local function persistable(d)
         HolsterConfirm = d.HolsterConfirm,
         DropWeaponOnDeath = d.DropWeaponOnDeath, UIPosition = d.UIPosition, UIStyle = d.UIStyle,
         Accent = d.Accent,
+        -- BodySlots is deliberately absent: it's derived from MBT.PropInfo every time, and a
+        -- stored copy would go stale the moment a server adds a type.
+        HiddenByJob = d.HiddenByJob,
         Sounds = { Enabled = d.Sounds.Enabled, MaxDistance = d.Sounds.MaxDistance, Volume = d.Sounds.Volume },
         WeaponDrop = {
             WeaponModelProp = d.WeaponDrop.WeaponModelProp, OxTargetPickup = d.WeaponDrop.OxTargetPickup,
@@ -739,6 +830,7 @@ end
 --- Add a path here for every free-key map exposed in the dashboard.
 local DYNAMIC_MAPS = {
     ['TacticalSling.JobVariants'] = true,
+    ['HiddenByJob']               = true,   -- { [job] = { [slot] = true } } — job names again
 }
 
 --- Deep-merge SAVED values onto the live template: only template keys are read (type-checked), missing ones keep their config.lua default — so an older saved config auto-migrates to new defaults, never wiping state.
@@ -880,9 +972,12 @@ RegisterNetEvent('mbt_malisling:adminSave', function(data)
         Utils.mbtWarn('config ~ oxmysql not started; save applied live but NOT persisted')
     end
     TriggerClientEvent('mbt_malisling:applyConfig', -1, payload)   -- no secrets in payload (webhooks live in config.lua)
-    -- Multi-weapon lanes are decided when a snapshot lands, not when the setting changes:
-    -- without this, turning it on does nothing visible until somebody happens to pick a
-    -- weapon up. Defined in core/server.lua, absent if that bailed at startup.
+    -- Two settings here change what OBSERVERS decide to draw, and observers only re-decide
+    -- when a fresh syncSling reaches them: multi-weapon lanes, and hide rules. Without this
+    -- either one shows up on the next job change or relog and nowhere else. Unconditional
+    -- rather than gated on which of the two moved — a dashboard save is a rare, deliberate
+    -- act, and getting the gate subtly wrong costs a setting that silently does nothing.
+    -- Defined in core/server.lua, absent if that bailed at startup.
     if MBT.RefreshAllSling then MBT.RefreshAllSling() end
     Utils.mbtDebugger('Admin config saved by player', src)
 end)
@@ -963,6 +1058,42 @@ function MBT.ResetClassOffsets(src)
     TriggerClientEvent('mbt_malisling:applyConfig', -1, payload)
     Utils.mbtDebugger('class offsets reset by player', src)
 end
+
+-- "Restore from config.lua" — DROP the saved rules rather than overwrite them with today's
+-- file value: the row is rewritten WITHOUT the key, so mergeKnown falls back to the config.lua
+-- seed on every later start and editing that file is once again the thing that decides.
+-- The dashboard is re-sent afterwards because the admin's draft still holds the rules we just
+-- dropped, and saving it would put them straight back.
+RegisterNetEvent('mbt_malisling:hiddenByJob:restore', function()
+    local src = source
+    if not IsPlayerAceAllowed(src, adminPerm) then
+        Utils.mbtWarn('hiddenByJob:restore ~ ACE denied for', src)
+        return
+    end
+    if MBT.NetThrottle and not MBT.NetThrottle(src, 'hiddenRestore', 2000) then return end
+
+    local hiddenBefore = hiddenByJob(MBT.HiddenByJob)
+    MBT.HiddenByJob = Utils.tableDeepCopy(HIDDEN_BY_JOB_SEED)
+
+    local payload = persistable(snapshot())
+    if hasDb() then
+        local stored = {}
+        for k, v in pairs(payload) do stored[k] = v end
+        stored.HiddenByJob = nil   -- json.encode omits a nil field → nothing left to merge back
+        exports.oxmysql:execute(
+            'INSERT INTO mbt_malisling_config (id, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)',
+            { DB_ROW, json.encode(stored) }
+        )
+    else
+        Utils.mbtWarn('config ~ oxmysql not started; hide rules restored live but NOT persisted')
+    end
+    TriggerClientEvent('mbt_malisling:applyConfig', -1, payload)
+    if MBT.RefreshAllSling and not sameHidden(hiddenBefore, MBT.HiddenByJob) then
+        MBT.RefreshAllSling()
+    end
+    openFor(src)
+    Utils.mbtDebugger('HiddenByJob restored from config.lua by player', src)
+end)
 
 -- Clients fetch the live config on (re)init so a restart or fresh join picks it up
 -- without needing a save. Returns the editable snapshot applyConfig consumes.

@@ -3,8 +3,11 @@ import { PositionPicker } from '../ui/PositionPicker'
 import { Segmented } from '../ui/Segmented'
 import { NumberInput } from '../ui/NumberInput'
 import { Icon } from '../ui/Icon'
+import { Select } from '../ui/Select'
+import { fetchNui } from '../../utils/fetchNui'
 import { accentContrast, isHexColor, DEFAULT_ACCENT, MIN_CONTRAST } from '../../utils/accent'
 import { Section, ToggleRow, FieldBlock, type SectionProps } from './parts'
+import type { Job } from './PositionsSection'
 
 /**
  * Core category — split into atomic cards so the category page can order them
@@ -117,6 +120,136 @@ export function InterfaceSection({ config, update }: SectionProps) {
         <p className="mbt-field__hint" style={{ marginTop: 8 }}>
           Custom placement — a live drag-to-place editor — ships in v2.1; using a default spot for now.
         </p>
+      )}
+    </Section>
+  )
+}
+
+// What each stock slot actually holds, for the chip tooltips. The chip itself shows the RAW
+// slot key: that is the name in config.lua and in a support thread, and a server that added
+// its own type gets it listed without an entry here.
+const SLOT_HINT: Record<string, string> = {
+  side: 'Pistols',
+  back: 'Rifles and long guns',
+  back2: 'Heavy weapons and launchers',
+  melee: 'Melee',
+  melee2: 'Knives',
+  melee3: 'Hatchets and alternate melee',
+  extinguisher: 'Fire extinguisher',
+}
+
+/** HIDDEN BY JOB — per-job list of body slots that never get a prop (uniforms that already
+ *  model the weapon). Sparse by design: one row per job with exceptions, not a job x slot
+ *  matrix, because a server has dozens of jobs and a handful of rules. */
+export function HiddenByJobSection({ config, update }: SectionProps) {
+  // Slots come from the server's live MBT.PropInfo — a custom type is covered, and the
+  // strap / multi-weapon lanes are already filtered out there.
+  const slots: string[] = Array.isArray(config?.BodySlots) ? config.BodySlots : []
+  // A Lua empty table serialises to a JSON array; coerce so we always work with an object
+  // (writing a string key onto an array breaks JSON.stringify dirty-detection + persistence).
+  const rules: Record<string, Record<string, boolean>> =
+    config?.HiddenByJob && !Array.isArray(config.HiddenByJob) ? config.HiddenByJob : {}
+
+  const [jobs, setJobs] = useState<Job[]>([])
+  useEffect(() => { fetchNui('getJobs').then((l: any) => setJobs(Array.isArray(l) ? l : [])) }, [])
+
+  // Two-step restore: the first click arms, the second one fires, and it disarms itself after
+  // a few seconds. This control throws away work and sits next to nothing that undoes it.
+  const [armed, setArmed] = useState(false)
+  useEffect(() => {
+    if (!armed) return
+    const id = window.setTimeout(() => setArmed(false), 4000)
+    return () => window.clearTimeout(id)
+  }, [armed])
+
+  const known = new Map(jobs.map((j) => [j.name, j.label]))
+  const scopeLabel = (name: string) => (name === '*' ? 'Everyone (*)' : known.get(name) ?? name)
+  // Only claim a job is gone once we actually have the list — an empty `jobs` means the
+  // framework hasn't answered (or has no jobs), not that every rule is orphaned.
+  const isUnknown = (name: string) => name !== '*' && jobs.length > 0 && !known.has(name)
+
+  const entries = Object.entries(rules)
+  const used = new Set(entries.map(([j]) => j))
+  const free = [{ name: '*', label: 'Everyone (*)' }, ...jobs].filter((j) => !used.has(j.name))
+  const [newJob, setNewJob] = useState('')
+  const addTarget = free.some((j) => j.name === newJob) ? newJob : free[0]?.name ?? ''
+
+  // The server's slots, plus anything the rule already names that isn't one of them (a slot
+  // whose type was removed from MBT.PropInfo). Same reason unknown jobs stay on screen: a rule
+  // nobody can see is a rule nobody can delete.
+  const rowSlots = (row: Record<string, boolean>) =>
+    [...slots, ...Object.keys(row ?? {}).filter((s) => !slots.includes(s))]
+
+  const write = (next: Record<string, Record<string, boolean>>) => update('HiddenByJob', next)
+  // A row with no slots hides nothing, so the server drops it on save — which is also what
+  // clearing the last chip is meant to do. Until then it stays visible and editable.
+  const addRule = () => { if (addTarget && !rules[addTarget]) write({ ...rules, [addTarget]: {} }) }
+  const removeRule = (job: string) => { const next = { ...rules }; delete next[job]; write(next) }
+  const toggleSlot = (job: string, slot: string) => {
+    const row = { ...(rules[job] ?? {}) }
+    if (row[slot]) delete row[slot]
+    else row[slot] = true
+    write({ ...rules, [job]: row })
+  }
+
+  return (
+    <Section icon="lock" title="HIDDEN BY JOB" sub="Body slots that never show a prop, per job."
+      action={
+        <button type="button" className={`mbt-btn-ghost is-danger${armed ? ' is-armed' : ''}`}
+          title="Drop the saved rules and go back to the ones in config.lua"
+          onClick={() => { if (!armed) { setArmed(true); return } setArmed(false); fetchNui('hiddenByJob:restore') }}>
+          {armed ? 'Confirm restore' : 'Restore from config.lua'}
+        </button>
+      }>
+      <div className="mbt-notice">
+        Police uniforms often have a pistol <b>modelled into the clothing</b> — hide <code>side</code> for that job
+        and the officer stops carrying two. Rules are <b>per job, not per outfit</b>. Restoring reloads this
+        panel from the server, so save anything else first.
+      </div>
+      {entries.length === 0 ? (
+        <div className="mbt-field__hint" style={{ marginTop: 2, whiteSpace: 'normal' }}>
+          No exceptions — every job shows every slot it carries.
+        </div>
+      ) : (
+        <div className="mbt-hbj-list">
+          {entries.map(([job, row]) => {
+            const mine = rowSlots(row)
+            const on = mine.filter((s) => row?.[s])
+            return (
+              <div key={job} className="mbt-hbj-row">
+                <div className="mbt-hbj-row__head">
+                  <span className="mbt-trunk-row__nm">{scopeLabel(job)}</span>
+                  {isUnknown(job) && (
+                    <span className="mbt-trunk-row__tag mbt-hbj-tag--unknown" title="No job by this name — renamed or removed">
+                      unknown job
+                    </span>
+                  )}
+                  <span className="mbt-hbj-row__sum">
+                    {on.length > 0 ? `→ ${on.join(', ')}` : '→ nothing hidden'}
+                  </span>
+                  <button type="button" className="mbt-btn-ghost" onClick={() => removeRule(job)}>Remove</button>
+                </div>
+                <div className="mbt-hbj-chips">
+                  {mine.map((s) => (
+                    <button key={s} type="button" aria-pressed={!!row?.[s]}
+                      className={`mbt-chip${row?.[s] ? ' is-on' : ''}`}
+                      title={SLOT_HINT[s] ?? (slots.includes(s) ? s : `${s} — no such slot on this server`)}
+                      onClick={() => toggleSlot(job, s)}>{s}</button>
+                  ))}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+      {free.length > 0 && (
+        <FieldBlock label="Add Rule" hint="Pick a job, then tick the slots it should never show." style={{ marginBottom: 0 }}>
+          <span className="mbt-section__action-row">
+            <Select value={addTarget} aria-label="Job to hide slots for" onChange={setNewJob}
+              options={free.map((j) => ({ value: j.name, label: j.label }))} />
+            <button type="button" className="mbt-btn-ghost" onClick={addRule}>Add</button>
+          </span>
+        </FieldBlock>
       )}
     </Section>
   )

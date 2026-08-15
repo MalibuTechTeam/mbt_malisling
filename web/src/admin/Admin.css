@@ -246,6 +246,7 @@
 .mbt-admin__confirm-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
 .mbt-btn-ghost.is-danger { color: var(--mbt-faulty); }
 .mbt-btn-ghost.is-danger:hover { background: rgba(var(--mbt-faulty-rgb), 0.10); border-color: rgba(var(--mbt-faulty-rgb), 0.28); }
+/* .mbt-btn-ghost.is-armed lives in ui/Field.css with the other button states. */
 
 @keyframes mbt-confirm-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes mbt-confirm-card-in {
@@ -459,15 +460,6 @@
 }
 /* Compact button for a section header action (sits next to the title). */
 .mbt-btn--sm { height: 30px; padding: 0 12px; font-size: 12px; gap: 6px; border-radius: var(--mbt-r-sm); }
-/* Second click of a two-step destructive action. Red only once it is armed — before that
-   it is an escape hatch, not a hazard, and colouring it red all the time would make the
-   one control that undoes a mess look like the thing that causes one. */
-.mbt-btn-ghost.is-armed {
-  border-color: rgba(var(--mbt-faulty-rgb), 0.55);
-  color: rgb(var(--mbt-faulty-rgb));
-  background: rgba(var(--mbt-faulty-rgb), 0.08);
-}
-
 /* Reset-all row: explanation on the left, the control on the right, set off from the
    fields above by a rule — it acts on all of them, not on the one that is selected. */
 .mbt-pos__reset {

@@ -208,9 +208,9 @@ MBT.PropInfo           = {
     },
 }
 
--- Hide sling props per job — FILL IT IN config.lua, next to the keybinds. Job names are
--- your server's own strings and this can't be tuned from the dashboard, so it belongs
--- with the things you decide at install. Declared here only so the table always exists.
+-- Hide sling props per job — seeded from config.lua at install, then owned by the dashboard
+-- (Core → HIDDEN BY JOB, stored in the mbt_malisling_config row). Declared here only so the
+-- table always exists; there is nothing to fill in at this end.
 MBT.HiddenByJob = {}
 
 -- Job-specific prop overrides. Uncomment and fill to override positions per job.

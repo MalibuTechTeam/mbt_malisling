@@ -106,12 +106,20 @@ AddEventHandler("mbt_malisling:checkInventory", function()
 end)
 
 --- Ask every tracked player to re-report what they carry.
---- Lanes are worked out when a snapshot lands, so a change to the multi-weapon toggle or to
---- MaxPerType would sit unused until something else happened to somebody's inventory. Their
---- reports come back through the same path that assigns lanes, so one call re-decides the
---- whole server. Staggered: on a full server this is 64 round trips, and there is no hurry.
+--- Lanes are worked out when a snapshot lands, and so is whether a job hides a slot, so a
+--- change to either would sit unused until something else happened to somebody's inventory.
+--- Their reports come back through the same path that decides both, so one call re-decides
+--- the whole server. Staggered: on a full server this is 64 round trips, and there is no hurry.
+---
+--- No syncDeletion first, unlike jobChanged above: the reconciliation drops what should no
+--- longer exist on its own, and clearing everything makes every prop on the street blink for
+--- a setting that may not have touched them.
 function MBT.RefreshAllSling()
     CreateThread(function()
+        -- Let the applyConfig broadcast that triggered this land first. Without the pause the
+        -- re-report can arrive before the new config does, and observers re-decide using the
+        -- values we were trying to replace — the change then appears to do nothing.
+        Wait(150)
         for _, id in ipairs(GetPlayers()) do
             local s = tonumber(id)
             if s and playersToTrack[s] then
