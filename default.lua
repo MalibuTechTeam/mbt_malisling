@@ -41,6 +41,13 @@ MBT.HolsterControls    = {
 -- filmic overlays anchored near the weapon. Applies to the weapon-moment overlays.
 MBT.UIStyle            = 'standard'
 
+-- Brand accent (dashboard-editable): the ONE interactive colour. Every --mbt-accent-*
+-- CSS token (fill, hover, tint, focus glow) is derived from this single value, and it
+-- repaints the dashboard AND the in-game prompts — they share one NUI document.
+-- Must stay '#rrggbb': the value is interpolated straight into CSS custom properties,
+-- so anything else is rejected server-side rather than shipped to a browser.
+MBT.Accent             = '#00E676'
+
 -- Sling prop positions and holster animations per weapon type.
 -- Each key maps to a weapon type defined in data/weapons.lua.
 MBT.PropInfo           = {

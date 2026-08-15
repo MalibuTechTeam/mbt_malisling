@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { debugData } from './utils/debugData'
 import { useNuiEvent } from './utils/useNuiEvent'
 import { fetchNui } from './utils/fetchNui'
+import { applyAccent, DEFAULT_ACCENT } from './utils/accent'
 import HolsterUI from './components/HolsterUI'
 import JamUI from './components/JamUI'
 import InspectUI from './components/InspectUI'
@@ -40,7 +41,7 @@ const DEV_UPDATE = false
 
 // Full mock of the server config snapshot (modules/config/server.lua → snapshot()).
 const MOCK_ADMIN_CONFIG = {
-  EnableSling: true, EnableFlashlight: true, HolsterConfirm: true, DropWeaponOnDeath: true, UIPosition: 'bottom-center', UIStyle: 'standard', Language: 'en',
+  EnableSling: true, EnableFlashlight: true, HolsterConfirm: true, DropWeaponOnDeath: true, UIPosition: 'bottom-center', UIStyle: 'standard', Accent: '#00E676', Language: 'en',
   Sounds: { Enabled: true, MaxDistance: 8.0, Volume: 0.3 },
   WeaponDrop: { WeaponModelProp: true, OxTargetPickup: true, Despawn: { Enabled: true, Seconds: 300, BlinkLastSec: 10 } },
   Jamming: { Enabled: true, Cooldown: 5, UnjamPresses: 5 },
@@ -176,6 +177,16 @@ export default function App() {
     fetchNui('getReduceMotion', {}, { on: false }).then((r: any) =>
       document.documentElement.classList.toggle('mbt-reduce-motion', !!r?.on))
   }, [])
+
+  // Brand accent. Pulled here rather than only on the applyConfig push because the
+  // in-game overlays live in THIS document too — a player who never opens the
+  // dashboard still has to see the server's colour on their prompts.
+  useEffect(() => {
+    fetchNui('getAccent', {}, { accent: DEFAULT_ACCENT }).then((r: any) => applyAccent(r?.accent))
+  }, [])
+
+  // Live repaint when an admin saves (broadcast to every client).
+  useNuiEvent<{ accent?: string }>('setAccent', ({ accent }) => applyAccent(accent))
 
   useNuiEvent<{ file: string; volume: number }>('playHolsterSound', ({ file, volume }) => {
     // Guard the filename (it builds a path): only a safe token can be played, and

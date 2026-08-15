@@ -10,7 +10,7 @@
 MBT = MBT or {}
 
 -- ── General ───────────────────────────────────────────────────────────────────
-MBT.Debug              = false  -- dev logging; intentionally NOT exposed in the dashboard
+MBT.Debug              = true  -- dev logging; intentionally NOT exposed in the dashboard
 MBT.Language           = 'en'   -- read-only in the dashboard; set the server language here
 
 -- ── Admin ─────────────────────────────────────────────────────────────────────

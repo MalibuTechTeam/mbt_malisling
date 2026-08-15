@@ -1,6 +1,9 @@
+import { useEffect, useState } from 'react'
 import { PositionPicker } from '../ui/PositionPicker'
 import { Segmented } from '../ui/Segmented'
 import { NumberInput } from '../ui/NumberInput'
+import { Icon } from '../ui/Icon'
+import { accentContrast, isHexColor, DEFAULT_ACCENT, MIN_CONTRAST } from '../../utils/accent'
 import { Section, ToggleRow, FieldBlock, type SectionProps } from './parts'
 
 /**
@@ -44,12 +47,32 @@ export function MultiWeaponSection({ config, update }: SectionProps) {
   )
 }
 
-/** INTERFACE — HUD prompt position (3 presets). "Custom" (a live drag-to-place
- *  HUD editor) is reserved for v2.1; the picker shows it disabled with a badge. */
+/** INTERFACE — HUD prompt position (3 presets), style and brand accent. "Custom"
+ *  placement (a live drag-to-place HUD editor) is reserved for v2.1; the picker shows
+ *  it disabled with a badge. */
 export function InterfaceSection({ config, update }: SectionProps) {
   const pos = config.UIPosition ?? 'bottom-center'
+  const accent = isHexColor(config.Accent) ? config.Accent : DEFAULT_ACCENT
+  const ratio = accentContrast(accent)
+
+  // The hex field is typed one character at a time, so it can't be driven straight off
+  // the config: committing only valid hex would freeze the input the moment you delete
+  // a digit. The draft holds the half-typed value; config only sees complete ones.
+  const [hexDraft, setHexDraft] = useState(accent)
+  useEffect(() => { setHexDraft(accent) }, [accent])
+
+  // Reset arms on the first click and commits on the second, disarming itself after 4s:
+  // this control throws away a colour someone tuned, and it sits next to the field they
+  // tuned it in.
+  const [armed, setArmed] = useState(false)
+  useEffect(() => {
+    if (!armed) return
+    const t = window.setTimeout(() => setArmed(false), 4000)
+    return () => window.clearTimeout(t)
+  }, [armed])
+
   return (
-    <Section icon="grid" title="INTERFACE" sub="Prompt placement and style.">
+    <Section icon="grid" title="INTERFACE" sub="Prompt placement, style and brand colour.">
       <FieldBlock label="Prompt Style" hint="Standard sits in a fixed spot on screen · Cinematic appears beside the weapon.">
         <Segmented
           value={config.UIStyle ?? 'standard'}
@@ -57,6 +80,38 @@ export function InterfaceSection({ config, update }: SectionProps) {
           options={[{ value: 'standard', label: 'Standard' }, { value: 'cinematic', label: 'Cinematic' }]}
         />
       </FieldBlock>
+      <FieldBlock label="Brand Accent"
+        hint="The one interactive colour — buttons, selection, focus rings. Repaints this dashboard and every in-game prompt as you pick.">
+        <div className="mbt-accent-row">
+          <input type="color" className="mbt-accent-swatch" value={accent} aria-label="Brand accent colour"
+            onChange={(e) => update('Accent', e.target.value.toUpperCase())} />
+          <input type="text" className="mbt-input mbt-accent-hex" value={hexDraft} maxLength={7}
+            spellCheck={false} aria-label="Brand accent hex value" placeholder={DEFAULT_ACCENT}
+            onChange={(e) => {
+              const v = e.target.value.trim()
+              setHexDraft(v)
+              if (isHexColor(v)) update('Accent', v.toUpperCase())
+            }}
+            onBlur={() => setHexDraft(accent)} />
+          <button type="button" className={`mbt-btn-ghost mbt-btn--sm${armed ? ' is-armed' : ''}`}
+            onClick={() => {
+              if (!armed) { setArmed(true); return }
+              setArmed(false)
+              update('Accent', DEFAULT_ACCENT)
+            }}>
+            {armed ? 'Confirm reset' : 'Reset'}
+          </button>
+        </div>
+      </FieldBlock>
+      {ratio < MIN_CONTRAST && (
+        <div className="mbt-notice mbt-notice--warn" role="alert">
+          <Icon name="alert" size={15} />
+          <span>
+            Hard to read — this colour scores <b>{ratio.toFixed(2)}:1</b> against the panel, under the {MIN_CONTRAST}:1
+            minimum. Prompts, focus rings and pills will be difficult to make out in game. Saving is still allowed.
+          </span>
+        </div>
+      )}
       <PositionPicker value={pos} onChange={(v) => update('UIPosition', v)} />
       {pos === 'custom' && (
         <p className="mbt-field__hint" style={{ marginTop: 8 }}>

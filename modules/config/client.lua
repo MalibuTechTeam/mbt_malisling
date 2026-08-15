@@ -80,6 +80,13 @@ RegisterNUICallback('getReduceMotion', function(_, cb)
     cb({ on = MBT.ReduceMotion and true or false })
 end)
 
+-- Brand accent, pulled on NUI mount. The push below can land before the CEF page
+-- exists (both start with the resource), so the page asks once rather than trusting
+-- the race. No focus needed.
+RegisterNUICallback('getAccent', function(_, cb)
+    cb({ accent = MBT.Accent })
+end)
+
 -- Server-driven localized notification (shared by config + other modules).
 RegisterNetEvent('mbt_malisling:notifyLabel', function(key)
     MBT.NotifyLabel(key)
@@ -101,6 +108,13 @@ local function applyConfig(d)
     LocalPlayer.state:set('malisling_holster_confirm', d.HolsterConfirm ~= false, false)
     if MBT.UI then MBT.UI.Position = d.UIPosition end
     if d.UIStyle then MBT.UIStyle = d.UIStyle end
+    -- The accent repaints for EVERYONE, not just the admin who saved: the in-game
+    -- prompts share the dashboard's NUI document and its --mbt-* tokens, so the colour
+    -- has to reach every client's CEF page, not only MBT.* on Lua's side.
+    if d.Accent then
+        MBT.Accent = d.Accent
+        SendNUIMessage({ action = 'setAccent', data = { accent = d.Accent } })
+    end
     if d.Sounds and MBT.Sounds then
         MBT.Sounds.Enabled     = d.Sounds.Enabled
         MBT.Sounds.MaxDistance = d.Sounds.MaxDistance

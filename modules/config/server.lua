@@ -7,6 +7,8 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 
 local VALID_POSITIONS = { ['bottom-center'] = true, ['top-center'] = true, ['bottom-right'] = true, ['custom'] = true }
+-- Fallback only — the real factory value lives in default.lua (MBT.Accent).
+local DEFAULT_ACCENT  = '#00E676'
 -- Maps menu name → group hash: config keys throw groups by HASH, the menu by name.
 local THROW_GROUPS    = {
     MELEE = `GROUP_MELEE`, PISTOL = `GROUP_PISTOL`, RIFLE = `GROUP_RIFLE`,
@@ -140,6 +142,7 @@ local function snapshot()
         DropWeaponOnDeath = b(MBT.DropWeaponOnDeath),
         UIPosition        = MBT.UI.Position,
         UIStyle           = MBT.UIStyle or 'standard',
+        Accent            = MBT.Accent or DEFAULT_ACCENT,
         Language          = MBT.Language,            -- read-only in the UI
         -- Holster & Sounds
         Sounds = {
@@ -320,6 +323,10 @@ local function validate(d)
     if type(d.DropWeaponOnDeath) ~= 'boolean' then return false end
     if type(d.UIPosition) ~= 'string' or not VALID_POSITIONS[d.UIPosition] then return false end
     if d.UIStyle ~= 'standard' and d.UIStyle ~= 'cinematic' then return false end
+    -- The accent is interpolated into CSS custom properties in the NUI, so the shape is
+    -- the security boundary: exactly '#rrggbb', nothing else. Readability is NOT checked
+    -- here — the dashboard warns on low contrast and still lets the owner save it.
+    if type(d.Accent) ~= 'string' or not d.Accent:match('^#%x%x%x%x%x%x$') then return false end
     -- Sounds
     if type(d.Sounds) ~= 'table' then return false end
     if type(d.Sounds.Enabled) ~= 'boolean' then return false end
@@ -525,6 +532,7 @@ local function applyToMBT(d)
     MBT.DropWeaponOnDeath = d.DropWeaponOnDeath
     MBT.UI.Position       = d.UIPosition
     MBT.UIStyle           = d.UIStyle
+    MBT.Accent            = d.Accent
     MBT.Sounds.Enabled     = d.Sounds.Enabled
     MBT.Sounds.MaxDistance = d.Sounds.MaxDistance
     MBT.Sounds.Volume      = d.Sounds.Volume
@@ -688,6 +696,7 @@ local function persistable(d)
         EnableSling = d.EnableSling, EnableFlashlight = d.EnableFlashlight,
         HolsterConfirm = d.HolsterConfirm,
         DropWeaponOnDeath = d.DropWeaponOnDeath, UIPosition = d.UIPosition, UIStyle = d.UIStyle,
+        Accent = d.Accent,
         Sounds = { Enabled = d.Sounds.Enabled, MaxDistance = d.Sounds.MaxDistance, Volume = d.Sounds.Volume },
         WeaponDrop = {
             WeaponModelProp = d.WeaponDrop.WeaponModelProp, OxTargetPickup = d.WeaponDrop.OxTargetPickup,
