@@ -1,0 +1,130 @@
+/* ColorPicker — themed swatch + popover, replacing the native colour input (CEF renders
+   that one's popup in the OS chrome, where none of our styling reaches it). */
+
+.mbt-cp { position: relative; flex: 0 0 auto; }
+
+.mbt-cp__swatch {
+  position: relative;
+  width: 46px; height: 34px; padding: 0;
+  border: 1px solid var(--mbt-edge-hi);
+  border-radius: var(--mbt-r-sm);
+  cursor: pointer;
+  transition: border-color var(--mbt-dur) var(--mbt-ease);
+  /* Inner hairline so a near-black accent still reads as a filled swatch rather than a
+     hole in the card — the one colour a plain border cannot separate from the panel. */
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.10);
+}
+.mbt-cp__swatch:hover,
+.mbt-cp.is-open .mbt-cp__swatch { border-color: rgba(var(--mbt-accent-rgb), 0.5); }
+.mbt-cp__swatch:focus-visible { outline: 2px solid var(--mbt-accent-glow); outline-offset: 2px; }
+
+/* ── Popover ──────────────────────────────────────────────────────────── */
+.mbt-cp__pop {
+  position: absolute; top: calc(100% + 8px); left: 0; z-index: 50;
+  width: 212px; padding: 12px;
+  display: flex; flex-direction: column; gap: 11px;
+  background: var(--mbt-surface-2);
+  border: 1px solid var(--mbt-edge-hi);
+  border-radius: var(--mbt-r-md);
+  box-shadow: var(--mbt-shadow-panel);
+  animation: mbt-cp-in var(--mbt-dur) var(--mbt-ease);
+}
+/* Low in the panel there is no room below; opening upward beats a picker you have to
+   scroll to reach, which is a picker you cannot see the effect of. */
+.mbt-cp__pop.is-flipped { top: auto; bottom: calc(100% + 8px); }
+@keyframes mbt-cp-in {
+  from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.mbt-cp__pop.is-flipped { animation-name: mbt-cp-in-up; }
+@keyframes mbt-cp-in-up {
+  from { opacity: 0; transform: translateY(6px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+/* Caret pointing back at the swatch. Without it the popover reads as a panel that
+   happened to appear, not as this control's own. */
+.mbt-cp__pop::before {
+  content: ""; position: absolute; left: 16px;
+  width: 9px; height: 9px;
+  background: var(--mbt-surface-2);
+  border-left: 1px solid var(--mbt-edge-hi);
+  border-top: 1px solid var(--mbt-edge-hi);
+  transform: rotate(45deg);
+}
+.mbt-cp__pop:not(.is-flipped)::before { top: -5px; }
+.mbt-cp__pop.is-flipped::before { bottom: -5px; transform: rotate(225deg); }
+
+/* ── Presets ──────────────────────────────────────────────────────────── */
+/* A brand accent is picked once and usually from a short list of things that read well
+   on a dark chip. The square is for the case the list misses, not the way in. */
+.mbt-cp__presets { display: flex; gap: 6px; flex-wrap: wrap; }
+.mbt-cp__preset {
+  width: 22px; height: 22px; padding: 0;
+  border: 1px solid var(--mbt-edge-hi); border-radius: var(--mbt-r-sm);
+  cursor: pointer;
+  transition: transform var(--mbt-dur-fast) var(--mbt-ease), border-color var(--mbt-dur-fast) var(--mbt-ease);
+}
+.mbt-cp__preset:hover { transform: scale(1.12); border-color: var(--mbt-text-lo); }
+.mbt-cp__preset:focus-visible { outline: 2px solid var(--mbt-accent-glow); outline-offset: 2px; }
+/* The one currently in use, ringed in the panel's own background so the mark reads on any
+   colour — a white tick would disappear on the pale presets and a dark one on the rest. */
+.mbt-cp__preset.is-on {
+  box-shadow: inset 0 0 0 2px var(--mbt-surface-2), 0 0 0 1px var(--mbt-text-hi);
+  border-color: var(--mbt-text-hi);
+}
+
+/* ── Saturation / value square ────────────────────────────────────────── */
+.mbt-cp__sv {
+  position: relative; width: 100%; height: 128px;
+  border-radius: var(--mbt-r-sm);
+  cursor: crosshair; touch-action: none; overflow: hidden;
+}
+.mbt-cp__sv:focus-visible { outline: 2px solid var(--mbt-accent-glow); outline-offset: 2px; }
+.mbt-cp__sv-white, .mbt-cp__sv-black { position: absolute; inset: 0; border-radius: inherit; }
+.mbt-cp__sv-white { background: linear-gradient(to right, #fff, rgba(255, 255, 255, 0)); }
+.mbt-cp__sv-black { background: linear-gradient(to top, #000, rgba(0, 0, 0, 0)); }
+.mbt-cp__sv-handle {
+  position: absolute; width: 12px; height: 12px;
+  border-radius: 50%; border: 2px solid #fff;
+  /* Dark ring under the white one: on a pale colour the handle would otherwise vanish
+     into the square exactly where you are trying to aim it. */
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.55);
+  transform: translate(-50%, -50%); pointer-events: none;
+}
+
+/* ── Hue ──────────────────────────────────────────────────────────────── */
+/* A real range input, so keyboard, screen readers and OS pointer settings work without
+   us reimplementing any of it. Only the skin is ours. */
+.mbt-cp__hue {
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: 12px; margin: 0;
+  border-radius: var(--mbt-r-pill); cursor: ew-resize;
+  background: linear-gradient(to right,
+    #f00 0%, #ff0 17%, #0f0 33%, #0ff 50%, #00f 67%, #f0f 83%, #f00 100%);
+}
+.mbt-cp__hue:focus-visible { outline: 2px solid var(--mbt-accent-glow); outline-offset: 3px; }
+.mbt-cp__hue::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 14px; height: 14px; border-radius: 50%;
+  background: #fff; border: 2px solid #fff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.55);
+  cursor: ew-resize;
+}
+.mbt-cp__hue::-moz-range-thumb {
+  width: 14px; height: 14px; border-radius: 50%;
+  background: #fff; border: 2px solid #fff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.55);
+  cursor: ew-resize;
+}
+
+/* ── Footer ───────────────────────────────────────────────────────────── */
+/* The caller's readout, on a hairline so it reads as a result of the controls above
+   rather than another control. Updated on every drag, which is the point: you find out
+   the colour is unreadable while choosing it, not after saving. */
+.mbt-cp__footer {
+  margin-top: 1px; padding-top: 9px;
+  border-top: 1px solid var(--mbt-edge-lo);
+  font-size: 11px; color: var(--mbt-text-lo);
+}
+.mbt-cp-ratio b { color: var(--mbt-text-hi); font-family: var(--mbt-font-mono); font-weight: 600; }
+.mbt-cp-ratio.is-low b { color: var(--mbt-faulty); }

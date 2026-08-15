@@ -5,6 +5,7 @@ import { NumberInput } from '../ui/NumberInput'
 import { Icon } from '../ui/Icon'
 import { Select } from '../ui/Select'
 import { fetchNui } from '../../utils/fetchNui'
+import { ColorPicker } from '../ui/ColorPicker'
 import { accentContrast, accentTokens, isHexColor, DEFAULT_ACCENT, MIN_CONTRAST } from '../../utils/accent'
 import { Section, ToggleRow, FieldBlock, type SectionProps } from './parts'
 import type { Job } from './PositionsSection'
@@ -49,6 +50,18 @@ export function MultiWeaponSection({ config, update }: SectionProps) {
     </Section>
   )
 }
+
+// Offered above the picker's square. Every one of these clears 3:1 against the in-game
+// chip, so the short way in is also the safe one — the square is for the case this list
+// misses, not the way most owners should have to get there.
+const ACCENT_PRESETS = [
+  DEFAULT_ACCENT, // MalibuTech green
+  '#40C4FF',      // ice blue
+  '#FFB300',      // amber
+  '#FF5252',      // red
+  '#B388FF',      // violet
+  '#E0E0E0',      // neutral, for servers that want no colour at all
+]
 
 /** INTERFACE — HUD prompt position (3 presets), style and brand accent. "Custom"
  *  placement (a live drag-to-place HUD editor) is reserved for v2.1; the picker shows
@@ -95,8 +108,13 @@ export function InterfaceSection({ config, update }: SectionProps) {
           <span className="mbt-accent-preview__dot" />
         </div>
         <div className="mbt-accent-row">
-          <input type="color" className="mbt-accent-swatch" value={accent} aria-label="Brand accent colour"
-            onChange={(e) => update('Accent', e.target.value.toUpperCase())} />
+          <ColorPicker value={accent} aria-label="Brand accent colour" presets={ACCENT_PRESETS}
+            onChange={(hex) => update('Accent', hex)}
+            footer={
+              <span className={`mbt-cp-ratio${ratio < MIN_CONTRAST ? ' is-low' : ''}`}>
+                <b>{ratio.toFixed(1)}:1</b> on the in-game prompt
+              </span>
+            } />
           <input type="text" className="mbt-input mbt-accent-hex" value={hexDraft} maxLength={7}
             spellCheck={false} aria-label="Brand accent hex value" placeholder={DEFAULT_ACCENT}
             onChange={(e) => {

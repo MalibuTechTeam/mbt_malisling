@@ -604,23 +604,8 @@ input[type="number"]::-webkit-outer-spin-button {
   align-items: center;
   gap: 8px;
 }
-.mbt-accent-swatch {
-  flex: none;
-  width: 38px;
-  height: 38px;
-  padding: 0;
-  background: var(--mbt-surface-base);
-  border: 1px solid var(--mbt-edge);
-  border-radius: var(--mbt-r-sm);
-  cursor: pointer;
-}
-/* The native swatch has its own chrome; strip it so the control reads as one of ours. */
-.mbt-accent-swatch::-webkit-color-swatch-wrapper { padding: 3px; }
-.mbt-accent-swatch::-webkit-color-swatch { border: none; border-radius: 5px; }
-.mbt-accent-swatch:focus-visible {
-  outline: 2px solid var(--mbt-accent-glow);
-  outline-offset: 2px;
-}
+/* The swatch itself is ui/ColorPicker.css — .mbt-accent-swatch skinned an
+   <input type="color">, whose popup CEF draws in the OS chrome regardless. */
 /* Sample in-game prompt. Reuses the real .cine-chip and .mbt-kc rules (defined for the
    overlays and global to this document), so it drifts with the thing it is previewing
    instead of being a lookalike that quietly stops matching. */
