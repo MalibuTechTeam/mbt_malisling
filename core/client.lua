@@ -116,21 +116,19 @@ local function syncSling(data)
 end
 
 --- Every weapon that should be hanging on the LOCAL player right now: [type][serial] = item.
----
---- ONE builder. Five call sites used to assemble this map their own way — the unequip
---- branch, itemCount, updateInventory, the server's checkWeaponProps and the ESX path —
---- each keeping a single weapon per type under slightly different rules, which is how they
---- drifted apart. It is also a SNAPSHOT, not a delta: the server replaces the player's
---- registry with whatever this returns, so a weapon that left the inventory disappears
---- because it stops being reported, with no deletion event to lose.
----
 --- desired = what the inventory holds − what is in hand.
---- Concealment is deliberately NOT subtracted: it is a render-time decision every observer
---- makes about every player (isPropSuppressed), and folding it in here would hide the
---- weapon from the server as well — including from the observers who should still see it.
+---
+--- A SNAPSHOT, not a delta: the server replaces the registry with whatever this returns, so a
+--- weapon that left the inventory disappears by no longer being reported. Concealment is NOT
+--- subtracted — it is a render-time decision each observer makes, and folding it in here would
+--- hide the weapon from the server too.
 ---@param items table?  item list to read (server-sent); nil = search the local inventory
+---@param excludeSlot number?  inventory slot of the weapon going INTO the hand right now.
+---  The in-hand test below reads the ped, and on the equip path the ped does not necessarily
+---  register as armed yet — ox announces the weapon before the draw finishes. Passing the slot
+---  states the fact instead of inferring it from a race.
 ---@return table<string, table<string, table>>
-local function buildDesired(items)
+local function buildDesired(items, excludeSlot)
     local out = {}
     if not MBT.WeaponsInfo or not MBT.WeaponsInfo.Weapons then return out end
 
@@ -168,7 +166,9 @@ local function buildDesired(items)
             -- is — with two copies of the same gun the name can't tell them apart, and
             -- excluding by name would take both off the body.
             local drawn = false
-            if armed then
+            if excludeSlot and item.slot == excludeSlot then
+                drawn = true
+            elseif armed then
                 if heldSlot then drawn = (item.slot == heldSlot)
                 else drawn = (joaat(item.name) == heldHash) end
             end
@@ -183,6 +183,13 @@ local function buildDesired(items)
 
     return out
 end
+
+-- applyTint() lived here. REMOVED before the 2.1.0 tag, deliberately and with the finding
+-- intact: tints DO work on a slung prop (proven in game 2026-08-17), but only on the body,
+-- and shipping them there alone would give a gold gun on your back and a grey one on the
+-- floor — which reads as broken persistence, not as an unfinished renderer. The full plan,
+-- including the three pieces beyond this file, is in feature_malisling.md → "Weapon Tints".
+-- /mbt_tinttest is kept as the diagnostic that proved it.
 
 ---Apply attachments on weapon object.
 ---@param data table
@@ -360,6 +367,73 @@ end
 -- report is "the pistol still shows" and the cause is a job name spelled differently in
 -- config than the framework returns.
 if MBT.Debug then
+    -- ── /mbt_tinttest <0-7> — does the tint native work on OUR prop at all? ──────
+    -- ANSWERED 2026-08-17: yes, but ONLY while the weapon asset is streamed. With the asset
+    -- freed the call does nothing and reports nothing, which is why tints looked impossible
+    -- twice. Kept as the proof — 2.2 needs it again.
+    RegisterCommand('mbt_tinttest', function(_, args)
+        local tint = tonumber(args[1])
+        if not tint then
+            return Utils.mbtDebugger('tinttest ~ usage: /mbt_tinttest <0-7>  ' ..
+                '(0 normal · 1 green · 2 gold · 3 pink · 4 army · 5 LSPD · 6 orange · 7 platinum)')
+        end
+        -- Streams the asset back BEFORE setting the tint. spawnProp frees it one line after
+        -- CreateWeaponObject, so a bare call would do nothing whether or not the native
+        -- supports weapon objects — two causes, one symptom. Now a null result means one thing.
+        local n, streamed = 0, 0
+        Slung.forEach(cache.serverId, function(prop, _, _, e)
+            if not DoesEntityExist(prop) then return end
+            local name = e and (e.name or (e.data and e.data.name))
+            if name then
+                if pcall(lib.requestWeaponAsset, joaat(name), 2000, 31, 1) then streamed = streamed + 1 end
+            end
+            SetWeaponObjectTintIndex(prop, math.floor(tint))
+            n = n + 1
+        end, { states = 'all' })
+        if n == 0 then
+            return Utils.mbtWarn('tinttest ~ no slung props right now — holster a weapon first')
+        end
+        -- States what it DID, not what it means. The previous wording printed the conclusion
+        -- unconditionally, which makes a log that agrees with you whatever happens.
+        Utils.mbtDebugger(('tinttest ~ called SetWeaponObjectTintIndex(%d) on %d prop(s); ' ..
+            'weapon asset re-streamed for %d of them. Look at the prop — this line cannot tell you.')
+            :format(tint, n, streamed))
+    end, false)
+
+    -- ── /mbt_slingmem — is the script leaking, and if so WHICH table? ────────────
+    -- resmon shows one number for the whole resource, and Lua's incremental GC makes that
+    -- number rise and fall in a sawtooth: watching it climb for thirty seconds proves
+    -- nothing. This prints the heap AFTER a full collection — what is still REACHABLE,
+    -- which is the only figure a leak cannot hide from — next to the size of every table
+    -- that outlives a frame. Run it twice a few minutes apart: if `live` is flat, there is
+    -- no leak whatever resmon does; if it climbs, the row that climbed with it is the leak.
+    RegisterCommand('mbt_slingmem', function()
+        local before = collectgarbage('count')
+        collectgarbage('collect')
+        local live = collectgarbage('count')
+
+        local function count(t)
+            local n = 0
+            for _ in pairs(t or {}) do n = n + 1 end
+            return n
+        end
+
+        -- Entries across every tracked player, by state: a registry that grows while the
+        -- player count does not is the shape a slung-prop leak would take.
+        local entries, players = 0, 0
+        for serverId in pairs(playersToTrack) do
+            players = players + 1
+            Slung.forEach(serverId, function() entries = entries + 1 end,
+                { states = 'all', stale = true })
+        end
+
+        Utils.mbtDebugger(('sling mem ~ heap %.0f KB before GC, %.0f KB live (%.0f KB was garbage)')
+            :format(before, live, before - live))
+        Utils.mbtDebugger(('sling mem ~ tracked players=%d  registry entries=%d'):format(players, entries))
+        Utils.mbtDebugger(('sling mem ~ jobsInScope=%d  ctxInScope=%d'):format(
+            count(playerJobsInScope), count(playerCtxInScope)))
+    end, false)
+
     RegisterCommand('mbt_slingdebug', function()
         local me   = cache.serverId
         local jobs = {}
@@ -501,6 +575,14 @@ function sendAnimations(jobName)
         propInfoTable = Utils.tableDeepCopy(MBT.PropInfo)
     end
 
+    -- Applied to the COPY, never to MBT.PropInfo: writing the style into the base would make
+    -- it permanent for the session, and switching back to Standard would return the previous
+    -- style. Runs after the job overrides and cannot collide — those touch only Pos and Rot.
+    for wtype in pairs(propInfoTable) do
+        local styled = Utils.holsterAnim(wtype)
+        if styled then propInfoTable[wtype].HolsterAnim = styled end
+    end
+
     TriggerEvent("mbt_malisling:sendAnim", {
         WeaponData = MBT.WeaponsInfo,
         HolsterData = propInfoTable
@@ -609,14 +691,28 @@ function Init()
 
             if not playersToTrack[cache.serverId] then return end
 
-            if Slung.first(weaponType) then
+            -- NOT gated on a prop being on the body. Inside `Slung.first` this missed every
+            -- equip during the spawn window or while suppressed (concealed / hidden by job),
+            -- and silently: the unequip branch then bailed on an empty equippedWeapon and
+            -- never re-slung.
+            if weaponType and MBT.PropInfo[weaponType] then
                 Utils.mbtDebugger("ox_inventory:currentWeapon ~ Equip check passed!")
-                TriggerEvent('mbt_malisling:onUnholster', weaponType)
-                TriggerServerEvent("mbt_malisling:syncDeletion", weaponType)
+                -- The gesture still asks for a prop that is really there: there is no
+                -- animation of taking something off your back when nothing is on it.
+                if Slung.first(weaponType) then
+                    TriggerEvent('mbt_malisling:onUnholster', weaponType)
+                end
                 equippedWeapon["name"] = weaponName;
                 equippedWeapon["slot"] = data.slot;
                 equippedWeapon["components"] = data.metadata.components;
                 equippedWeapon["serial"] = data.metadata.serial;
+                -- Reconcile, do NOT clear the type. This used to fire syncDeletion, which
+                -- deletes every prop in the slot: right while a slot held one weapon, wrong
+                -- the moment it holds two — drawing one of two rifles took BOTH off the back
+                -- until the next snapshot put the other one back. Same defect and same fix as
+                -- the itemCount path below. The snapshot omits the weapon going into the hand,
+                -- so exactly one prop disappears and every observer agrees on which.
+                syncSling({ playerWeapons = buildDesired(nil, data.slot) })
             end
 
             -- Scope the ped-global flashlight to the weapon now in hand: enable it only
@@ -919,6 +1015,11 @@ local function spawnProp(ctx, weaponType, weaponData, serial, lane)
 
     weaponData.weaponObj = CreateWeaponObject(weaponData.weaponHash, 50, ctx.playerCoords.x, ctx.playerCoords.y, ctx.playerCoords.z, true, 1.0, 0)
     RequestWeaponHighDetailModel(weaponData.weaponObj)
+    -- Freed here, one line after creation. NOTE for whoever implements weapon tints (2.2):
+    -- this position is why SetWeaponObjectTintIndex does nothing on a slung prop — the native
+    -- needs the asset streamed, and by the components pass it is gone. Proven in game
+    -- 2026-08-17 with /mbt_tinttest. Moving it down is necessary but NOT sufficient; see
+    -- feature_malisling.md, "Weapon Tints", for the other three pieces.
     RemoveWeaponAsset(weaponData.weaponHash)   -- object keeps its model; the asset was never freed (streaming-memory leak)
 
     local deadline = GetGameTimer() + 500

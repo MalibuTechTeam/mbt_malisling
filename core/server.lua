@@ -156,12 +156,6 @@ AddEventHandler("mbt_malisling:jobChanged", function()
     TriggerClientEvent("mbt_malisling:checkWeaponProps", _source, items)
 end)
 
--- Derived from MBT.PropInfo so any custom type added to the config (e.g.
--- 'extinguisher') is accepted automatically — no separate whitelist to keep
--- in sync.
-local _validWeaponTypes = {}
-for k in pairs(MBT.PropInfo) do _validWeaponTypes[k] = true end
-
 RegisterNetEvent("mbt_malisling:syncSling")
 AddEventHandler("mbt_malisling:syncSling", function(data)
     local _source = source
@@ -218,26 +212,15 @@ AddEventHandler("mbt_malisling:syncSling", function(data)
     })
 end)
 
-RegisterNetEvent("mbt_malisling:syncDeletion")
-AddEventHandler("mbt_malisling:syncDeletion", function(weaponType)
-    local _source = source
-    if not _validWeaponTypes[weaponType] then return end   -- validate the key, like syncSling
-    if not netThrottle(_source, 'syncDel', 100) then return end
-    if playersToTrack[_source] == nil then return end
-    Slung.clearType(_source, weaponType)
-
-    TriggerScopeEvent({
-        event = "mbt_malisling:syncDeletion",
-        scopeOwner = _source,
-        selfTrigger = true,
-        payload = {
-            playerSource = _source,
-            calledBy = "mbt_malisling:syncDeletion",
-            weaponType = weaponType
-        }
-    })
-end)
-
+-- The inbound per-type `mbt_malisling:syncDeletion` net event lived here and is GONE. It
+-- cleared a whole slot on the caller's behalf, which is exactly the behaviour that took both
+-- rifles off a player's back when they drew one; the equip path now reports a snapshot instead
+-- (core/client.lua, ox_inventory:currentWeapon) and nothing in this resource asks for a
+-- per-type wipe any more. An unreachable handler that mutates state is worse than none.
+--
+-- Not to be confused with the CLIENT event of the same name, which is alive and used: the
+-- server still broadcasts it on job change and on syncDeletionAll below.
+--
 -- Every type at once. Its own event on purpose: syncDeletion is throttled at 100ms per
 -- source, so a client looping one delete per type lands the first and loses the rest, and
 -- the observers keep rendering props the owner has already destroyed (entering a vehicle
