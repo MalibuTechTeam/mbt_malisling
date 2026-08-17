@@ -87,3 +87,50 @@ export function contrastRatio(a: RGB, b: RGB): number {
   const lo = Math.min(la, lb)
   return (hi + 0.05) / (lo + 0.05)
 }
+
+/**
+ * A dark surface carrying a colour's hue.
+ *
+ * The overlay cards are painted with this, not with the colour itself: white text on a
+ * full-strength accent measures 1.2-2.8:1 against every preset we ship (the default green
+ * is 1.46), while on a tint of the same hue it stays at 15-17:1 — where the neutral
+ * surfaces already were. The card still reads unmistakably as the server's colour, because
+ * hue is what identifies a colour; lightness is what makes text on it readable.
+ *
+ * `satCap` keeps it a tint rather than a wash, and a near-grey accent stays near-grey —
+ * a server that picks neutral gets the neutral panel it asked for.
+ */
+export function tintSurface(hex: string, lightness: number, satCap = 0.45): RGB | null {
+  const rgb = hexToRgb(hex)
+  if (!rgb) return null
+  const { h, s } = rgbToHsl(rgb)
+  return hslToRgb({ h, s: Math.min(s, satCap), l: lightness })
+}
+
+interface HSL { h: number; s: number; l: number }
+
+function rgbToHsl({ r, g, b }: RGB): HSL {
+  const R = r / 255, G = g / 255, B = b / 255
+  const max = Math.max(R, G, B), min = Math.min(R, G, B)
+  const l = (max + min) / 2
+  if (max === min) return { h: 0, s: 0, l }
+  const d = max - min
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min)
+  const h = (max === R ? (G - B) / d + (G < B ? 6 : 0) : max === G ? (B - R) / d + 2 : (R - G) / d + 4) / 6
+  return { h, s, l }
+}
+
+function hslToRgb({ h, s, l }: HSL): RGB {
+  if (!s) return { r: Math.round(l * 255), g: Math.round(l * 255), b: Math.round(l * 255) }
+  const q = l < 0.5 ? l * (1 + s) : l + s - l * s
+  const p = 2 * l - q
+  const ch = (t: number) => {
+    if (t < 0) t += 1
+    if (t > 1) t -= 1
+    if (t < 1 / 6) return p + (q - p) * 6 * t
+    if (t < 1 / 2) return q
+    if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6
+    return p
+  }
+  return { r: Math.round(ch(h + 1 / 3) * 255), g: Math.round(ch(h) * 255), b: Math.round(ch(h - 1 / 3) * 255) }
+}

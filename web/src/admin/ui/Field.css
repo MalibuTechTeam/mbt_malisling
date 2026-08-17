@@ -384,6 +384,32 @@ input[type="number"]::-webkit-outer-spin-button {
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
 }
+/* Empty state for HIDDEN BY JOB. A card whose list is empty is otherwise all frame and no
+   picture: this says what the absence means and what to do about it, in the space the rules
+   will occupy — so the card does not visibly change shape when the first one is added. */
+.mbt-hbj-empty {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas: "icon title" "icon body";
+  align-items: center;
+  gap: 1px 10px;
+  padding: 14px 14px;
+  background: var(--mbt-surface-1);
+  border: 1px dashed var(--mbt-edge);
+  border-radius: var(--mbt-r-sm);
+}
+.mbt-hbj-empty svg { grid-area: icon; color: var(--mbt-text-faint); }
+.mbt-hbj-empty b {
+  grid-area: title;
+  font-family: var(--mbt-font-display);
+  font-size: 12px; letter-spacing: 0.02em;
+  color: var(--mbt-text-hi);
+}
+.mbt-hbj-empty span {
+  grid-area: body;
+  font-size: 11.5px; line-height: 1.45; color: var(--mbt-text-lo);
+}
+
 .mbt-hbj-list::-webkit-scrollbar { width: 11px; }
 .mbt-hbj-list::-webkit-scrollbar-track { background: transparent; }
 .mbt-hbj-list::-webkit-scrollbar-thumb {

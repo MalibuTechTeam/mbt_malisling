@@ -328,6 +328,8 @@ withMeta(ChainOfCustodySection, { label: 'Chain of Custody', path: 'ChainOfCusto
 withMeta(AmmoSharingSection, { label: 'Ammo Sharing', path: 'AmmoSharing.Enabled' })
 withMeta(PatDownSection, { label: 'Pat-down', path: 'PatDown.Enabled' })
 withMeta(ConcealedCarrySection, { label: 'Concealed Carry', path: 'ConcealedCarry.Enabled' })
-withMeta(SerialsSection, { label: 'Serial Ensure', path: 'Serials.EnsureGeneration' })
+// The card is WEAPON SERIALS; "Serial Ensure" was the config key (`Serials.EnsureGeneration`)
+// leaking into the index, where it named nothing an owner would recognise.
+withMeta(SerialsSection, { label: 'Weapon Serials', path: 'Serials.EnsureGeneration' })
 withMeta(HandoffSection, { label: 'Weapon Handoff', path: 'Handoff.Enabled' })
 withMeta(ShellCasingsSection, { label: 'Shell Casings', path: 'ShellCasings.Enabled' })

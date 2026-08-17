@@ -8,11 +8,12 @@ import { fetchNui } from '../../utils/fetchNui'
 import { ColorPicker } from '../ui/ColorPicker'
 import { accentContrast, accentTokens, isHexColor, DEFAULT_ACCENT, MIN_CONTRAST } from '../../utils/accent'
 import { Section, ToggleRow, FieldBlock, type SectionProps, withMeta } from './parts'
-import type { Job } from './PositionsSection'
 
 /**
- * Core category — split into atomic cards so the category page can order them
- * freely (CoreSection and InterfaceSection are placed separately in the grid).
+ * Atomic cards: each one is a single subject, so a category page can order and pair them
+ * freely. Where a card grew to cover two subjects it stopped fitting beside anything —
+ * INTERFACE held prompt placement AND brand colour and reached 404px, which is why it is
+ * now PROMPT and BRAND ACCENT.
  */
 
 /** CORE — core sling toggles (runtime-safe; Debug stays in config.lua). */
@@ -37,10 +38,11 @@ export function CoreSection({ config, update }: SectionProps) {
 export function MultiWeaponSection({ config, update }: SectionProps) {
   const mw = config.MultiWeaponVisibility ?? {}
   return (
-    <Section icon="power" title="MULTI-WEAPON" sub="More than one weapon in the same body slot.">
-      <ToggleRow title="Show Multiple Weapons"
-        desc="A rifle and a shotgun share the back slot — off, only one of them shows"
-        checked={!!mw.Enabled} onChange={(v) => update('MultiWeaponVisibility.Enabled', v)} />
+    // Master switch in the HEAD, like every other feature card — see the note on DESPAWN TIMER.
+    <Section icon="power" title="MULTI-WEAPON"
+      sub="More than one weapon in the same body slot — off, a rifle and a shotgun share the back and only one shows."
+      action={<ToggleRow.Inline label="Multi-Weapon" checked={!!mw.Enabled}
+        onChange={(v) => update('MultiWeaponVisibility.Enabled', v)} />}>
       <FieldBlock label="Max Per Slot"
         hint="Distinct weapons drawn per slot. Copies of the same model share one prop; the rest are still tracked."
         disabled={!mw.Enabled} style={{ marginBottom: 0 }}>
@@ -63,11 +65,39 @@ const ACCENT_PRESETS = [
   '#E0E0E0',      // neutral, for servers that want no colour at all
 ]
 
-/** INTERFACE — HUD prompt position (3 presets), style and brand accent. "Custom"
- *  placement (a live drag-to-place HUD editor) is reserved for v2.1; the picker shows
- *  it disabled with a badge. */
-export function InterfaceSection({ config, update }: SectionProps) {
+/** PROMPT — where the in-game prompt sits and which of the two shapes it wears. "Custom"
+ *  placement (a live drag-to-place HUD editor) waits on the overlay reskin — see the note
+ *  in PositionPicker; the picker shows it disabled with a badge. */
+export function PromptSection({ config, update }: SectionProps) {
   const pos = config.UIPosition ?? 'bottom-center'
+  return (
+    <Section icon="grid" title="PROMPT" sub="Where the in-game prompt sits, and its shape.">
+      <FieldBlock label="Prompt Style" hint="Standard sits in a fixed spot on screen · Cinematic appears beside the weapon.">
+        <Segmented
+          value={config.UIStyle ?? 'standard'}
+          onChange={(v) => update('UIStyle', v)}
+          options={[{ value: 'standard', label: 'Standard' }, { value: 'cinematic', label: 'Cinematic' }]}
+        />
+      </FieldBlock>
+      <PositionPicker value={pos} onChange={(v) => update('UIPosition', v)} />
+      {pos === 'custom' && (
+        <p className="mbt-field__hint" style={{ marginTop: 8 }}>
+          Custom placement — a live drag-to-place editor — isn't available yet; using a default spot for now.
+        </p>
+      )}
+    </Section>
+  )
+}
+
+/**
+ * BRAND ACCENT — the server's colour on the prompts its players see.
+ *
+ * Split from the prompt's placement, which it had been sharing a card with. They are set at
+ * different times by different people — placement once, when the panel is first set up;
+ * colour whenever the server rebrands — and together they made a 404px card that no other
+ * card on the page could stand beside.
+ */
+export function AccentSection({ config, update }: SectionProps) {
   const accent = isHexColor(config.Accent) ? config.Accent : DEFAULT_ACCENT
   const ratio = accentContrast(accent)
 
@@ -88,16 +118,11 @@ export function InterfaceSection({ config, update }: SectionProps) {
   }, [armed])
 
   return (
-    <Section icon="grid" title="INTERFACE" sub="Prompt placement, style and brand colour.">
-      <FieldBlock label="Prompt Style" hint="Standard sits in a fixed spot on screen · Cinematic appears beside the weapon.">
-        <Segmented
-          value={config.UIStyle ?? 'standard'}
-          onChange={(v) => update('UIStyle', v)}
-          options={[{ value: 'standard', label: 'Standard' }, { value: 'cinematic', label: 'Cinematic' }]}
-        />
-      </FieldBlock>
-      <FieldBlock label="Brand Accent"
-        hint="Your server's colour on the prompts players see. This dashboard is the MalibuTech panel and keeps its own green.">
+    <Section icon="palette" title="BRAND ACCENT" sub="Your server's colour on the prompts players see.">
+      {/* The card's own subtitle already says whose colour this is, so the field says the
+          part it does not: why the panel around it stays green. */}
+      <FieldBlock label="Colour"
+        hint="This dashboard is the MalibuTech panel and keeps its own green.">
         {/* A sample of the real thing rather than a swatch: the accent lands on a prompt
             over dark gameplay, and a square of colour on a bright card tells you nothing
             about whether it will read there. Tokens are set inline so this one element
@@ -146,12 +171,6 @@ export function InterfaceSection({ config, update }: SectionProps) {
           </span>
         </div>
       )}
-      <PositionPicker value={pos} onChange={(v) => update('UIPosition', v)} />
-      {pos === 'custom' && (
-        <p className="mbt-field__hint" style={{ marginTop: 8 }}>
-          Custom placement — a live drag-to-place editor — ships in v2.1; using a default spot for now.
-        </p>
-      )}
     </Section>
   )
 }
@@ -172,7 +191,7 @@ const SLOT_HINT: Record<string, string> = {
 /** HIDDEN BY JOB — per-job list of body slots that never get a prop (uniforms that already
  *  model the weapon). Sparse by design: one row per job with exceptions, not a job x slot
  *  matrix, because a server has dozens of jobs and a handful of rules. */
-export function HiddenByJobSection({ config, update }: SectionProps) {
+export function HiddenByJobSection({ config, update, jobs = [] }: SectionProps) {
   // Slots come from the server's live MBT.PropInfo — a custom type is covered, and the
   // strap / multi-weapon lanes are already filtered out there.
   const slots: string[] = Array.isArray(config?.BodySlots) ? config.BodySlots : []
@@ -181,8 +200,8 @@ export function HiddenByJobSection({ config, update }: SectionProps) {
   const rules: Record<string, Record<string, boolean>> =
     config?.HiddenByJob && !Array.isArray(config.HiddenByJob) ? config.HiddenByJob : {}
 
-  const [jobs, setJobs] = useState<Job[]>([])
-  useEffect(() => { fetchNui('getJobs').then((l: any) => setJobs(Array.isArray(l) ? l : [])) }, [])
+  // Jobs come from the dashboard now — see SectionProps.jobs for why this card no longer
+  // fetches its own copy.
 
   // Two-step restore: the first click arms, the second one fires, and it disarms itself after
   // a few seconds. This control throws away work and sits next to nothing that undoes it.
@@ -224,22 +243,24 @@ export function HiddenByJobSection({ config, update }: SectionProps) {
   }
 
   return (
-    <Section icon="lock" title="HIDDEN BY JOB" sub="Body slots that never show a prop, per job."
-      action={
-        <button type="button" className={`mbt-btn-ghost is-danger${armed ? ' is-armed' : ''}`}
-          title="Drop the saved rules and go back to the ones in config.lua"
-          onClick={() => { if (!armed) { setArmed(true); return } setArmed(false); fetchNui('hiddenByJob:restore') }}>
-          {armed ? 'Confirm restore' : 'Restore from config.lua'}
-        </button>
-      }>
+    // No action in the header. It used to hold "Restore from config.lua" in red — a
+    // DESTRUCTIVE control given the most prominent position on the card, louder than the
+    // thing the card is actually for. It now sits at the foot, next to the sentence that
+    // explains what it throws away, which is where it can be read at the moment it matters.
+    <Section icon="lock" title="HIDDEN BY JOB" sub="Body slots that never show a prop, per job.">
       <div className="mbt-notice">
-        Police uniforms often have a pistol <b>modelled into the clothing</b> — hide <code>side</code> for that job
-        and the officer stops carrying two. Rules are <b>per job, not per outfit</b>. Restoring reloads this
-        panel from the server, so save anything else first.
+        Police uniforms often have a pistol <b>modelled into the clothing</b> — hide{' '}
+        <code>side</code> for that job and the officer stops carrying two. Rules are{' '}
+        <b>per job, not per outfit</b>.
       </div>
+      {/* A composed empty state rather than a grey line of text: with no rules this card is
+          otherwise all chrome, and the one thing a reader needs is what the absence MEANS
+          plus how to end it. */}
       {entries.length === 0 ? (
-        <div className="mbt-field__hint" style={{ marginTop: 2, whiteSpace: 'normal' }}>
-          No exceptions — every job shows every slot it carries.
+        <div className="mbt-hbj-empty">
+          <Icon name="layers" size={16} />
+          <b>No exceptions</b>
+          <span>Every job shows every slot it carries. Add a rule below to hide one.</span>
         </div>
       ) : (
         <div className="mbt-hbj-list">
@@ -273,6 +294,15 @@ export function HiddenByJobSection({ config, update }: SectionProps) {
           })}
         </div>
       )}
+      {/* An empty job list used to be indistinguishable from a working one: the select still
+          offered "Everyone (*)", so the card looked fine and simply had no jobs in it. Say it
+          instead — the cause is on the framework's side and nothing here will fix it. */}
+      {jobs.length === 0 && (
+        <div className="mbt-field__hint" style={{ marginTop: 2, whiteSpace: 'normal' }}>
+          The framework returned no jobs, so only the <b>Everyone (*)</b> rule can be added.
+          Reopen the panel to try again.
+        </div>
+      )}
       {free.length > 0 && (
         <FieldBlock label="Add Rule" hint="Pick a job, then tick the slots it should never show." style={{ marginBottom: 0 }}>
           <span className="mbt-section__action-row">
@@ -282,6 +312,20 @@ export function HiddenByJobSection({ config, update }: SectionProps) {
           </span>
         </FieldBlock>
       )}
+      {/* Same foot treatment as Weapon Positions' "Reset all": the warning and the button that
+          earns it, on one line, below a rule. Two-step, because this throws away work and
+          nothing on this panel undoes it. */}
+      <div className="mbt-pos__reset">
+        <span>
+          Drop every saved rule and reload the ones from <code>config.lua</code>. This re-reads
+          the panel from the server, so save anything else first.
+        </span>
+        <button type="button" className={`mbt-btn-ghost mbt-btn--sm is-danger${armed ? ' is-armed' : ''}`}
+          aria-live="polite"
+          onClick={() => { if (!armed) { setArmed(true); return } setArmed(false); fetchNui('hiddenByJob:restore') }}>
+          {armed ? 'Click again to confirm' : 'Restore'}
+        </button>
+      </div>
     </Section>
   )
 }
@@ -298,5 +342,6 @@ withMeta(CoreSection, {
   ],
 })
 withMeta(MultiWeaponSection, { label: 'Multi-Weapon', path: 'MultiWeaponVisibility.Enabled' })
-withMeta(InterfaceSection, { label: 'Interface' })
+withMeta(PromptSection, { label: 'Prompt' })
+withMeta(AccentSection, { label: 'Brand Accent' })
 withMeta(HiddenByJobSection, { label: 'Hidden by Job' })
