@@ -1,18 +1,10 @@
--- ── Slung prop registry — client ─────────────────────────────────────────────────
+-- ── Slung prop registry — client ──
 --   playersToTrack[serverId][propType][serialKey] = SlungEntry
 --
--- Replaces a map whose single cell held five different things — nil, false, a spawn-in-flight
--- reservation, an editor reservation, and a prop handle — with the two reservations sharing
--- the same `true`. The states below are those five values told apart.
---
--- Rules this file exists to enforce:
---   * a handle exists ONLY with state == 'live'
---   * every prop dies in ONE place, entity first and registry after (the old code did the
---     reverse in four places, and a handle missing from the spawn registry left the prop
---     hanging in the world)
---   * iteration is deterministic (lane, then serial) and safe to delete from
---   * no net events in here: callers decide what to synchronise, this file touches memory
---     and entities only
+-- Replaces a map whose single cell held five different things, two of them sharing one
+-- `true`. Rules this file exists to enforce: a handle exists ONLY with state 'live'; every
+-- prop dies in ONE place, entity before registry; iteration is deterministic and safe to
+-- delete from; no net events — callers decide what to synchronise.
 
 local DoesEntityExist = DoesEntityExist
 local DeleteObject = DeleteObject

@@ -1,14 +1,8 @@
--- ─────────────────────────────────────────────────────────────────────────────
--- Weapon Rack / Gun Locker — client
---
--- Spawns config-defined rack props, lets a player stow/retrieve a weapon (ox_target
--- or an [E] fallback), and renders racked weapons attached to the prop. Contents
--- replicate via GlobalState (mbt_weaponRacks); the prop is local + identical per
--- client, so only contents sync. Persistence + validation are server-authoritative.
---
--- Weapon props ATTACH to the frozen rack prop, so offsets live in the rack's LOCAL
--- space — heading is automatic, none of the gimbal math the vehicle trunk needs.
--- ─────────────────────────────────────────────────────────────────────────────
+-- ── Weapon Rack / Gun Locker — client ──
+-- Spawns the rack props, stow/retrieve via ox_target or an [E] fallback, and renders racked
+-- weapons. Contents replicate through GlobalState; the prop is local and identical per client.
+-- Weapon props ATTACH to the frozen rack, so offsets live in its LOCAL space — heading is
+-- automatic, none of the gimbal math the vehicle trunk needs.
 
 if not MBT.WeaponRack then return end
 

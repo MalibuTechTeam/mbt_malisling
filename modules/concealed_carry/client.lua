@@ -1,15 +1,10 @@
--- ─────────────────────────────────────────────────────────────────────────────
--- Concealed Carry — client
--- Clothing-aware concealment of holstered small weapons. Keybind sends a REQUEST;
--- server validates + publishes the replicated statebag. Clothing check on comp 11:
--- bare-torso → refused, light tops → 'poor', else 'good' (config overrides win).
--- Concealment is PER WEAPON (serial), not per body slot: with two pistols on one hip,
--- hiding one must not take the other with it. Prop teardown/respawn is just a re-report —
--- the reconciliation drops or restores the prop; the core spawn guard reads
--- MBT.IsSerialConcealed (defined here). Tell = waistband
--- adjust, carrier-played so it networks naturally. A drawn weapon is visible by
--- nature, so concealment only covers the holstered prop (no "drawn-concealed" race).
--- ─────────────────────────────────────────────────────────────────────────────
+-- ── Concealed Carry — client ──
+-- Keybind sends a REQUEST; the server validates and publishes the statebag. Clothing check on
+-- component 11: bare torso refused, light tops 'poor', else 'good'.
+--
+-- PER WEAPON (serial), not per slot: with two pistols on one hip, hiding one must not take the
+-- other. Teardown is just a re-report — the reconciliation drops or restores the prop, and the
+-- spawn guard reads MBT.IsSerialConcealed (defined here). A drawn weapon is visible by nature.
 
 if not MBT.ConcealedCarry then return end
 

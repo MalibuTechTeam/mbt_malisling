@@ -1,12 +1,7 @@
--- ─────────────────────────────────────────────────────────────────────────────
--- Weapon Safety Toggle
---
--- Toggle the safety on the held firearm. With safety ON the weapon cannot fire
--- (DisablePlayerFiring every frame) and a SAFE/FIRE indicator shows the state; a
--- metallic click plays on toggle. State is tracked per weapon (by serial) so each
--- gun remembers its own safety. Purely RP — combat logic lives in a companion combat
--- resource, which reads the state via the 'mbt_weaponSafety' statebag or IsWeaponSafetyOn().
--- ─────────────────────────────────────────────────────────────────────────────
+-- ── Weapon Safety Toggle ──
+-- Safety ON blocks fire (DisablePlayerFiring every frame) and shows a SAFE/FIRE indicator.
+-- Tracked per weapon by serial, so each gun remembers its own. Purely RP — combat logic lives
+-- in the companion resource, which reads the 'mbt_weaponSafety' statebag.
 
 -- Load if the feature block exists; Enabled is checked at use time so the admin
 -- menu can toggle it live (cfg is the live MBT.Safety table).

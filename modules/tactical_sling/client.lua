@@ -1,16 +1,9 @@
--- ─────────────────────────────────────────────────────────────────────────────
--- Tactical Sling Prop (visible strap)
--- Visible strap on the torso while a long gun is slung. A PROP attached to a bone,
--- NOT clothing (clothing needs a per-server drawable index + conflicts with addons).
--- Strap models ship in stream/, so the feature is portable. Live-toggleable
--- (MBT.TacticalSling.Enabled). Attach offset is NUI-editable (type 'sling') and read
--- from MBT.PropInfo.sling, per gender.
+-- ── Tactical Sling Prop (visible strap) ──
+-- A PROP on a bone, not clothing (which needs a per-server drawable index and conflicts with
+-- addons). Offset is NUI-editable as type 'sling', per gender.
 --
--- Drawn for EVERY tracked player, not just the local one: a strap across the chest
--- exists to be seen by other people. Each client spawns its own NON-networked prop for
--- everyone in scope — no network entity, no new event — off the slung-prop registry,
--- which already knows who is carrying what.
--- ─────────────────────────────────────────────────────────────────────────────
+-- Drawn for EVERY tracked player: a strap across the chest exists to be seen. Each client
+-- spawns its own non-networked prop off the slung registry — no network entity, no new event.
 
 if not MBT.TacticalSling then return end
 
