@@ -63,6 +63,20 @@ const MOCK_ADMIN_CONFIG = {
   ShellCasings: { Enabled: true, Chance: 0.5, ExpireMinutes: 30, MaxCasings: 150, SerialReveal: 'partial', AllowCollect: true },
   Handoff: { Enabled: true, MaxDistance: 2.5, EquipOnAccept: true },
   Serials: { EnsureGeneration: true, Format: 'marked', SweepOnLoad: true },
+  DrawStyle: 'standard',
+  DrawStyleByJob: { police: 'police' },
+  // Derivato dal server da MBT.DrawStyles a ogni snapshot — la dashboard non ha una lista sua.
+  DrawStyles: [{ id: 'police', label: 'Police' }, { id: 'standard', label: 'Standard' }, { id: 'street', label: 'Street' }],
+  // Seed del selettore di gesture, anch'esso derivato (MBT.DrawStyleCandidates). Qui ne bastano
+  // pochi: servono a vedere il layout della lista, non a riprodurre il catalogo.
+  DrawStyleCandidates: [
+    { id: 'holster_1h', label: 'Holster — one-handed', fits: 'side', dict: 'weapons@holster_1h', animIn: 'unholster', animOut: 'holster' },
+    { id: 'holster_2h', label: 'Holster — two-handed', fits: 'back', dict: 'weapons@holster_2h', animIn: 'unholster', animOut: 'holster' },
+    { id: 'switchblade_w', label: 'Switchblade — wide', fits: 'melee2', dict: 'anim@melee@switchblade@holster', animIn: 'w_unholster', animOut: 'w_holster' },
+    { id: 'holster_superfat', label: 'Holster — heaviest', fits: 'back2', dict: 'weapons@holster_superfat_2h', animIn: 'unholster', dictOut: 'weapons@holster_fat_2h', animOut: 'holster' },
+    { id: 'intimidate_1h', label: 'Intimidation — one-handed (current default)', dict: 'reaction@intimidation@1h', animIn: 'intro', animOut: 'outro' },
+  ],
+  DrawStyleOverrides: { police: { side: { dict: 'rcmjosh4', animIn: 'josh_leadout_cop2', dictOut: 'reaction@intimidation@cop@unarmed', animOut: 'outro' } } },
   ConcealedCarry: { Enabled: true, ToggleCooldownMs: 3000, Tell: { Enabled: true, RollSeconds: 25, ChanceGood: 0.15, ChancePoor: 0.45 } },
   PatDown: { Enabled: true, RequireConsent: true, CuffedBypass: true, ShowAmmo: true, MaxDistance: 2.0 },
   AmmoSharing: { Enabled: true, ShareAmount: 30, MaxDistance: 2.5 },
@@ -73,6 +87,8 @@ if (DEV_PREVIEW === 'admin') {
     action: 'openAdmin',
     data: {
       version: 'v2.0.0', config: MOCK_ADMIN_CONFIG,
+      // What the server's bridges resolved to (modules/config/server.lua → environment()).
+      env: { framework: 'es_extended', inventory: 'ox_inventory', persistence: 'oxmysql', language: 'en' },
       oxPatch: (DEV_SCENARIO === 'critical' || DEV_SCENARIO === 'both') ? 'ox_inventory weapons-as-items is disabled' : 'ok',
       warnings: (DEV_SCENARIO === 'warning' || DEV_SCENARIO === 'both')
         ? [{ code: 'qb_weapdraw', msg: 'qb-weapons detected — disable weapdraw.lua for correct holster/switch animations.' }]

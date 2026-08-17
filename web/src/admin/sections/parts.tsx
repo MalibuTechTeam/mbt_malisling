@@ -50,6 +50,8 @@ export function withMeta<T extends ComponentType<any>>(component: T, meta: Secti
  *  `wide` makes the card span both masonry columns (for wide controls). */
 export function Section({ icon, title, sub, action, children, wide }: { icon: IconName; title: string; sub?: string; action?: ReactNode; children?: ReactNode; wide?: boolean }) {
   return (
+    // No id/tabIndex here: the index scrolls to the SLOT wrapper the dashboard renders each
+    // card into, which is also what carries the targeted mark — one anchor, not two.
     <div className={`mbt-section${wide ? ' mbt-section--wide' : ''}`}>
       <div className="mbt-section__head">
         <span className="mbt-section__ic"><Icon name={icon} size={16} /></span>
@@ -115,4 +117,20 @@ export function Grid2({ children }: { children: ReactNode }) {
 export interface SectionProps {
   config: any
   update: (path: string, value: unknown) => void
+  /**
+   * Open an in-world editor that lives at the dashboard level. Passed to every card and used
+   * by one (DRAW STYLE): the overlay has to mount OUTSIDE the panel, because the panel is what
+   * it hides. Handed down rather than raised through an event bus so the compiler still sees
+   * who calls it.
+   */
+  openGesture?: (style: string) => void
+  /**
+   * The framework's job list, fetched ONCE by the dashboard and handed down.
+   *
+   * It used to be fetched independently by every card that needed it — three round trips and,
+   * more to the point, three separate chances to come back empty with nothing watching. One of
+   * them did: HIDDEN BY JOB offered only "Everyone" while the identical list rendered fine two
+   * pages away. One fetch has one failure, and the dashboard retries it.
+   */
+  jobs?: { name: string; label: string }[]
 }

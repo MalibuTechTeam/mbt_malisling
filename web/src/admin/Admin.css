@@ -322,27 +322,50 @@
    "most important first" that is the same journey, taken vertically.
    It also drops the hand-ordering in CATEGORIES, which paired cards by height and stopped
    matching the arrays as soon as a card was added to a page. */
+/* ROWS, not columns. Columns packed perfectly and wasted nothing, but they only ever
+   aligned on the first card: past it the two sides drifted (Core had its left cards at
+   y=164/524/785 against 164/414/659/878 on the right) and the page lost any horizontal
+   rhythm. A row of two is the unit now — see .mbt-admin__row. */
 .mbt-admin__sections {
-  column-width: 420px;
-  column-gap: 18px;
+  display: flex; flex-direction: column;
+  gap: 22px;
 }
-/* 22px between stacked cards, not the 14px the grid used. In a grid the gap sat between
-   two ROWS and the ragged card bottoms did some of the separating; packed into a
-   continuous column the same 14px reads as a seam. The height for it comes free — it is
-   less than the dead space packing just removed. */
-.mbt-admin__sections > * {
-  break-inside: avoid;
-  margin-bottom: 22px;
+/* start by default; the panel measures each pair and adds .is-tight where matching their
+   heights costs less than MAX_STRETCH (AdminDashboard.tsx). A mismatched pair therefore
+   leaves a gap under the shorter card instead of inflating it — the failure mode that
+   killed the previous grid. */
+/* minmax(0, 1fr), not 1fr: a grid track's floor is min-content, and Concealed Carry holds a
+   three-input row whose min-content is wider than half the page — so it took two thirds and
+   pushed Pat-down off the right edge. The columns were fixed-width before, which is why the
+   card never had to declare it could be narrower than its contents' natural width. */
+.mbt-admin__row {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 18px; align-items: start;
 }
+.mbt-card-slot { min-width: 0; }
+.mbt-admin__row.is-tight { align-items: stretch; }
+/* The last row of an odd-numbered page holds one card: it takes the whole width rather
+   than leaving a card-sized hole beside it. A class from the render, not :has() — the CEF
+   build shipped with FiveM is not always new enough for it, and this is layout, so failing
+   silently on an old client is not an option. */
+.mbt-admin__row.is-solo { grid-template-columns: minmax(0, 1fr); }
+/* A card that asks for the full width takes the whole row. */
+.mbt-admin__center .mbt-section--wide { grid-column: 1 / -1; }
 
-/* A stacked group — two or more sections sharing one grid cell, laid out
-   vertically. Used when two short cards should equal-height a taller neighbour. */
-.mbt-admin__section-stack {
+/* The cell a card renders into. It is a flex column whether it holds one card or a stack,
+   and its cards GROW to fill it — without that the row stretched the cell while the card
+   inside kept its natural height, so the two sides of a row measured equal and still drew
+   card bottoms 48, 82, even 89px apart. The wrappers were level; the visible surfaces were
+   not, which is worse than not stretching at all.
+   flex-basis auto, so a stack's cards share the slack ON TOP of their own heights instead
+   of being flattened to the same size as each other. */
+.mbt-card-slot {
   display: flex;
   flex-direction: column;
   gap: 22px;   /* same rhythm as between free-standing cards, so a stacked pair does not
                   read as more tightly bound than any other two neighbours */
 }
+.mbt-card-slot > .mbt-section { flex: 1 1 auto; }
 
 /* Stagger the cards on category switch — they cascade in rather than popping together.
    The ladder used to stop at 5 while Core has 7 cards: 6 and 7 matched nothing, took the
@@ -352,11 +375,25 @@
    heights — wrapping each card to carry an index would break that.
    The stack is a bare flex wrapper with no animation of its own, so its delay did nothing
    while its two children entered at 0ms. It animates now; they don't. */
-/* .mbt-section already carries the animation (Field.css) — only the stack needs it, and
-   only the delays belong here. Restating the animation is how two rules drift apart. */
-.mbt-admin__sections > .mbt-admin__section-stack {
+/* The animation lives on the ROW with the delays: the page cascades a row at a time, which
+   is also the order it is read in. .mbt-section still declares it (Field.css) for every
+   other use of the kit; inside a slot it is switched off, because two elements animating
+   the same entrance one nested in the other double the fade. */
+.mbt-admin__sections > .mbt-admin__row,
+/* A slot straight in the column, with no row around it. Placement used to be built that way
+   and was the one page that appeared without an entrance; it uses rows now, but the rule
+   stays — it costs nothing and the next hand-built page will not have to rediscover it. */
+.mbt-admin__sections > .mbt-card-slot {
   animation: mbt-section-in var(--mbt-dur) var(--mbt-ease) both;
 }
+.mbt-card-slot > .mbt-section { animation: none; }
+/* The slot is a wrapper, not a control — it takes focus so the index can land you on a
+   card, and shows the mark instead of a focus ring. */
+.mbt-card-slot { outline: none; }
+/* Where the index sent you. A rule down the card's left edge, drawn OUTSIDE the border so
+   it cannot be mistaken for the card's own chrome, and static: it is a bookmark, and a
+   highlight that fades out is gone by the time you look back from the game. */
+.mbt-card-slot.is-targeted { box-shadow: -8px 0 0 -6px var(--mbt-accent); }
 .mbt-admin__sections > :nth-child(1)  { animation-delay: 0ms; }
 .mbt-admin__sections > :nth-child(2)  { animation-delay: 45ms; }
 .mbt-admin__sections > :nth-child(3)  { animation-delay: 90ms; }
@@ -409,7 +446,7 @@
 .mbt-pospick__btn.is-on {
   background: var(--mbt-accent-soft); border-color: rgba(var(--mbt-accent-rgb), 0.4); color: var(--mbt-text-hi);
 }
-/* Reserved option (Custom → live drag editor, ships v2.1). Inert teaser: muted via
+/* Reserved option (Custom → live drag editor, waits on the overlay reskin). Inert teaser: muted via
    text-faint (not opacity, keeps it above AA), no hover/press, "2.1" badge. */
 .mbt-pospick__btn.is-soon { position: relative; cursor: not-allowed; color: var(--mbt-text-faint); }
 .mbt-pospick__btn.is-soon:hover { color: var(--mbt-text-faint); border-color: var(--mbt-edge); }
@@ -434,7 +471,11 @@
    the bordered surfaces line up at the bottom even with different content. */
 .mbt-admin__center .mbt-card-grid--2 { align-items: stretch; }
 .mbt-admin__center .mbt-card-grid--2 > .mbt-section { height: 100%; }
-.mbt-admin__center .mbt-section__body { flex: 1; }
+/* The body takes the card's spare height, and SPREADS it between its blocks rather than
+   pooling it under the last one. Same total slack either way — but 82px in one lump at the
+   bottom of Shell Casings reads as a card missing something, while the same 82px shared
+   between its three field groups reads as a roomier card. */
+.mbt-admin__center .mbt-section__body { flex: 1; justify-content: space-between; }
 /* Nested number pair: align the two NumberInputs to the bottom of the row. */
 .mbt-admin__center .mbt-card-grid--2 .mbt-card-grid--2 { align-items: end; margin-bottom: 0; }
 
@@ -559,53 +600,152 @@
 }
 .mbt-ov__body {
   flex: 1; min-height: 0; overflow-y: auto;
-  padding: 18px 20px 20px;
-  display: flex; flex-direction: column; gap: 18px;
+  padding: 16px 20px 18px;
+  display: flex; flex-direction: column; gap: 15px;
 }
 
-/* Active-features gauge — top block above FEATURE OVERVIEW (elevator pattern). */
-.mbt-ov__gauge { padding: 14px; background: var(--mbt-surface-2); border: 1px solid var(--mbt-edge); border-radius: var(--mbt-r-md); }
-.mbt-ov__gauge-head { display: flex; align-items: baseline; gap: 6px; }
-.mbt-ov__gauge-n { font-family: var(--mbt-font-display); font-size: 28px; font-weight: 700; line-height: 1; color: var(--mbt-text-hi); }
-.mbt-ov__gauge-d { font-size: 12px; font-weight: 600; color: var(--mbt-text-lo); }
-.mbt-ov__segs { display: flex; gap: 3px; margin-top: 12px; }
-.mbt-ov__segs span {
-  flex: 1; height: 4px; border-radius: var(--mbt-r-pill); background: var(--mbt-surface-3);
-  transition: background var(--mbt-dur) var(--mbt-ease);
-  /* Charge-in sweep left→right once the overview column has settled. */
-  transform-origin: left center;
-  animation: mbt-seg-in var(--mbt-dur-slow) var(--mbt-ease) both;
-}
-.mbt-ov__segs span.is-on { background: var(--mbt-accent); }
-@keyframes mbt-seg-in { from { transform: scaleX(0); opacity: 0; } to { transform: scaleX(1); opacity: 1; } }
-/* One quick entrance — the long per-segment stagger (up to 390ms) was too much
-   ceremony for a dense admin readout; all segments settle together now. */
-@media (prefers-reduced-motion: reduce) {
-  .mbt-ov__segs span { animation: none; }
-}
-.mbt-ov__label { display: flex; align-items: center; gap: 7px; font-size: 10px; font-weight: 600; letter-spacing: 0.12em; color: var(--mbt-text-lo); }
 .mbt-ov__spacer { flex: 1 1 auto; }
-/* Feature overview — compact 2-column status grid (dot = on/off) so all ~17
-   features fit the sidebar without scrolling. */
-.mbt-ov__summary { display: flex; flex-direction: column; gap: 3px; }
-.mbt-ov__group { display: grid; grid-template-columns: 1fr 1fr; gap: 5px 12px; align-items: center; }
-/* A group boundary has to out-weigh a row gap or the five groups stop grouping: at 9px
-   above against a 5px row gap it was worth four pixels more than "next row", and 26
-   features read as one undifferentiated column. 18/2 makes the boundary three times the
-   row gap, and keeps the heading attached to what it labels rather than floating between. */
-.mbt-ov__grouphead { grid-column: 1 / -1; margin: 18px 0 2px; font-size: 9.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--mbt-text-lo); }
-.mbt-ov__group:first-child .mbt-ov__grouphead { margin-top: 0; }
-.mbt-ov__feat { display: flex; align-items: center; gap: 7px; min-width: 0; }
-.mbt-ov__dot { flex-shrink: 0; width: 7px; height: 7px; border-radius: 50%; background: var(--mbt-text-faint); }
-.mbt-ov__feat.is-on .mbt-ov__dot { background: var(--mbt-operational); box-shadow: 0 0 6px rgba(var(--mbt-operational-rgb), 0.45); }
-.mbt-ov__featname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; color: var(--mbt-text-lo); }
-.mbt-ov__feat.is-on .mbt-ov__featname { color: var(--mbt-text-mid); }
-.mbt-ov__row { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--mbt-edge-lo); font-size: 12px; }
-.mbt-ov__row:last-child { border-bottom: none; }
-.mbt-ov__row .k { color: var(--mbt-text-lo); }
-.mbt-ov__row .v { font-family: var(--mbt-font-display); font-weight: 600; color: var(--mbt-text-hi); }
-.mbt-ov__row .v.is-on { color: var(--mbt-accent); }
-.mbt-ov__row .v.is-off { color: var(--mbt-text-faint); }
+
+/* The gauge that used to open this column is gone. It spent 76px and a segmented bar
+   restating one number — "21 / 26 active" — that nobody acts on: an owner does not want
+   a score for their server, they want to find a feature or see what is unsaved. The
+   column is an INDEX now, and the space went to the rows. */
+
+/* Unsaved-state line. Not a card: it appears and disappears, and a bordered box that
+   comes and goes reflows the whole column. A dot, a count, a rule. */
+.mbt-ov__state {
+  display: flex; align-items: center; gap: 8px;
+  padding-bottom: 14px; border-bottom: 1px solid var(--mbt-edge-lo);
+  font-size: 11.5px; color: var(--mbt-text-lo);
+}
+.mbt-ov__state b { font-family: var(--mbt-font-mono); font-size: 12px; font-weight: 600; color: var(--mbt-text-hi); }
+.mbt-ov__state-dot {
+  flex: none; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--mbt-hacked); box-shadow: 0 0 0 3px rgba(var(--mbt-hacked-rgb), 0.12);
+  animation: mbt-ov-breathe 2.6s ease-in-out infinite;
+}
+/* Slow enough to read as "live", not as an alarm. Opacity only — it shares a GPU with
+   a running game. */
+@keyframes mbt-ov-breathe { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+/* The .mbt-reduce-motion class covers this too (it caps iteration-count globally), but the
+   duration here is a literal, not a token, so the OS query needs its own line. */
+@media (prefers-reduced-motion: reduce) {
+  .mbt-ov__state-dot { animation: none; }
+}
+
+/* Environment read-out. Editorial spec-sheet row: label, dotted leader, value in mono.
+   The leader is what makes a 4-row list read as a table without drawing a table — no
+   box, no borders per row, and the eye still tracks label→value across 300px. */
+.mbt-ov__kv { display: flex; flex-direction: column; }
+/* :not(.mbt-ov__grouphead) — the heading is a div in this list too, and the row rule was
+   winning on specificity and taking its padding away. */
+.mbt-ov__kv > div:not(.mbt-ov__grouphead) { display: flex; align-items: baseline; gap: 8px; padding: 3px 0; }
+.mbt-ov__kv dt { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; font-size: 11px; color: var(--mbt-text-lo); white-space: nowrap; }
+.mbt-ov__kv dt::after {
+  content: ''; flex: 1; height: 1px; transform: translateY(1px);
+  background: repeating-linear-gradient(to right, rgba(255, 255, 255, 0.09) 0 1px, transparent 1px 4px);
+}
+.mbt-ov__kv dd {
+  flex: none; max-width: 55%;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-family: var(--mbt-font-mono); font-size: 10.5px; letter-spacing: -0.01em;
+  color: var(--mbt-text-mid);
+}
+/* State by brightness, colour only for the one that needs acting on. A green "oxmysql"
+   on every server would spend the status palette on the normal case. */
+.mbt-ov__kv dd.is-ok { color: var(--mbt-text-hi); }
+.mbt-ov__kv dd.is-warn { color: var(--mbt-hacked); }
+.mbt-ov__kv dd .is-off { color: var(--mbt-text-faint); }
+
+.mbt-ov__grouphead {
+  font-family: var(--mbt-font-body);
+  font-size: 9px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--mbt-text-faint);
+  padding-bottom: 7px;
+}
+.mbt-ov__kv .mbt-ov__grouphead { margin-bottom: 4px; border-bottom: 1px solid var(--mbt-edge); }
+/* Sticky category heading. Frosted rather than filled: the panel behind is a vertical
+   gradient, so any solid strip is the right colour at exactly one scroll position and a
+   visible patch everywhere else. blur() takes whatever is behind it and is correct at
+   all of them. Offsets are measured from the scrollport, padding included, so top:0
+   pins it to the visible top edge. */
+/* NO TINT. The heading is a label, and that is all it looks like.
+
+   It used to paint a full-bleed rgba(11,16,14,0.72) strip behind itself, to hide rows sliding
+   under it while the column scrolled. Two things were wrong with that. The strip had hard
+   edges, so it read as a black band ruled across the column above every heading — fading the
+   bottom only moved the seam to the top. And the column does not scroll: since the index went
+   to two rows per line it fits, so nothing ever slid under anything and the band was paid for
+   a case that never happens.
+
+   `position: sticky` and the blur stay, for the config where it does scroll (a server that
+   adds enough custom slots, a short window). Blur with no colour is invisible against the
+   panel's own flat backdrop and still smears a row passing beneath — the whole benefit, none
+   of the band. */
+.mbt-ov__grouphead.is-sticky {
+  position: sticky; top: 0; z-index: 1;
+  margin: 0 -20px; padding: 7px 20px 5px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.mbt-ov__list > .mbt-ov__grouphead.is-sticky:first-child { padding-top: 0; }
+
+/* The index. Every row is a button — this is the only place in the panel that lists
+   features by name, and it now takes you to the card that owns each one. */
+.mbt-ov__list { display: flex; flex-direction: column; }
+/* Two rows per line, per group. The negative margin lives HERE and not on the row: bled
+   from each row it would widen both grid columns and push the pair out of the column. */
+.mbt-ov__grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 0 10px; margin: 0 -8px;
+}
+/* 24px tall, not 22: a row is a click target, and 24x24 is the floor (WCAG 2.5.8) that the
+   rest of the panel already clears. The two pixels it costs come out of the group headings
+   and the block gaps, which are spacing and not targets. */
+.mbt-ov__feat {
+  display: flex; align-items: center; gap: 9px; min-width: 0;
+  padding: 5px 8px;
+  border: 0; border-radius: var(--mbt-r-sm); background: none;
+  font: inherit; text-align: left; cursor: pointer;
+  transition: background var(--mbt-dur) var(--mbt-ease);
+}
+.mbt-ov__feat:hover { background: var(--mbt-surface-3); }
+.mbt-ov__feat:active { background: var(--mbt-surface-3); transform: translateY(1px); }
+.mbt-ov__feat:focus-visible { outline: 2px solid var(--mbt-accent-glow); outline-offset: -1px; }
+/* A tick on the rail, not a dot: at 2x12 it lines the rows up into a visible column of
+   state you can read down without reading a single label. */
+.mbt-ov__mark {
+  flex: none; width: 2px; height: 12px; border-radius: 1px;
+  background: var(--mbt-edge-hi);
+  transition: background var(--mbt-dur) var(--mbt-ease), box-shadow var(--mbt-dur) var(--mbt-ease);
+}
+.mbt-ov__feat.is-on .mbt-ov__mark { background: var(--mbt-operational); box-shadow: 0 0 6px rgba(var(--mbt-operational-rgb), 0.4); }
+/* A card with no on/off — Weapon Positions, Prompt, Hidden by Job. A stub instead of a full
+   tick: at full height it would read as "off", and saying a thing is off when it cannot be
+   is worse than saying nothing. */
+.mbt-ov__feat.is-static .mbt-ov__mark { height: 4px; }
+.mbt-ov__featname {
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 11px; color: var(--mbt-text-lo);
+  transition: color var(--mbt-dur) var(--mbt-ease);
+}
+.mbt-ov__feat.is-on .mbt-ov__featname { color: var(--mbt-text-hi); }
+.mbt-ov__feat:hover .mbt-ov__featname { color: var(--mbt-text-hi); }
+/* Unsaved: the amber of the state line above, so the two read as the same fact — that
+   line says how many, these say which. */
+.mbt-ov__feat.is-dirty::after {
+  content: ''; flex: none; margin-left: auto; width: 5px; height: 5px;
+  border-radius: 50%; background: var(--mbt-hacked);
+}
+/* Where the index last sent you. A bookmark with no timer — this user alt-tabs to a
+   running game mid-thought, and a mark that expires is gone by the time they look back. */
+.mbt-ov__feat.is-current { background: rgba(255, 255, 255, 0.045); box-shadow: inset 0 0 0 1px var(--mbt-edge-hi); }
+.mbt-ov__feat.is-current .mbt-ov__featname { color: var(--mbt-text-hi); }
+
+.mbt-ov__foot {
+  padding-top: 14px; border-top: 1px solid var(--mbt-edge-lo);
+  font-size: 10.5px; line-height: 1.55; color: var(--mbt-text-faint);
+}
 /* Sidebar warning (e.g. ox_inventory auto-patch failed) — red-tinted, sits at
    the top of the overview so an admin sees it the moment they open the panel. */
 .mbt-ov__warn { display: flex; gap: 10px; padding: 12px 13px; background: rgba(var(--mbt-faulty-rgb), 0.10); border: 1px solid rgba(var(--mbt-faulty-rgb), 0.30); border-radius: var(--mbt-r-md); }
@@ -616,16 +756,13 @@
 /* Non-critical integration warning — discreet chip in the overview. Wears the
    HACKED/amber status hue on the icon + border; message text stays readable
    (text-mid), never the brand accent. Shown only when a warning is present. */
-.mbt-ov__warn-chip { display: flex; gap: 8px; padding: 9px 10px; margin-bottom: 12px; color: var(--mbt-hacked); background: rgba(var(--mbt-hacked-rgb), 0.08); border: 1px solid rgba(var(--mbt-hacked-rgb), 0.24); border-radius: var(--mbt-r-md); }
+.mbt-ov__warn-chip { display: flex; gap: 8px; padding: 9px 10px; color: var(--mbt-hacked); background: rgba(var(--mbt-hacked-rgb), 0.08); border: 1px solid rgba(var(--mbt-hacked-rgb), 0.24); border-radius: var(--mbt-r-md); }
 .mbt-ov__warn-chip svg { flex-shrink: 0; margin-top: 1px; }
 .mbt-ov__warn-chip span { font-size: 10.5px; font-weight: 500; line-height: 1.4; color: var(--mbt-text-mid); }
 
-/* LIVE APPLY — a PASSIVE helper note, so it stays NEUTRAL (no accent). The vivid
-   accent is reserved for the one primary action (Save), focus, and the active rail. */
-.mbt-ov__tip { display: flex; gap: 10px; padding: 14px; background: var(--mbt-surface-2); border: 1px solid var(--mbt-edge); border-radius: var(--mbt-r-md); }
-.mbt-ov__tip .ic { color: var(--mbt-text-lo); flex-shrink: 0; }
-.mbt-ov__tip b { font-family: var(--mbt-font-display); font-size: 11px; font-weight: 700; color: var(--mbt-text-hi); letter-spacing: 0.06em; display: block; margin-bottom: 3px; }
-.mbt-ov__tip p { font-size: 11.5px; line-height: 1.5; color: var(--mbt-text-lo); }
+/* The LIVE APPLY card is gone — see .mbt-ov__foot. It was a bordered, iconed, titled
+   card carrying one sentence that is read once on the first open and never again;
+   giving a permanent card to a one-time read is what made the column feel padded. */
 
 /* ── Responsive ────────────────────────────────────────────────────────────
    The panel is fluid (see .mbt-admin). On narrow displays the fixed chrome
@@ -764,4 +901,170 @@
    focused slider is unmistakable. */
 .mbt-pe__slider input[type="range"]:focus-visible::-webkit-slider-thumb {
   box-shadow: 0 0 0 1px rgba(var(--mbt-accent-rgb), 0.4), 0 0 0 4px var(--mbt-accent-glow);
+}
+
+/* ── Gesture picker (Draw Style → Live Picker) ─────────────────────────────────
+   Wider than the position editors (300px) because every row carries an animation
+   PATH, and `anim@melee@switchblade@holster` truncated to nothing is a row you
+   cannot tell apart from the next one. The list is the control here, so the list
+   is what gets the space. */
+.mbt-gp {
+  width: 372px; gap: 10px;
+  /* The list is already capped, but the frame around it is not: a build with more
+     candidates than today's must run out of list, never out of card. */
+  max-height: calc(100vh - 48px);
+}
+/* Scope: which style (only when several are live) and which slot. Stacked, because they read
+   as one answer to one question and a row of two would make them look like separate settings. */
+.mbt-gp__slot { display: flex; flex-direction: column; gap: 5px; }
+.mbt-gp__slot .mbt-select2__btn { height: 32px; }
+
+/* What the slot resolves to right now — a read-out with a play button, so the thing
+   you are about to replace can be compared against its replacement without leaving
+   the panel. */
+.mbt-gp__now {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas: "head play" "dict play" "clip play";
+  align-items: center;
+  gap: 1px 8px;
+  padding: 7px 9px;
+  background: var(--mbt-surface-1);
+  border: 1px solid var(--mbt-edge);
+  border-left: 2px solid rgba(var(--mbt-accent-rgb), 0.5);
+  border-radius: var(--mbt-r-sm);
+}
+.mbt-gp__nowhead {
+  grid-area: head;
+  font-size: 9.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--mbt-text-faint);
+}
+.mbt-gp__now code {
+  grid-area: dict;
+  font-family: var(--mbt-font-mono); font-size: 10.5px;
+  color: var(--mbt-text-mid);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.mbt-gp__now code.mbt-gp__clip { grid-area: clip; color: var(--mbt-accent); }
+.mbt-gp__now .mbt-gp__play { grid-area: play; }
+
+/* The catalogue. Capped and scrollable: 17 entries at 46px is taller than a 900px
+   viewport, and the row you want is near the top anyway — entries whose `fits`
+   matches the slot are sorted there. */
+.mbt-gp__list {
+  display: flex; flex-direction: column; gap: 4px;
+  max-height: 42vh; overflow-y: auto; overscroll-behavior: contain;
+  /* Skinned like every other capped list in the panel (.mbt-trunk-list, .mbt-hbj-list).
+     The bar stays — 17 entries genuinely do not fit and a hidden bar hides that there is
+     more below — but it is the panel's own bar, not CEF's default grey. */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+  /* Reserved, so the rows do not shift 11px sideways when the list starts scrolling. */
+  scrollbar-gutter: stable;
+}
+.mbt-gp__list::-webkit-scrollbar { width: 11px; }
+.mbt-gp__list::-webkit-scrollbar-track { background: transparent; }
+.mbt-gp__list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: var(--mbt-r-pill);
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+.mbt-gp__list::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+  background-clip: padding-box;
+}
+.mbt-gp__row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 8px;
+  background: var(--mbt-surface-1);
+  border: 1px solid var(--mbt-edge-lo);
+  border-radius: var(--mbt-r-sm);
+  transition: border-color var(--mbt-dur) var(--mbt-ease), background var(--mbt-dur) var(--mbt-ease);
+}
+.mbt-gp__row:hover { border-color: var(--mbt-edge-hi); }
+/* Built for THIS slot — a hint from default.lua, not a restriction, so it is a tint
+   on the edge rather than a badge that would read as a rule. */
+.mbt-gp__row.is-fit { border-left: 2px solid rgba(var(--mbt-accent-rgb), 0.28); }
+.mbt-gp__row.is-on {
+  background: var(--mbt-accent-soft);
+  border-color: rgba(var(--mbt-accent-rgb), 0.4);
+}
+.mbt-gp__info { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; }
+.mbt-gp__nm {
+  font-family: var(--mbt-font-display); font-size: 11.5px; font-weight: 600;
+  color: var(--mbt-text-hi);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.mbt-gp__path {
+  font-family: var(--mbt-font-mono); font-size: 10px; color: var(--mbt-text-lo);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* 24×24 — the WCAG 2.5.8 floor. A 16px play button beside a 60px Use button is the
+   one that gets missed, and missing it costs a whole audition. */
+.mbt-gp__play {
+  flex: 0 0 auto;
+  width: 24px; height: 24px;
+  display: grid; place-items: center;
+  border: 1px solid var(--mbt-edge);
+  background: var(--mbt-surface-3);
+  color: var(--mbt-text-mid);
+  border-radius: var(--mbt-r-sm);
+  cursor: pointer;
+  transition: color var(--mbt-dur) var(--mbt-ease), border-color var(--mbt-dur) var(--mbt-ease);
+}
+.mbt-gp__play:hover { color: var(--mbt-accent); border-color: rgba(var(--mbt-accent-rgb), 0.4); }
+/* Dimmed while the clip runs rather than removed: the disabled window IS the length of
+   the gesture, so the button doubles as the progress read-out. */
+.mbt-gp__play:disabled { opacity: 0.4; cursor: default; }
+.mbt-gp__use { flex: 0 0 auto; height: 24px; padding: 0 9px; font-size: 11px; }
+
+/* Duration row: label, field, and the two actions. The field is narrow on purpose — four
+   digits is the whole range (150–4000) — so the two buttons keep readable labels. */
+.mbt-gp__timing {
+  display: grid;
+  grid-template-columns: auto 84px minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center; gap: 6px;
+}
+.mbt-gp__timing .mbt-pe__camhead { white-space: nowrap; }
+.mbt-gp__timing .mbt-input { height: 28px; font-family: var(--mbt-font-mono); font-size: 11px; }
+.mbt-gp__timing .mbt-btn-ghost { height: 28px; padding: 0 8px; font-size: 11px; justify-content: center; }
+
+.mbt-gp__custom { display: flex; flex-direction: column; gap: 5px; }
+.mbt-gp__custom .mbt-input { height: 28px; font-family: var(--mbt-font-mono); font-size: 11px; }
+/* minmax(0, 1fr), not 1fr: a text input's min-content width is its intrinsic ~180px,
+   which two of them cannot fit in a 372px card — the row pushed itself straight
+   through the right edge before this. */
+.mbt-gp__custom-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 5px; }
+.mbt-gp__custom-row .mbt-input { min-width: 0; }
+.mbt-gp__custom-row .mbt-btn-ghost { height: 28px; justify-content: center; }
+
+/* Editing a style the server does not draw with. Amber, not red: nothing is broken and
+   nothing will be lost — it is aimed somewhere else, and that is worth interrupting for. */
+.mbt-gp__orphan {
+  display: flex; align-items: flex-start; gap: 7px;
+  padding: 7px 9px;
+  font-size: 11px; line-height: 1.45;
+  color: var(--mbt-text-mid);
+  background: rgba(255, 176, 32, 0.07);
+  border: 1px solid rgba(255, 176, 32, 0.28);
+  border-radius: var(--mbt-r-sm);
+}
+.mbt-gp__orphan svg { flex: none; margin-top: 1px; color: rgb(255, 176, 32); }
+.mbt-gp__orphan b { color: var(--mbt-text-hi); }
+
+/* Failures are the point of this panel: a dict that does not exist on the build plays
+   nothing and says nothing, which is indistinguishable from a gesture you disliked. */
+.mbt-gp__err {
+  font-size: 11px; line-height: 1.4;
+  color: var(--mbt-danger, #ff6b6b);
+  border-left: 2px solid currentColor;
+  padding: 2px 0 2px 8px;
+}
+
+/* Whether this style has been tuned in-game, on the card that launches the picker. */
+.mbt-gp__count {
+  font-family: var(--mbt-font-mono); font-size: 10px;
+  color: var(--mbt-text-faint);
+  white-space: nowrap;
 }

@@ -167,6 +167,20 @@ local function sameHidden(a, b_)
     return true
 end
 
+--- The Draw Style catalogue as the dashboard needs it: `{ id, label }`, sorted so the list
+--- does not reshuffle between opens (pairs() order is not stable).
+---
+--- Derived on every snapshot rather than stored: the styles live in default.lua, and a server
+--- that adds one gets it in the dropdown without touching the panel or the database.
+local function drawStyleList()
+    local out = {}
+    for id, st in pairs(MBT.DrawStyles or {}) do
+        out[#out + 1] = { id = id, label = (type(st) == 'table' and st.label) or id }
+    end
+    table.sort(out, function(a, b) return a.id < b.id end)
+    return out
+end
+
 -- ── Snapshot: full config the dashboard reads (incl. overview flags) ──
 local function snapshot()
     local S, D = MBT.Sounds or {}, MBT.WeaponDrop or {}
@@ -206,6 +220,17 @@ local function snapshot()
         DropWeaponOnDeath = b(MBT.DropWeaponOnDeath),
         UIPosition        = MBT.UI.Position,
         UIStyle           = MBT.UIStyle or 'standard',
+        DrawStyle         = MBT.DrawStyle or 'standard',
+        DrawStyleByJob    = MBT.DrawStyleByJob or {},
+        DrawStyleOverrides = MBT.DrawStyleOverrides or {},
+        SlotTiming        = MBT.SlotTiming or {},
+        -- Read-only seed for the picker. Derived, never persisted — same reasoning as
+        -- DrawStyles and BodySlots: a stored copy goes stale the day someone adds one.
+        DrawStyleCandidates = MBT.DrawStyleCandidates or {},
+        -- The catalogue rides along read-only, like BodySlots: the dashboard builds its
+        -- options from the styles this server actually declares, so a server that adds one
+        -- in default.lua sees it without the panel knowing anything about it.
+        DrawStyles        = drawStyleList(),
         Accent            = MBT.Accent or DEFAULT_ACCENT,
         Language          = MBT.Language,            -- read-only in the UI
         -- Which body slots stay off which job (see MBT.HiddenByJob in config.lua). BodySlots
@@ -392,6 +417,68 @@ local function validate(d)
     if type(d.DropWeaponOnDeath) ~= 'boolean' then return false end
     if type(d.UIPosition) ~= 'string' or not VALID_POSITIONS[d.UIPosition] then return false end
     if d.UIStyle ~= 'standard' and d.UIStyle ~= 'cinematic' then return false end
+    -- Validated against what THIS server declares, not a hardcoded list: styles are config,
+    -- and a fixed list here would reject a style the owner legitimately added.
+    -- Shape only. A style id this build does not declare is NOT rejected here: applyToMBT
+    -- falls back to 'standard' for it. Rejecting would mean a config saved while a style
+    -- existed becomes permanently unsavable the day that style is removed from default.lua.
+    if type(d.DrawStyle) ~= 'string' or #d.DrawStyle > 48 then return false end
+    if d.DrawStyleOverrides ~= nil then
+        if type(d.DrawStyleOverrides) ~= 'table' then return false end
+        local styles = 0
+        for styleId, slots in pairs(d.DrawStyleOverrides) do
+            styles = styles + 1
+            if styles > 32 or type(styleId) ~= 'string' or type(slots) ~= 'table' then return false end
+            -- An override under a style this build no longer declares is NOT a rejection: it is
+            -- a leftover. The catalogue is code, so removing a style from default.lua would
+            -- otherwise make every config that had tuned it invalid — one stale key bricking
+            -- every future save, including the save that would have cleared it. Left unchecked
+            -- here and pruned in applyToMBT, so the config heals itself instead of jamming.
+            if MBT.DrawStyles and MBT.DrawStyles[styleId] then
+                local n = 0
+                for slot, g in pairs(slots) do
+                    n = n + 1
+                    if n > 32 or type(slot) ~= 'string' or type(g) ~= 'table' then return false end
+                    -- Non-EMPTY, not merely present: '' is truthy in Lua, so a blank dict saved
+                    -- here would suppress the fallback chain and kill the gesture in silence.
+                    -- Checked server-side because the client is not the boundary.
+                    for k, v in pairs(g) do
+                        if k ~= 'dict' and k ~= 'dictOut' and k ~= 'animIn' and k ~= 'animOut' then return false end
+                        if type(v) ~= 'string' or v == '' or #v > 96 then return false end
+                    end
+                end
+            end
+        end
+    end
+    -- Per-slot draw timing. Bounded here and nowhere else: this is the one field an owner can
+    -- set that changes how long every player on the server stands with empty hands, so the
+    -- floor matters — a 20ms "draw" is a weapon that teleports into the hand.
+    if d.SlotTiming ~= nil then
+        if type(d.SlotTiming) ~= 'table' then return false end
+        local n = 0
+        for slot, t in pairs(d.SlotTiming) do
+            n = n + 1
+            if n > 32 or type(slot) ~= 'string' or type(t) ~= 'table'
+               or not (MBT.PropInfo and MBT.PropInfo[slot]) then return false end
+            for k, v in pairs(t) do
+                if k ~= 'sleep' and k ~= 'sleepOut' then return false end
+                -- Floor 400 = the fastest draw this script ships. Below that the weapon arrives
+                -- before the arm has moved, which is not a quicker draw but no draw.
+                if type(v) ~= 'number' or v ~= v or v < 400 or v > 4000 then return false end
+            end
+        end
+    end
+    if d.DrawStyleByJob ~= nil then
+        if type(d.DrawStyleByJob) ~= 'table' then return false end
+        local n = 0
+        for job, id in pairs(d.DrawStyleByJob) do
+            n = n + 1
+            if n > 64 or type(job) ~= 'string' or #job > 48 or type(id) ~= 'string' then return false end
+            -- A rule pointing at a style this build no longer declares is dropped, not
+            -- rejected — same reasoning as the overrides above. It falls through to the base
+            -- clip in the meantime, which is the correct behaviour for "that style is gone".
+        end
+    end
     -- The accent is interpolated into CSS custom properties in the NUI, so the shape is
     -- the security boundary: exactly '#rrggbb', nothing else. Readability is NOT checked
     -- here — the dashboard warns on low contrast and still lets the owner save it.
@@ -617,6 +704,29 @@ local function applyToMBT(d)
     MBT.DropWeaponOnDeath = d.DropWeaponOnDeath
     MBT.UI.Position       = d.UIPosition
     MBT.UIStyle           = d.UIStyle
+    MBT.DrawStyle         = d.DrawStyle
+    -- Keys pointing at a style this build no longer declares are dropped, so the stored config
+    -- converges on what exists instead of accumulating dead references. validate() lets them
+    -- through for the same reason — see the note there.
+    if d.DrawStyleOverrides ~= nil then
+        local m = {}
+        for styleId, slots in pairs(d.DrawStyleOverrides) do
+            if MBT.DrawStyles and MBT.DrawStyles[styleId] and next(slots or {}) then m[styleId] = slots end
+        end
+        MBT.DrawStyleOverrides = m
+    end
+    if d.SlotTiming ~= nil then MBT.SlotTiming = d.SlotTiming end
+    if d.DrawStyleByJob ~= nil then
+        local m = {}
+        for job, id in pairs(d.DrawStyleByJob) do
+            if type(job) == 'string' and type(id) == 'string' and id ~= ''
+               and MBT.DrawStyles and MBT.DrawStyles[id] then m[job] = id end
+        end
+        MBT.DrawStyleByJob = m
+    end
+    -- The selected default can point at a removed style too, and unlike the maps above this
+    -- one has a correct fallback rather than just being droppable.
+    if not (MBT.DrawStyles and MBT.DrawStyles[MBT.DrawStyle]) then MBT.DrawStyle = 'standard' end
     MBT.Accent            = d.Accent
     -- Guarded like validate(): absent means "this UI doesn't know about hide rules", not
     -- "the owner cleared them".
@@ -784,6 +894,12 @@ local function persistable(d)
         EnableSling = d.EnableSling, EnableFlashlight = d.EnableFlashlight,
         HolsterConfirm = d.HolsterConfirm,
         DropWeaponOnDeath = d.DropWeaponOnDeath, UIPosition = d.UIPosition, UIStyle = d.UIStyle,
+        DrawStyle = d.DrawStyle, DrawStyleByJob = d.DrawStyleByJob,
+        DrawStyleOverrides = d.DrawStyleOverrides,
+        SlotTiming = d.SlotTiming,
+        -- DrawStyles is NOT persisted: it is the catalogue from default.lua, derived on every
+        -- snapshot. Storing it would freeze today's list into the database row and a style
+        -- added later would never appear.
         Accent = d.Accent,
         -- BodySlots is deliberately absent: it's derived from MBT.PropInfo every time, and a
         -- stored copy would go stale the moment a server adds a type.
@@ -831,6 +947,9 @@ end
 local DYNAMIC_MAPS = {
     ['TacticalSling.JobVariants'] = true,
     ['HiddenByJob']               = true,   -- { [job] = { [slot] = true } } — job names again
+    ['DrawStyleByJob']            = true,   -- { [job] = styleId }
+    ['DrawStyleOverrides']        = true,   -- { [styleId] = { [slot] = { dict, animIn, … } } }
+    ['SlotTiming']                = true,   -- { [slot] = { sleep, sleepOut } }
 }
 
 --- Deep-merge SAVED values onto the live template: only template keys are read (type-checked), missing ones keep their config.lua default — so an older saved config auto-migrates to new defaults, never wiping state.
@@ -909,6 +1028,39 @@ local function loadRuntimeConfig()
     end)
 end
 
+--- What this server actually resolved to, for the dashboard's Environment block.
+---
+--- Every one of these checks already existed, scattered across the bridge and inventory
+--- modules as the guard at the top of each file — but none of them reached the panel, so
+--- the first question an owner has after installing ("did it detect my setup?") could only
+--- be answered by reading the server console at boot. Same detection, said out loud.
+---
+--- Order matters and mirrors the guards: qbx before qb (qbx ships a qb-core shim), and
+--- ox_inventory before qb-inventory (modules/inventory/qb/server.lua bails when both are up).
+local function environment()
+    local started = function(r) return GetResourceState(r) == 'started' end
+
+    local framework = (started('qbx_core') and 'qbx_core')
+        or (started('es_extended') and 'es_extended')
+        or (started('ox_core') and 'ox_core')
+        or (started('qb-core') and 'qb-core')
+        or nil
+
+    local inventory = (started('ox_inventory') and 'ox_inventory')
+        or (started('qb-inventory') and 'qb-inventory')
+        or nil
+
+    return {
+        framework = framework,
+        inventory = inventory,
+        -- The feature-gated tables (positions, trunk, racks, custody, config) disable
+        -- themselves without it, so this is not trivia — it is why half the panel may not
+        -- persist. See the table list in CLAUDE.md.
+        persistence = hasDb() and 'oxmysql' or nil,
+        language = MBT.Language,
+    }
+end
+
 --- Send the dashboard to an authorized admin.
 local function openFor(src)
     -- Non-critical integration warnings → chips in the dashboard overview. Providers
@@ -926,6 +1078,7 @@ local function openFor(src)
         update   = MBT.UpdateInfo,          -- {current, latest, url} when a newer release exists, else nil
         oxPatch  = oxPatchStatus or false,   -- 'ok' | reason | false → sidebar status
         warnings = warnings,
+        env      = environment(),            -- what the bridges resolved to; Environment block
     })
 end
 
@@ -1033,6 +1186,128 @@ RegisterNetEvent('mbt_malisling:classOffset:save', function(p)
 end)
 
 AddEventHandler('playerDropped', function() lastOffsetSave[source] = nil end)
+
+--- Save one gesture onto one slot of one Draw Style, from the in-game picker. A callback and
+--- not an event: the picker needs the stored map back to patch the dashboard draft, or the
+--- next ordinary Save resurrects the old value. Writes DrawStyleOverrides, never DrawStyles.
+local lastGestureSave = {}
+lib.callback.register('mbt_malisling:drawStyle:save', function(src, p)
+    if not IsPlayerAceAllowed(src, adminPerm) then return { ok = false, err = 'no permission' } end
+    if type(p) ~= 'table' or type(p.style) ~= 'string' or type(p.slot) ~= 'string' then
+        return { ok = false, err = 'bad payload' }
+    end
+    if not (MBT.DrawStyles and MBT.DrawStyles[p.style]) then
+        return { ok = false, err = 'unknown style' }
+    end
+    if not (MBT.PropInfo and MBT.PropInfo[p.slot]) then
+        return { ok = false, err = 'unknown slot' }
+    end
+    local now = GetGameTimer()
+    if lastGestureSave[src] and now - lastGestureSave[src] < 1000 then
+        return { ok = false, err = 'too fast' }
+    end
+    lastGestureSave[src] = now
+
+    local data = snapshot()
+    -- snapshot() hands back the LIVE tables, not copies, so writing straight into them would
+    -- change the running config before validate() has had a say — a rejected payload would
+    -- still take effect. Two levels deep is exactly how deep these maps go.
+    local function copy2(m)
+        local out = {}
+        for k, v in pairs(m or {}) do
+            if type(v) == 'table' then
+                local inner = {}
+                for k2, v2 in pairs(v) do inner[k2] = v2 end
+                out[k] = inner
+            else
+                out[k] = v
+            end
+        end
+        return out
+    end
+    data.DrawStyleOverrides = copy2(data.DrawStyleOverrides)
+    data.SlotTiming         = copy2(data.SlotTiming)
+
+    -- Timing rides on the same call because it is edited from the same panel, but it is scoped
+    -- to the SLOT and ignores p.style entirely — see MBT.SlotTiming. `false` clears it back to
+    -- the shipped duration; absent means "not touched by this save".
+    if p.timing ~= nil then
+        if p.timing == false then
+            data.SlotTiming[p.slot] = nil
+        elseif type(p.timing) == 'table' then
+            local t = {}
+            for _, k in ipairs({ 'sleep', 'sleepOut' }) do
+                local v = tonumber(p.timing[k])
+                -- Rounded, because these reach TaskPlayAnim and ox's item table: a fractional
+                -- millisecond is noise that would make two identical saves compare unequal.
+                if v then t[k] = math.floor(v + 0.5) end
+            end
+            data.SlotTiming[p.slot] = next(t) and t or nil
+        else
+            return { ok = false, err = 'bad timing' }
+        end
+    end
+
+    -- Three states, and they must stay three: `false` clears the override, a table sets it, and
+    -- ABSENT leaves it alone. Sending JSON null for a clear would arrive as nil and be
+    -- indistinguishable from "this save is only about the timing" — which would have wiped the
+    -- gesture every time someone nudged a duration.
+    if p.gesture == false then
+        -- The only way out of a bad choice once one is saved. An empty table would read as "an
+        -- override with no fields" and suppress nothing, so the key goes.
+        if data.DrawStyleOverrides[p.style] then
+            data.DrawStyleOverrides[p.style][p.slot] = nil
+            if not next(data.DrawStyleOverrides[p.style]) then data.DrawStyleOverrides[p.style] = nil end
+        end
+    elseif p.gesture ~= nil then
+        if type(p.gesture) ~= 'table' then return { ok = false, err = 'bad gesture' } end
+        -- Rebuilt field by field, and only non-empty strings survive. '' is truthy in Lua, so a
+        -- blank dict stored here would suppress the fallback chain and kill the gesture in
+        -- silence rather than falling through to the shipped style.
+        local g = {}
+        for _, k in ipairs({ 'dict', 'dictOut', 'animIn', 'animOut' }) do
+            local v = p.gesture[k]
+            if type(v) == 'string' and v ~= '' then g[k] = v end
+        end
+        -- A gesture with no dict and no clip is not a gesture. Saving one would look like it
+        -- worked and change nothing.
+        if not (g.dict and g.animIn) then return { ok = false, err = 'gesture needs dict and animIn' } end
+        data.DrawStyleOverrides[p.style] = data.DrawStyleOverrides[p.style] or {}
+        data.DrawStyleOverrides[p.style][p.slot] = g
+    end
+
+    -- Re-validate the WHOLE config, so this path cannot store something the dashboard's own
+    -- save would have rejected.
+    if not validate(data) then
+        Utils.mbtWarn('drawStyle ~ invalid payload from player', src)
+        return { ok = false, err = 'validation failed' }
+    end
+    applyToMBT(data)
+    local payload = persistable(data)
+    if hasDb() then
+        exports.oxmysql:execute(
+            'INSERT INTO mbt_malisling_config (id, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)',
+            { DB_ROW, json.encode(payload) }
+        )
+    else
+        Utils.mbtWarn('config ~ oxmysql not started; gesture applied live but NOT persisted')
+    end
+    TriggerClientEvent('mbt_malisling:applyConfig', -1, payload)
+    -- And patch the saver's own draft, so their open dashboard does not overwrite this on its
+    -- next Save. Only the field this path owns.
+    TriggerClientEvent('mbt_malisling:patchDraft', src, {
+        DrawStyleOverrides = payload.DrawStyleOverrides,
+        SlotTiming         = payload.SlotTiming,
+    })
+    Utils.mbtDebugger('draw style gesture saved by player', src, p.style, p.slot)
+    return {
+        ok = true,
+        overrides = payload.DrawStyleOverrides or {},
+        timing    = payload.SlotTiming or {},
+    }
+end)
+
+AddEventHandler('playerDropped', function() lastGestureSave[source] = nil end)
 
 --- Put every length-class shift back to default.lua and persist it. Called by the position
 --- editor's "reset all", because a shift is placement: a reset that left them behind would

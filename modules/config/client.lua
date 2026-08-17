@@ -145,6 +145,43 @@ local function applyConfig(d)
     end
     if MBT.UI then MBT.UI.Position = d.UIPosition end
     if d.UIStyle then MBT.UIStyle = d.UIStyle end
+    -- Draw Style: rebuild the animation table rather than just storing the value. The qb path
+    -- resolves the clip at draw time and picks the new style up on its own, but ox reads it
+    -- from `Items[name].anim`, which is written ONCE by the patch when sendAnimations fires —
+    -- so without this an ox server would keep drawing with the old gesture until the next job
+    -- change or restart. The position editor rebuilds the same way after a slider move.
+    local styleChanged = d.DrawStyle and d.DrawStyle ~= MBT.DrawStyle
+    if d.DrawStyle then MBT.DrawStyle = d.DrawStyle end
+    if d.DrawStyleOverrides ~= nil and type(d.DrawStyleOverrides) == 'table' then
+        -- Compared by serialisation rather than key-walked: this is a two-level map, and the
+        -- shallow compare used for DrawStyleByJob would miss a changed clip inside a slot.
+        local before = json.encode(MBT.DrawStyleOverrides or {})
+        MBT.DrawStyleOverrides = d.DrawStyleOverrides
+        if json.encode(MBT.DrawStyleOverrides) ~= before then styleChanged = true end
+    end
+    -- Timing feeds the same ox item table as the clip does, so a retuned duration has to
+    -- rebuild it too — otherwise the picker's timing would apply on qb (which resolves at draw
+    -- time) and do nothing on ox until the next restart.
+    if d.SlotTiming ~= nil and type(d.SlotTiming) == 'table' then
+        local before = json.encode(MBT.SlotTiming or {})
+        MBT.SlotTiming = d.SlotTiming
+        if json.encode(MBT.SlotTiming) ~= before then styleChanged = true end
+    end
+    if d.DrawStyleByJob ~= nil and type(d.DrawStyleByJob) == 'table' then
+        -- Compared before assigning: the per-job map reaches every client on every save, and
+        -- most saves have nothing to do with it. Rebuilding the animation table anyway would
+        -- mean an ox item-table rewrite on all clients each time an admin changes a number in
+        -- an unrelated card.
+        local before = MBT.DrawStyleByJob or {}
+        local same = true
+        for k, v in pairs(d.DrawStyleByJob) do if before[k] ~= v then same = false break end end
+        if same then for k, v in pairs(before) do if d.DrawStyleByJob[k] ~= v then same = false break end end end
+        MBT.DrawStyleByJob = d.DrawStyleByJob
+        if not same then styleChanged = true end
+    end
+    if styleChanged and sendAnimations then
+        sendAnimations(PlayerData and PlayerData.job and PlayerData.job.name or {})
+    end
     -- The accent repaints for EVERYONE, not just the admin who saved: the in-game
     -- prompts share the dashboard's NUI document and its --mbt-* tokens, so the colour
     -- has to reach every client's CEF page, not only MBT.* on Lua's side.

@@ -96,6 +96,7 @@ client_scripts {
     'modules/ammo_sharing/client.lua',
     'modules/prop_position_editor/client.lua',
     'modules/no_draw_zones/client.lua',
+    'modules/draw_style/client.lua',
 }
 
 ui_page 'web/dist/index.html'
