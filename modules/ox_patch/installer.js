@@ -51,7 +51,26 @@
   // changes. Without it the check below sees a marker, says "already patched" and skips
   // — so every existing install keeps running the OLD fragment forever, and a new switch
   // in the dashboard does nothing for anyone but fresh installs, silently.
-  const VERSION_MARKER = 'mbt_malisling patch v2';
+  // The marker is a HASH OF THE FRAGMENTS, not a counter and not the release version.
+  //
+  // It used to be a hand-written 'v2', with a comment telling whoever changed a fragment to
+  // raise it. The first person to change one (adding `dictOut`) did not — so every server
+  // carrying v2 kept running the old fragment and the Police style put the weapon away with
+  // the wrong clip, silently, because from here everything looked fine.
+  //
+  // The release version was the obvious fix and it is the wrong one: it re-patches on every
+  // bump even when no fragment moved, and re-patching means restoring the backup and rewriting
+  // ox_inventory's source — on a live server the reload is skipped (players connected), so the
+  // file on disk would stop matching the code actually running until the next restart. Churn on
+  // a risky file, for nothing.
+  //
+  // The hash asks the only question that matters — did the fragment change — and answers it
+  // without anyone remembering anything. Same fragments across ten releases: patched once.
+  // One character different: re-patched, automatically.
+  //
+  // The version still goes into the file, as a second line that is NOT the marker. It answers
+  // the support question ("which release patched this ox?") without driving the decision.
+  const VERSION = GetResourceMetadata(RESOURCE, 'version', 0) || 'dev';
   const INSERT_POINT  = 'sleep = anim and anim[3] or 1200';
   const RETURN_POINT  = 'return Weapon';
 
@@ -76,6 +95,24 @@
       report(false, 'cannot read ox_inventory weapon file');
       return;
     }
+
+    // Fragments are read HERE and not further down, because the marker is derived from them:
+    // the "is this current?" test below cannot be asked until they have been hashed.
+    const self = GetResourcePath(RESOURCE);
+    const hookRaw   = readFile(path.join(self, 'patches', 'ox_hook.lua'));
+    const appendRaw = readFile(path.join(self, 'patches', 'ox_append.lua'));
+    if (!hookRaw || !appendRaw) {
+      warn('Patch fragments missing (patches/ox_hook.lua, patches/ox_append.lua). Patch aborted.');
+      report(false, 'patch fragments missing');
+      return;
+    }
+    // Hashed BEFORE substitution, so the placeholder — not the stamped version — is what gets
+    // measured. Otherwise every release would change the hash and we would be back to
+    // re-patching for nothing. 8 hex chars: this distinguishes fragment revisions on one
+    // server, it is not a security boundary.
+    const FRAGMENT_HASH = require('crypto').createHash('md5')
+      .update(hookRaw).update(appendRaw).digest('hex').slice(0, 8);
+    const VERSION_MARKER = `mbt_malisling patch ${FRAGMENT_HASH}`;
 
     const isPatched = content.includes(HOOK_MARKER) || content.includes(APPEND_MARKER);
 
@@ -106,15 +143,13 @@
       content = pristine;
     }
 
-    // Fragments live in our own resource — single source of truth.
-    const self = GetResourcePath(RESOURCE);
-    const hook   = readFile(path.join(self, 'patches', 'ox_hook.lua'));
-    const append = readFile(path.join(self, 'patches', 'ox_append.lua'));
-    if (!hook || !append) {
-      warn('Patch fragments missing (patches/ox_hook.lua, patches/ox_append.lua). Patch aborted.');
-      report(false, 'patch fragments missing');
-      return;
-    }
+    // The placeholder becomes the marker the check above searches for, so the string written
+    // into ox and the string looked for cannot drift apart — both come from FRAGMENT_HASH on
+    // the same run. The release version rides along on its own line, for reading, not testing.
+    const stamp = (s) => s
+      .replace(/__MBT_PATCH_VERSION__/g, `${FRAGMENT_HASH}\n-- applied by mbt_malisling ${VERSION}`);
+    const hook   = stamp(hookRaw);
+    const append = stamp(appendRaw);
 
     // Version guard — if ox changed these anchors, do NOT corrupt the file.
     if (!content.includes(INSERT_POINT) || content.lastIndexOf(RETURN_POINT) === -1) {

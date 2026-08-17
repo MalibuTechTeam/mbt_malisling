@@ -124,6 +124,21 @@ foreach ($f in @($hookFile, $appendFile)) {
 $hook      = [System.IO.File]::ReadAllText($hookFile,   $utf8)
 $appendLua = [System.IO.File]::ReadAllText($appendFile, $utf8)
 
+# The fragments carry __MBT_PATCH_VERSION__, which becomes the marker the auto-patcher tests
+# against: an MD5 of the two fragment files, hashed BEFORE substitution. It must be computed
+# exactly the way modules/ox_patch/installer.js computes it (same two files, same order, hook
+# first) — otherwise this installer writes a marker the auto-patcher does not recognise and
+# ox gets re-patched on every server start.
+$md5 = [System.Security.Cryptography.MD5]::Create()
+$bytes = [System.Text.Encoding]::UTF8.GetBytes($hook + $appendLua)
+$fragmentHash = ([BitConverter]::ToString($md5.ComputeHash($bytes)) -replace '-', '').ToLower().Substring(0, 8)
+$manifest = [System.IO.File]::ReadAllText((Join-Path $resDir 'fxmanifest.lua'), $utf8)
+$mv = [regex]::Match($manifest, "(?m)^\s*version\s+'([^']+)'")
+$patchVersion = if ($mv.Success) { $mv.Groups[1].Value } else { 'dev' }
+$stampText = "$fragmentHash`n-- applied by mbt_malisling $patchVersion"
+$hook      = $hook.Replace('__MBT_PATCH_VERSION__',      $stampText)
+$appendLua = $appendLua.Replace('__MBT_PATCH_VERSION__', $stampText)
+
 # --- Read target file ---------------------------------------------------------
 $content = [System.IO.File]::ReadAllText($targetFile, $utf8)
 Write-Host "Read $($content.Length) characters." -ForegroundColor Gray

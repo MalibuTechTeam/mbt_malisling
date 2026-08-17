@@ -1,4 +1,6 @@
--- mbt_malisling patch v2
+-- mbt_malisling patch __MBT_PATCH_VERSION__
+-- (the installer substitutes the resource version here, so the patched file records which
+--  release of malisling wrote it — and a changed fragment can never ship under an old marker)
         if (anim == anims[`GROUP_PISTOL`] or data.type == 'side')
            and GetConvar('malisling:enable_sling', 'false') == 'true'
            -- Holster confirm switch. Read HERE, at draw time, not when the patch is

@@ -123,11 +123,33 @@ if [[ -z "$ret_ln" ]]; then
 fi
 
 # --- Build the patched file --------------------------------------------------
+# The fragments carry __MBT_PATCH_VERSION__, which becomes the marker the auto-patcher tests
+# against: an MD5 of the two fragment files, hashed BEFORE substitution, hook first. It must be
+# computed exactly the way modules/ox_patch/installer.js computes it — otherwise this installer
+# writes a marker the auto-patcher does not recognise and ox gets re-patched on every start.
+if command -v md5sum >/dev/null 2>&1; then
+    FRAGMENT_HASH="$(cat -- "$HOOK_FILE" "$APPEND_FILE" | md5sum | cut -c1-8)"
+elif command -v md5 >/dev/null 2>&1; then          # BSD/macOS
+    FRAGMENT_HASH="$(cat -- "$HOOK_FILE" "$APPEND_FILE" | md5 -q | cut -c1-8)"
+elif command -v openssl >/dev/null 2>&1; then
+    FRAGMENT_HASH="$(cat -- "$HOOK_FILE" "$APPEND_FILE" | openssl dgst -md5 -r | cut -c1-8)"
+else
+    err 'No md5sum, md5 or openssl found — cannot compute the patch marker.'
+    err 'Install one of them, or let the resource auto-patch ox_inventory on start instead.'
+    exit 1
+fi
+PATCH_VERSION="$(sed -nE "s/^[[:space:]]*version[[:space:]]+'([^']+)'.*/\1/p" "$RES_DIR/fxmanifest.lua" | head -1)"
+[[ -n "$PATCH_VERSION" ]] || PATCH_VERSION='dev'
+STAMP="$FRAGMENT_HASH\\n-- applied by mbt_malisling $PATCH_VERSION"
+HOOK_TMP="$(mktemp)"; APPEND_TMP="$(mktemp)"
+sed "s/__MBT_PATCH_VERSION__/$STAMP/g" "$HOOK_FILE"   > "$HOOK_TMP"
+sed "s/__MBT_PATCH_VERSION__/$STAMP/g" "$APPEND_FILE" > "$APPEND_TMP"
+
 # Hook goes before the sleep line, sendAnim before the LAST 'return Weapon'.
 TMP="$(mktemp)"
-trap 'rm -f -- "$TMP"' EXIT
+trap 'rm -f -- "$TMP" "$HOOK_TMP" "$APPEND_TMP"' EXIT
 
-awk -v hook="$HOOK_FILE" -v append="$APPEND_FILE" -v sl="$sleep_ln" -v rl="$ret_ln" '
+awk -v hook="$HOOK_TMP" -v append="$APPEND_TMP" -v sl="$sleep_ln" -v rl="$ret_ln" '
     NR == sl { while ((getline line < hook)   > 0) print line; close(hook) }
     NR == rl { while ((getline line < append) > 0) print line; close(append) }
     { print }
