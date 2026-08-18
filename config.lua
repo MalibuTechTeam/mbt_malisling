@@ -86,6 +86,13 @@ MBT.HolsterControls.Cancel.Input  = 'keyboard'
 -- The "*" job means everyone, whatever they do for a living. Use it when a slot should
 -- never show at all — pistols that draw normally and never hang on the hip, say — instead
 -- of listing every job on the server to mean "never".
+--
+-- ⚠️ This table is the SEED, not the live value. It fills the dashboard the first time the
+-- resource starts against an empty `mbt_malisling_config` row; from then on that row is
+-- canonical and editing here changes nothing. That is the point: this file is REPLACED on
+-- every update and the DB row is not, so the rules you set once are not the ones that
+-- vanish. Edit them under Core → HIDDEN BY JOB, or use that section's
+-- "Restore from config.lua" to drop the saved rules and come back to this table.
 MBT.HiddenByJob = {
     -- ["*"]      = { ["side"] = true },     -- nobody ever shows a holstered pistol
     -- ["police"] = { ["side"] = true },     -- only the uniform that already has one

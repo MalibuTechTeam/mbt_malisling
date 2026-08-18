@@ -11,7 +11,12 @@ AddEventHandler('mbt_malisling:sendAnim', function(data)
             local animInfo = data.HolsterData[itemType]['HolsterAnim']
             if Items[k] then
                 Items[k]['type']  = itemType
-                Items[k]['anim']  = { animInfo.dict, animInfo.animIn, animInfo.sleep, animInfo.dict, animInfo.animOut, animInfo.sleepOut }
+                -- ox's format is { dictIn, clipIn, msIn, dictOut, clipOut, msOut }: two dicts,
+                -- and we were passing the same one twice. `dictOut` lets a style draw from one
+                -- clip and put away with another — which is how a police draw reads different
+                -- going out and the same going back.
+                Items[k]['anim']  = { animInfo.dict, animInfo.animIn, animInfo.sleep,
+                                      animInfo.dictOut or animInfo.dict, animInfo.animOut, animInfo.sleepOut }
             end
         end
     end

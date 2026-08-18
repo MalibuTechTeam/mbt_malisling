@@ -1,4 +1,4 @@
-import { Section, ToggleRow, FieldBlock, Grid2, type SectionProps } from './parts'
+import { Section, ToggleRow, FieldBlock, Grid2, type SectionProps, withMeta } from './parts'
 import { NumberInput } from '../ui/NumberInput'
 
 /**
@@ -24,15 +24,21 @@ export function DropVisualSection({ config, update }: SectionProps) {
 export function DespawnSection({ config, update }: SectionProps) {
   const dd = (config.WeaponDrop ?? {}).Despawn ?? {}
   return (
-    <Section icon="clock" title="DESPAWN TIMER" sub="Auto-remove dropped weapons after a delay.">
-      <ToggleRow title="Enable Despawn" desc="Off means dropped weapons stay until someone takes them"
-        checked={!!dd.Enabled} onChange={(v) => update('WeaponDrop.Despawn.Enabled', v)} />
+    // Master switch in the HEAD, like every other feature card. It used to be the first row
+    // of the body, which made this card look like one that cannot be turned off at all —
+    // "where is the switch" has to have one answer, and the answer is top-right.
+    <Section icon="clock" title="DESPAWN TIMER"
+      sub="Auto-remove dropped weapons after a delay. Off means they stay until someone takes them."
+      action={<ToggleRow.Inline label="Despawn Timer" checked={!!dd.Enabled}
+        onChange={(v) => update('WeaponDrop.Despawn.Enabled', v)} />}>
       <Grid2>
-        <FieldBlock label="Despawn After (s)" hint="Counted from when it hits the ground." style={{ marginBottom: 0 }}>
+        <FieldBlock label="Despawn After (s)" hint="Counted from when it hits the ground."
+          disabled={!dd.Enabled} style={{ marginBottom: 0 }}>
           <NumberInput min={5} max={3600} step={5} value={String(dd.Seconds ?? 300)}
             onChange={(raw) => update('WeaponDrop.Despawn.Seconds', raw === '' ? 300 : parseInt(raw, 10) || 300)} />
         </FieldBlock>
-        <FieldBlock label="Blink Last (s)" hint="Warn before vanishing (0 = off)." style={{ marginBottom: 0 }}>
+        <FieldBlock label="Blink Last (s)" hint="Warn before vanishing (0 = off)."
+          disabled={!dd.Enabled} style={{ marginBottom: 0 }}>
           <NumberInput min={0} max={60} step={1} value={String(dd.BlinkLastSec ?? 10)}
             onChange={(raw) => update('WeaponDrop.Despawn.BlinkLastSec', raw === '' ? 0 : parseInt(raw, 10) || 0)} />
         </FieldBlock>
@@ -41,3 +47,12 @@ export function DespawnSection({ config, update }: SectionProps) {
   )
 }
 
+
+withMeta(DropVisualSection, {
+  label: 'Drop Visual',
+  also: [
+    { label: 'Render Weapon Model', path: 'WeaponDrop.WeaponModelProp' },
+    { label: 'ox_target Pickup', path: 'WeaponDrop.OxTargetPickup' },
+  ],
+})
+withMeta(DespawnSection, { label: 'Drop Despawn', path: 'WeaponDrop.Despawn.Enabled' })

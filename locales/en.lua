@@ -140,6 +140,9 @@ RegisterLocale('en', {
     ['concealed_revealed_desc'] = 'Your weapon is visible again.',
     ['concealed_no_weapon_title']= 'Concealed Carry',
     ['concealed_no_weapon_desc'] = 'No concealable weapon holstered.',
+    ['conceal_picker_title']    = 'CONCEAL WHICH?',
+    ['conceal_picker_confirm']  = 'Conceal',
+    ['conceal_picker_reveal']   = 'Reveal',
 
     -- Pat-down (LEO frisk)
     ['patdown_wants']           = 'wants to search you',

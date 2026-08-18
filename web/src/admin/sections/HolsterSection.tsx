@@ -1,14 +1,21 @@
-import { Section, ToggleRow, FieldBlock, type SectionProps } from './parts'
+import { Section, ToggleRow, FieldBlock, type SectionProps, withMeta } from './parts'
 import { NumberInput } from '../ui/NumberInput'
 
-/** Holster Sounds — holster/draw sound feedback. Per-type sound files stay in
- *  config.lua (technical); the menu exposes the runtime-safe toggles. */
+/**
+ * Sounds — the script's audio, which today means holster and draw. Per-type sound files stay
+ * in config.lua (technical); the menu exposes the runtime-safe toggles.
+ *
+ * Titled SOUNDS and not HOLSTER SOUNDS: it governs `MBT.Sounds`, every sound the script
+ * plays, and calling it after one of them put it in the same sentence as Holster Confirm —
+ * which lives under Core, on another page. Two "holster" cards two pages apart is a question
+ * an owner should never have to answer.
+ */
 export function HolsterSection({ config, update }: SectionProps) {
   const s = config.Sounds ?? {}
   return (
-    <Section icon="speaker" title="HOLSTER SOUNDS" sub="Audio on holster and draw.">
-      <ToggleRow title="Enable Sounds" desc="Nearby players hear it too, not just the carrier"
-        checked={!!s.Enabled} onChange={(v) => update('Sounds.Enabled', v)} />
+    <Section icon="speaker" title="SOUNDS" sub="Audio on holster and draw, heard by nearby players."
+      action={<ToggleRow.Inline label="Sounds" checked={!!s.Enabled}
+        onChange={(v) => update('Sounds.Enabled', v)} />}>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginTop: 4 }}>
         <FieldBlock label="Hearing Distance (m)" hint="How far players hear it." style={{ marginBottom: 0 }}>
           <NumberInput min={1} max={50} step={1} value={String(s.MaxDistance ?? 8)}
@@ -24,3 +31,5 @@ export function HolsterSection({ config, update }: SectionProps) {
 }
 
 export default HolsterSection
+
+withMeta(HolsterSection, { label: 'Sounds', path: 'Sounds.Enabled' })

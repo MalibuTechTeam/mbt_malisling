@@ -1,17 +1,11 @@
--- ─────────────────────────────────────────────────────────────────────────────
--- Weapon Serials — ensure-generation (server)
--- Forensic backbone: every world weapon gets a metadata.serial. ox serials cover
--- ox-created weapons; this covers the rest (admin-given, legacy, custom shops).
+-- ── Weapon Serials — ensure-generation (server) ──
+-- Every world weapon gets a metadata.serial: ox covers ox-created weapons, this covers the
+-- rest (admin-given, legacy, custom shops).
 --
--- Safety rules (SetMetadata re-fires ox_inventory:updateInventory on the owner —
--- the Chain of Custody bug):
---   • Write ONCE per weapon, only on safe transitions (rack stow / handoff / drop)
---     or deferred repair (join sweep, custody repair). NEVER while firing.
---   • Per-(player,slot) lock + slot re-read before writing (race/stale guard).
---   • ox SetMetadata REPLACES the table — write the full fresh table with serial
---     added, never { serial = ... } alone.
---   • Stacks are hostile: count > 1 is skipped (one weapon = one item).
--- ─────────────────────────────────────────────────────────────────────────────
+-- SetMetadata re-fires ox_inventory:updateInventory on the owner — the Chain of Custody bug —
+-- so: write ONCE per weapon on safe transitions only, never while firing; per-(player,slot)
+-- lock with a slot re-read before writing; ox REPLACES the table, so write the full one; and
+-- skip count > 1, because stacks are hostile.
 
 if not MBT.Serials then return end
 

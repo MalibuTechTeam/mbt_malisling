@@ -9,9 +9,15 @@ interface Props {
   onChange: (v: string) => void
 }
 
-// `soon` options are inert teasers — the live drag-to-place HUD editor behind
-// "Custom" ships in v2.1; the button is shown (so the capability is visible) but
-// disabled until then.
+// `soon` options are inert teasers — the button is shown so the capability is visible,
+// disabled until it exists.
+//
+// No version number here, deliberately. It used to say "ships in v2.1", which would have
+// gone out INSIDE v2.1.0 — a release promising itself. "Custom" is a live drag-to-place
+// editor and it waits on the overlay reskin, not on a version: today only HolsterUI reads
+// the position, and it does so through three hardcoded CSS presets, while a dragged point
+// needs absolute coordinates on every overlay that can show it (Jam, Inspect, Safety,
+// No-Draw). Whichever release does that reskin is the release that can offer this.
 const OPTIONS: { value: string; label: string; soon?: boolean }[] = [
   { value: 'bottom-center', label: 'Bottom Center' },
   { value: 'top-center',    label: 'Top Center' },

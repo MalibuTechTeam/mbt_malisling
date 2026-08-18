@@ -27,7 +27,13 @@
 /* ── Panel ── */
 .rkp-card {
   position: relative;             /* anchors the .cine-chip hairline in cinematic style */
-  width: 248px;
+  /* Sized to its content, not to a number. The footer verb is caller-supplied and
+     translated — "Conceal", "Dissimuler" — and at a fixed 248px it overflowed a card that
+     clips, so the hints were cut at BOTH edges. The floor keeps the rack's proportions;
+     the ceiling stops a long engraved weapon name from stretching it across the screen. */
+  width: max-content;
+  min-width: 248px;
+  max-width: 360px;
   background: var(--mbt-surface-2);
   border: 1px solid var(--mbt-edge-hi);
   border-radius: 12px;
@@ -133,12 +139,17 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 14px;
+  /* Wraps rather than clips: past the card's ceiling a hint drops to a second row, which
+     is legible. Cut in half is not. */
+  flex-wrap: wrap;
+  gap: 12px;
+  row-gap: 6px;
   padding: 8px 13px 9px;
   border-top: 1px solid var(--mbt-edge-lo);
 }
 .rkp-hint { display: inline-flex; align-items: center; gap: 5px; }
 .rkp-hint-lbl {
+  white-space: nowrap;
   font-size: 9.5px;
   letter-spacing: 0.06em;
   text-transform: uppercase;

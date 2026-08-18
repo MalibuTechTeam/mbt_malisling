@@ -1,14 +1,10 @@
--- ─────────────────────────────────────────────────────────────────────────────
--- Shooting Bridge (opaque integration socket) — client
--- An OPAQUE extension surface for a companion combat resource. malisling never
--- names it and ships ZERO of its logic — these are no-op dispatch points; without
--- a registered bridge everything is inert and malisling runs standalone.
--- Separate resources = separate Lua VMs (no direct MBT.* writes), so:
---   1. companion calls exports.mbt_malisling:RegisterShootingBridge(itsOwnName) once.
---   2. at each lifecycle point malisling calls exports[name]:OnX(...) (pcall-guarded).
---   3. MBT.ShootingBridge is the local dispatcher modules call; forwards or no-ops.
--- The GitHub source thus reveals only empty hooks.
--- ─────────────────────────────────────────────────────────────────────────────
+-- ── Shooting Bridge (opaque integration socket) — client ──
+-- An opaque extension surface for a companion combat resource. malisling never names it and
+-- ships ZERO of its logic: without a registered bridge every hook is inert and malisling runs
+-- standalone, so the public source reveals only empty dispatch points.
+--
+-- Separate resources are separate Lua VMs, so the companion registers itself once via
+-- exports.mbt_malisling:RegisterShootingBridge(name) and malisling calls back pcall-guarded.
 
 local bridgeResource          -- resource name registered by the companion (or nil)
 local currentWeapon           -- ox_inventory:currentWeapon payload (has .metadata)

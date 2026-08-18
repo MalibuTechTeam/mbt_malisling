@@ -140,6 +140,9 @@ RegisterLocale('fr', {
     ['concealed_revealed_desc'] = 'Votre arme est de nouveau visible.',
     ['concealed_no_weapon_title']= 'Port Dissimulé',
     ['concealed_no_weapon_desc'] = 'Aucune arme dissimulable dans l\'étui.',
+    ['conceal_picker_title']    = 'DISSIMULER LAQUELLE ?',
+    ['conceal_picker_confirm']  = 'Dissimuler',
+    ['conceal_picker_reveal']   = 'Révéler',
 
     -- Fouille (police)
     ['patdown_wants']           = 'veut vous fouiller',

@@ -13,7 +13,7 @@
      time the rail target changes, so this fires per swap. `both` holds the
      from-state through any stagger delay (see .mbt-admin__sections) so a
      delayed card doesn't flash visible first. */
-  animation: mbt-section-in 180ms var(--mbt-ease) both;
+  animation: mbt-section-in var(--mbt-dur) var(--mbt-ease) both;
 }
 
 @keyframes mbt-section-in {
@@ -40,7 +40,11 @@
   background: var(--mbt-surface-3);
   border: 1px solid var(--mbt-edge);
   border-radius: var(--mbt-r-sm);
-  color: var(--mbt-accent);
+  /* Neutral, matching .mbt-card__ic. These sit on EVERY card header — seven on the Core
+     page — and at accent they were the loudest thing on screen, so Save & Apply, the one
+     terminal action, competed with a grid of decoration. tokens.css reserves the accent for
+     the active rail item, focus, and Save; this is what holding that reservation costs. */
+  color: var(--mbt-text-lo);
 }
 .mbt-section__head-tx {
   flex: 1;
@@ -227,6 +231,12 @@ input[type="number"]::-webkit-outer-spin-button {
 
 /* ── Setting block (toggle-gated section item) ────────────────────────── */
 /* Sub-panel inside the section card — one step down the ladder (surface-1). */
+/* The filled row is what keeps a settings list COMPACT: it binds a title, its description
+   and its control into one object, so the eye reads four rows instead of eight loose lines.
+   Stripping the fill and border was tried and reverted — without the container the rows
+   float, the card reads sparse rather than open, and the page gains height for nothing.
+   Air in this panel has to come from the card's own padding and from fewer cards, not from
+   deleting the thing that groups a row. */
 .mbt-setting {
   padding: 9px 12px;
   background: var(--mbt-surface-1);
@@ -360,6 +370,124 @@ input[type="number"]::-webkit-outer-spin-button {
   font-size: 11px;
   border-radius: var(--mbt-r-sm);
 }
+
+/* ── Hide-rule list (Hidden By Job) ───────────────────────────────────────
+   One full-width row per rule, not the 2-column .mbt-trunk-list grid: a rule
+   carries a wrapping strip of slot chips under its head, which needs the width. */
+.mbt-hbj-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 280px;
+  overflow-y: auto;
+  padding-right: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+/* Empty state for HIDDEN BY JOB. A card whose list is empty is otherwise all frame and no
+   picture: this says what the absence means and what to do about it, in the space the rules
+   will occupy — so the card does not visibly change shape when the first one is added. */
+.mbt-hbj-empty {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas: "icon title" "icon body";
+  align-items: center;
+  gap: 1px 10px;
+  padding: 14px 14px;
+  background: var(--mbt-surface-1);
+  border: 1px dashed var(--mbt-edge);
+  border-radius: var(--mbt-r-sm);
+}
+.mbt-hbj-empty svg { grid-area: icon; color: var(--mbt-text-faint); }
+.mbt-hbj-empty b {
+  grid-area: title;
+  font-family: var(--mbt-font-display);
+  font-size: 12px; letter-spacing: 0.02em;
+  color: var(--mbt-text-hi);
+}
+.mbt-hbj-empty span {
+  grid-area: body;
+  font-size: 11.5px; line-height: 1.45; color: var(--mbt-text-lo);
+}
+
+.mbt-hbj-list::-webkit-scrollbar { width: 11px; }
+.mbt-hbj-list::-webkit-scrollbar-track { background: transparent; }
+.mbt-hbj-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: var(--mbt-r-pill);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+.mbt-hbj-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.24);
+  background-clip: padding-box;
+}
+.mbt-hbj-row {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+  padding: 8px 9px;
+  background: var(--mbt-surface-1);
+  border: 1px solid var(--mbt-edge);
+  border-radius: var(--mbt-r-sm);
+}
+.mbt-hbj-row__head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  font-family: var(--mbt-font-display);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--mbt-text-hi);
+}
+/* The rule in one line, so a row reads without decoding the chips. */
+.mbt-hbj-row__sum {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--mbt-font-mono);
+  font-size: 10.5px;
+  font-weight: 400;
+  color: var(--mbt-text-lo);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* A rule whose job the framework no longer knows: it still applies, it just can't match
+   anyone — so it's marked, not hidden, and the row keeps its Remove button. */
+.mbt-hbj-tag--unknown {
+  color: var(--mbt-faulty);
+  background: rgba(var(--mbt-faulty-rgb), 0.10);
+  border-color: rgba(var(--mbt-faulty-rgb), 0.28);
+}
+.mbt-hbj-row__head .mbt-btn-ghost {
+  flex-shrink: 0;
+  height: 24px;
+  padding: 0 9px;
+  font-size: 11px;
+  border-radius: var(--mbt-r-sm);
+}
+.mbt-hbj-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.mbt-chip {
+  padding: 3px 8px;
+  border-radius: var(--mbt-r-pill);
+  font-family: var(--mbt-font-mono);
+  font-size: 10.5px;
+  color: var(--mbt-text-lo);
+  background: var(--mbt-surface-3);
+  border: 1px solid var(--mbt-edge);
+  cursor: pointer;
+  transition: color var(--mbt-dur) var(--mbt-ease), background var(--mbt-dur) var(--mbt-ease),
+              border-color var(--mbt-dur) var(--mbt-ease);
+}
+.mbt-chip:hover { color: var(--mbt-text-hi); border-color: var(--mbt-edge-hi); }
+.mbt-chip.is-on {
+  color: var(--mbt-accent);
+  background: var(--mbt-accent-soft);
+  border-color: rgba(var(--mbt-accent-rgb), 0.35);
+}
+.mbt-chip:focus-visible { outline: 2px solid var(--mbt-accent-glow); outline-offset: 1px; }
 
 /* ── Capture field (coord display + capture button) ───────────────────── */
 .mbt-capture-field {
@@ -505,6 +633,66 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 .mbt-notice__x:hover { color: var(--mbt-text-hi); background: rgba(var(--mbt-faulty-rgb), 0.14); }
 .mbt-notice__x:focus-visible { outline: 2px solid var(--mbt-accent-glow); outline-offset: 1px; }
+
+/* ── Accent picker (swatch + hex + armed reset) ───────────────────────── */
+.mbt-accent-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+/* The swatch itself is ui/ColorPicker.css — .mbt-accent-swatch skinned an
+   <input type="color">, whose popup CEF draws in the OS chrome regardless. */
+/* Sample in-game prompt. Reuses the real .cine-chip and .mbt-kc rules (defined for the
+   overlays and global to this document), so it drifts with the thing it is previewing
+   instead of being a lookalike that quietly stops matching. */
+/* Base = the STANDARD prompt's surface recipe, kept in step with .holster-pill
+   (components/HolsterUI.css): accent glow from the top-left over a surface-2→surface-1
+   gradient, accent-tinted hairline. .cine-chip is layered on top when the style is
+   Cinematic and overrides all three with !important, so one class toggle switches the
+   sample between the two prompts a server can actually ship. */
+.mbt-accent-preview {
+  display: flex; align-items: center; gap: 9px;
+  padding: 7px 11px; margin-bottom: 9px;
+  width: max-content; max-width: 100%;
+  font-size: 12px; color: var(--mbt-text-mid);
+  border-radius: 10px;
+  background:
+    radial-gradient(120% 180% at 0% 0%, var(--mbt-accent-soft), transparent 55%),
+    linear-gradient(180deg, var(--mbt-surface-2), var(--mbt-surface-1));
+  border: 1px solid rgba(var(--mbt-accent-rgb), 0.18);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+.mbt-accent-preview__label { white-space: nowrap; }
+/* The accent's own showing — the prompts use it as a small emphasis, never as a fill,
+   so a big block of it here would flatter a colour that fails where it actually lands. */
+.mbt-accent-preview__dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--mbt-accent);
+  box-shadow: 0 0 8px var(--mbt-accent-glow);
+}
+
+.mbt-accent-hex {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--mbt-font-mono);
+  text-transform: uppercase;
+}
+/* Second click of a two-step destructive action — first click arms, second commits, and it
+   disarms itself after 4s. Red only ONCE ARMED: before that it is an escape hatch, not a
+   hazard, and colouring it red all the time would make the one control that undoes a mess
+   look like the thing that causes one. Armed has to read as a different control from the one
+   just clicked, or the second click gets made without noticing the first.
+   Shared by the accent reset, the positions reset-all and the hide-rule restore. */
+.mbt-btn-ghost.is-armed {
+  color: var(--mbt-faulty);
+  background: rgba(var(--mbt-faulty-rgb), 0.12);
+  border-color: rgba(var(--mbt-faulty-rgb), 0.45);
+}
+.mbt-btn-ghost.is-armed:hover {
+  color: var(--mbt-faulty);
+  background: rgba(var(--mbt-faulty-rgb), 0.18);
+  border-color: rgba(var(--mbt-faulty-rgb), 0.6);
+}
 
 /* ── Tag editor (chips + inline input) ────────────────────────────────── */
 .mbt-tag-editor {

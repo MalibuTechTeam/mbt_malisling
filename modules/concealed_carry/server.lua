@@ -14,15 +14,26 @@ local lastToggle = {}   -- [src] = GetGameTimer()
 
 local QUALITY = { good = true, poor = true }
 
---- Does the player actually carry a weapon of this concealable type?
-local function hasTypeWeapon(src, wtype)
+--- Does the player actually carry THIS weapon, and is it concealable?
+--- By serial, not by type: "he owns some pistol" is not authority to hide a specific one,
+--- and the serial is what the statebag will be keyed by.
+---@return boolean ok, string? wtype
+local function ownsConcealable(src, serial)
     local items = Inventory:GetInventoryItems(src)
     if type(items) ~= 'table' then return false end
+
     for _, item in pairs(items) do
         if type(item) == 'table' and type(item.name) == 'string'
             and item.name:sub(1, 7) == 'WEAPON_' then
-            local w = MBT.WeaponsInfo and MBT.WeaponsInfo.Weapons and MBT.WeaponsInfo.Weapons[item.name]
-            if w and w.type == wtype then return true end
+            local key = Slung.serialKey(item)
+            if key == serial then
+                local w = MBT.WeaponsInfo and MBT.WeaponsInfo.Weapons and MBT.WeaponsInfo.Weapons[item.name]
+                local wtype = w and w.type
+                if wtype and cfg.ConcealableTypes and cfg.ConcealableTypes[wtype] then
+                    return true, wtype
+                end
+                return false
+            end
         end
     end
     return false
@@ -38,10 +49,8 @@ lib.callback.register('mbt_malisling:concealed:toggle', function(src, data)
     end
     lastToggle[src] = now
 
-    local wtype = data.wtype
-    if type(wtype) ~= 'string' or not (cfg.ConcealableTypes and cfg.ConcealableTypes[wtype]) then
-        return { ok = false }
-    end
+    local serial = data.serial
+    if type(serial) ~= 'string' or #serial > 64 then return { ok = false } end
 
     local ped = GetPlayerPed(src)
     if not ped or ped == 0 then return { ok = false } end
@@ -49,34 +58,37 @@ lib.callback.register('mbt_malisling:concealed:toggle', function(src, data)
     local state = Player(src).state.mbt_concealed
     state = type(state) == 'table' and state or {}
 
-    if state[wtype] then
-        -- Reveal.
-        state[wtype] = nil
+    if state[serial] then
+        -- Reveal. No ownership check: revealing is never something to protect against, and
+        -- refusing it would strand a player whose weapon left their hands while hidden.
+        state[serial] = nil
         Player(src).state:set('mbt_concealed', next(state) and state or false, true)
         return { ok = true, concealed = false }
     end
 
-    -- Conceal: clothing must allow it (client-evaluated — drawables are client
-    -- data; worst-case spoof is visual-only) and the weapon must exist server-side.
+    -- Conceal: clothing must allow it (client-evaluated — drawables are client data;
+    -- worst-case spoof is visual-only) and this exact weapon must be his and concealable.
     local quality = data.quality
     if not QUALITY[quality] then return { ok = false, reason = 'concealed_bare' } end
-    if not hasTypeWeapon(src, wtype) then return { ok = false, reason = 'concealed_no_weapon' } end
 
-    state[wtype] = quality
+    local ok, wtype = ownsConcealable(src, serial)
+    if not ok then return { ok = false, reason = 'concealed_no_weapon' } end
+
+    state[serial] = { t = wtype, q = quality }
     Player(src).state:set('mbt_concealed', state, true)
     return { ok = true, concealed = true, quality = quality }
 end)
 
 --- Force-reveal (clothing change invalidated concealment); client-reported but only ever REVEALS, so there's nothing to spoof-abuse.
-RegisterNetEvent('mbt_malisling:concealed:forceReveal', function(wtype)
+RegisterNetEvent('mbt_malisling:concealed:forceReveal', function(serial)
     local src = source
-    if not cfg.Enabled or type(wtype) ~= 'string' then return end
+    if not cfg.Enabled or type(serial) ~= 'string' then return end
     -- Each accepted call writes a replicated statebag, so an unthrottled one is a free
     -- way to make the server broadcast to every client.
     if not (MBT.NetThrottle and MBT.NetThrottle(src, 'forceReveal', 250)) then return end
     local state = Player(src).state.mbt_concealed
-    if type(state) ~= 'table' or not state[wtype] then return end
-    state[wtype] = nil
+    if type(state) ~= 'table' or not state[serial] then return end
+    state[serial] = nil
     Player(src).state:set('mbt_concealed', next(state) and state or false, true)
 end)
 

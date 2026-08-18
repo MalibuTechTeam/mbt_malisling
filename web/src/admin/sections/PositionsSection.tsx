@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Section, FieldBlock, Grid2, ToggleRow, type SectionProps } from './parts'
+import { fetchNui } from '../../utils/fetchNui'
+import { Section, FieldBlock, Grid2, ToggleRow, type SectionProps, withMeta } from './parts'
 import { Segmented } from '../ui/Segmented'
 import { Select } from '../ui/Select'
 import { Icon } from '../ui/Icon'
@@ -9,10 +10,17 @@ import { Icon } from '../ui/Icon'
 export interface Job { name: string; label: string }
 export interface EditTarget { wtype: string; job: string; gender: string }
 
+// The '#n' entries are the extra multi-weapon lanes: ordinary positions with their own key,
+// edited exactly like the first one. They are listed next to the slot they belong to rather
+// than in a section of their own — you place a second rifle by thinking about the back, not
+// about lanes. Which of them exist is decided in default.lua (LaneOffsets): a slot without
+// one simply never draws a second weapon.
 const WTYPES = [
   { v: 'back', l: 'Rifle / Long gun' },
+  { v: 'back#2', l: 'Rifle / Long gun — 2nd' },
   { v: 'back2', l: 'Heavy / Launcher' },
   { v: 'side', l: 'Pistol' },
+  { v: 'side#2', l: 'Pistol — 2nd' },
   { v: 'melee', l: 'Melee' },
   { v: 'melee2', l: 'Knife' },
   { v: 'melee3', l: 'Hatchet / Alt melee' },
@@ -24,10 +32,27 @@ const GENDERS = [
   { value: 'female', label: 'Female' },
 ]
 
-export function PositionsSection({ jobs, onEdit }: { jobs: Job[]; onEdit: (t: EditTarget) => void }) {
+export function PositionsSection(
+  { jobs, onEdit, multiOn }: { jobs: Job[]; onEdit: (t: EditTarget) => void; multiOn: boolean },
+) {
   const [wtype, setWtype] = useState('back')
   const [job, setJob] = useState('default')
   const [gender, setGender] = useState('male')
+  // The lanes stay listed with Multi-Weapon off — they exist, and you may want them placed
+  // before turning it on — but say so, or you tune a position nothing will ever draw.
+  const laneOff = (v: string) => !multiOn && v.includes('#')
+
+  // Two clicks rather than a modal. Reset is otherwise per type AND per job, so a server
+  // that has been experimented with leaves no list of what was touched — this is the way
+  // back, and it should be reachable without being reachable by accident. Arms for 4s.
+  const [armed, setArmed] = useState(false)
+  const [done, setDone] = useState(false)
+  const resetAll = () => {
+    if (!armed) { setArmed(true); window.setTimeout(() => setArmed(false), 4000); return }
+    setArmed(false)
+    fetchNui('propPos:resetAll')
+    setDone(true); window.setTimeout(() => setDone(false), 2000)
+  }
   return (
     <Section icon="configure" title="WEAPON POSITIONS"
       sub="Where each weapon sits on the body, per type and job."
@@ -43,7 +68,7 @@ export function PositionsSection({ jobs, onEdit }: { jobs: Job[]; onEdit: (t: Ed
       <Grid2>
         <FieldBlock label="Weapon Type" hint="Which prop type to position.">
           <Select value={wtype} aria-label="Weapon type" onChange={setWtype}
-            options={WTYPES.map((t) => ({ value: t.v, label: t.l }))} />
+            options={WTYPES.map((t) => ({ value: t.v, label: laneOff(t.v) ? `${t.l} (disabled)` : t.l }))} />
         </FieldBlock>
         <FieldBlock label="Job" hint="Default applies to everyone; a job overrides it for that job.">
           <Select value={job} aria-label="Job" onChange={setJob}
@@ -54,6 +79,22 @@ export function PositionsSection({ jobs, onEdit }: { jobs: Job[]; onEdit: (t: Ed
       <FieldBlock label="Gender" hint="Edit the male or female offset (you can copy one to the other).">
         <Segmented value={gender} options={GENDERS} onChange={setGender} />
       </FieldBlock>
+      {laneOff(wtype) && (
+        <div className="mbt-notice mbt-notice--warn">
+          <b>Multi-Weapon Visibility is off</b>, so this lane is never drawn. You can place it
+          now and it will be waiting when you turn the feature on under Core.
+        </div>
+      )}
+      <div className="mbt-pos__reset">
+        <span>
+          Reset everything to the shipped defaults — every position, every job, both genders,
+          and the length-class shifts.
+        </span>
+        <button className={`mbt-btn-ghost mbt-btn--sm${armed ? ' is-armed' : ''}`}
+          onClick={resetAll} aria-live="polite">
+          {done ? 'Reset' : armed ? 'Click again to confirm' : 'Reset all'}
+        </button>
+      </div>
     </Section>
   )
 }
@@ -153,3 +194,8 @@ export function SlingPositionsSection(
     </Section>
   )
 }
+
+withMeta(PositionsSection, { label: 'Weapon Positions' })
+// Its card renders on the Placement page, so this is where the overview must file it. Filed
+// under Core by hand, it told owners a feature was on a page it has never been on.
+withMeta(SlingPositionsSection, { label: 'Tactical Sling', path: 'TacticalSling.Enabled' })

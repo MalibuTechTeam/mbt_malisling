@@ -40,18 +40,23 @@ local function forceCloseAdmin()
 end
 
 RegisterNetEvent('mbt_malisling:openAdmin', function(payload)
+    local wasOpen = dashboardOpen
     SendNUIMessage({ action = 'openAdmin', data = payload or {} })
     SetNuiFocus(true, true)
     dashboardOpen = true
     -- Watcher lives only as long as the panel does (no idle thread when closed).
     -- Dying with the dashboard up otherwise leaves it on screen holding NUI focus
     -- straight through the respawn, with the player unable to click anything.
-    CreateThread(function()
-        while dashboardOpen do
-            Wait(500)
-            if IsEntityDead(cache.ped) then forceCloseAdmin() break end
-        end
-    end)
+    -- Not re-spawned when the server re-sends the panel to refresh it (hide-rule
+    -- restore): the running one already covers the same panel.
+    if not wasOpen then
+        CreateThread(function()
+            while dashboardOpen do
+                Wait(500)
+                if IsEntityDead(cache.ped) then forceCloseAdmin() break end
+            end
+        end)
+    end
 end)
 
 -- Stopping the resource with the panel open would strand the cursor: the NUI is
@@ -74,10 +79,33 @@ RegisterNUICallback('adminClose', function(_, cb)
     cb({})
 end)
 
+-- Drop the saved hide rules and fall back to config.lua. The server re-checks the ACE and
+-- throttles, then re-sends the whole dashboard — see the handler for why.
+RegisterNUICallback('hiddenByJob:restore', function(_, cb)
+    TriggerServerEvent('mbt_malisling:hiddenByJob:restore')
+    cb({})
+end)
+
 -- NUI pulls this on mount for reduced-motion (CEF often can't read the OS
 -- prefers-reduced-motion setting). config.lua-driven; no focus needed.
 RegisterNUICallback('getReduceMotion', function(_, cb)
     cb({ on = MBT.ReduceMotion and true or false })
+end)
+
+-- Brand accent, pulled on NUI mount. The push below can land before the CEF page
+-- exists (both start with the resource), so the page asks once rather than trusting
+-- the race. No focus needed.
+RegisterNUICallback('getAccent', function(_, cb)
+    cb({ accent = MBT.Accent })
+end)
+
+-- A value the open dashboard is HOLDING but does not edit has been changed elsewhere.
+-- The draft round-trips the whole config, so without this the panel's stale copy goes back
+-- on the next ordinary Save and silently undoes the change. Targeted at one admin, and only
+-- worth sending while the panel is up.
+RegisterNetEvent('mbt_malisling:patchDraft', function(patch)
+    if not dashboardOpen or type(patch) ~= 'table' then return end
+    SendNUIMessage({ action = 'patchDraft', data = patch })
 end)
 
 -- Server-driven localized notification (shared by config + other modules).
@@ -99,8 +127,68 @@ local function applyConfig(d)
     -- and it killed the side-weapon prompt once already.
     MBT.HolsterConfirm    = d.HolsterConfirm
     LocalPlayer.state:set('malisling_holster_confirm', d.HolsterConfirm ~= false, false)
+    -- The CLIENT decides whether a prop is drawn (core/client.lua ~ isPropSuppressed), so the
+    -- rules have to land here, not only on the server. Absent means "sent by a UI that predates
+    -- the setting" — keep what we have rather than reading it as "no rules".
+    if d.HiddenByJob ~= nil then
+        local hidden = {}
+        for job, slots in pairs(d.HiddenByJob) do
+            if type(job) == 'string' and type(slots) == 'table' then
+                local row = {}
+                for slot, on in pairs(slots) do
+                    if on == true and type(slot) == 'string' then row[slot] = true end
+                end
+                hidden[job] = row
+            end
+        end
+        MBT.HiddenByJob = hidden
+    end
     if MBT.UI then MBT.UI.Position = d.UIPosition end
     if d.UIStyle then MBT.UIStyle = d.UIStyle end
+    -- Draw Style: rebuild the animation table rather than just storing the value. The qb path
+    -- resolves the clip at draw time and picks the new style up on its own, but ox reads it
+    -- from `Items[name].anim`, which is written ONCE by the patch when sendAnimations fires —
+    -- so without this an ox server would keep drawing with the old gesture until the next job
+    -- change or restart. The position editor rebuilds the same way after a slider move.
+    local styleChanged = d.DrawStyle and d.DrawStyle ~= MBT.DrawStyle
+    if d.DrawStyle then MBT.DrawStyle = d.DrawStyle end
+    if d.DrawStyleOverrides ~= nil and type(d.DrawStyleOverrides) == 'table' then
+        -- Compared by serialisation rather than key-walked: this is a two-level map, and the
+        -- shallow compare used for DrawStyleByJob would miss a changed clip inside a slot.
+        local before = json.encode(MBT.DrawStyleOverrides or {})
+        MBT.DrawStyleOverrides = d.DrawStyleOverrides
+        if json.encode(MBT.DrawStyleOverrides) ~= before then styleChanged = true end
+    end
+    -- Timing feeds the same ox item table as the clip does, so a retuned duration has to
+    -- rebuild it too — otherwise the picker's timing would apply on qb (which resolves at draw
+    -- time) and do nothing on ox until the next restart.
+    if d.SlotTiming ~= nil and type(d.SlotTiming) == 'table' then
+        local before = json.encode(MBT.SlotTiming or {})
+        MBT.SlotTiming = d.SlotTiming
+        if json.encode(MBT.SlotTiming) ~= before then styleChanged = true end
+    end
+    if d.DrawStyleByJob ~= nil and type(d.DrawStyleByJob) == 'table' then
+        -- Compared before assigning: the per-job map reaches every client on every save, and
+        -- most saves have nothing to do with it. Rebuilding the animation table anyway would
+        -- mean an ox item-table rewrite on all clients each time an admin changes a number in
+        -- an unrelated card.
+        local before = MBT.DrawStyleByJob or {}
+        local same = true
+        for k, v in pairs(d.DrawStyleByJob) do if before[k] ~= v then same = false break end end
+        if same then for k, v in pairs(before) do if d.DrawStyleByJob[k] ~= v then same = false break end end end
+        MBT.DrawStyleByJob = d.DrawStyleByJob
+        if not same then styleChanged = true end
+    end
+    if styleChanged and sendAnimations then
+        sendAnimations(PlayerData and PlayerData.job and PlayerData.job.name or {})
+    end
+    -- The accent repaints for EVERYONE, not just the admin who saved: the in-game
+    -- prompts share the dashboard's NUI document and its --mbt-* tokens, so the colour
+    -- has to reach every client's CEF page, not only MBT.* on Lua's side.
+    if d.Accent then
+        MBT.Accent = d.Accent
+        SendNUIMessage({ action = 'setAccent', data = { accent = d.Accent } })
+    end
     if d.Sounds and MBT.Sounds then
         MBT.Sounds.Enabled     = d.Sounds.Enabled
         MBT.Sounds.MaxDistance = d.Sounds.MaxDistance
@@ -221,6 +309,42 @@ local function applyConfig(d)
             MBT.WeaponRack.Placement.Access       = d.WeaponRack.Placement.Access
         end
     end
+    -- Multi-weapon: the CLIENT only reads MaxPerType for its own bookkeeping — lanes are
+    -- assigned server-side, so a client that disagreed would simply be ignored.
+    if d.MultiWeaponVisibility and MBT.MultiWeaponVisibility then
+        MBT.MultiWeaponVisibility.Enabled    = d.MultiWeaponVisibility.Enabled
+        MBT.MultiWeaponVisibility.MaxPerType = math.floor(tonumber(d.MultiWeaponVisibility.MaxPerType) or 2)
+    end
+    -- Class offsets, on the other hand, the client DOES need: it is the client that draws
+    -- the prop, so the shift for a long weapon has to be here or it simply never happens.
+    -- Only slots default.lua declares are touched — a saved row does not invent body slots.
+    if type(d.WeaponClassOffsets) == 'table' and type(MBT.WeaponClassOffsets) == 'table' then
+        local before = json.encode(MBT.WeaponClassOffsets)
+        for slot, byClass in pairs(MBT.WeaponClassOffsets) do
+            local s = d.WeaponClassOffsets[slot]
+            if type(s) == 'table' then
+                for _, class in ipairs({ 'compact', 'long' }) do
+                    local o = s[class]
+                    if type(o) == 'table' and type(o.Pos) == 'table' and type(o.Rot) == 'table' then
+                        byClass[class] = {
+                            Pos = { x = o.Pos.x + 0.0, y = o.Pos.y + 0.0, z = o.Pos.z + 0.0 },
+                            Rot = { x = o.Rot.x + 0.0, y = o.Rot.y + 0.0, z = o.Rot.z + 0.0 },
+                        }
+                    end
+                end
+            end
+        end
+        -- The offset is read at attach time, so props already on a back keep the old one:
+        -- nothing about WHICH weapons are out changed, which is exactly why the desired-set
+        -- diff cannot notice. Say it explicitly — but ONLY when the numbers really moved.
+        -- applyConfig runs on every save and on join, and re-drawing every prop on a
+        -- street full of people because somebody toggled a sound would be a visible hitch
+        -- caused by a setting that has nothing to do with any of it.
+        if before ~= json.encode(MBT.WeaponClassOffsets) and MBT.RedrawAllSlung then
+            MBT.RedrawAllSlung()
+        end
+    end
+
     if d.TacticalSling and MBT.TacticalSling then
         local oldVariant = MBT.TacticalSling.DefaultVariant
         local oldJV = json.encode(MBT.TacticalSling.JobVariants or {})

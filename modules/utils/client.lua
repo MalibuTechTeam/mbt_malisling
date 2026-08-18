@@ -116,3 +116,95 @@ function Utils.durabilityToTier(durability)
     return 1
 end
 
+
+--- The Draw Style in force for THIS player: their job's override, or the server default.
+---
+--- Local-player only, and that is correct rather than a limitation: each client resolves the
+--- gesture for its own ped, and the game replicates the animation it plays — so everyone
+--- around sees the police draw as police, without a single extra event on the wire.
+---
+--- ox_core has groups instead of one job, so the first group with an override wins. Order is
+--- not stable across `pairs`, but a player in two jobs that both override is a server's own
+--- ambiguity to resolve, not one this function should invent an answer for.
+---@return string  a style id — 'standard' when nothing matches
+function Utils.activeDrawStyle()
+    local byJob = MBT.DrawStyleByJob
+    if byJob and next(byJob) and PlayerData then
+        if PlayerData.groups then
+            for g in pairs(PlayerData.groups) do
+                if byJob[g] then return byJob[g] end
+            end
+        elseif PlayerData.job and PlayerData.job.name and byJob[PlayerData.job.name] then
+            return byJob[PlayerData.job.name]
+        end
+    end
+    return MBT.DrawStyle or 'standard'
+end
+
+--- The holster gesture for a slot, with the active Draw Style applied.
+---
+--- ONE resolver for TWO consumers: `sendAnimations` builds the table the ox patch writes into
+--- `Items[name].anim`, and the qb path reads it at draw time in five places. Applied to only
+--- one, a style would work on ox and silently do nothing on qb.
+---@param wtype string?  prop slot — 'side', 'back', 'back2', 'melee'…
+---@param styleId string?  resolve against THIS style instead of the player's active one. Only
+---  the gesture picker passes it: it edits a style the admin may not be assigned to, and
+---  showing them their own job's gesture as "current" while they edit another is the one
+---  mistake this whole overlay exists to prevent.
+---@return table?  { dict, animIn, animOut, sleep, sleepOut }, or nil if the slot has none
+function Utils.holsterAnim(wtype, styleId)
+    local base = wtype and MBT.PropInfo and MBT.PropInfo[wtype] and MBT.PropInfo[wtype].HolsterAnim
+    if not base then return nil end
+
+    -- Timing first, and read from ONE place regardless of style: per slot, server-wide. See
+    -- MBT.SlotTiming for why this is the only override of these two fields that exists.
+    local t     = MBT.SlotTiming and MBT.SlotTiming[wtype]
+    local sleep    = (t and tonumber(t.sleep))    or base.sleep
+    local sleepOut = (t and tonumber(t.sleepOut)) or base.sleepOut
+
+    -- Three layers, in this order: the slot's own clip, the style shipped in default.lua, and
+    -- the one the owner picked in-game. Only the third persists; the first two are code.
+    local id    = styleId or Utils.activeDrawStyle()
+    local style = MBT.DrawStyles and MBT.DrawStyles[id]
+    local owner = MBT.DrawStyleOverrides and MBT.DrawStyleOverrides[id]
+    local over  = owner and owner[wtype] or (style and style[wtype])
+    -- Still goes through the merge when only the timing was retuned, so a slot with no clip
+    -- override does not silently keep the shipped duration.
+    if not over then
+        if not t then return base end
+        return {
+            dict = base.dict, dictOut = base.dictOut, animIn = base.animIn, animOut = base.animOut,
+            sleep = sleep, sleepOut = sleepOut,
+        }
+    end
+
+    -- An empty string is truthy in Lua, so a blank saved dict would suppress the fallback and
+    -- leave the gesture silently dead rather than falling through to the layer below. Blank
+    -- is treated as absent at every level, not only at save time.
+    local pick = function(a, b, c)
+        if type(a) == 'string' and a ~= '' then return a end
+        if type(b) == 'string' and b ~= '' then return b end
+        return c
+    end
+
+    -- Field-level merge, and the clip fields ONLY. `sleep` and `sleepOut` come from the slot
+    -- (PropInfo, or MBT.SlotTiming above) and never from the style, even if a style declares
+    -- them — enforced here rather than trusted to config, because this is the boundary between
+    -- the two scripts and a config file is where someone eventually writes a smaller number
+    -- "just to try".
+    --
+    -- `sleep` is how long the player stands with empty hands: a style at 1000ms against a
+    -- base of 1200 hands out two tenths of a second in a firefight. That is Quick Draw, and
+    -- Quick Draw is mbt_shooting's. A style changes the gesture, not what it costs.
+    local dict = pick(over.dict, base.dict)
+    return {
+        dict     = dict,
+        -- Optional second dict for the put-away. Falls back to `dict`, so a style that does
+        -- not care never has to mention it.
+        dictOut  = pick(over.dictOut, base.dictOut, dict),
+        animIn   = pick(over.animIn,  base.animIn),
+        animOut  = pick(over.animOut, base.animOut),
+        sleep    = sleep,
+        sleepOut = sleepOut,
+    }
+end

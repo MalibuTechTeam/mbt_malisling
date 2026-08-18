@@ -6,7 +6,7 @@ if not Utils.MbtResourceNameCheck('mbt_malisling') then return end
 -- which lib.versionCheck can't do (console-only, result not exposed).
 
 local isReady = false
-playersToTrack = {}
+-- playersToTrack and every operation on it live in modules/slung/server.lua (global `Slung`).
 
 -- Inventory and loadInventoryWeaponsData() come from modules/inventory/*/server.lua, which
 -- bail out when their inventory is not 'started' at the moment we load — a restart that
@@ -53,7 +53,7 @@ local function dropPlayer(s)
     TriggerClientEvent("mbt_malisling:syncDeletion", -1,
         { playerSource = s, weaponType = "all", calledBy = "dropPlayer" })
     TriggerClientEvent("mbt_malisling:syncPlayerRemoval", -1, { playerSource = s })
-    playersToTrack[s] = nil
+    Slung.clearPlayer(s)
     removePlayerFromScopes(s)
 end
 
@@ -98,11 +98,40 @@ end)
 RegisterNetEvent("mbt_malisling:checkInventory")
 AddEventHandler("mbt_malisling:checkInventory", function()
     if not netThrottle(source, 'checkInv', 250) then return end
+    Slung.ensurePlayer(source)   -- a restart doesn't re-fire playerLoaded; see Slung.ensurePlayer
     Utils.mbtDebugger("checkInventory ~ Checking inventory for source ", source)
     local items = Inventory:GetInventoryItems(source)
     if type(items) ~= "table" then items = {} end
     TriggerClientEvent("mbt_malisling:checkWeaponProps", source, items)
 end)
+
+--- Ask every tracked player to re-report what they carry.
+--- Lanes are worked out when a snapshot lands, and so is whether a job hides a slot, so a
+--- change to either would sit unused until something else happened to somebody's inventory.
+--- Their reports come back through the same path that decides both, so one call re-decides
+--- the whole server. Staggered: on a full server this is 64 round trips, and there is no hurry.
+---
+--- No syncDeletion first, unlike jobChanged above: the reconciliation drops what should no
+--- longer exist on its own, and clearing everything makes every prop on the street blink for
+--- a setting that may not have touched them.
+function MBT.RefreshAllSling()
+    CreateThread(function()
+        -- Let the applyConfig broadcast that triggered this land first. Without the pause the
+        -- re-report can arrive before the new config does, and observers re-decide using the
+        -- values we were trying to replace — the change then appears to do nothing.
+        Wait(150)
+        for _, id in ipairs(GetPlayers()) do
+            local s = tonumber(id)
+            if s and playersToTrack[s] then
+                local items = Inventory:GetInventoryItems(s)
+                if type(items) == "table" then
+                    TriggerClientEvent("mbt_malisling:checkWeaponProps", s, items)
+                end
+            end
+            Wait(50)
+        end
+    end)
+end
 
 -- Job changed: every observer has to re-decide what to draw on this player. Their job
 -- feeds MBT.HiddenByJob (whether a prop exists at all) and MBT.CustomPropPosition (where
@@ -127,23 +156,33 @@ AddEventHandler("mbt_malisling:jobChanged", function()
     TriggerClientEvent("mbt_malisling:checkWeaponProps", _source, items)
 end)
 
--- Derived from MBT.PropInfo so any custom type added to the config (e.g.
--- 'extinguisher') is accepted automatically — no separate whitelist to keep
--- in sync.
-local _validWeaponTypes = {}
-for k in pairs(MBT.PropInfo) do _validWeaponTypes[k] = true end
-
 RegisterNetEvent("mbt_malisling:syncSling")
 AddEventHandler("mbt_malisling:syncSling", function(data)
     local _source = source
     if type(data) ~= "table" or type(data.playerWeapons) ~= "table" then return end
     if not netThrottle(_source, 'syncSling', 100) then return end
-    if not playersToTrack[_source] then playersToTrack[_source] = {} end
-    for k, v in pairs(data.playerWeapons) do
-        if _validWeaponTypes[k] and (type(v) == "table" or v == false) then
-            playersToTrack[_source][k] = v
+    -- Shape gate. The payload REPLACES this player's registry, so a malformed one doesn't
+    -- write partial state — it wipes everything it failed to mention. Reject the lot
+    -- instead: [type][serial] = item, and every leaf must look like a weapon item. Catches
+    -- both a client on the old flat shape and a hand-built partial payload.
+    for propType, bySerial in pairs(data.playerWeapons) do
+        if type(propType) ~= "string" or type(bySerial) ~= "table" then
+            Utils.mbtWarn(("syncSling ~ malformed payload from %s (type key), ignored"):format(_source))
+            return
+        end
+        for _, item in pairs(bySerial) do
+            if type(item) ~= "table" or type(item.name) ~= "string" then
+                Utils.mbtWarn(("syncSling ~ malformed payload from %s (item under '%s'), ignored"):format(_source, propType))
+                return
+            end
         end
     end
+
+    Slung.ensurePlayer(_source)
+    -- The client reports its COMPLETE desired set every time — every weapon that should be
+    -- hanging on it, keyed by type and serial — so this replaces the player's registry
+    -- rather than merging into it. Type filtering happens inside replaceAll.
+    Slung.replaceAll(_source, data.playerWeapons)
     -- Chain of Custody: record holders AFTER the sling sync (a server-side ledger
     -- keyed by serial — NOT a metadata write, which would re-trigger updateInventory
     -- and re-spawn the slung prop while the weapon is in hand).
@@ -168,18 +207,30 @@ AddEventHandler("mbt_malisling:syncSling", function(data)
             playerJobs = getPlayerJobs(_source),
             pedSex = getPlayerSex(_source),
             calledBy = "mbt_malisling:syncSling ~ 162",
-            playerWeapons = playersToTrack[_source]
+            playerWeapons = Slung.snapshot(_source)
         }
     })
 end)
 
-RegisterNetEvent("mbt_malisling:syncDeletion")
-AddEventHandler("mbt_malisling:syncDeletion", function(weaponType)
+-- The inbound per-type `mbt_malisling:syncDeletion` net event lived here and is GONE. It
+-- cleared a whole slot on the caller's behalf, which is exactly the behaviour that took both
+-- rifles off a player's back when they drew one; the equip path now reports a snapshot instead
+-- (core/client.lua, ox_inventory:currentWeapon) and nothing in this resource asks for a
+-- per-type wipe any more. An unreachable handler that mutates state is worse than none.
+--
+-- Not to be confused with the CLIENT event of the same name, which is alive and used: the
+-- server still broadcasts it on job change and on syncDeletionAll below.
+--
+-- Every type at once. Its own event on purpose: syncDeletion is throttled at 100ms per
+-- source, so a client looping one delete per type lands the first and loses the rest, and
+-- the observers keep rendering props the owner has already destroyed (entering a vehicle
+-- with a pistol AND a rifle slung is enough to hit it). Same shape as the jobChanged reset.
+RegisterNetEvent("mbt_malisling:syncDeletionAll")
+AddEventHandler("mbt_malisling:syncDeletionAll", function()
     local _source = source
-    if not _validWeaponTypes[weaponType] then return end   -- validate the key, like syncSling
-    if not netThrottle(_source, 'syncDel', 100) then return end
+    if not netThrottle(_source, 'syncDelAll', 100) then return end
     if playersToTrack[_source] == nil then return end
-    playersToTrack[_source][weaponType] = false
+    Slung.clearAll(_source)
 
     TriggerScopeEvent({
         event = "mbt_malisling:syncDeletion",
@@ -187,11 +238,45 @@ AddEventHandler("mbt_malisling:syncDeletion", function(weaponType)
         selfTrigger = true,
         payload = {
             playerSource = _source,
-            calledBy = "mbt_malisling:syncDeletion",
-            weaponType = weaponType
+            calledBy = "mbt_malisling:syncDeletionAll",
+            weaponType = "all"
         }
     })
 end)
+
+-- Debug-only view of the server's side of the sync. Client-side debugging can only ever
+-- prove what a client RECEIVED; when two players disagree about who is carrying what, the
+-- answer is in the registry and in the scope lists, and there is no other way to see them.
+-- Registered only in debug builds — it exposes serials.
+if MBT.Debug then
+    lib.callback.register('mbt_malisling:debugSnapshot', function(src)
+        local registry = {}
+        for playerId, byType in pairs(playersToTrack) do
+            local types = {}
+            for propType, bySerial in pairs(byType) do
+                local serials = {}
+                for serial, entry in pairs(bySerial) do
+                    serials[#serials + 1] = ('%s(%s, lane %s)'):format(
+                        serial, entry.data and entry.data.name or '?', tostring(entry.lane))
+                end
+                table.sort(serials)
+                if #serials > 0 then types[propType] = serials end
+            end
+            registry[tostring(playerId)] = types
+        end
+
+        -- Who this player fans out TO, and who fans out to them. An asymmetry here is
+        -- exactly the "I see him, he doesn't see me" report.
+        local seesMe = {}
+        for owner, list in pairs(scopes) do
+            for i = 1, #list do
+                if list[i] == src then seesMe[#seesMe + 1] = owner break end
+            end
+        end
+
+        return { registry = registry, myScope = scopes[tostring(src)] or {}, inScopeOf = seesMe }
+    end)
+end
 
 -- Scopes --
 
@@ -364,7 +449,7 @@ Citizen.CreateThread(function()
                             playerJob = getPlayerJob(source),
                             playerJobs = getPlayerJobs(source),
                             pedSex = getPlayerSex(source),
-                            playerWeapons = values[i].type == "Added" and playersToTrack[tonumber(source)] or nil
+                            playerWeapons = values[i].type == "Added" and Slung.snapshot(tonumber(source)) or nil
                         }
                     }
                 }

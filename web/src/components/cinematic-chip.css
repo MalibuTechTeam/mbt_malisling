@@ -7,10 +7,14 @@
    `!important` on the surface props so it wins over each overlay's own pill styling
    regardless of CSS import order. */
 
+/* The two shades come from the accent (utils/accent.ts → --mbt-chip-*). They were literals
+   here, with a copy of them living in accent.ts as the value the contrast check measured
+   against and a comment asking whoever changed one to remember the other. */
 .cine-chip {
   background:
     linear-gradient(180deg, rgba(var(--mbt-accent-rgb), 0.07), transparent 45%),
-    linear-gradient(180deg, rgba(16, 21, 18, 0.90), rgba(9, 12, 10, 0.93)) !important;
+    linear-gradient(180deg, var(--mbt-chip-top, rgba(16, 21, 18, 0.90)),
+                            var(--mbt-chip-bottom, rgba(9, 12, 10, 0.93))) !important;
   border: 1px solid rgba(255, 255, 255, 0.05) !important;
   border-radius: 3px !important;
   box-shadow:

@@ -1,4 +1,4 @@
-import { Section, ToggleRow, FieldBlock, Grid2, type SectionProps } from './parts'
+import { Section, ToggleRow, FieldBlock, Grid2, type SectionProps, withMeta } from './parts'
 import { NumberInput } from '../ui/NumberInput'
 import { Segmented } from '../ui/Segmented'
 import { Icon } from '../ui/Icon'
@@ -319,3 +319,17 @@ export function ShellCasingsSection({ config, update }: SectionProps) {
     </Section>
   )
 }
+
+withMeta(InspectSection, { label: 'Weapon Inspect', path: 'Inspect.Enabled' })
+withMeta(WeaponNameSection, { label: 'Weapon Name', path: 'WeaponName.Enabled' })
+withMeta(PosesSection, { label: 'Showcase Poses', path: 'ShowcasePoses.Enabled' })
+withMeta(ThrowSection, { label: 'Weapon Throw', path: 'Throw.Enabled' })
+withMeta(ChainOfCustodySection, { label: 'Chain of Custody', path: 'ChainOfCustody.Enabled' })
+withMeta(AmmoSharingSection, { label: 'Ammo Sharing', path: 'AmmoSharing.Enabled' })
+withMeta(PatDownSection, { label: 'Pat-down', path: 'PatDown.Enabled' })
+withMeta(ConcealedCarrySection, { label: 'Concealed Carry', path: 'ConcealedCarry.Enabled' })
+// The card is WEAPON SERIALS; "Serial Ensure" was the config key (`Serials.EnsureGeneration`)
+// leaking into the index, where it named nothing an owner would recognise.
+withMeta(SerialsSection, { label: 'Weapon Serials', path: 'Serials.EnsureGeneration' })
+withMeta(HandoffSection, { label: 'Weapon Handoff', path: 'Handoff.Enabled' })
+withMeta(ShellCasingsSection, { label: 'Shell Casings', path: 'ShellCasings.Enabled' })

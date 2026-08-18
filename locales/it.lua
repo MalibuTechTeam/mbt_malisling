@@ -140,6 +140,9 @@ RegisterLocale('it', {
     ['concealed_revealed_desc'] = 'La tua arma è di nuovo visibile.',
     ['concealed_no_weapon_title']= 'Porto Occulto',
     ['concealed_no_weapon_desc'] = 'Nessun\'arma occultabile nella fondina.',
+    ['conceal_picker_title']    = 'QUALE OCCULTARE?',
+    ['conceal_picker_confirm']  = 'Occulta',
+    ['conceal_picker_reveal']   = 'Mostra',
 
     -- Perquisizione (LEO)
     ['patdown_wants']           = 'vuole perquisirti',

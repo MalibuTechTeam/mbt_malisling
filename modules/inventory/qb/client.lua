@@ -220,13 +220,20 @@ local function typeOf(name)
         and MBT.WeaponsInfo.Weapons[name].type or nil
 end
 
---- Play a weapon type's holster gesture from MBT.PropInfo[type].HolsterAnim: dir 'in' = draw
---- (animIn), 'out' = put away (animOut). No-op if the draw animation is off or the type has no clip.
+--- Play a weapon type's holster gesture — `Utils.holsterAnim(type)`, which is PropInfo's clip
+--- with the active Draw Style applied. Read PropInfo directly here and the style works on ox
+--- and silently does nothing on qb.
+--- dir 'in' = draw (animIn), 'out' = put away (animOut). No-op if the draw animation is off
+--- or the type has no clip.
 ---@param weaponHash number?  the weapon being drawn (dir='in' only) — for the Quick Draw bridge hook
 local function playHolsterAnim(wtype, dir, weaponHash)
     if not (MBT.QBWeapons and MBT.QBWeapons.DrawAnimation) then return end
-    local ha = wtype and MBT.PropInfo and MBT.PropInfo[wtype] and MBT.PropInfo[wtype].HolsterAnim
+    local ha = Utils.holsterAnim(wtype)
     if not ha or not ha.dict then return end
+    -- Two dicts, one per direction: a style can draw from one clip and put away with another
+    -- (`dictOut` falls back to `dict`). ox's item format already had the slot for this; the
+    -- qb path had to be taught it.
+    local dict = (dir == 'out') and (ha.dictOut or ha.dict) or ha.dict
     local clip = (dir == 'out') and ha.animOut or ha.animIn
     local ms   = ((dir == 'out') and ha.sleepOut) or ha.sleep or 1000
     if not clip or clip == '0' or clip == 0 then return end
@@ -236,8 +243,8 @@ local function playHolsterAnim(wtype, dir, weaponHash)
         local mult = MBT.ShootingBridge.OnDrawSpeedRequest(wtype, weaponHash)
         if mult then ms = math.floor(ms * mult) end
     end
-    lib.requestAnimDict(ha.dict)
-    TaskPlayAnim(cache.ped, ha.dict, clip, 2.5, -4.0, ms, 48, 0.0, false, false, false)
+    lib.requestAnimDict(dict)
+    TaskPlayAnim(cache.ped, dict, clip, 2.5, -4.0, ms, 48, 0.0, false, false, false)
     Wait(ms)
 end
 
@@ -276,7 +283,7 @@ local function doEquip(weaponData, weaponHash)
         -- Coordinated draw: hide weapon, play draw gesture, then bring it out, so it reads as
         -- a real draw (not a gesture over an already-out gun). Poll is blocked during the Wait.
         local t  = typeOf(weaponData.name)
-        local ha = t and MBT.PropInfo and MBT.PropInfo[t] and MBT.PropInfo[t].HolsterAnim
+        local ha = Utils.holsterAnim(t)
         if MBT.QBWeapons and MBT.QBWeapons.DrawAnimation
             and ha and ha.dict and ha.animIn and ha.animIn ~= '0' and ha.animIn ~= 0 then
             SetCurrentPedWeapon(cache.ped, `WEAPON_UNARMED`, true)
@@ -299,13 +306,14 @@ end
 --- After a direct armed→armed switch, re-create the PREVIOUS weapon's slung prop (qb-weapons swaps without a stable UNARMED step, so core never re-slings it).
 local function reslingPrevious(prevHash)
     if prevHash == `WEAPON_UNARMED` then return end
-    local mine = playersToTrack[cache.serverId]
     local prevData = findWeaponDataByHash(prevHash)
     local prevType = prevData and MBT.WeaponsInfo.Weapons[prevData.name]
         and MBT.WeaponsInfo.Weapons[prevData.name].type
-    if prevType and (not mine or not mine[prevType] or mine[prevType] == false) then
-        prevData.type = prevType
-        TriggerServerEvent('mbt_malisling:syncSling', { playerWeapons = { [prevType] = prevData } })
+    if prevType and not Slung.hasType(cache.serverId, prevType) then
+        -- Re-report the WHOLE set, never a hand-built payload for this one weapon: the
+        -- server treats what arrives as a snapshot and replaces the registry with it, so a
+        -- partial report would delete every other weapon on this player's body.
+        ResyncSling()
     end
 end
 
@@ -315,8 +323,7 @@ end
 local function doSwitch(prevHash, newData, newHash)
     local prevData = findWeaponDataByHash(prevHash)
     local prevType = typeOf(prevData and prevData.name)
-    local pha = prevType and MBT.PropInfo and MBT.PropInfo[prevType]
-        and MBT.PropInfo[prevType].HolsterAnim
+    local pha = Utils.holsterAnim(prevType)
     if MBT.QBWeapons and MBT.QBWeapons.DrawAnimation
         and pha and pha.dict and pha.animOut and pha.animOut ~= '0' and pha.animOut ~= 0 then
         SetCurrentPedWeapon(cache.ped, `WEAPON_UNARMED`, true)   -- hide the new weapon qb just drew
@@ -358,8 +365,7 @@ CreateThread(function()
                     -- Poll blocked for the gesture; lastWeaponHash already UNARMED so no re-trigger.
                     local prevData = findWeaponDataByHash(prevHash)
                     local prevType = typeOf(prevData and prevData.name)
-                    local ha = prevType and MBT.PropInfo and MBT.PropInfo[prevType]
-                        and MBT.PropInfo[prevType].HolsterAnim
+                    local ha = Utils.holsterAnim(prevType)
                     if MBT.QBWeapons and MBT.QBWeapons.DrawAnimation
                         and prevHash ~= `WEAPON_UNARMED`
                         and ha and ha.dict and ha.animOut and ha.animOut ~= '0' and ha.animOut ~= 0 then

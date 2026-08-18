@@ -34,9 +34,13 @@ local function frisk(target)
                 local serial = item.metadata and item.metadata.serial
                 if not serial and MBT.EnsureSerial then serial = MBT.EnsureSerial(target, item) end
 
+                -- Concealment is keyed by SERIAL, so the frisk reports one hidden pistol as
+                -- hidden and the other on the same hip as visible — which is what the
+                -- officer would actually find.
+                local hidden = serial and concealed[tostring(serial)]
                 local status, quality = 'visible', nil
-                if concealed[wtype] then
-                    status, quality = 'concealed', concealed[wtype]   -- 'good' | 'poor'
+                if hidden then
+                    status, quality = 'concealed', hidden.q   -- 'good' | 'poor'
                 elseif wtype == 'back' or wtype == 'back2' then
                     status = 'carried'        -- visible on the back anyway
                 end

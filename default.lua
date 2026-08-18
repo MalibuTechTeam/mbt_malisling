@@ -41,6 +41,13 @@ MBT.HolsterControls    = {
 -- filmic overlays anchored near the weapon. Applies to the weapon-moment overlays.
 MBT.UIStyle            = 'standard'
 
+-- Brand accent (dashboard-editable): the ONE interactive colour. Every --mbt-accent-*
+-- CSS token (fill, hover, tint, focus glow) is derived from this single value, and it
+-- repaints the dashboard AND the in-game prompts — they share one NUI document.
+-- Must stay '#rrggbb': the value is interpolated straight into CSS custom properties,
+-- so anything else is rejected server-side rather than shipped to a browser.
+MBT.Accent             = '#00E676'
+
 -- Sling prop positions and holster animations per weapon type.
 -- Each key maps to a weapon type defined in data/weapons.lua.
 MBT.PropInfo           = {
@@ -57,6 +64,11 @@ MBT.PropInfo           = {
             ["male"]   = { ["x"] = 90.0, ["y"] = 20.0, ["z"] = 180.0 },
             ["female"] = { ["x"] = 90.0, ["y"] = 20.0, ["z"] = 180.0 },
         },
+        -- The shipped clips are FRAGMENTS of longer intimidation animations — this one plays
+        -- 400ms of 2067 — and they stay that way. 2.1.0 tried replacing them with the
+        -- purpose-built holster dictionaries at their measured length and the draw broke in
+        -- game: see the note on MBT.DrawStyles.holster. Until that is understood, the clips
+        -- that are known to work are the ones that ship.
         ["HolsterAnim"] = {
             ["dict"]     = "reaction@intimidation@cop@unarmed",
             ["animIn"]   = "intro",
@@ -70,7 +82,9 @@ MBT.PropInfo           = {
         ["isPed"]       = false,
         ["RotOrder"]    = 2,
         ["FixedRot"]    = true,
-        -- male tuned in-world; female is still the original seed, not tuned.
+        -- Male tuned in-world. Female is the seed value, REVIEWED IN GAME and kept for
+        -- 2.1.0: it reads correctly on the freemode female skeleton, so a separate pass
+        -- would move numbers without changing what anyone sees. Not a leftover TODO.
         ["Pos"]         = {
             ["male"]   = { ["x"] = 0.2, ["y"] = -0.21, ["z"] = -0.055 },
             ["female"] = { ["x"] = 0.4, ["y"] = -0.18, ["z"] = 0.1 },
@@ -80,10 +94,13 @@ MBT.PropInfo           = {
             ["female"] = { ["x"] = 0.0, ["y"] = 155.0, ["z"] = 0.0 },
         },
         -- sleep/sleepOut are how long ox blocks before the weapon is in hand: they land
-        -- in Items[name].anim via the ox patch, and ox reads them as `anim[3]`. They are
-        -- the FEEL of drawing a long gun, so tune them against the clip, not the clock —
-        -- go too low and the rifle appears in your hands while the arm is still reaching
-        -- behind your back. 2000 was the original; 1200 matches melee3 and reads snappier.
+        -- in Items[name].anim via the ox patch, and ox reads them as `anim[3]`. Tune them
+        -- against the CLIP, not the clock — go too low and the rifle appears in your hands
+        -- while the arm is still reaching behind your back.
+        --
+        -- 2000 was the original; 1200 matches melee3 and reads snappier. A 2.1.0 attempt to move
+        -- this to weapons@holster_2h at its measured 867ms broke the draw in game and was
+        -- reverted — the reasoning and what to test is on MBT.DrawStyles.holster.
         ["HolsterAnim"] = {
             ["dict"]     = "reaction@intimidation@1h",
             ["animIn"]   = "intro",
@@ -105,6 +122,7 @@ MBT.PropInfo           = {
             ["male"]   = { ["x"] = 0.4, ["y"] = -0.18, ["z"] = 0.1 },
             ["female"] = { ["x"] = 0.4, ["y"] = -0.18, ["z"] = 0.1 },
         },
+        -- Slower than a rifle, which is right for a launcher.
         ["HolsterAnim"] = {
             ["dict"]     = "reaction@intimidation@1h",
             ["animIn"]   = "intro",
@@ -126,6 +144,11 @@ MBT.PropInfo           = {
             ["male"]   = { ["x"] = 90.0, ["y"] = -10.0, ["z"] = 120.0 },
             ["female"] = { ["x"] = 90.0, ["y"] = -10.0, ["z"] = 120.0 },
         },
+        -- Clip "0" is not a placeholder: combat@combat_reactions@* names its clips after the
+        -- ANGLE a threat comes from (-180/-90/0/90/180), so this is "react to someone in front
+        -- of you", played for 500ms of its 3000. A reaction rather than a draw, and the most
+        -- truncated thing in this file — but it is what works today. melee@holster is one
+        -- selection away in the picker.
         ["HolsterAnim"] = {
             ["dict"]     = "combat@combat_reactions@pistol_1h_gang",
             ["animIn"]   = "0",
@@ -147,6 +170,7 @@ MBT.PropInfo           = {
             ["male"]   = { ["x"] = -90.0, ["y"] = -10.0, ["z"] = 120.0 },
             ["female"] = { ["x"] = -90.0, ["y"] = -10.0, ["z"] = 120.0 },
         },
+        -- Same shape as `melee` above: a combat reaction, clip named after an angle.
         ["HolsterAnim"] = {
             ["dict"]     = "combat@combat_reactions@pistol_1h_hillbilly",
             ["animIn"]   = "0",
@@ -168,12 +192,36 @@ MBT.PropInfo           = {
             ["male"]   = { ["x"] = 0.0, ["y"] = 90.0, ["z"] = 0.0 },
             ["female"] = { ["x"] = 0.0, ["y"] = 90.0, ["z"] = 0.0 },
         },
+        -- Even if the holster clips are adopted one day, this slot has nowhere to go: melee3
+        -- holds bats, pool cues and golf clubs together with grenades, molotovs, proximity
+        -- mines, a flashlight, a metal detector and a snowball. A two-handed draw over the
+        -- shoulder is right for a bat and absurd for a grenade, and `melee@holster` is a weapon
+        -- gesture for a slot that is half gadgets. The vague reach-behind of the intimidation
+        -- fragment is the only thing that suits all eighteen.
         ["HolsterAnim"] = {
             ["dict"]     = "reaction@intimidation@1h",
             ["animIn"]   = "intro",
             ["animOut"]  = "outro",
             ["sleep"]    = 1200,
             ["sleepOut"] = 1200,
+        },
+    },
+    -- SECOND RIFLE LANE — a slot key like any other, and getAttachInfo prefers it over the
+    -- base position plus a lane offset. Tuned in-world, not seed numbers. isPed and the -180
+    -- roll are deliberate: the second rifle hangs the other way round so the two do not read
+    -- as one weapon drawn twice.
+    ["back#2"] = {
+        ["Bone"]        = MBT.Bones["Back"],
+        ["isPed"]       = true,
+        ["RotOrder"]    = 2,
+        ["FixedRot"]    = true,
+        ["Pos"]         = {
+            ["male"]   = { ["x"] = 0.24,  ["y"] = -0.185, ["z"] = -0.075 },
+            ["female"] = { ["x"] = 0.385, ["y"] = -0.22,  ["z"] = -0.035 },
+        },
+        ["Rot"]         = {
+            ["male"]   = { ["x"] = -180.0, ["y"] = 155.0, ["z"] = 0.0 },
+            ["female"] = { ["x"] = -180.0, ["y"] = 155.0, ["z"] = 0.0 },
         },
     },
     -- Bulky canister tools strapped vertically across the upper back (fire
@@ -201,9 +249,169 @@ MBT.PropInfo           = {
     },
 }
 
--- Hide sling props per job — FILL IT IN config.lua, next to the keybinds. Job names are
--- your server's own strings and this can't be tuned from the dashboard, so it belongs
--- with the things you decide at install. Declared here only so the table always exists.
+--- DRAW STYLE — which clip set a slot's `HolsterAnim` is swapped for. Server-wide, set from
+--- the dashboard (Placement → DRAW STYLE), applies hot. A style overrides only the slots it
+--- names; `standard` names none, so it IS PropInfo.
+---
+--- A style CANNOT set `sleep`/`sleepOut` and the resolver drops them if it tries. `sleep` is
+--- how long the player stands with empty hands, so a style undercutting the base by 200ms is
+--- Quick Draw wearing the word "cosmetic" — and Quick Draw is mbt_shooting's.
+MBT.DrawStyle = 'standard'
+
+--- Per-job override of the style above. Sparse, same shape as MBT.HiddenByJob. Safe to vary
+--- by job ONLY because a style cannot change `sleep` — otherwise this would hand one job a
+--- combat advantage over another.
+---   ["police"] = "police",
+MBT.DrawStyleByJob = {}
+
+--- The clips the in-game gesture picker offers. A SEED, not a gate: the picker always lets
+--- an owner type a dict and clip of their own, because this list can never know about a dict
+--- they installed themselves.
+---
+--- Full gesture entries and not clip names, because a slot uses two — `dict`/`animIn` to draw,
+--- `dictOut`/`animOut` to put away — and the Police style already needs them to differ.
+MBT.DrawStyleCandidates = {
+    { id = 'holster_1h',   label = 'Holster — one-handed',  fits = 'side',
+      dict = 'weapons@holster_1h',       animIn = 'unholster', animOut = 'holster' },
+    { id = 'holster_2h',   label = 'Holster — two-handed',  fits = 'back',
+      dict = 'weapons@holster_2h',       animIn = 'unholster', animOut = 'holster' },
+    { id = 'holster_fat',  label = 'Holster — bulky',       fits = 'back2',
+      dict = 'weapons@holster_fat_2h',   animIn = 'unholster', animOut = 'holster' },
+    { id = 'melee',        label = 'Melee',                 fits = 'melee',
+      dict = 'melee@holster',            animIn = 'unholster', animOut = 'holster' },
+    { id = 'melee_low',    label = 'Melee — from the hip',  fits = 'melee',
+      dict = 'melee@holster',            animIn = 'low_r_unholster', animOut = 'holster' },
+    { id = 'switchblade',  label = 'Switchblade',           fits = 'melee2',
+      dict = 'anim@melee@switchblade@holster', animIn = 'unholster', animOut = 'holster' },
+    { id = 'melee_low_l',  label = 'Melee — from the hip, left', fits = 'melee',
+      dict = 'melee@holster',            animIn = 'low_l_unholster', animOut = 'holster' },
+    { id = 'switchblade_w', label = 'Switchblade — wide',    fits = 'melee2',
+      dict = 'anim@melee@switchblade@holster', animIn = 'w_unholster', animOut = 'w_holster' },
+    { id = 'rpg',          label = 'Launcher',              fits = 'back2',
+      dict = 'weapons@heavy@rpg',        animIn = 'unholster', animOut = 'holster' },
+    { id = 'minigun',      label = 'Minigun',               fits = 'back2',
+      dict = 'weapons@heavy@minigun',    animIn = 'unholster', animOut = 'holster' },
+    { id = 'jerrycan',     label = 'Jerrycan / bulky item', fits = 'extinguisher',
+      dict = 'weapon@w_sp_jerrycan',     animIn = 'unholster', animOut = 'holster' },
+    { id = 'unarmed',      label = 'Bare hands',
+      dict = 'weapons@unarmed',          animIn = 'unholster', animOut = 'holster' },
+    -- The superfat dict has NO holster clip, only unholster: pair it with the bulky one for
+    -- putting away, which is what `dictOut` is for.
+    { id = 'holster_superfat', label = 'Holster — heaviest', fits = 'back2',
+      dict = 'weapons@holster_superfat_2h', animIn = 'unholster',
+      dictOut = 'weapons@holster_fat_2h',   animOut = 'holster' },
+    -- Intimidation gestures. What every slot shipped with UNTIL 2.1.0, and they are not holster
+    -- animations: `intro`/`outro`/`step_fwd`/`step_bwd` is somebody threatening someone. They
+    -- run 2-4 seconds and were always played as a one-second fragment. Kept so the old look is
+    -- one click away (or one selection, via the Legacy style).
+    { id = 'intimidate_1h',label = 'Intimidation — one-handed (pre-2.1 default)',
+      dict = 'reaction@intimidation@1h', animIn = 'intro', animOut = 'outro' },
+    { id = 'intimidate_cop', label = 'Intimidation — police (pre-2.1 default, pistol)',
+      dict = 'reaction@intimidation@cop@unarmed', animIn = 'intro', animOut = 'outro' },
+    { id = 'cop_leadout',  label = 'Police lead-out',       fits = 'side',
+      dict = 'rcmjosh4', animIn = 'josh_leadout_cop2',
+      dictOut = 'reaction@intimidation@cop@unarmed', animOut = 'outro' },
+    { id = 'cop_leadout_1', label = 'Police lead-out — variant', fits = 'side',
+      dict = 'rcmjosh4', animIn = 'josh_leadout_cop1',
+      dictOut = 'reaction@intimidation@cop@unarmed', animOut = 'outro' },
+
+    -- ── Aim transitions, by weapon class ──────────────────────────────────────────
+    -- GTA's own holstered↔aiming transitions, one dict per weapon class. They end on the weapon
+    -- RAISED rather than at rest, so they may read as a draw or as snapping to a target —
+    -- audition before picking one.
+    { id = 'aim_pistol',   label = 'Aim transition — pistol',    fits = 'side',
+      dict = 'weapons@pistol@',              animIn = 'holster_2_aim', animOut = 'aim_2_holster' },
+    { id = 'aim_rifle',    label = 'Aim transition — rifle',     fits = 'back',
+      dict = 'weapons@rifle@',               animIn = 'holster_2_aim', animOut = 'aim_2_holster' },
+    { id = 'aim_mg',       label = 'Aim transition — MG',        fits = 'back',
+      dict = 'weapons@machinegun@',          animIn = 'holster_2_aim', animOut = 'aim_2_holster' },
+    { id = 'aim_smg',      label = 'Aim transition — SMG',       fits = 'back',
+      dict = 'weapons@submg@',               animIn = 'holster_2_aim', animOut = 'aim_2_holster' },
+    { id = 'aim_microsmg', label = 'Aim transition — micro SMG', fits = 'side',
+      dict = 'weapons@submg@micro_smg',      animIn = 'holster_2_aim', animOut = 'aim_2_holster' },
+    { id = 'aim_gl',       label = 'Aim transition — launcher',  fits = 'back2',
+      dict = 'weapons@heavy@grenade_launcher', animIn = 'holster_2_aim', animOut = 'aim_2_holster' },
+    -- The extinguisher slot's own dict, found the same way. Draw only, so the put-away borrows
+    -- the jerrycan's — the two are the same shape of object held the same way.
+    { id = 'fire_ext',     label = 'Fire extinguisher',          fits = 'extinguisher',
+      dict = 'weapons@misc@fire_ext',        animIn = 'unholster',
+      dictOut = 'weapon@w_sp_jerrycan',      animOut = 'holster' },
+}
+
+--- Built from the DurtyFree dump (20.179 dicts / 269.414 clips). A prefix filter on
+--- holster/unholster/draw/stash found 36 dicts; matching `holster` ANYWHERE found 68 — the
+--- whole `holster_2_aim` / `aim_2_holster` family was invisible to the first sweep. Search on
+--- the motion, not the name, if this ever needs to grow.
+---
+--- Deliberately excluded: `weapons@first_person@…` (viewmodel arms, wrong on a full ped),
+--- `toolstest@` and `anim@weapons@heavy@space_cannon` (dev dict / DLC-gated),
+--- `weapons@projectile@ pull_pin` (arming a grenade, not drawing it). Emote packs yield
+--- nothing — mbt_emotes' 639 clips gave zero.
+
+--- Per-style, per-slot clips the owner chose in the picker. Sparse, DB-backed, and separate
+--- from MBT.DrawStyles because that catalogue is re-derived from this file every snapshot:
+--- persisting it would freeze today's list into the config row for good.
+---
+--- Resolution order in Utils.holsterAnim: PropInfo base → shipped style → this.
+---   ["police"] = { ["side"] = { dict = "...", animIn = "...", animOut = "..." } }
+MBT.DrawStyleOverrides = {}
+
+--- Per-slot draw timing, overriding PropInfo's `sleep`/`sleepOut`. Sparse, DB-backed, written
+--- by the gesture picker: `sleep` is both the clip's playback length and the gate before the
+--- weapon reaches the hand, so a clip picked without it plays a fraction of itself and stops.
+---
+--- NOT Quick Draw, where a per-style timing would be: this is per SLOT and server-wide, so it
+--- moves every player by the same amount. Per-job timing is one job drawing faster than
+--- another, and that stays in mbt_shooting. Enforced by shape — the resolver reads timing from
+--- here and from PropInfo, nowhere else.
+---
+--- Clamped 400-4000ms server-side; the floor is the fastest draw this file ships.
+---   ["side"] = { sleep = 900, sleepOut = 800 },
+MBT.SlotTiming = {}
+
+MBT.DrawStyles = {
+    ["standard"] = {
+        ["label"] = "Standard",
+        -- No overrides: the animations tuned per slot in PropInfo above.
+    },
+    ["police"] = {
+        ["label"] = "Police",
+        -- Draws with a different clip and puts away with the base one — the two-dict case
+        -- `dictOut` exists for. `rcmjosh4` is a mission dict; the clip is proven in use by
+        -- ND_GunAnims, which is where this pairing comes from.
+        ["side"] = {
+            ["dict"]    = "rcmjosh4",                          ["animIn"]  = "josh_leadout_cop2",
+            ["dictOut"] = "reaction@intimidation@cop@unarmed", ["animOut"] = "outro",
+        },
+        -- melee and melee2 ship a combat REACTION rather than a draw (see PropInfo above). A
+        -- style is the safe place to try a real one: opt-in, base untouched.
+        ["melee"]  = { ["dict"] = "melee@holster", ["animIn"] = "unholster", ["animOut"] = "holster" },
+        ["melee2"] = { ["dict"] = "melee@holster", ["animIn"] = "unholster", ["animOut"] = "holster" },
+    },
+    ["street"] = {
+        ["label"] = "Street",
+        -- The pistol drawn with the long-gun gesture instead of the police one. ND_GunAnims
+        -- calls this pairing "gang" and uses it as its DEFAULT for GROUP_PISTOL, so it is the
+        -- other half of the only two-way choice the base game really offers here.
+        ["side"]   = { ["dict"] = "reaction@intimidation@1h", ["animIn"] = "intro", ["animOut"] = "outro" },
+        ["melee"]  = { ["dict"] = "melee@holster", ["animIn"] = "unholster", ["animOut"] = "holster" },
+        ["melee2"] = { ["dict"] = "melee@holster", ["animIn"] = "unholster", ["animOut"] = "holster" },
+    },
+}
+
+--- No style ships for GTA's purpose-built holster dictionaries, though every slot above plays
+--- a FRAGMENT of a longer clip (19% of it for the pistol, 28% for the rifle). They were tried
+--- as the default and the draw broke; retried as a style — same clips, slot's own timing — and
+--- it worked. The clips are not the problem; the TIMING is where to look. Nobody has proven it.
+---
+---   side 800/500 · back and back2 867/500 · melee 833/667 · extinguisher 1067/1067
+---   weapons@holster_1h / _2h / _fat_2h · melee@holster · weapon@w_sp_jerrycan
+---
+--- They are all in MBT.DrawStyleCandidates, so an owner can audition and keep them per slot.
+
+-- Hide sling props per job — seeded from config.lua at install, then owned by the dashboard
+-- (Core → HIDDEN BY JOB, stored in the mbt_malisling_config row). Declared here only so the
+-- table always exists; there is nothing to fill in at this end.
 MBT.HiddenByJob = {}
 
 -- Job-specific prop overrides. Uncomment and fill to override positions per job.
@@ -336,7 +544,26 @@ MBT.SuppressorHeat     = {
     --   'light'    → DrawLightWithRange: a real light, brighter but spills onto walls.
     --   'particle' → looped ptfx (Particle below) — use a ptfx tester to find a fx.
     Mode           = 'glow',
+    -- Glow colour, interpolated cold → hot. REJECTED 2026-08-12 after looking at it in game:
+    -- a white-hot ramp (physically correct for steel) with radius 0.03 / intensity 0.1 read
+    -- worse in every light. Daylight testing misleads here — t = (heat - Warm) / (Max - Warm),
+    -- so heat 40 is a twelfth up the ramp, not the midpoint it looks like.
+    ColdColour     = { r = 255, g = 110, b = 0 },   -- just past WarmThreshold
+    HotColour      = { r = 255, g = 0,   b = 0 },   -- at MaxHeat
+    -- Where the glow sits WHEN A SUPPRESSOR IS FITTED. The 'gun_muzzle' bone stays at the
+    -- barrel's mouth, while the suppressor is a component bolted further forward — without
+    -- this the heat glows at its base instead of on its body. Expressed in the weapon's own
+    -- axes, so it follows the gun whether it's in hand or slung, and it is applied ONLY when
+    -- a suppressor is really mounted (the companion combat resource glows bare barrels too,
+    -- and those must not be shifted).
+    -- Tune it in-world with /mbt_muzzletune (debug builds), then paste the numbers here.
+    -- y is "down the barrel" on GTA weapon models; x/z are there for the odd model that
+    -- doesn't follow that convention.
+    SuppressorOffset = { x = 0.0, y = 0.10, z = 0.0 },
     GlowSphere     = {
+        -- Retuned to 0.03 / 0.1 on 2026-08-12 and put back: tight and subtle at night, but
+        -- gone in daylight, and daylight is where the shot that heats the barrel happens.
+        -- Live-tune with /mbt_muzzletune (debug) before changing these.
         Radius    = 0.06,   -- small = tight glow on the suppressor
         Intensity = 8.0,
     },
@@ -457,17 +684,10 @@ MBT.VehicleTrunkRack   = {
 }
 
 -- ── Weapon Rack / Gun Locker ────────────────────────────────────────────────────
--- Place a weapon onto a fixed world rack and retrieve it later. Like the Trunk Rack
--- but anchored to a config-defined world prop instead of a vehicle: racks are STATIC
--- (defined in Locations), so they always work with no DB. The weapon never lives in a
--- stash — its {name,count,metadata} is held server-side and re-minted into the
--- inventory on retrieve via the ox/qb Inventory bridge, exactly like the Trunk Rack.
---
--- Stored weapons are persisted in a self-managed oxmysql table (mbt_malisling_racks),
--- keyed by rack id, so they survive restarts. oxmysql is SOFT/feature-gated: without
--- it the racks still work but their contents reset on restart (in-memory only) — the
--- rest of the script stays DB-free. Weapon props are rendered LOCALLY by every client
--- from replicated GlobalState (never networked objects → no weapon-object sync jitter).
+-- Store a weapon on a fixed world rack and retrieve it later. The weapon never lives in a
+-- stash: its {name,count,metadata} is held server-side and re-minted on retrieve, like the
+-- Trunk Rack. Persisted in mbt_malisling_racks; without oxmysql the racks still work but
+-- reset on restart. Props render LOCALLY from GlobalState — never networked objects.
 MBT.WeaponRack         = {
     Enabled             = true,
     Capacity            = 4,        -- max weapons per rack
@@ -519,11 +739,9 @@ MBT.WeaponRack         = {
         BotName = 'MBT Armory',
     },
     -- ── Player placement (inventory item) ──────────────────────────────────────────
-    -- Use the rack ITEM → the ped physically carries the locker (box-carry anim, you
-    -- walk around with it), rotate it with ←/→, confirm with E → the install gesture
-    -- plays and the rack is installed + persisted (oxmysql). The owner can
-    -- pick an EMPTY rack back up and get the item returned. Needs oxmysql; without it
-    -- item placement is disabled (config/admin racks keep working).
+    -- Use the rack ITEM: the ped carries the locker, ←/→ rotates, E installs and persists.
+    -- An EMPTY rack can be picked back up. Needs oxmysql; without it item placement is off
+    -- and config/admin racks keep working.
     --
     -- ox_inventory item definition (add to ox_inventory/data/items.lua — the export
     -- name must match the item name):
@@ -613,14 +831,10 @@ MBT.Inspect            = {
 }
 
 -- ── Concealed Carry ───────────────────────────────────────────────────────────
--- Carry small weapons CONCEALED: the holster prop is hidden from everyone — IF
--- your clothes can cover it. Toggle with a key; the server validates everything
--- (the client only requests). Clothing decides the concealment QUALITY:
---   none (bare torso → refused) · poor (light top → frequent, obvious waistband
---   tells) · good (jacket → rare, subtle tells). Quality only affects tells and
---   the future pat-down flavor — never combat stats (free tier = visual/RP).
--- A weapon IN HAND is always visible by nature (concealment covers the holstered
--- prop only). Changing clothes re-checks and force-reveals with a notification.
+-- Hide the holster prop, IF the clothes can cover it. Server-validated. Clothing sets the
+-- quality: none (bare torso, refused) · poor (light top, frequent obvious tells) · good
+-- (jacket, rare subtle tells). Quality drives tells and pat-down flavour only, never combat.
+-- A weapon in hand is always visible; changing clothes re-checks and force-reveals.
 MBT.ConcealedCarry     = {
     Enabled          = true,
     Key              = '',          -- toggle key (concealable weapon must be holstered) · set in config.lua
@@ -739,14 +953,11 @@ MBT.AmmoSharing        = {
 }
 
 -- ── Forensic Shell Casings ────────────────────────────────────────────────────
--- Firing leaves recoverable shell casings on the ground, linked to the weapon's
--- SERIAL. Anyone can examine a casing (weapon family + masked serial + how long
--- ago it was fired — configurable) and, if allowed, collect it to clean the scene.
--- Pairs with Chain of Custody: a recovered serial → the holder ledger = a full
--- free forensics loop. Casings are ephemeral by design (in-memory, capped,
--- expiring) — no DB. GTA's own ejected brass is a particle effect (not an
--- entity), so the persistent layer is ours: a subtle ground glint by default;
--- servers with a streamed casing model can set Prop to spawn physical casings.
+-- Firing leaves recoverable casings linked to the weapon's SERIAL: examine one for weapon
+-- family, masked serial and age, or collect it to clean the scene. With Chain of Custody a
+-- recovered serial reaches the holder ledger. Ephemeral by design — in-memory, capped, no DB.
+-- GTA's own brass is a particle, so the persistent layer is ours: a ground glint by default,
+-- or a streamed model via Prop.
 MBT.ShellCasings       = {
     Enabled       = true,
     Chance        = 0.5,      -- probability (0-1, rolled server-side) a shot leaves a casing
@@ -888,16 +1099,102 @@ MBT.LowReady           = {
 }
 
 -- ── Tactical Sling Prop (visible strap) ───────────────────────────────────────
--- Shows a visible sling/strap on the torso while a long gun is slung. Implemented
--- as a PROP attached to a bone (like the weapon-on-back props), NOT a clothing
--- component: clothing would need a per-server drawable index and clash with the
--- server's own addons, making the script non-distributable. A prop only depends
--- on the model shipped in stream/, so it works identically on every server.
+-- A visible strap on the torso while a long gun is slung. A PROP on a bone, not a clothing
+-- component: clothing would need a per-server drawable index and clash with the server's own
+-- addons. Three straps ship in stream/belt/.
 --
--- On by default: three strap props ship in stream/belt/, and their offsets below are
--- tuned. To add your own variant: convert the model to a prop .ydr (+ .ytd), drop it in
--- stream/belt/, declare its archetype in mbt_m4_prop.ytyp, add a row to Variants, then
--- place it with the dashboard's Position editor (it appears there as type 'sling:<id>').
+-- Your own variant: convert to a prop .ydr (+ .ytd) in stream/belt/, declare the archetype in
+-- mbt_m4_prop.ytyp, add a row to Variants, place it in the dashboard as type 'sling:<id>'.
+-- ── Multi-Weapon Visibility ───────────────────────────────────────────────────
+-- More than one weapon in the same body slot. Up to MaxPerType DISTINCT weapons: copies of
+-- the same model share a prop, since two identical rifles side by side read as a fault. A
+-- distinct weapon always outranks another variant of one already shown.
+--
+-- OFF by default — existing servers see exactly what they saw before.
+MBT.MultiWeaponVisibility = {
+    Enabled    = false,
+    MaxPerType = 2,     -- distinct weapons DRAWN per slot; the rest are still tracked
+    -- Which slots get an extra lane, and where it starts from. A slot absent here has no
+    -- second lane, so a second weapon is tracked but not drawn — deliberate, since the only
+    -- alternative is drawing it on top of the first. Lane 1 is never offset.
+    --
+    -- `back` prefers MBT.PropInfo['back#2'] above, a placed position; this offset is the
+    -- fallback for a job that moved the base without placing its own lane. `side` has no
+    -- placed lane on purpose — the derived one was judged in game and accepted.
+    LaneOffsets = {
+        ['back'] = {
+            [2] = { Pos = { x = 0.0, y = -0.10, z = 0.0 }, Rot = { x = 0.0, y = 0.0, z = 0.0 } },
+        },
+        ['side'] = {
+            [2] = { Pos = { x = 0.0, y = 0.0, z = 0.14 }, Rot = { x = 0.0, y = 0.0, z = 0.0 } },
+        },
+    },
+}
+
+-- ── Length classes ───────────────────────────────────────────────────────────
+-- `back` alone maps 40 weapons sharing one tuned position, so a sawn-off floats where a
+-- heavy sniper runs through the shoulder. A class is a SHIFT applied on top, not a position —
+-- which is why classes do not multiply lanes: the same shifts apply to every lane.
+--
+-- Unlisted weapons are `standard` and shift by nothing. The shipped shifts are ZERO: the
+-- mechanism is here, the tuning is not.
+MBT.WeaponLengthClass = {
+    -- compact — short enough that a position tuned for a rifle leaves them hanging
+    ['WEAPON_SMG']            = 'compact', ['WEAPON_ASSAULTSMG']  = 'compact',
+    ['WEAPON_COMBATPDW']      = 'compact', ['WEAPON_SAWNOFFSHOTGUN'] = 'compact',
+    ['WEAPON_DBSHOTGUN']      = 'compact', ['WEAPON_COMPACTLAUNCHER'] = 'compact',
+    ['WEAPON_GADGETPISTOL']   = 'compact', ['WEAPON_MACHINEPISTOL'] = 'compact',
+    ['WEAPON_MICROSMG']       = 'compact',
+
+    -- long — sticks out past the shoulder at a rifle's position
+    ['WEAPON_SNIPERRIFLE']    = 'long', ['WEAPON_HEAVYSNIPER']     = 'long',
+    ['WEAPON_HEAVYSNIPER_MK2']= 'long', ['WEAPON_MARKSMANRIFLE']   = 'long',
+    ['WEAPON_MARKSMANRIFLE_MK2'] = 'long', ['WEAPON_MUSKET']       = 'long',
+    ['WEAPON_MINIGUN']        = 'long', ['WEAPON_RAYMINIGUN']      = 'long',
+    ['WEAPON_RAILGUN']        = 'long', ['WEAPON_RAILGUNXM3']      = 'long',
+}
+
+-- Per-slot shift for each class, applied on top of whatever position the lane resolved to.
+-- Tune 'y' first: on GTA weapon models it is conventionally the axis along the barrel, so it
+-- is the one that slides a weapon back into place rather than moving it off the body.
+MBT.WeaponClassOffsets = {
+    ['back']  = { compact = { Pos = { x = 0.0, y = 0.0, z = 0.0 } },
+                  long    = { Pos = { x = 0.0, y = 0.0, z = 0.0 } } },
+    ['back2'] = { compact = { Pos = { x = 0.0, y = 0.0, z = 0.0 } },
+                  long    = { Pos = { x = 0.0, y = 0.0, z = 0.0 } } },
+    ['side']  = { compact = { Pos = { x = 0.0, y = 0.0, z = 0.0 } },
+                  long    = { Pos = { x = 0.0, y = 0.0, z = 0.0 } } },
+}
+
+-- Seed each extra lane as a prop type of its OWN, keyed '<slot>#<lane>'. From here it is an
+-- ordinary position: editable, per-job overridable, persisted. Trade-off: retuning lane 1 no
+-- longer drags lane 2 along.
+--
+-- The offset survives seeding as the fallback for a job that overrode the base without
+-- writing its own lane — falling back to the global lane would place the two off different
+-- bases and they would intersect.
+do
+    for slot, byLane in pairs(MBT.MultiWeaponVisibility.LaneOffsets) do
+        local base = MBT.PropInfo[slot]
+        if base then
+            for lane, off in pairs(byLane) do
+                local dp, dr = off.Pos or {}, off.Rot or {}
+                local out = {
+                    Bone = base.Bone, isPed = base.isPed,
+                    RotOrder = base.RotOrder, FixedRot = base.FixedRot,
+                    Pos = {}, Rot = {},
+                }
+                for _, sex in ipairs({ 'male', 'female' }) do
+                    local bp, br = base.Pos[sex], base.Rot[sex]
+                    out.Pos[sex] = { x = bp.x + (dp.x or 0.0), y = bp.y + (dp.y or 0.0), z = bp.z + (dp.z or 0.0) }
+                    out.Rot[sex] = { x = br.x + (dr.x or 0.0), y = br.y + (dr.y or 0.0), z = br.z + (dr.z or 0.0) }
+                end
+                MBT.PropInfo[slot .. '#' .. lane] = out
+            end
+        end
+    end
+end
+
 MBT.TacticalSling      = {
     Enabled  = true,    -- toggle live from the admin dashboard (NUI), no restart needed
     -- Strap prop variants, shipped in stream/ and declared in mbt_m4_prop.ytyp. Add as many
@@ -925,7 +1222,8 @@ MBT.PropInfo.sling = {
     ["isPed"]    = false,
     ["RotOrder"] = 2,
     ["FixedRot"] = true,
-    -- male tuned in-world; female is still the original seed, not tuned.
+    -- Male tuned in-world; female is the seed, reviewed in game and kept — same call as
+    -- the back slot above.
     ["Pos"] = {
         ["male"]   = { ["x"] = 0.200, ["y"] = -0.120, ["z"] = -0.115 },
         ["female"] = { ["x"] = 0.252, ["y"] = -0.028, ["z"] = -0.420 },
@@ -1001,14 +1299,10 @@ MBT.Safety             = {
 }
 
 -- ── Weapon Condition HUD ──────────────────────────────────────────────────────
--- Passive at-a-glance indicator of the held weapon's condition (durability tier
--- 1-5, 5 = pristine). Rendered as muted pips in the SAME "weapon status" pill as
--- the Safety SAFE/FIRE indicator (one element, less HUD clutter). The pip colour
--- only signals a PROBLEM: good = neutral grey (the default, not flagged), worn =
--- orange, damaged = red — green stays exclusive to the Safety FIRE label.
--- The pill shows whenever a firearm is in hand and Safety.HudIndicator OR this is
--- enabled; if both are off it is hidden. Purely visual (data is the same
--- durability the jamming reads).
+-- Condition (durability tier 1-5) as muted pips in the SAME pill as Safety's SAFE/FIRE, to
+-- keep it one HUD element. Colour signals a PROBLEM only: grey good, orange worn, red damaged
+-- — green stays exclusive to the FIRE label. Shown while a firearm is held if this or
+-- Safety.HudIndicator is on. Reads the same durability the jamming does.
 MBT.ConditionHUD       = {
     Enabled = true,
 }

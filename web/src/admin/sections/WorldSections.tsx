@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Section, ToggleRow, FieldBlock, Grid2, type SectionProps } from './parts'
+import { Section, ToggleRow, FieldBlock, Grid2, type SectionProps, withMeta } from './parts'
 import { NumberInput } from '../ui/NumberInput'
 import { Icon } from '../ui/Icon'
 import { fetchNui } from '../../utils/fetchNui'
@@ -105,23 +105,40 @@ export function WeaponRackSection({ config, update }: SectionProps) {
       </Grid2>
       <ToggleRow title="Retrieve to Hand" desc="Taking one out puts it straight in the player's hands"
         checked={!!t.EquipOnRetrieve} onChange={(v) => update('WeaponRack.EquipOnRetrieve', v)} />
-      <FieldBlock label="Item Placement" hint="Players place their own racks from an inventory item.">
-        <ToggleRow title="Enable Placement" desc="Install a rack in the world from the rack item (needs oxmysql)"
-          checked={!!t.Placement?.Enabled} onChange={(v) => update('WeaponRack.Placement.Enabled', v)} />
-        <ToggleRow title="Owner-only Access" desc="Only the player who placed a rack can use it"
-          checked={t.Placement?.Access === 'owner'}
-          onChange={(v) => update('WeaponRack.Placement.Access', v ? 'owner' : 'everyone')} />
-        <ToggleRow title="Allow Pickup" desc="The owner can dismount an empty rack and get the item back"
-          checked={!!t.Placement?.AllowPickup} onChange={(v) => update('WeaponRack.Placement.AllowPickup', v)} />
-        <FieldBlock label="Max per Player" hint="Item-placed racks each player can have at once." style={{ marginBottom: 0 }}>
-          <NumberInput min={1} max={20} step={1} value={String(t.Placement?.MaxPerPlayer ?? 2)}
-            onChange={numUpdate(update, 'WeaponRack.Placement.MaxPerPlayer', 2, true)} />
-        </FieldBlock>
-      </FieldBlock>
       <div className="mbt-field__hint" style={{ marginTop: 2 }}>
         Rack locations, props, per-type offsets and per-job access live in <code>config.lua</code>
         (<code>MBT.WeaponRack</code>).
       </div>
+    </Section>
+  )
+}
+
+/**
+ * RACK PLACEMENT — racks players install themselves from an inventory item.
+ *
+ * Split out of WEAPON RACK, which had grown to 757px: more than twice any other card on the
+ * page, so no card could sit beside it and the row it was in left a 108px hole. It reads as
+ * its own thing anyway — the rack above is the fixed world furniture a server author places
+ * in config.lua, this is players placing their own, with its own switch, its own table
+ * (`mbt_malisling_rack_placements`) and its own ownership rules.
+ */
+export function RackPlacementSection({ config, update }: SectionProps) {
+  const p = config.WeaponRack?.Placement ?? {}
+  return (
+    <Section icon="plus" title="RACK PLACEMENT" sub="Racks players install themselves from an item."
+      action={<ToggleRow.Inline checked={!!p.Enabled}
+        onChange={(v) => update('WeaponRack.Placement.Enabled', v)} />}>
+      <ToggleRow title="Owner-only Access" desc="Only the player who placed a rack can use it"
+        checked={p.Access === 'owner'} disabled={!p.Enabled}
+        onChange={(v) => update('WeaponRack.Placement.Access', v ? 'owner' : 'everyone')} />
+      <ToggleRow title="Allow Pickup" desc="The owner can dismount an empty rack and get the item back"
+        checked={!!p.AllowPickup} disabled={!p.Enabled}
+        onChange={(v) => update('WeaponRack.Placement.AllowPickup', v)} />
+      <FieldBlock label="Max per Player" hint="Item-placed racks each player can have at once."
+        disabled={!p.Enabled} style={{ marginBottom: 0 }}>
+        <NumberInput min={1} max={20} step={1} value={String(p.MaxPerPlayer ?? 2)}
+          onChange={numUpdate(update, 'WeaponRack.Placement.MaxPerPlayer', 2, true)} />
+      </FieldBlock>
     </Section>
   )
 }
@@ -230,3 +247,12 @@ export function TrunkPositionsSection({ config, update, onEdit, refreshKey }: Tr
     </Section>
   )
 }
+
+withMeta(NoDrawSection, { label: 'No-Draw Zones', path: 'NoDrawZones.Enabled' })
+withMeta(VehicleSection, { label: 'Vehicle Hiding', path: 'VehicleHiding.Enabled' })
+withMeta(TrunkRackSection, { label: 'Trunk Rack', path: 'VehicleTrunkRack.Enabled' })
+withMeta(WeaponRackSection, { label: 'Weapon Rack', path: 'WeaponRack.Enabled' })
+withMeta(RackPlacementSection, { label: 'Rack Placement', path: 'WeaponRack.Placement.Enabled' })
+// No path: it edits per-model placement overrides, and its on/off is Trunk Rack's — which
+// is why gating it on "disabled" would have collapsed two different cards from one switch.
+withMeta(TrunkPositionsSection, { label: 'Trunk Positions' })

@@ -1,18 +1,10 @@
--- ─────────────────────────────────────────────────────────────────────────────
--- Weapon Rack / Gun Locker — server
+-- ── Weapon Rack / Gun Locker — server ──
+-- Stow a weapon on a fixed world rack and retrieve it. It never enters a stash: its
+-- {name,count,metadata} is held here and re-minted through the Inventory bridge.
 --
--- Stow a weapon onto a fixed WORLD rack (MBT.WeaponRack.Locations) and retrieve it.
--- The weapon never enters a stash: its {name,count,metadata} is held here and
--- re-minted on retrieve via the framework-agnostic Inventory bridge (ox+qb).
---
--- Persistence: one self-managed oxmysql table (mbt_malisling_racks), keyed by location
--- id. oxmysql is feature-gated — without it racks work but contents are in-memory only
--- (reset on restart); the rest of the script stays DB-free.
---
--- Sync: the config-defined prop spawns locally + identically per client, so only the
--- CONTENTS replicate, via GlobalState (mbt_weaponRacks). No networked weapon objects,
--- hence none of the sync jitter that plagues other rack scripts.
--- ─────────────────────────────────────────────────────────────────────────────
+-- Persisted in mbt_malisling_racks, keyed by location id; without oxmysql contents are
+-- in-memory only. Only the CONTENTS replicate (GlobalState) — the prop is local and
+-- identical per client, so there are no networked weapon objects to jitter.
 
 if not MBT.WeaponRack then return end
 

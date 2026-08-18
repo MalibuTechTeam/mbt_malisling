@@ -1,9 +1,10 @@
 import './index.css'
 import './components/overlay.css'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { debugData } from './utils/debugData'
 import { useNuiEvent } from './utils/useNuiEvent'
 import { fetchNui } from './utils/fetchNui'
+import { applyAccent, DEFAULT_ACCENT } from './utils/accent'
 import HolsterUI from './components/HolsterUI'
 import JamUI from './components/JamUI'
 import InspectUI from './components/InspectUI'
@@ -40,7 +41,7 @@ const DEV_UPDATE = false
 
 // Full mock of the server config snapshot (modules/config/server.lua → snapshot()).
 const MOCK_ADMIN_CONFIG = {
-  EnableSling: true, EnableFlashlight: true, HolsterConfirm: true, DropWeaponOnDeath: true, UIPosition: 'bottom-center', UIStyle: 'standard', Language: 'en',
+  EnableSling: true, EnableFlashlight: true, HolsterConfirm: true, DropWeaponOnDeath: true, UIPosition: 'bottom-center', UIStyle: 'standard', Accent: '#00E676', Language: 'en',
   Sounds: { Enabled: true, MaxDistance: 8.0, Volume: 0.3 },
   WeaponDrop: { WeaponModelProp: true, OxTargetPickup: true, Despawn: { Enabled: true, Seconds: 300, BlinkLastSec: 10 } },
   Jamming: { Enabled: true, Cooldown: 5, UnjamPresses: 5 },
@@ -62,6 +63,20 @@ const MOCK_ADMIN_CONFIG = {
   ShellCasings: { Enabled: true, Chance: 0.5, ExpireMinutes: 30, MaxCasings: 150, SerialReveal: 'partial', AllowCollect: true },
   Handoff: { Enabled: true, MaxDistance: 2.5, EquipOnAccept: true },
   Serials: { EnsureGeneration: true, Format: 'marked', SweepOnLoad: true },
+  DrawStyle: 'standard',
+  DrawStyleByJob: { police: 'police' },
+  // Derivato dal server da MBT.DrawStyles a ogni snapshot — la dashboard non ha una lista sua.
+  DrawStyles: [{ id: 'police', label: 'Police' }, { id: 'standard', label: 'Standard' }, { id: 'street', label: 'Street' }],
+  // Seed del selettore di gesture, anch'esso derivato (MBT.DrawStyleCandidates). Qui ne bastano
+  // pochi: servono a vedere il layout della lista, non a riprodurre il catalogo.
+  DrawStyleCandidates: [
+    { id: 'holster_1h', label: 'Holster — one-handed', fits: 'side', dict: 'weapons@holster_1h', animIn: 'unholster', animOut: 'holster' },
+    { id: 'holster_2h', label: 'Holster — two-handed', fits: 'back', dict: 'weapons@holster_2h', animIn: 'unholster', animOut: 'holster' },
+    { id: 'switchblade_w', label: 'Switchblade — wide', fits: 'melee2', dict: 'anim@melee@switchblade@holster', animIn: 'w_unholster', animOut: 'w_holster' },
+    { id: 'holster_superfat', label: 'Holster — heaviest', fits: 'back2', dict: 'weapons@holster_superfat_2h', animIn: 'unholster', dictOut: 'weapons@holster_fat_2h', animOut: 'holster' },
+    { id: 'intimidate_1h', label: 'Intimidation — one-handed (current default)', dict: 'reaction@intimidation@1h', animIn: 'intro', animOut: 'outro' },
+  ],
+  DrawStyleOverrides: { police: { side: { dict: 'rcmjosh4', animIn: 'josh_leadout_cop2', dictOut: 'reaction@intimidation@cop@unarmed', animOut: 'outro' } } },
   ConcealedCarry: { Enabled: true, ToggleCooldownMs: 3000, Tell: { Enabled: true, RollSeconds: 25, ChanceGood: 0.15, ChancePoor: 0.45 } },
   PatDown: { Enabled: true, RequireConsent: true, CuffedBypass: true, ShowAmmo: true, MaxDistance: 2.0 },
   AmmoSharing: { Enabled: true, ShareAmount: 30, MaxDistance: 2.5 },
@@ -72,6 +87,8 @@ if (DEV_PREVIEW === 'admin') {
     action: 'openAdmin',
     data: {
       version: 'v2.0.0', config: MOCK_ADMIN_CONFIG,
+      // What the server's bridges resolved to (modules/config/server.lua → environment()).
+      env: { framework: 'es_extended', inventory: 'ox_inventory', persistence: 'oxmysql', language: 'en' },
       oxPatch: (DEV_SCENARIO === 'critical' || DEV_SCENARIO === 'both') ? 'ox_inventory weapons-as-items is disabled' : 'ok',
       warnings: (DEV_SCENARIO === 'warning' || DEV_SCENARIO === 'both')
         ? [{ code: 'qb_weapdraw', msg: 'qb-weapons detected — disable weapdraw.lua for correct holster/switch animations.' }]
@@ -177,6 +194,20 @@ export default function App() {
       document.documentElement.classList.toggle('mbt-reduce-motion', !!r?.on))
   }, [])
 
+  // Brand accent — painted on the in-game overlay wrapper only, never on <html>. The
+  // dashboard is a sibling below and keeps the MalibuTech green: the accent is the server
+  // owner's colour for what their PLAYERS see, not a theme for our admin panel.
+  //
+  // Pulled here rather than only on the applyConfig push because a player who never opens
+  // the dashboard still has to see the server's colour on their prompts.
+  const ingame = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    fetchNui('getAccent', {}, { accent: DEFAULT_ACCENT }).then((r: any) => applyAccent(r?.accent, ingame.current))
+  }, [])
+
+  // Live repaint when an admin saves (broadcast to every client).
+  useNuiEvent<{ accent?: string }>('setAccent', ({ accent }) => applyAccent(accent, ingame.current))
+
   useNuiEvent<{ file: string; volume: number }>('playHolsterSound', ({ file, volume }) => {
     // Guard the filename (it builds a path): only a safe token can be played, and
     // swallow the play() rejection so CEF doesn't log an unhandled promise when the
@@ -189,19 +220,23 @@ export default function App() {
 
   return (
     <>
-      <HolsterUI />
-      <JamUI />
-      <InspectUI />
-      <NoDrawUI />
-      <WeaponStatusUI />
-      <PoseHUD />
-      <RackPickerUI />
-      <EvidenceUI />
-      <HandoffUI />
-      <HintUI />
-      <PatdownUI />
-      <AmmoPickerUI />
-      <ChargeMeter />
+      {/* Everything the PLAYER sees. The wrapper exists to carry the server's accent —
+          the overlays inside are all position:fixed, so it costs no layout. */}
+      <div ref={ingame} className="mbt-ingame">
+        <HolsterUI />
+        <JamUI />
+        <InspectUI />
+        <NoDrawUI />
+        <WeaponStatusUI />
+        <PoseHUD />
+        <RackPickerUI />
+        <EvidenceUI />
+        <HandoffUI />
+        <HintUI />
+        <PatdownUI />
+        <AmmoPickerUI />
+        <ChargeMeter />
+      </div>
       <AdminDashboard />
     </>
   )
