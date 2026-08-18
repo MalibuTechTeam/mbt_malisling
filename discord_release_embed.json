@@ -1,0 +1,31 @@
+{
+  "title": "mbt_malisling 2.1.0 — Draw Style",
+  "description": "Pick your draw animation by watching it play on your own character.",
+  "url": "https://github.com/MalibuTechTeam/mbt_malisling/releases/tag/v2.1.0",
+  "color": 58998,
+  "fields": [
+    {
+      "name": "New",
+      "value": "• **Live Picker** — Placement → Draw Style. The panel hides, a camera frames your ped, every holster animation plays on demand. Keep one per slot, per direction.\n• **Clip + duration saved together** — slots were playing a fragment of a longer animation (19% for the pistol, 28% for the rifle). Now measured and stored, so it plays whole.\n• **Per-job draw styles** — gesture only, never timing. No job draws faster than another.\n• **Placed second-rifle position**, tuned separately for male and female.\n• `/mbt_animaudit` (debug) — which animations exist on your build, how long each runs, which slots are cutting theirs short.",
+      "inline": false
+    },
+    {
+      "name": "Fixed",
+      "value": "• Drawing one of two slung weapons took **both** off the body.\n• Drawing while the prop wasn't showing (spawning, concealed, hidden by job) recorded nothing — putting it away never brought it back.\n• `ox_inventory` patch didn't update when it changed; the marker is now a hash of the patch itself.\n• `Hidden by Job` showed no jobs on some servers.\n• A style removed from `default.lua` could make the config permanently unsavable.",
+      "inline": false
+    },
+    {
+      "name": "Changed",
+      "value": "• Draw Style moved to the **Placement** page, with the other in-world editors.\n• `Hidden by Job` no longer leads with a destructive red button.",
+      "inline": false
+    },
+    {
+      "name": "Upgrading",
+      "value": "• Drop the folder in and **restart the server** — the ox_inventory patch changed and ox must recompile it. All settings kept.\n• ⚠️ Not tested this release: the **qb-inventory** path. Shared code with ox, verified there.",
+      "inline": false
+    }
+  ],
+  "footer": {
+    "text": "Free and open source · MalibuTech"
+  }
+}
