@@ -39,6 +39,7 @@ It rides on your back or your hip where everyone can see it. You can hide it und
 ## What players get
 
 - **The gun is on your body.** Rifle across the back, sidearm on the hip, blade at the belt — visible to everyone, in positions the server can tune. Drawing it plays a real holster animation instead of the weapon appearing in your hands.
+- **Carry two long guns and both are there.** A rifle and a shotgun share the same place on your back, and until now one of them was simply invisible. Each gets its own spot, and how you draw either one is an animation the server picked by watching it.
 - **Hide it under your clothes.** A jacket conceals well, a light top conceals badly, a bare torso refuses. Walk around with a subtle tell that you are adjusting something at your belt.
 - **Weapons jam.** How often depends on the condition of the gun, and you clear it under pressure while someone is shooting back.
 - **Every weapon has a serial, and a memory.** Inspect one and you see its serial, its condition, the name engraved on it — and the list of players who have carried it before you.
@@ -63,7 +64,9 @@ It rides on your back or your hip where everyone can see it. You can hide it und
 ### Carry & Sling
 
 - **Visual sling** — the weapon shows on the player's body in **6 configurable positions** (back, secondary back, hip/side, melee slots), attached per weapon type
-- **Tactical Sling prop** — a strap/rig worn on the body, on by default: **three prop variants ship with the resource** and can be assigned **per job** (e.g. police carry differently), with positions tuned live in the dashboard
+- **Multi-Weapon Visibility** — more than one weapon drawn in the **same** body slot (`back` alone maps 38 weapons, so a rifle and a shotgun already collide). Up to 4 per slot, each in its own placed position. **Off by default**: with it off the first weapon sits exactly where it always did. Copies of the same model share one prop; distinct weapons always take a lane first
+- **Length classes** — a slot runs from a sawn-off to a heavy sniper, so a single tuned position leaves one floating and the other through the shoulder. `compact` / `standard` / `long` apply a **shift** on top of the position, tuned in the same editor
+- **Tactical Sling prop** — a strap/rig worn on the body, on by default: **three prop variants ship with the resource** and can be assigned **per job** (e.g. police carry differently), with positions tuned live in the dashboard. Drawn for **every** player around you, not just for yourself
 - **Holster prompt** — drawing a sidearm shows a branded confirm prompt with **gender-specific holster animations** and synced holster/unholster sounds (including a blade sound for melee)
 - **Concealed Carry** — toggle to hide a weapon under clothing; server-authoritative, replicated via state bag. Clothing is evaluated (bare torso refuses, light tops conceal *poorly*, jackets conceal *well*) with subtle "adjust your belt" tells
 - **Low Ready** — a choreographed chest-carry stance
@@ -113,6 +116,8 @@ It rides on your back or your hip where everyone can see it. You can hide it und
 - **Two interface styles** — every on-screen prompt and HUD ships in **Standard** (fixed on screen) and **Cinematic** (filmic, anchored beside the weapon in the world). One switch in the dashboard changes all of them; nothing else about the script changes
 - **NUI Position Editor** — a live, in-world editor (orbit camera, preview prop, button controls) to set each weapon type's sling position **per type and per job**, saved to the database
 - **Gesture picker** — the same idea for animation: the dashboard steps aside, a camera frames your character, and every holster clip plays on demand so you can keep the one that reads
+- **Brand accent colour** — one colour, set from the dashboard, on every prompt and HUD your players see. It is your server's colour for its players; the panel itself keeps its own
+- **Hidden by Job** — body slots that never show a prop, per job, set from the panel. Police uniforms usually model a pistol into the clothing, so an officer would otherwise carry two
 - **Dev tuning commands** — `/mbt_racktune` and `/mbt_trunktune` print ready-to-paste offset lines for fine placement (admin / debug only)
 
 </details>
