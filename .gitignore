@@ -27,3 +27,7 @@ web/mockup-*.html
 
 # Audit outputs — canonical design docs live in the Obsidian vault, not the public repo
 specs/
+
+# Release comms — drafted here, published by hand (Discord post, embed payload).
+discord_release_post.md
+discord_release_embed.json

@@ -80,6 +80,7 @@ It rides on your back or your hip where everyone can see it. You can hide it und
 - **Suppressor Heat Glow** — the suppressor heats up under sustained fire and glows orange → red, cooling on the slung prop after holstering (purely visual)
 - **Weapon Weight / Carry Penalty** — carrying many long guns slightly slows movement (preset: off / light / medium / heavy / custom)
 - **No-Draw Zones** — configurable areas where drawing a weapon is disabled, with a cooldowned notice
+- **Draw Style** — choose the animation your character uses to reach for a weapon, per body slot and per job. Pick it by **watching it**: the in-world picker plays every holster animation in the game on your own character, and stores the clip together with the duration measured from it
 
 ### Inspection & Identity
 
@@ -108,9 +109,10 @@ It rides on your back or your hip where everyone can see it. You can hide it und
 
 ### Admin & Configuration
 
-- **Live React dashboard** (`/mbt_malisling`) — a premium NUI control panel to toggle and tune every feature in real time, organized by category (Core, Handling, Interaction, Forensics, World), persisted to the database
+- **Live React dashboard** (`/mbt_malisling`) — a premium NUI control panel to toggle and tune every feature in real time, organized by category (Core, Presentation, Handling, Interaction, Forensics, World, Placement), persisted to the database
 - **Two interface styles** — every on-screen prompt and HUD ships in **Standard** (fixed on screen) and **Cinematic** (filmic, anchored beside the weapon in the world). One switch in the dashboard changes all of them; nothing else about the script changes
 - **NUI Position Editor** — a live, in-world editor (orbit camera, preview prop, button controls) to set each weapon type's sling position **per type and per job**, saved to the database
+- **Gesture picker** — the same idea for animation: the dashboard steps aside, a camera frames your character, and every holster clip plays on demand so you can keep the one that reads
 - **Dev tuning commands** — `/mbt_racktune` and `/mbt_trunktune` print ready-to-paste offset lines for fine placement (admin / debug only)
 
 </details>
@@ -280,6 +282,7 @@ Drawing a sidearm shows a confirm prompt: its two keys are set in `MBT.HolsterCo
 | `/mbt_racktune` | Admin / Debug | Live-tune the per-type weapon offsets on a wall rack |
 | `/mbt_trunktune` | Near a stowed vehicle | Live-tune the trunk prop offset per vehicle class/model |
 | `/mbt_casingzone` | Admin / Debug | Size a no-casing zone in-world (ranges, armories) and print a ready-to-paste `ExcludeZones` line |
+| `/mbt_animaudit` | Debug | Measure every draw animation against your game build: which exist, how long each runs, and which slots are cutting theirs short |
 
 Every command name is configurable — each feature's block in `default.lua` has a `Command` field, and the dashboard's is `MBT.Admin.Command` in `config.lua`.
 
