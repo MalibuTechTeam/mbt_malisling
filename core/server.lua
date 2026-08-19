@@ -504,6 +504,11 @@ Citizen.CreateThread(function()
         -- during this tick is either fully before or fully after it, never mid-diff.
         if scopesDirty then
             scopesDirty = false
+            -- Unconditional on entering the branch, NOT inside the diffs loop below (which
+            -- only logs when something is actually found): this is the one line that answers
+            -- item 8's exit gates directly — absent at rest, exactly one per real pass, exactly
+            -- one per burst — instead of having to infer it from a resmon delta.
+            Utils.mbtDebugger("Queuing Thread ~ diff pass running")
             local diffs = Utils.getDifferences(oldScop, scopes)
 
             for source, values in pairs(diffs) do
