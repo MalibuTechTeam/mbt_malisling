@@ -334,6 +334,12 @@ end
 local functQueue, oldScop = {}, {}
 scopes = {}
 
+-- Set on every scope mutation that actually happened (not on an empty-table init — see the
+-- three helpers below), read-and-cleared right before the diff loop runs. Lets the 10Hz diff
+-- thread skip Utils.getDifferences entirely when nothing changed, instead of re-comparing
+-- every scope on every tick regardless of activity — see roadmap.md, item 8.
+local scopesDirty = false
+
 ---@param player number | string
 ---@param playerToAdd number | string
 function addPlayerToPlayerScope(player, playerToAdd)
@@ -346,11 +352,13 @@ function addPlayerToPlayerScope(player, playerToAdd)
     local playerScope = scopes[player]
     if Utils.containsValue(playerScope, playerToAdd) then return end
     playerScope[#playerScope+1] = playerToAdd
+    scopesDirty = true
 
     if scopes[playerToAddSource] then
         local isIn = Utils.containsValue(scopes[playerToAddSource], playerSource)
         if not isIn then
             scopes[playerToAddSource][#scopes[playerToAddSource]+1] = playerSource
+            scopesDirty = true
         end
     end
 
@@ -371,6 +379,7 @@ local function removePlayerFromPlayerScope(player, playerToRemove)
         local isContaining, index = Utils.containsValue(scopes[player], playerToRemoveSource)
         if isContaining then
             table.remove(scopes[player], index)
+            scopesDirty = true
         end
     end
 
@@ -378,6 +387,7 @@ local function removePlayerFromPlayerScope(player, playerToRemove)
         local isContaining, index = Utils.containsValue(scopes[playerToRemove], playerSource)
         if isContaining then
             table.remove(scopes[playerToRemove], index)
+            scopesDirty = true
         end
     end
 end
@@ -387,9 +397,13 @@ function removePlayerFromScopes(s)
         for i=1, #v do
             if v[i] == s then
                 table.remove(v, i)
+                scopesDirty = true
             end
         end
-        if k == tostring(s) then scopes[k] = nil end
+        if k == tostring(s) then
+            scopes[k] = nil
+            scopesDirty = true
+        end
     end
 end
 
@@ -484,28 +498,35 @@ end)
 Citizen.CreateThread(function()
     Utils.mbtDebugger("Queuing Thread ~ Started!")
     while true do
-        local diffs = Utils.getDifferences(oldScop, scopes)
+        -- Read-and-clear BEFORE the diff, not after: correct for a mutation that lands
+        -- AFTER this check (it re-dirties for the next pass), and neither this check nor
+        -- Utils.getDifferences below ever yields, so nothing can land IN BETWEEN — a mutation
+        -- during this tick is either fully before or fully after it, never mid-diff.
+        if scopesDirty then
+            scopesDirty = false
+            local diffs = Utils.getDifferences(oldScop, scopes)
 
-        for source, values in pairs(diffs) do
-            for i=1, #values do
-                Utils.mbtDebugger("Queuing Thread ~ Key: ", source, "Type: ", values[i].type, "Value: ", values[i].value)
-                functQueue[#functQueue+1] = {
-                    funct = triggerCl,
-                    args = {
-                        event = "mbt_malisling:syncScope",
-                        target = tonumber(values[i].value),
-                        payload = {
-                            tType = values[i].type == "Removed" and "del" or "add",
-                            playerSource = tonumber(source),
-                            playerJob = getPlayerJob(source),
-                            playerJobs = getPlayerJobs(source),
-                            pedSex = getPlayerSex(source),
-                            playerWeapons = values[i].type == "Added" and Slung.snapshot(tonumber(source)) or nil
+            for source, values in pairs(diffs) do
+                for i=1, #values do
+                    Utils.mbtDebugger("Queuing Thread ~ Key: ", source, "Type: ", values[i].type, "Value: ", values[i].value)
+                    functQueue[#functQueue+1] = {
+                        funct = triggerCl,
+                        args = {
+                            event = "mbt_malisling:syncScope",
+                            target = tonumber(values[i].value),
+                            payload = {
+                                tType = values[i].type == "Removed" and "del" or "add",
+                                playerSource = tonumber(source),
+                                playerJob = getPlayerJob(source),
+                                playerJobs = getPlayerJobs(source),
+                                pedSex = getPlayerSex(source),
+                                playerWeapons = values[i].type == "Added" and Slung.snapshot(tonumber(source)) or nil
+                            }
                         }
                     }
-                }
+                end
+                oldScop[source] = scopes[source] and Utils.tableDeepCopy(scopes[source]) or nil
             end
-            oldScop[source] = scopes[source] and Utils.tableDeepCopy(scopes[source]) or nil
         end
 
         Citizen.Wait(100)
