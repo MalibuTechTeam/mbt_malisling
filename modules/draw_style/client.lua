@@ -5,8 +5,7 @@ local playing = false
 local cam                       -- scripted orbit camera, alive only while the picker is open
 local orbit = { yaw = 150.0 }   -- degrees around the ped, RELATIVE to the way it is facing
 
---- Frame the ped from `orbit.yaw` degrees around it. Yaw is relative to the ped's HEADING, so
---- 0 is always its front whichever way the player happens to be standing.
+--- Frame the ped from `orbit.yaw` degrees around it — relative to its HEADING, so 0 is always its front regardless of which way the player is standing.
 local CAM_PITCH, CAM_DIST = -8.0, 2.2
 local function updateCam()
     if not cam then return end
@@ -21,8 +20,7 @@ local function updateCam()
     PointCamAtEntity(cam, ped, 0.0, 0.0, 0.15, true)
 end
 
---- Length of a clip, and whether it can be played at all. Own deadline rather than
---- lib.requestAnimDict: a dict absent on this build would hang there silently.
+--- Length of a clip, and whether it can be played at all — own deadline rather than lib.requestAnimDict, since a dict absent on this build would otherwise hang silently.
 ---@param dict string
 ---@param clip string
 ---@param release boolean?  free the dict again if this call loaded it. /mbt_animaudit only —
@@ -50,8 +48,7 @@ local function measure(dict, clip, release)
     return dur
 end
 
---- Play one gesture on the local ped, once. Returns the clip's natural length: a duration
---- shorter than that is what "the animation looks cut" actually is.
+--- Play one gesture on the local ped, once — returns the clip's natural length (a shorter duration is what "the animation looks cut" actually is).
 ---@param dict string
 ---@param clip string
 ---@param ms number?
@@ -77,12 +74,7 @@ RegisterNUICallback('drawStyle:play', function(d, cb)
     cb({ ok = ok, err = err, clipMs = clipMs })
 end)
 
---- Measure the whole catalogue against THIS game build, without playing anything.
----
---- This is the tedious half of testing a gesture list, and it is the half a machine can do:
---- which dicts exist here, which clip names are real, and how long each one runs — that last
---- number being the duration the slot needs if the gesture is not to be cut off. What no
---- command can answer is whether the gesture reads well, so it does not pretend to.
+--- /mbt_animaudit — measures the whole gesture catalogue against THIS game build without playing anything (which dicts/clips exist, how long they run). Can't tell you whether a gesture READS well, so it doesn't pretend to.
 if MBT.Debug then
     RegisterCommand('mbt_animaudit', function()
         local list = MBT.DrawStyleCandidates or {}
@@ -137,11 +129,6 @@ if MBT.Debug then
 end
 
 --- Enter gesture mode, and report what each slot is ACTUALLY using right now.
----
---- The resolved gesture is computed here rather than in the panel because two of its three
---- layers never reach the NUI: PropInfo and MBT.DrawStyles are code, and only the owner's
---- overrides are in the config snapshot. A panel left to guess would show "shipped default"
---- next to a slot the style overrides, which is the one thing an editor must not get wrong.
 RegisterNUICallback('drawStyle:enter', function(d, cb)
     -- Empty hands: these are all reach-for-a-weapon gestures, and played with one already
     -- held they read as a fumble.
@@ -155,6 +142,9 @@ RegisterNUICallback('drawStyle:enter', function(d, cb)
 
     local style = type(d) == 'table' and d.style or nil
     local slots, current = {}, {}
+    -- Resolved HERE, not in the panel: two of the three layers never reach the NUI — PropInfo
+    -- and MBT.DrawStyles are code, only the owner's overrides are in the config snapshot. A
+    -- panel left to guess would show "shipped default" next to a slot the style overrides.
     for slot in pairs(MBT.PropInfo or {}) do
         local ha = Utils.holsterAnim(slot, style)
         if ha then
@@ -170,8 +160,7 @@ RegisterNUICallback('drawStyle:enter', function(d, cb)
     cb({ ok = true, slots = slots, current = current, yaw = orbit.yaw })
 end)
 
---- Measure both directions without playing, so "Use" can save the clip and its duration as one
---- decision. Stores nothing: the panel sends these back with the save.
+--- Measure both directions without playing, so "Use" can save the clip and its duration as one decision. Stores nothing — the panel sends these back with the save.
 RegisterNUICallback('drawStyle:measure', function(d, cb)
     if type(d) ~= 'table' then return cb({}) end
     local inDur  = measure(d.dict, d.animIn)
@@ -209,17 +198,14 @@ AddEventHandler('onResourceStop', function(res)
     cam = nil
 end)
 
---- Save one gesture onto one slot of one style. The reply carries the stored map back, which
---- the panel patches into its draft — the dashboard round-trips the WHOLE config, so without
---- that the next ordinary Save would undo this.
----
---- The payload is rebuilt field by field, and that cost has been paid once: `timing` was added
---- at both ends and not here, so the duration was dropped in transit and nothing reported it.
---- Anything added to the save must be added HERE too.
+--- Save one gesture onto one slot of one style.
 RegisterNUICallback('drawStyle:save', function(d, cb)
     if type(d) ~= 'table' or type(d.style) ~= 'string' or type(d.slot) ~= 'string' then
         return cb({ ok = false, err = 'bad payload' })
     end
+    -- Payload rebuilt field by field — that cost was paid once already: `timing` was added at
+    -- both ends and not here, so the duration was dropped in transit and nothing reported it.
+    -- Anything added to the save must be added HERE too.
     local reply = lib.callback.await('mbt_malisling:drawStyle:save', false, {
         style   = d.style,
         slot    = d.slot,
@@ -228,5 +214,7 @@ RegisterNUICallback('drawStyle:save', function(d, cb)
         gesture = d.gesture,
         timing  = d.timing,
     })
+    -- reply carries the stored map back so the panel can patch its draft: the dashboard
+    -- round-trips the WHOLE config, so without this the next ordinary Save would undo it.
     cb(reply or { ok = false, err = 'no reply' })
 end)

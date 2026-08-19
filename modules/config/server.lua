@@ -60,10 +60,7 @@ local function num(v, default) if type(v) == 'number' then return v end return d
 -- controls that move the same weapon, and no way to tell from the numbers which one did.
 local OFFSET_CLASSES = { 'compact', 'long' }
 
---- The class offsets as a COMPLETE shape (every slot in default.lua, both classes, Pos and
---- Rot), whatever the live table happens to hold. mergeKnown walks the template, so a key
---- missing here can never be restored from a saved row — and the shipped defaults carry
---- Pos only.
+--- The class offsets as a COMPLETE shape (every slot, both classes, Pos and Rot) — mergeKnown walks this as the template, so a key missing here can never be restored from a saved row.
 ---@param src table?  defaults to the live table; the captured defaults when resetting
 local function classOffsetSnapshot(src)
     local out = {}
@@ -72,6 +69,7 @@ local function classOffsetSnapshot(src)
         for _, class in ipairs(OFFSET_CLASSES) do
             local o = byClass[class] or {}
             local p, r = o.Pos or {}, o.Rot or {}
+            -- Rot defaulted to 0 here: the shipped defaults in default.lua carry Pos only.
             s[class] = {
                 Pos = { x = num(p.x, 0.0), y = num(p.y, 0.0), z = num(p.z, 0.0) },
                 Rot = { x = num(r.x, 0.0), y = num(r.y, 0.0), z = num(r.z, 0.0) },
@@ -82,15 +80,14 @@ local function classOffsetSnapshot(src)
     return out
 end
 
---- Body slots a hide rule can target, from the LIVE MBT.PropInfo so a custom type a server
---- added is covered without a second whitelist to keep in sync.
---- The strap ('sling' / 'sling:<id>') and the multi-weapon lanes ('<slot>#<n>') are dropped:
---- neither is a policy target. The strap is owned by TacticalSling.Types, and hiding a slot
---- already takes every lane sitting on it — offering them would be an option that does nothing.
+--- Body slots a hide rule can target, from the LIVE MBT.PropInfo so a custom type a server added is covered automatically.
 ---@return string[]
 local function bodySlots()
     local out = {}
     for wtype in pairs(MBT.PropInfo or {}) do
+        -- Strap ('sling'/'sling:<id>') and multi-weapon lanes ('<slot>#<n>') excluded: neither
+        -- is a policy target — the strap belongs to TacticalSling.Types, and hiding a slot
+        -- already takes every lane on it, so offering them would be an option that does nothing.
         if type(wtype) == 'string' and wtype ~= 'sling'
             and not wtype:match('^sling:') and not wtype:match('#%d+$') then
             out[#out + 1] = wtype
@@ -100,8 +97,7 @@ local function bodySlots()
     return out
 end
 
---- Hide rules as a complete, normalised map: { [job] = { [slot] = true } }, false/absent
---- slots dropped and rows that hide nothing left out entirely.
+--- Hide rules as a complete, normalised map: { [job] = { [slot] = true } } — false/absent slots dropped, empty rows left out entirely.
 ---@param src table?
 ---@return table<string, table<string, boolean>>
 local function hiddenByJob(src)
@@ -125,11 +121,9 @@ end
 -- "whatever was in the database when we started".
 local CLASS_OFFSET_DEFAULTS = json.decode(json.encode(MBT.WeaponClassOffsets or {}))
 
---- Write validated class offsets onto the live table. Only slots default.lua already
---- declares are touched: a saved row is data, and data does not get to invent body slots.
---- The client has its own copy of this in modules/config/client.lua — same rule as every
---- other block here, each VM applies the snapshot to its own MBT.
+--- Write validated class offsets onto the live table — only slots default.lua already declares are touched; a saved row is data, not license to invent body slots.
 local function applyClassOffsets(src)
+    -- Mirrored in modules/config/client.lua: each VM applies the snapshot to its own MBT.
     if type(src) ~= 'table' or type(MBT.WeaponClassOffsets) ~= 'table' then return end
     for slot, byClass in pairs(MBT.WeaponClassOffsets) do
         local s = src[slot]
@@ -147,13 +141,14 @@ local function applyClassOffsets(src)
     end
 end
 
---- Same policy? json.encode can't answer it — two maps holding the same rules serialise in
---- whatever order pairs() hands them out, and a false "it changed" costs every player in the
---- world a delete-and-respawn of their props. Both sides must be normalised (hiddenByJob).
+--- Same policy? Direct table compare, not json.encode — see the in-body note for why.
 ---@param a table<string, table<string, boolean>>
 ---@param b_ table<string, table<string, boolean>>
 ---@return boolean
 local function sameHidden(a, b_)
+    -- json.encode can't answer this: two maps holding the same rules serialise in whatever
+    -- order pairs() hands them out, and a false "it changed" costs every player in the world
+    -- a delete-and-respawn of their props. Both sides must already be normalised (hiddenByJob).
     for job, slots in pairs(a) do
         local other = b_[job]
         if not other then return false end
@@ -167,12 +162,10 @@ local function sameHidden(a, b_)
     return true
 end
 
---- The Draw Style catalogue as the dashboard needs it: `{ id, label }`, sorted so the list
---- does not reshuffle between opens (pairs() order is not stable).
----
---- Derived on every snapshot rather than stored: the styles live in default.lua, and a server
---- that adds one gets it in the dropdown without touching the panel or the database.
+--- The Draw Style catalogue as the dashboard needs it: `{ id, label }`, sorted so the list doesn't reshuffle between opens (pairs() order is not stable).
 local function drawStyleList()
+    -- Derived on every snapshot, not stored: styles live in default.lua, so a server that adds
+    -- one gets it in the dropdown without touching the panel or the database.
     local out = {}
     for id, st in pairs(MBT.DrawStyles or {}) do
         out[#out + 1] = { id = id, label = (type(st) == 'table' and st.label) or id }
@@ -1028,18 +1021,12 @@ local function loadRuntimeConfig()
     end)
 end
 
---- What this server actually resolved to, for the dashboard's Environment block.
----
---- Every one of these checks already existed, scattered across the bridge and inventory
---- modules as the guard at the top of each file — but none of them reached the panel, so
---- the first question an owner has after installing ("did it detect my setup?") could only
---- be answered by reading the server console at boot. Same detection, said out loud.
----
---- Order matters and mirrors the guards: qbx before qb (qbx ships a qb-core shim), and
---- ox_inventory before qb-inventory (modules/inventory/qb/server.lua bails when both are up).
+--- What this server actually resolved to, for the dashboard's Environment block — every check already existed scattered across the bridges/inventory modules, this just says it out loud.
 local function environment()
     local started = function(r) return GetResourceState(r) == 'started' end
 
+    -- Order matters and mirrors the guards: qbx before qb (qbx ships a qb-core shim), and
+    -- ox_inventory before qb-inventory (modules/inventory/qb/server.lua bails when both are up).
     local framework = (started('qbx_core') and 'qbx_core')
         or (started('es_extended') and 'es_extended')
         or (started('ox_core') and 'ox_core')
@@ -1187,11 +1174,11 @@ end)
 
 AddEventHandler('playerDropped', function() lastOffsetSave[source] = nil end)
 
---- Save one gesture onto one slot of one Draw Style, from the in-game picker. A callback and
---- not an event: the picker needs the stored map back to patch the dashboard draft, or the
---- next ordinary Save resurrects the old value. Writes DrawStyleOverrides, never DrawStyles.
+--- Save one gesture onto one slot of one Draw Style, from the in-game picker. Writes DrawStyleOverrides, never DrawStyles.
 local lastGestureSave = {}
 lib.callback.register('mbt_malisling:drawStyle:save', function(src, p)
+    -- A callback, not an event: the picker needs the stored map back to patch the dashboard
+    -- draft, or the next ordinary Save would resurrect the old value.
     if not IsPlayerAceAllowed(src, adminPerm) then return { ok = false, err = 'no permission' } end
     if type(p) ~= 'table' or type(p.style) ~= 'string' or type(p.slot) ~= 'string' then
         return { ok = false, err = 'bad payload' }
@@ -1309,14 +1296,14 @@ end)
 
 AddEventHandler('playerDropped', function() lastGestureSave[source] = nil end)
 
---- Put every length-class shift back to default.lua and persist it. Called by the position
---- editor's "reset all", because a shift is placement: a reset that left them behind would
---- put the weapons back and still draw the long ones somewhere else.
+--- Put every length-class shift back to default.lua and persist it — called by the position editor's "reset all".
 ---@param src number  the admin who asked; re-checked here, not trusted from the caller
 function MBT.ResetClassOffsets(src)
     if not IsPlayerAceAllowed(src, adminPerm) then return end
     local data = snapshot()
-    -- Through the same shape builder: default.lua ships Pos only, and validate wants both.
+    -- A shift is placement: leaving it behind on "reset all" would put the weapons back and
+    -- still draw the long ones somewhere else. Same shape builder as the snapshot above:
+    -- default.lua ships Pos only, and validate wants both.
     data.WeaponClassOffsets = classOffsetSnapshot(CLASS_OFFSET_DEFAULTS)
     if not validate(data) then
         Utils.mbtWarn('config ~ class offset defaults failed validation; not resetting')

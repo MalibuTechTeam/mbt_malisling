@@ -29,10 +29,9 @@ end
 
 local dashboardOpen = false
 
---- Shut the dashboard from the GAME side (death, resource stop) rather than the
---- user clicking Exit. Focus is released here because the NUI's game-initiated
---- close path deliberately skips the adminClose callback.
+--- Shut the dashboard from the GAME side (death, resource stop) rather than the user clicking Exit.
 local function forceCloseAdmin()
+    -- Focus released HERE: the NUI's game-initiated close path deliberately skips adminClose.
     if not dashboardOpen then return end
     dashboardOpen = false
     SetNuiFocus(false, false)

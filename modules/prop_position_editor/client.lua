@@ -15,10 +15,7 @@ local PREVIEW = {
     extinguisher = 'WEAPON_FIREEXTINGUISHER',
 }
 
---- The body slot behind a wtype: 'back#2' → 'back'. The extra multi-weapon lanes are prop
---- types of their own so they can be positioned, overridden per job and persisted like any
---- other — but they hold the SAME weapons as the slot they belong to, so anything that asks
---- "which weapon goes here" has to ask about the slot.
+--- The body slot behind a wtype: 'back#2' → 'back'. Multi-weapon lanes are prop types of their own (positioned/overridden/persisted independently) but hold the SAME weapons as the slot they belong to.
 ---@param wtype string
 ---@return string
 local function baseType(wtype)
@@ -286,11 +283,7 @@ local function applyPreview(data, gender)
     lastGoodPreview = json.decode(json.encode(data))
 end
 
---- Current effective data for (wtype, job) → seed the editor sliders.
---- Mirrors the runtime's resolution order (getAttachInfo in core/client.lua), including the
---- lane fallback: a job that moved the base but has no position for this lane is shown its
---- own base plus the factory offset, not the global lane. Seeding it any other way would
---- open the editor with the weapon somewhere the game never draws it.
+--- Current effective data for (wtype, job) → seed the editor sliders. Mirrors the runtime's resolution order (getAttachInfo in core/client.lua) exactly, or the editor opens with the weapon somewhere the game never actually draws it.
 local function currentData(wtype, job)
     local custom = (job and job ~= 'default') and MBT.CustomPropPosition[job] or nil
     local src
@@ -303,6 +296,8 @@ local function currentData(wtype, job)
         off = off and off[base] and off[base][tonumber(lane)]
 
         if custom and base and custom[base] and off then
+            -- Lane fallback: a job that moved the base but has no position of its own for
+            -- this lane is shown its own base plus the factory offset, not the global lane.
             src = json.decode(json.encode(custom[base]))
             for _, sex in ipairs({ 'male', 'female' }) do
                 local p, r = src.Pos[sex], src.Rot[sex]
@@ -353,17 +348,16 @@ local function reattachReferenceLanes()
     end
 end
 
---- Spawn a faded prop for every OTHER lane of this slot, at the position the game would
---- actually draw it (job and gender resolved exactly as currentData does).
+--- Spawn a faded prop for every OTHER lane of this slot, at the position the game would actually draw it (job and gender resolved exactly as currentData does).
 ---@param wtype string  the lane being edited
 ---@param job string
 ---@param gender string
----@param weapon string?  what to show in the other lanes; defaults to the slot's standard.
----   Follows the Preview picker, so loading a sniper shows sniper-against-sniper — the worst
----   case for two weapons in one slot, and the one worth tuning against. Showing the standard
----   here while the edited lane held a long one made the pair look like it cleared when the
----   real pair does not.
+---@param weapon string?  what to show in the other lanes; defaults to the slot's standard
 local function spawnReferenceLanes(wtype, job, gender, weapon)
+    -- Follows the Preview picker, so loading a sniper shows sniper-against-sniper — the worst
+    -- case for two weapons in one slot, and the one worth tuning against. Showing the standard
+    -- here while the edited lane held a long one made the pair look like it cleared when the
+    -- real pair does not.
     destroyReferenceLanes()
 
     local base = baseType(wtype)
@@ -513,8 +507,7 @@ RegisterNUICallback('propEdit:update', function(d, cb)
     cb({})
 end)
 
---- Drag the class offset instead of the position. Same sliders on the NUI side — what
---- changes is which of the two the drag lands on, which is why the panel says so.
+--- Drag the class offset instead of the position — same sliders on the NUI side, the panel just says which of the two the drag lands on.
 RegisterNUICallback('propEdit:classOffset', function(d, cb)
     if not editing or not editClass or editClass == 'standard' or type(d) ~= 'table' then
         cb({ ok = false }); return
@@ -535,8 +528,7 @@ RegisterNUICallback('propEdit:classOffset', function(d, cb)
     cb({ ok = true })
 end)
 
---- Persist the class offset. It goes through the CONFIG row, not the positions table: it is
---- global, not per-job and not per-gender — a weapon's length is the same whoever carries it.
+--- Persist the class offset through the CONFIG row, not the positions table — it's global (not per-job/per-gender), a weapon's length is the same whoever carries it.
 RegisterNUICallback('propEdit:saveClassOffset', function(_, cb)
     if not editing or not editClass or editClass == 'standard' or not editClassOff then
         cb({ ok = false }); return
@@ -598,15 +590,7 @@ local function stopEditing()
     FreezeEntityPosition(cache.ped, false)
 end
 
---- Swap the weapon shown on the lane, without touching the position.
---- A slot holds up to 40 models of very different lengths and they share one tuned
---- position: tuning against whichever one the editor happened to pick is a bet that the
---- other 39 are the same size. This is how you check instead of hoping — try the extremes,
---- and if no single position holds them, that is what the length classes are for.
---- Deliberately NOT persisted: it is a way of looking, not a setting. Remembered for the
---- session though, per slot — checking a slot means opening and closing the editor a dozen
---- times, and re-picking the sniper each time is friction with nothing on the other side.
---- Per slot because a sniper is not a thing you can load into the pistol slot.
+--- Swap the weapon shown on the lane, without touching the position — a slot holds up to 40 models of very different lengths sharing one tuned position, this is how you check the extremes instead of hoping the one the editor happened to pick covers the rest.
 RegisterNUICallback('propEdit:previewWeapon', function(d, cb)
     local name = d and d.weapon
     if not editing or type(name) ~= 'string' or isObjectType(editWtype) then cb({ ok = false }) return end
@@ -633,6 +617,10 @@ RegisterNUICallback('propEdit:previewWeapon', function(d, cb)
 
     -- The other lanes follow, so what you are looking at is a PAIR of this weapon. Two long
     -- rifles is the case that intersects; judging it against a carbine tells you nothing.
+    -- Deliberately NOT persisted (a way of looking, not a setting) but remembered for the
+    -- session per slot — checking a slot means opening/closing the editor a dozen times, and
+    -- re-picking the sniper each time is friction with nothing on the other side. Per slot
+    -- because a sniper isn't a thing you can load into the pistol slot.
     editWeapon = name
     lastPreview[baseType(editWtype)] = name
     spawnReferenceLanes(editWtype, editJob, editGender, editWeapon)
@@ -657,8 +645,7 @@ RegisterNetEvent('mbt_malisling:propPos:redrawAll', function()
     if MBT.RefreshSling then MBT.RefreshSling() end
 end)
 
---- Everything back to factory. Fired from the Positions section, not from inside the live
---- editor: it is not a thing you do while placing one weapon.
+--- Everything back to factory — fired from the Positions section, not from inside the live editor (not a thing you do while placing one weapon).
 RegisterNUICallback('propPos:resetAll', function(_, cb)
     TriggerServerEvent('mbt_malisling:propPos:resetAll')   -- server re-checks ACE
     cb({ ok = true })

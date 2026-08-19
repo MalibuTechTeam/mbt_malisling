@@ -11,20 +11,14 @@ end
 ---Global inventory interface — used by core/server.lua, weapon_drop, weapon_throw
 Inventory = exports['ox_inventory']
 
----Returns the raw weapons data table from ox_inventory's own data file.
----
----We read that file straight off disk rather than asking through an export, because it is
----where the attachment definitions live — suppressors, flashlights, scopes — and nothing
----exposes them. That works on a real ox_inventory and fails on a compatibility shim: a
----resource named ox_inventory can forward every export to a different inventory and still
----not ship the data file. Reported 2026-08-08 by an owner running jaksam behind one, where
----the empty Components table quietly switched suppressor heat off.
----
----So: fall back to our own copy, the same one the qb-inventory path uses. It carries fewer
----components than ox's, but it carries the ones the features actually look for. This does
----NOT make an unsupported inventory supported — it degrades with dignity instead of going
----dark, and says so once at startup.
+---Returns the raw weapons data table from ox_inventory's own data file — falls back to our bundled copy (data/weapons_fallback.lua, same one the qb-inventory path uses) if it can't be read.
 function loadInventoryWeaponsData()
+    -- Read straight off disk, not through an export: this is where the attachment definitions
+    -- live (suppressors, flashlights, scopes) and nothing exposes them. Works on a real
+    -- ox_inventory, fails on a compatibility shim — a resource named ox_inventory can forward
+    -- every export to a different inventory and still not ship the data file. Reported
+    -- 2026-08-08 by an owner running jaksam behind one, where the empty Components table
+    -- quietly switched suppressor heat off.
     local weaponsFile = LoadResourceFile("ox_inventory", 'data/weapons.lua')
     if weaponsFile then
         local chunk = load(weaponsFile, '@@ox_inventory/data/weapons.lua')

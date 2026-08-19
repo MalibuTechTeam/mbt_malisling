@@ -133,9 +133,7 @@ local function findWeaponDataByHash(weaponHash)
     return nil
 end
 
---- 'native' (default) → qb-weapons owns the sidearm draw animation, no malisling
---- confirm modal on qb. 'malisling' → ox-parity modal + our anim (requires the
---- sidearms removed from qb-weapons Config.WeapDraw.weapons; see startup warning).
+--- 'native' (default) → qb-weapons owns the sidearm draw, no malisling confirm modal. 'malisling' → ox-parity modal + our anim (needs sidearms removed from qb-weapons Config.WeapDraw.weapons; see startup warning below).
 local function qbSidearmDrawMode()
     return (MBT.QBWeapons and MBT.QBWeapons.SidearmDrawMode) or 'native'
 end
@@ -220,13 +218,11 @@ local function typeOf(name)
         and MBT.WeaponsInfo.Weapons[name].type or nil
 end
 
---- Play a weapon type's holster gesture — `Utils.holsterAnim(type)`, which is PropInfo's clip
---- with the active Draw Style applied. Read PropInfo directly here and the style works on ox
---- and silently does nothing on qb.
---- dir 'in' = draw (animIn), 'out' = put away (animOut). No-op if the draw animation is off
---- or the type has no clip.
+--- Play a weapon type's holster gesture (`Utils.holsterAnim(type)`, PropInfo's clip with the active Draw Style). dir 'in' = draw, 'out' = put away. No-op if the draw animation is off or the type has no clip.
 ---@param weaponHash number?  the weapon being drawn (dir='in' only) — for the Quick Draw bridge hook
 local function playHolsterAnim(wtype, dir, weaponHash)
+    -- Read PropInfo directly here: the Draw Style layering works on ox and silently does
+    -- nothing on qb otherwise, since qb never goes through the ox holster patch.
     if not (MBT.QBWeapons and MBT.QBWeapons.DrawAnimation) then return end
     local ha = Utils.holsterAnim(wtype)
     if not ha or not ha.dict then return end
@@ -317,9 +313,7 @@ local function reslingPrevious(prevHash)
     end
 end
 
---- Direct armed→armed switch: replay a real weapdraw sequence — HOLSTER the old weapon
---- then DRAW the new — instead of qb's instant swap. qb already drew the new weapon, so
---- hide it, replay the old put-away gesture, then draw the new via doEquip (poll blocked throughout).
+--- Direct armed→armed switch: replay a real weapdraw sequence (HOLSTER old, then DRAW new) instead of qb's instant swap — qb already drew the new weapon, so hide it, replay the old put-away gesture, then draw the new via doEquip.
 local function doSwitch(prevHash, newData, newHash)
     local prevData = findWeaponDataByHash(prevHash)
     local prevType = typeOf(prevData and prevData.name)
