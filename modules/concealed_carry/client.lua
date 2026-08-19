@@ -196,6 +196,37 @@ end
 -- ── Toggle ───────────────────────────────────────────────────────────────────────
 local toggling = false
 
+--- After a reveal, tell the player if the lane allocator couldn't find room — otherwise a
+--- press that "worked" (state cleared, gesture played) looks identical to one that put the
+--- weapon back on the body when it actually landed in shadow (lease rule, capacity case).
+--- Polls rather than waiting on one event: the round trip crosses checkInventory →
+--- checkWeaponProps → syncSling, and qb's inventory poll can add up to ~1s on top of ox's
+--- near-instant one, so there is no single event to key off of.
+---
+--- [serial] = generation. ToggleCooldownMs (1200) is SHORTER than the 2s watch window, so
+--- re-concealing (or re-revealing) the same weapon before a watcher gives up is legal —
+--- without this, that watcher would keep polling a weapon that is now deliberately hidden
+--- again and fire a false "no room" notice for something the player did on purpose. Every
+--- successful toggle bumps the generation; a watcher checks its own before acting.
+local watchGen = {}
+
+local function watchRevealLane(propType, serial)
+    watchGen[serial] = (watchGen[serial] or 0) + 1
+    local myGen = watchGen[serial]
+
+    CreateThread(function()
+        local deadline = GetGameTimer() + 2000
+        while GetGameTimer() < deadline do
+            if watchGen[serial] ~= myGen then return end   -- superseded by a later toggle
+            if Slung.get(cache.serverId, propType, serial) then return end
+            Wait(200)
+        end
+        if watchGen[serial] == myGen then
+            MBT.NotifyLabel('concealed_reveal_no_lane')
+        end
+    end)
+end
+
 local function applyToggle(target)
     if not target then return end
 
@@ -222,12 +253,16 @@ local function applyToggle(target)
         myState[target.serial] = { t = wtype, q = res.quality, n = target.name }
         lastTop = select(2, clothingQuality())
         MBT.NotifyLabel('concealed_on')
+        -- Invalidate any reveal-watcher still polling this serial from an earlier toggle:
+        -- it is concealed again on purpose, so its eventual "no room" would be stale.
+        watchGen[target.serial] = (watchGen[target.serial] or 0) + 1
     else
         if myState then
             myState[target.serial] = nil
             if not next(myState) then myState = nil end
         end
         MBT.NotifyLabel('concealed_off')
+        watchRevealLane(wtype, target.serial)
     end
 
     -- One path for both directions. The snapshot still lists a concealed weapon — hiding it

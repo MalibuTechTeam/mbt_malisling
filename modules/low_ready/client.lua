@@ -159,13 +159,23 @@ CreateThread(function()
     while true do
         Wait(next(lowReady) and 200 or 1000)   -- poll fast only while a chest stance is held
         for serial, propType in pairs(lowReady) do
-            local prop = Slung.get(cache.serverId, propType, serial)
-            local present = prop and true or false
-            if present and wasPresent[serial] == false and not busy then
-                placeChest(prop, cache.ped, propType)
-                TriggerServerEvent('mbt_malisling:syncLowReady', propType, serial, true)
+            -- Suppression (concealed, hidden-by-job) is a SYSTEM event, not a draw — the
+            -- player didn't choose it, so it must not get the "persists across a draw"
+            -- treatment above. Drop the flag now, before the type can become visible again,
+            -- so it comes back on the default spot instead of silently snapping to the chest
+            -- with no key press (2.0.2 known gap, same resolver as core's spawn guard).
+            if MBT.IsPropSuppressed and MBT.IsPropSuppressed(cache.serverId, propType, serial) then
+                lowReady[serial] = nil
+                wasPresent[serial] = nil
+            else
+                local prop = Slung.get(cache.serverId, propType, serial)
+                local present = prop and true or false
+                if present and wasPresent[serial] == false and not busy then
+                    placeChest(prop, cache.ped, propType)
+                    TriggerServerEvent('mbt_malisling:syncLowReady', propType, serial, true)
+                end
+                wasPresent[serial] = present
             end
-            wasPresent[serial] = present
         end
     end
 end)

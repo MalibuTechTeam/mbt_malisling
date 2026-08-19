@@ -43,6 +43,53 @@ local function laneCount(propType)
     while n < want and MBT.PropInfo[propType .. '#' .. (n + 1)] do n = n + 1 end
     return n
 end
+Slung.laneCount = laneCount
+
+--- Is THIS weapon concealed? Server-authoritative: the statebag is ours
+--- (modules/concealed_carry/server.lua), so this reads the source of truth directly instead
+--- of trusting a client's derived opinion of its own concealment.
+---@param src number
+---@param serial string
+---@return boolean
+local function isConcealed(src, serial)
+    if not (MBT.ConcealedCarry and MBT.ConcealedCarry.Enabled) then return false end
+    local st = Player(src).state.mbt_concealed
+    return type(st) == 'table' and st[serial] ~= nil
+end
+Slung.isConcealed = isConcealed
+
+--- Is this SLOT hidden for src's job right now? Job-only, no serial: MBT.HiddenByJob is a
+--- policy on the body slot, and it subtracts every serial assigned to it — see roadmap.md.
+---@param src number
+---@param propType string
+---@return boolean
+local function isHiddenByJob(src, propType)
+    local hidden = MBT.HiddenByJob
+    if not hidden then return false end
+
+    local always = hidden['*']
+    if always and always[propType] then return true end
+
+    for job in pairs(getPlayerJobs(src) or {}) do
+        local byType = hidden[job]
+        if byType and byType[propType] then return true end
+    end
+    return false
+end
+Slung.isHiddenByJob = isHiddenByJob
+
+--- One predicate for "does this weapon get a lane at all", mirroring core/client.lua's
+--- isPropSuppressed but on data the server already owns outright. Used BEFORE lane
+--- assignment (assignLanes below) so a hidden weapon can never starve a visible one out of
+--- the last lane — the fame-of-lanes bug: assigning lanes on an unfiltered snapshot spent
+--- them on weapons that were never going to be drawn.
+---@param src number
+---@param propType string
+---@param serial string
+---@return boolean
+function Slung.isSuppressed(src, propType, serial)
+    return isConcealed(src, serial) or isHiddenByJob(src, propType)
+end
 
 --- Assign lanes across every serial of ONE type.
 ---
@@ -56,7 +103,8 @@ end
 --- Whoever holds a lane keeps it while still carried, so picking up a weapon that sorts
 --- earlier cannot silently swap what is on your back in front of everyone.
 ---@param prev table?  the same type's map from before this snapshot, for lane stability
-local function assignLanes(propType, t, prev)
+---@param suppressed table<string, boolean>?  serials excluded from lane competition entirely
+local function assignLanes(propType, t, prev, suppressed)
     for _, e in pairs(t) do e.lane = nil end
     local maxLanes = laneCount(propType)
 
@@ -66,18 +114,24 @@ local function assignLanes(propType, t, prev)
     for serial in pairs(t) do serials[#serials + 1] = serial end
     table.sort(serials)
 
+    -- A suppressed serial never enters a group, so it can never claim, hold, or contest a
+    -- lane — it just sits in `t` with lane=nil (already reset above) for the client to
+    -- shadow. A sibling of the same visual that IS visible still forms the group normally,
+    -- so two identical pistols with one tucked away don't lose the lane the other earned.
     local groups, order = {}, {}
     for i = 1, #serials do
         local serial = serials[i]
-        local e = t[serial]
-        local vkey = e.vkey or (e.data and e.data.name) or '?'
-        local g = groups[vkey]
-        if not g then
-            g = { vkey = vkey, name = (e.data and e.data.name) or '?', serials = {} }
-            groups[vkey] = g
-            order[#order + 1] = g
+        if not (suppressed and suppressed[serial]) then
+            local e = t[serial]
+            local vkey = e.vkey or (e.data and e.data.name) or '?'
+            local g = groups[vkey]
+            if not g then
+                g = { vkey = vkey, name = (e.data and e.data.name) or '?', serials = {} }
+                groups[vkey] = g
+                order[#order + 1] = g
+            end
+            g.serials[#g.serials + 1] = serial
         end
-        g.serials[#g.serials + 1] = serial
     end
 
     local taken = {}
@@ -178,19 +232,23 @@ function Slung.replaceAll(src, byType)
 
     for propType, bySerial in pairs(byType) do
         if MBT.PropInfo[propType] and type(bySerial) == 'table' then
-            local t = {}
+            local t, suppressed = {}, {}
             for serial, weaponData in pairs(bySerial) do
                 -- A client can put anything on the wire: only tables that look like a
                 -- weapon item get in, and the key is re-derived rather than trusted.
                 if type(weaponData) == 'table' and type(weaponData.name) == 'string' then
-                    t[tostring(serial)] = {
+                    local key = tostring(serial)
+                    t[key] = {
                         data = weaponData,
                         vkey = Slung.visualKey(weaponData),
                     }
+                    -- Decided BEFORE assignLanes ever runs: concealed/hidden-by-job is
+                    -- server truth, not something to infer from what made it onto the wire.
+                    if Slung.isSuppressed(src, propType, key) then suppressed[key] = true end
                 end
             end
             if next(t) then
-                assignLanes(propType, t, prev[propType])
+                assignLanes(propType, t, prev[propType], suppressed)
                 p[propType] = t
             end
         end

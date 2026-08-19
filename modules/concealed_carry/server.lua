@@ -74,6 +74,15 @@ lib.callback.register('mbt_malisling:concealed:toggle', function(src, data)
     local ok, wtype = ownsConcealable(src, serial)
     if not ok then return { ok = false, reason = 'concealed_no_weapon' } end
 
+    -- Refuse concealing what the player's job already hides. Without this, the toggle
+    -- reports success — tuck gesture, tell timer, pat-down deception, all of it — for a
+    -- weapon that was already invisible for an unrelated reason and gains nothing from it.
+    -- Reveal is never refused this way (see the branch above): there is nothing to protect
+    -- by blocking it, and a job-hidden weapon revealing is meaningless in the same direction.
+    if Slung.isHiddenByJob(src, wtype) then
+        return { ok = false, reason = 'concealed_already_hidden' }
+    end
+
     state[serial] = { t = wtype, q = quality }
     Player(src).state:set('mbt_concealed', state, true)
     return { ok = true, concealed = true, quality = quality }

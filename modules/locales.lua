@@ -237,6 +237,18 @@ MBT.Labels             = {
         ["type"]     = "inform",
         ["icon"]     = "fa-solid fa-gun",
     },
+    ["concealed_already_hidden"] = {
+        ["titleKey"] = "concealed_already_hidden_title",
+        ["descKey"]  = "concealed_already_hidden_desc",
+        ["type"]     = "error",
+        ["icon"]     = "fa-solid fa-shirt",
+    },
+    ["concealed_reveal_no_lane"] = {
+        ["titleKey"] = "concealed_reveal_no_lane_title",
+        ["descKey"]  = "concealed_reveal_no_lane_desc",
+        ["type"]     = "inform",
+        ["icon"]     = "fa-solid fa-eye-slash",
+    },
     ["patdown_sent"] = {
         ["titleKey"] = "patdown_sent_title",
         ["descKey"]  = "patdown_sent_desc",

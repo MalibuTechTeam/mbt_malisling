@@ -12,6 +12,18 @@ local cfg     = MBT.WeaponRack
 local racks   = {}    -- [rackId] = { { name, count, metadata, wtype }, ... }
 local lastUse = {}    -- [src]    = GetGameTimer()  (rate limit)
 
+-- RequireCert asks for a server-side certification gate that does not exist yet: the check
+-- below reads MBT.ShootingBridge, which is CLIENT-only by design
+-- (modules/shooting_bridge/client.lua) and therefore nil forever on this VM — the guard
+-- always short-circuits to allow. An owner who sets this expecting enforcement gets none,
+-- silently, since 2026-07-29. The server bridge is 2.2 work; until then the honest behaviour
+-- is to say so once at startup rather than stay quiet about a flag that does nothing.
+if cfg.RequireCert then
+    Utils.mbtWarn('weapon_rack ~ RequireCert is enabled, but the server-side certification ' ..
+        'bridge does not exist yet (planned for a future release) — retrieval stays ' ..
+        'UNGATED (fail-open) until it does.')
+end
+
 local function hasDb() return GetResourceState('oxmysql') == 'started' end
 
 -- Server is the source of truth for a rack's coords + job; the client only sends an

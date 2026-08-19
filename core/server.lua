@@ -276,6 +276,57 @@ if MBT.Debug then
 
         return { registry = registry, myScope = scopes[tostring(src)] or {}, inScopeOf = seesMe }
     end)
+
+    -- /mbt_selftest — ASSERTS serial→lane invariants over the live registry instead of just
+    -- printing it (debugSnapshot above). Exists to catch the fame-of-lanes class of
+    -- regression directly: a suppressed serial silently holding a lane, or two visually
+    -- distinct groups colliding on one. Debug-only, same registry debugSnapshot reads.
+    local adminPerm = (MBT.Admin and MBT.Admin.Permission) or ('command.' .. GetCurrentResourceName())
+    RegisterCommand('mbt_selftest', function(src)
+        if src ~= 0 and not IsPlayerAceAllowed(src, adminPerm) then return end
+
+        local failures, checked = {}, 0
+        for playerId, byType in pairs(playersToTrack) do
+            for propType, bySerial in pairs(byType) do
+                checked = checked + 1
+                local maxLanes = Slung.laneCount(propType)
+                local byLaneVkey = {}
+
+                for serial, entry in pairs(bySerial) do
+                    if entry.lane then
+                        if entry.lane < 1 or entry.lane > maxLanes then
+                            failures[#failures + 1] = ('%s/%s serial %s: lane %s out of range (max %s)')
+                                :format(playerId, propType, serial, tostring(entry.lane), maxLanes)
+                        end
+                        -- The item-1 assertion: a suppressed serial must never hold a lane.
+                        if Slung.isSuppressed(playerId, propType, serial) then
+                            failures[#failures + 1] = ('%s/%s serial %s: suppressed but holds lane %s')
+                                :format(playerId, propType, serial, tostring(entry.lane))
+                        end
+                        local seenVkey = byLaneVkey[entry.lane]
+                        if seenVkey and entry.vkey and seenVkey ~= entry.vkey then
+                            failures[#failures + 1] = ('%s/%s lane %s: shared by two different visuals (%s, %s)')
+                                :format(playerId, propType, entry.lane, seenVkey, entry.vkey)
+                        end
+                        byLaneVkey[entry.lane] = entry.vkey
+                    end
+                end
+            end
+        end
+
+        if #failures == 0 then
+            Utils.mbtDebugger(('selftest ~ OK — %d type-bucket(s) checked, 0 lane invariant violations'):format(checked))
+        else
+            Utils.mbtWarn(('selftest ~ FAILED — %d violation(s):'):format(#failures))
+            for i = 1, #failures do Utils.mbtWarn('  ' .. failures[i]) end
+            -- "suppressed but holds lane" compares entry.lane (last replaceAll snapshot)
+            -- against Slung.isSuppressed (LIVE state) — a conceal toggle or job change that
+            -- just happened has a real, sub-second window before the resync round trip
+            -- catches up where these can legitimately disagree. Re-run before treating a
+            -- fresh violation as a regression.
+            Utils.mbtWarn('selftest ~ if this ran right after a conceal/job change, re-run once — a violation in that window may be the resync round trip, not a bug.')
+        end
+    end, false)
 end
 
 -- Scopes --

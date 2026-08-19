@@ -360,6 +360,11 @@ local function isPropSuppressed(source, propType, serial)
     return false
 end
 
+-- Exposed for other client modules that need the SAME verdict rather than re-deriving it —
+-- low_ready reads this to drop its chest-stance flag the moment a type it's holding gets
+-- suppressed, instead of only reacting once the prop is already gone.
+MBT.IsPropSuppressed = isPropSuppressed
+
 -- ── Debug: why is (or isn't) my weapon on my body? (Debug builds only) ───────────
 -- Not a way to fake a job change — for that, use your framework's own command, or you
 -- are testing the fake. This answers the question that comes after: what did the
