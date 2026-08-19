@@ -9,9 +9,7 @@ AddEventHandler('ox:playerLoaded', function(source, userid, charid)
     playersToTrack[source] = {}
 end)
 
---- Every group the player belongs to, as a set. ox_core is the only framework here that
---- can put someone in several at once, which is why this exists: `getPlayerJob` has to
---- pick ONE, and picking one out of several is a guess whichever way you do it.
+--- Every group the player belongs to, as a set — ox_core is the only framework here where a player can hold more than one.
 ---@param s number|string
 ---@return table<string, true>
 function getPlayerJobs(s)
@@ -25,17 +23,16 @@ function getPlayerJobs(s)
     return set
 end
 
---- Single job name. Prefer `getPlayerJobs` for "is this player a cop?" questions.
---- Sorted pick, not `next()`: with more than one group the choice is arbitrary either
---- way, but an arbitrary STABLE answer can be reported and reproduced, while
---- `for k in pairs(groups) do return k end` returned a different group run to run and
---- made job checks fail at random on ox_core.
+--- Single job name — prefer `getPlayerJobs` for "is this player a cop?" questions.
 ---@param s number|string
 ---@return string
 function getPlayerJob(s)
     local names = {}
     for name in pairs(getPlayerJobs(s)) do names[#names+1] = name end
     if #names == 0 then return '' end
+    -- Sorted pick, not next(): with more than one group the choice is arbitrary either way,
+    -- but a SORTED pick is at least stable — `for k in pairs(groups) do return k end` returned
+    -- a different group run to run and made job checks fail at random on ox_core.
     table.sort(names)
     return names[1]
 end

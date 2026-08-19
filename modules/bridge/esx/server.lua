@@ -14,9 +14,7 @@ function getPlayerJob(s)
     return xPlayer.job.name
 end
 
---- Jobs as a set, mirroring the ox_core bridge. ESX has exactly one job per player, so
---- this is always zero or one entry — it exists so callers can ask the same question
---- the same way on every framework.
+--- Jobs as a set, mirroring the ox_core bridge — always zero or one entry (ESX has one job per player).
 ---@param s number|string
 ---@return table<string, true>
 function getPlayerJobs(s)
