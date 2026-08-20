@@ -12,8 +12,7 @@ AddEventHandler('ox_inventory:currentWeapon', function(currentWeapon)
 end)
 
 -- ── Despawn timer (shared) ──
--- Per-drop timer that blinks the prop in the final seconds, then calls onExpire().
--- Cancelled by clearing the drop before it fires (loop checks stillValid + prop exists).
+--- Per-drop timer that blinks the prop in the final seconds, then calls onExpire() — cancelled by clearing the drop before it fires (loop checks stillValid + prop exists).
 ---@param stillValid fun():boolean false once the drop was removed
 local function startDespawnTimer(dropId, prop, stillValid, onExpire)
     local cfg = (MBT.WeaponDrop or {}).Despawn

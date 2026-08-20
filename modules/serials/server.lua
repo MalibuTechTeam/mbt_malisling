@@ -30,9 +30,7 @@ local function generate()
     return s
 end
 
---- Ensure the weapon in `item` has a serial; returns it (nil if not ensurable).
---- Safe wherever item is a fresh server read with a .slot — the write only happens
---- after a re-read confirms the slot is unchanged.
+--- Ensure the weapon in `item` has a serial; returns it (nil if not ensurable). Safe wherever item is a fresh server read with a .slot — the write only happens after a re-read confirms the slot is unchanged.
 ---@param src number
 ---@param item table   server-side item ({ name, slot, count, metadata })
 ---@return string|nil

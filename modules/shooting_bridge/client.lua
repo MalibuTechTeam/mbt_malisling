@@ -41,9 +41,7 @@ MBT.ShootingBridge = {
         callBridge('OnWeaponFired', weaponData)
     end,
 
-    --- Let the companion decide whether the weapon jams on this shot. Returns:
-    ---   true → force jam · false → force no jam · nil → no opinion
-    --- (nil falls back to malisling's base durability-chance logic).
+    --- Let the companion decide whether the weapon jams on this shot: true → force jam · false → force no jam · nil → no opinion (falls back to malisling's base durability-chance logic).
     ---@param weaponHash number
     ---@param conditionTier integer?  1..5
     ---@return boolean?
@@ -51,9 +49,7 @@ MBT.ShootingBridge = {
         return callBridge('OnJamCheck', weaponHash, conditionTier)
     end,
 
-    --- Ask the companion for a draw-speed multiplier (Quick Draw skill) for the weapon
-    --- about to be drawn. Clamped defensively to 0.3-1.0 so a buggy or malicious companion
-    --- can never warp draw timing to near-zero or beyond normal.
+    --- Ask the companion for a draw-speed multiplier (Quick Draw skill) for the weapon about to be drawn.
     ---@param weaponType string  malisling prop type (side/back/...)
     ---@param weaponHash number
     ---@return number?  <1.0 = faster · nil = no change (companion has no opinion)
@@ -62,6 +58,8 @@ MBT.ShootingBridge = {
         local mult = raw
         if type(mult) ~= 'number' then mult = nil
         else
+            -- Clamped defensively to 0.3-1.0 so a buggy or malicious companion can never warp
+            -- draw timing to near-zero or beyond normal.
             if mult < 0.3 then mult = 0.3 end
             if mult > 1.0 then mult = 1.0 end
         end
@@ -79,9 +77,7 @@ MBT.ShootingBridge = {
         callBridge('OnUnholster', weaponType)
     end,
 
-    --- Weapon inspect: ask the companion for extra data rows to APPEND to malisling's
-    --- own inspect card (proficiency / familiarity / heat / jam risk...). One themed,
-    --- anchored card renders everything — no separate overlay. nil = no extra rows.
+    --- Weapon inspect: ask the companion for extra data rows to APPEND to malisling's own inspect card (proficiency/familiarity/heat/jam risk...) — one themed, anchored card renders everything, no separate overlay. nil = no extra rows.
     ---@param baseData table  {name, serial, condition, conditionTone, ammo, custody?}
     ---@return table[]?  {label, value, tone?}[]
     OnInspectRows = function(baseData)
@@ -121,17 +117,15 @@ end)
 
 -- ── Data exports malisling exposes to the companion ──────────────────────────
 
---- Companion-driven clearing animation. Loops the configured jam-clear anim on the
---- local ped while active (flag 48 = upper-body + secondary, so the player keeps
---- moving/looking). The companion's malfunction pipeline suppresses malisling's base
---- jam (OnJamCheck=false) and thus its animation — this gives it back the hands-on
---- gesture. Networked implicitly: a task anim on the owned player ped replicates to
---- nearby players. No-op if the Jamming feature block (and its anim) isn't present.
+--- Companion-driven clearing animation — loops the configured jam-clear anim on the local ped while active. No-op if the Jamming feature block (and its anim) isn't present.
 ---@param active boolean
 local _clearingAnim = false
 exports('PlayClearingAnim', function(active)
     if not active then _clearingAnim = false return end
     if _clearingAnim then return end
+    -- The companion's malfunction pipeline suppresses malisling's base jam (OnJamCheck=false)
+    -- and thus its animation — this export gives the hands-on gesture back. Networked
+    -- implicitly: a task anim on the owned player ped replicates to nearby players.
     local a = MBT.Jamming and MBT.Jamming.Animation
     if not a or not a.Dict or not a.Anim then return end
     _clearingAnim = true
@@ -139,6 +133,7 @@ exports('PlayClearingAnim', function(active)
         lib.requestAnimDict(a.Dict)
         while _clearingAnim do
             if not IsEntityPlayingAnim(cache.ped, a.Dict, a.Anim, 3) then
+                -- Flag 48 = upper-body + secondary, so the player keeps moving/looking.
                 TaskPlayAnim(cache.ped, a.Dict, a.Anim, 2.0, 2.0, 750, 48, 0.0, false, false, false)
             end
             Wait(500)

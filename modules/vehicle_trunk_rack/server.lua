@@ -158,15 +158,13 @@ end
 
 local weaponType = Utils.weaponType
 
---- Access control. Outside access uses the vehicle LOCK status; GetVehicleDoorLockStatus
---- isn't reliable on every FXServer build, so we DENY on a read failure (no fail-open
---- letting a thief drain a locked trunk). Locked statuses block, 0/1 allow. Owners can
---- override with cfg.CanAccessOutside(src, veh, plate) -> bool.
+--- Access control — outside access uses the vehicle LOCK status (locked blocks, 0/1 allow); owners can override with cfg.CanAccessOutside(src, veh, plate) -> bool.
 local function isAccessible(src, ped, veh, plate)
     if GetVehiclePedIsIn(ped, false) == veh then return true end
     if type(cfg.CanAccessOutside) == 'function' then
         return cfg.CanAccessOutside(src, veh, plate) == true
     end
+    -- GetVehicleDoorLockStatus isn't reliable on every FXServer build.
     local ok, lock = pcall(GetVehicleDoorLockStatus, veh)
     if not ok or type(lock) ~= 'number' then return false end   -- can't verify → deny (no fail-open)
     return not (lock == 2 or lock == 3 or lock == 4 or lock == 7 or lock == 8 or lock == 10)

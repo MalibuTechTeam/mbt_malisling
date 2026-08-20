@@ -23,13 +23,11 @@ local function localJob()
     return (PlayerData and PlayerData.job and PlayerData.job.name) or nil
 end
 
---- Active variant id for the WEARER — not for us. We draw other people's straps now, and
---- the variant is a property of their job. Their jobs come from the server, the same set
---- the core uses to decide what to hide; ours we can read locally and sooner.
---- The job list is sorted before matching so every observer resolves the same variant for
---- a player who holds several groups (ox_core).
+--- Active variant id for the WEARER, not for us — we draw other people's straps now, and the variant is a property of their job.
 ---@param serverId number
 local function activeVariant(serverId)
+    -- Jobs come from the server (the same set the core uses to decide what to hide); ours we
+    -- can read locally and sooner.
     local jobs
     if serverId == cache.serverId then
         local j = localJob()
@@ -40,6 +38,8 @@ local function activeVariant(serverId)
     if jobs and cfg.JobVariants then
         local names = {}
         for job in pairs(jobs) do names[#names + 1] = job end
+        -- Sorted before matching so every observer resolves the same variant for a player who
+        -- holds several groups at once (ox_core).
         table.sort(names)
         for i = 1, #names do
             local v = cfg.JobVariants[names[i]]

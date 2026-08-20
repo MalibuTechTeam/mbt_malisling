@@ -84,8 +84,7 @@ local function hoodTrunk(veh)
     return oxStorage ~= nil and oxStorage[GetEntityModel(veh)] == 3
 end
 
---- Boot door(s), ox_inventory-faithful: hood trunks → door 4, vans (class 12) →
---- {2,3}, else boot door 5 (falling back to rear doors if door 5 isn't valid).
+--- Boot door(s), ox_inventory-faithful: hood trunks → door 4, vans (class 12) → {2,3}, else boot door 5 (falling back to rear doors if door 5 isn't valid).
 local function bootDoorList(veh)
     if hoodTrunk(veh) then return { 4 } end
     if GetVehicleClass(veh) == 12 then return { 2, 3 } end
@@ -257,11 +256,10 @@ local function offsetFor(veh)
         or po.Default or DEFAULT_OFFSET)
 end
 
---- Anchor on the 'boot' bone so the prop is visible (bone 0 placed it under the car).
---- The boot bone is the lid → open height varies per vehicle, so tune per MODEL with
---- /mbt_trunktune; render only when fully open (bootIsOpen) to avoid the swing slide.
---- Falls back to bone 0 for vehicles with no boot bone.
+--- Anchor on the 'boot' bone so the prop is visible (bone 0 placed it under the car) — falls back to bone 0 for vehicles with no boot bone.
 local function anchorFor(veh)
+    -- The boot bone is the lid, so open height varies per vehicle — tune per MODEL with
+    -- /mbt_trunktune, and render only when fully open (bootIsOpen) to avoid the swing slide.
     local off = offsetFor(veh)
     local bone = GetEntityBoneIndexByName(veh, 'boot')
     local bx, by, bz = 0.0, 0.0, 0.0

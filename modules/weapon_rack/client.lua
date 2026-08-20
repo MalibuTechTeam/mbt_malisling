@@ -39,14 +39,15 @@ local function slotOffset(wtype, i)
 end
 
 --- Play one anim step ({Dict, Anim, Ms, Flag?}); missing/bad dicts degrade to a wait.
---- Flag defaults to 49 (upper-body loop, fits give/take gestures); pass Flag = 2 for
---- a full-body hold-last-frame clip (e.g. the kneel-and-place rack install).
+---@param step {Dict:string, Anim:string, Ms:number?, Flag:number?}
 local function playAnimStep(step)
     if type(step) ~= 'table' then return end
     local ms = step.Ms or 800
     if not step.Dict or step.Dict == '' or not step.Anim or step.Anim == ''
         or not DoesAnimDictExist(step.Dict) then Wait(ms); return end
     lib.requestAnimDict(step.Dict)
+    -- Flag defaults to 49 (upper-body loop, fits give/take gestures); pass Flag = 2 for a
+    -- full-body hold-last-frame clip (e.g. the kneel-and-place rack install).
     TaskPlayAnim(cache.ped, step.Dict, step.Anim, 4.0, -4.0, ms, step.Flag or 49, 0.0, false, false, false)
     Wait(ms)
     ClearPedTasks(cache.ped)

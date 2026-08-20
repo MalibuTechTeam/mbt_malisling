@@ -37,13 +37,11 @@ function Utils.containsValue(array, value)
     return false, -1
 end
 
---- Match an attached prop's alpha to the ped wearing it. A ped's alpha does NOT
---- propagate to attached entities, so a script that fades a ped out (multichar
---- switch and relog commonly hold it at 0 for ~2s) leaves our props hanging in
---- mid-air. Any alpha is honoured, not just 0/255, so partial fades work too.
+--- Match an attached prop's alpha to the ped wearing it — a ped's alpha does NOT propagate to attached entities, so a script that fades a ped out (multichar switch, relog) leaves our props hanging in mid-air.
 ---@param prop number
 ---@param pedAlpha number  0-255, from GetEntityAlpha on the owner ped
 function Utils.syncPropAlpha(prop, pedAlpha)
+    -- Any alpha is honoured, not just 0/255, so partial fades work too.
     if GetEntityAlpha(prop) == pedAlpha then return end
     if pedAlpha < 255 then
         SetEntityAlpha(prop, pedAlpha, false)
@@ -81,8 +79,7 @@ function Utils.isComponentAFlashlight(componentName)
     return componentName == "at_flashlight"
 end
 
---- Jam chance (%) for a durability, read off MBT.Jamming.Chance: the LOWEST threshold
---- the weapon still falls under wins. A weapon above every threshold never jams.
+--- Jam chance (%) for a durability, read off MBT.Jamming.Chance — the LOWEST threshold the weapon still falls under wins; a weapon above every threshold never jams.
 ---@param d number?  durability 0-100; nil (e.g. a qb item with no info.quality) = no jam
 ---@return number chance  0-100
 local function getChance(d)
@@ -118,19 +115,18 @@ end
 
 
 --- The Draw Style in force for THIS player: their job's override, or the server default.
----
---- Local-player only, and that is correct rather than a limitation: each client resolves the
---- gesture for its own ped, and the game replicates the animation it plays — so everyone
---- around sees the police draw as police, without a single extra event on the wire.
----
---- ox_core has groups instead of one job, so the first group with an override wins. Order is
---- not stable across `pairs`, but a player in two jobs that both override is a server's own
---- ambiguity to resolve, not one this function should invent an answer for.
 ---@return string  a style id — 'standard' when nothing matches
 function Utils.activeDrawStyle()
+    -- Local-player only, and that's correct rather than a limitation: each client resolves the
+    -- gesture for its own ped, and the game replicates the animation it plays — so everyone
+    -- around sees the police draw as police, without a single extra event on the wire.
     local byJob = MBT.DrawStyleByJob
     if byJob and next(byJob) and PlayerData then
         if PlayerData.groups then
+            -- ox_core has groups instead of one job, so the first group with an override wins.
+            -- Order is not stable across pairs(), but a player in two jobs that both override
+            -- is a server's own ambiguity to resolve, not one this function should invent an
+            -- answer for.
             for g in pairs(PlayerData.groups) do
                 if byJob[g] then return byJob[g] end
             end
@@ -142,10 +138,6 @@ function Utils.activeDrawStyle()
 end
 
 --- The holster gesture for a slot, with the active Draw Style applied.
----
---- ONE resolver for TWO consumers: `sendAnimations` builds the table the ox patch writes into
---- `Items[name].anim`, and the qb path reads it at draw time in five places. Applied to only
---- one, a style would work on ox and silently do nothing on qb.
 ---@param wtype string?  prop slot — 'side', 'back', 'back2', 'melee'…
 ---@param styleId string?  resolve against THIS style instead of the player's active one. Only
 ---  the gesture picker passes it: it edits a style the admin may not be assigned to, and
@@ -153,6 +145,9 @@ end
 ---  mistake this whole overlay exists to prevent.
 ---@return table?  { dict, animIn, animOut, sleep, sleepOut }, or nil if the slot has none
 function Utils.holsterAnim(wtype, styleId)
+    -- ONE resolver for TWO consumers: sendAnimations builds the table the ox patch writes into
+    -- Items[name].anim, and the qb path reads it at draw time in five places. Applied to only
+    -- one, a style would work on ox and silently do nothing on qb.
     local base = wtype and MBT.PropInfo and MBT.PropInfo[wtype] and MBT.PropInfo[wtype].HolsterAnim
     if not base then return nil end
 
