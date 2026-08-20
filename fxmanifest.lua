@@ -4,7 +4,7 @@ lua54 'yes'
 
 name 'mbt_malisling'
 author 'Malibu Tech Team'
-version      '2.1.0'
+version      '2.1.1'
 repository 'https://github.com/MalibuTechTeam/mbt_malisling'
 description 'Weapon on back with various features'
 
