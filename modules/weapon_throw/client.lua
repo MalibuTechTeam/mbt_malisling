@@ -7,9 +7,10 @@ local isThrowing = false
 
 local HAND_BONE = 6286   -- right-hand grip bone the weapon prop attaches to
 
--- Throw origin: the right-hand grip bone. Watch out — GetWorldPositionOfEntityBone wants the
--- bone INDEX, not the ID; pass 6286 raw and you get (0,0,0).
+--- Throw origin: the right-hand grip bone.
 local function handPos()
+    -- Watch out: GetWorldPositionOfEntityBone wants the bone INDEX, not the ID — pass 6286
+    -- raw and you get (0,0,0).
     return GetWorldPositionOfEntityBone(cache.ped, GetPedBoneIndex(cache.ped, HAND_BONE))
 end
 
@@ -22,10 +23,9 @@ local function isAllowedToThrow(weaponGroup)
     return g and g["Allowed"] or false
 end
 
--- Detach and fling `vel` as an impulse, then let the engine do the tumble/arc/landing.
--- Impulse (not a teleport to the landing spot) is what gives the throw its fluid feel.
--- Returns where it comes to rest.
+--- Detach and fling `vel` as an impulse, then let the engine do the tumble/arc/landing — returns where it comes to rest.
 local function launchForce(obj, vel)
+    -- Impulse (not a teleport to the landing spot) is what gives the throw its fluid feel.
     DetachEntity(obj, true, true)
     SetEntityCollision(obj, true, true)
     ActivatePhysics(obj)
@@ -50,8 +50,7 @@ local function launchForce(obj, vel)
     return coords
 end
 
--- Forward throw. `power` scales the per-group impulse: 1.0 is the original throw,
--- charge passes 1.0..MaxMultiplier.
+--- Forward throw — `power` scales the per-group impulse (1.0 = original throw, charge passes 1.0..MaxMultiplier).
 local function throwInstant(data, model, power)
     power = power or 1.0
     TaskPlayAnim(cache.ped, throwAnim["Dict"], throwAnim["Anim"], 8.0, -8.0, -1, 0, 0.0, false, false, false)
@@ -125,8 +124,7 @@ local function canStartCharge()
     return true
 end
 
--- heldMs → (powerMultiplier, pct). A tap (< threshold) is 1.0; holding ramps 1.0 →
--- MaxMultiplier over (ChargeMs - threshold). A short hold is never weaker than a tap.
+--- heldMs → (powerMultiplier, pct) — a tap (< threshold) is 1.0, holding ramps 1.0 → MaxMultiplier over (ChargeMs - threshold); a short hold is never weaker than a tap.
 local function computeChargePower(heldMs)
     local c = getChargeConfig()
     local threshold = c.TapThresholdMs or 150

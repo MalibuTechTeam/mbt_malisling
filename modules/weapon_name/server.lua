@@ -26,8 +26,8 @@ end
 --- Trim, strip control chars/newlines, clamp length. Returns nil if empty.
 local function sanitize(name)
     if type(name) ~= 'string' then return nil end
-    name = name:gsub('[%c]', '')                    -- strip control chars + newlines
-    name = name:gsub('^%s+', ''):gsub('%s+$', '')   -- trim
+    name = name:gsub('[%c]', '')
+    name = name:gsub('^%s+', ''):gsub('%s+$', '')
     if name == '' then return nil end
     local max = cfg.MaxLength or 24
     if #name > max then name = name:sub(1, max) end
